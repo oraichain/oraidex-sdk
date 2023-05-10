@@ -82,48 +82,56 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     ''
   );
 
-  // get price from coingecko
-  const oraiPrice = await getCoingeckoPrice('oraichain-token');
+  const enterOrderFn = async () => {
+    // get price from coingecko
+    const oraiPrice = await getCoingeckoPrice('oraichain-token');
 
-  for (let i = 0; i < totalOrders; ++i) {
-    const msg = generateOrderMsg(oraiPrice, usdtToken.contractAddress);
+    for (let i = 0; i < totalOrders; ++i) {
+      const msg = generateOrderMsg(oraiPrice, usdtToken.contractAddress);
 
-    if ('submit_order' in msg) {
-      const submitOrderMsg = msg.submit_order;
-      const [base, quote] = submitOrderMsg.assets;
-      if (submitOrderMsg.direction === 'sell') {
-        orderbook.sender = aliceAddress;
-        await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
-      } else {
-        usdtToken.sender = aliceAddress;
-        await usdtToken.send({
-          amount: quote.amount,
-          contract: orderbook.contractAddress,
-          msg: toBinary(msg)
-        });
+      if ('submit_order' in msg) {
+        const submitOrderMsg = msg.submit_order;
+        const [base, quote] = submitOrderMsg.assets;
+        if (submitOrderMsg.direction === 'sell') {
+          orderbook.sender = aliceAddress;
+          await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
+        } else {
+          usdtToken.sender = aliceAddress;
+          await usdtToken.send({
+            amount: quote.amount,
+            contract: orderbook.contractAddress,
+            msg: toBinary(msg)
+          });
+        }
       }
     }
-  }
 
-  let aliceBalance = await usdtToken.balance({ address: aliceAddress });
-  console.log(aliceBalance);
+    let aliceBalance = await usdtToken.balance({ address: aliceAddress });
+    console.log(aliceBalance);
 
-  const queryAll = await orderbook.orders({
-    assetInfos,
-    orderBy: 1,
-    limit: Math.round(totalOrders * cancelPercentage),
-    filter: {
-      bidder: aliceAddress
-    }
-  });
-
-  for (const order of queryAll.orders) {
-    await orderbook.cancelOrder({
+    const queryAll = await orderbook.orders({
       assetInfos,
-      orderId: order.order_id
+      orderBy: 1,
+      limit: Math.round(totalOrders * cancelPercentage),
+      filter: {
+        bidder: aliceAddress
+      }
     });
-  }
 
-  aliceBalance = await usdtToken.balance({ address: aliceAddress });
-  console.log(aliceBalance);
+    for (const order of queryAll.orders) {
+      await orderbook.cancelOrder({
+        assetInfos,
+        orderId: order.order_id
+      });
+    }
+
+    aliceBalance = await usdtToken.balance({ address: aliceAddress });
+    console.log(aliceBalance);
+
+    // waiting for interval then re call again
+    // const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
+    // setTimeout(enterOrderFn, interval);
+  };
+
+  await enterOrderFn();
 })();
