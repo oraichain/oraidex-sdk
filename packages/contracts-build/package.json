@@ -1,0 +1,9 @@
+{
+  "name": "@oraichain/orderbook-contracts-build",
+  "version": "1.0.0",
+  "files": [
+    "data"
+  ],
+  "main": "index.ts",
+  "license": "MIT"
+}

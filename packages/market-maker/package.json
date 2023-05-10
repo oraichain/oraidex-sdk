@@ -1,0 +1,12 @@
+{
+  "name": "@oraichain/orderbook-market-maker",
+  "devDependencies": {},
+  "dependencies": {
+    "@oraichain/orderbook-contracts-build": "1.0.0",
+    "@oraichain/orderbook-contracts-sdk": "1.0.0"
+  },
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "ts-node src/index.ts"
+  }
+}
