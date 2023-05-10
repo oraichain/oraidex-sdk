@@ -21,3 +21,6 @@ typings/
 
 # Optional eslint cache
 .eslintcache
+
+# Enviroment
+.env
