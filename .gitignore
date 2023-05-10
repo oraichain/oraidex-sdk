@@ -22,5 +22,5 @@ typings/
 # Optional eslint cache
 .eslintcache
 
-# Enviroment
+# Ignore environment variables file
 .env
