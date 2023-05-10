@@ -8,6 +8,9 @@
   "workspaces": [
     "packages/*"
   ],
+  "engines": {
+    "node": ">=16 <=18"
+  },
   "dependencies": {
     "@cosmjs/amino": "^0.29.5",
     "@cosmjs/cosmwasm-stargate": "^0.29.5",

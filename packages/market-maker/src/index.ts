@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate';
 import { coin } from '@cosmjs/amino';
-import { atomic, deployOrderbook, deployToken, getCoingeckoPrice, getRandomPercentage, getSpreadPrice, getRandomRange, senderAddress, toDecimal } from './common';
+import { atomic, deployOrderbook, deployToken, getCoingeckoPrice, getRandomPercentage, getSpreadPrice, getRandomRange, senderAddress, toDecimal, aliceAddress, bobAddress, toDecimals } from './common';
 import { Addr, OraiswapLimitOrderTypes, OraiswapTokenClient, OrderDirection, Uint128 } from '@oraichain/orderbook-contracts-sdk';
 
 const client = new SimulateCosmWasmClient({
@@ -47,11 +47,16 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
 };
 
 (async () => {
-  const usdtToken = await deployToken(client, { symbol: 'USDT', name: 'USDT token' });
-  //   const orderbook = await deployOrderbook(client);
-  //   const info = await orderbook.contractInfo();
-
-  //   console.log(info.admin);
+  const usdtToken = await deployToken(client, {
+    symbol: 'USDT',
+    name: 'USDT token',
+    initial_balances: [
+      { address: aliceAddress, amount: toDecimals(10000) },
+      { address: bobAddress, amount: toDecimals(10000) }
+    ]
+  });
+  const orderbook = await deployOrderbook(client);
+  //
   const oraiPrice = await getCoingeckoPrice('oraichain-token');
 
   [...new Array(100)].forEach(() => {

@@ -2,12 +2,11 @@ import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenT
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { getContractDir } from '@oraichain/orderbook-contracts-build';
 
+export const bobAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
+export const aliceAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
 export const senderAddress = 'orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g';
 
-export const deployToken = async (
-  client: SimulateCosmWasmClient,
-  { symbol, name, decimals = 6, initial_balances = [{ address: senderAddress, amount: '1000000000' }] }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }
-): Promise<OraiswapTokenClient> => {
+export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name, decimals = 6, initial_balances }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }): Promise<OraiswapTokenClient> => {
   return new OraiswapTokenClient(
     client,
     senderAddress,
@@ -20,7 +19,7 @@ export const deployToken = async (
           symbol,
           name,
           mint: { minter: senderAddress },
-          initial_balances
+          initial_balances: [{ address: senderAddress, amount: '1000000000' }, ...initial_balances]
         },
         'token',
         'auto'
@@ -65,6 +64,10 @@ export const validateNumber = (amount: number | string): number => {
   if (typeof amount === 'string') return validateNumber(Number(amount));
   if (Number.isNaN(amount) || !Number.isFinite(amount)) return 0;
   return amount;
+};
+
+export const toDecimals = (num: number, decimals: number = 9): string => {
+  return (num * 10 ** decimals).toFixed();
 };
 
 // decimals always >= 6
