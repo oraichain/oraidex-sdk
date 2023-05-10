@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "postinstall": "patch-package",
-    "docs": "typedoc --entryPointStrategy expand --name 'Orderbook SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-gen/sdk"
+    "docs": "typedoc --entryPointStrategy expand --name 'Orderbook SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src"
   },
   "workspaces": [
     "packages/*"
