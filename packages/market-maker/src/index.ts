@@ -4,13 +4,15 @@ import { coin, coins } from '@cosmjs/amino';
 import { atomic, deployOrderbook, deployToken, getCoingeckoPrice, getRandomPercentage, getSpreadPrice, getRandomRange, senderAddress, toDecimal, aliceAddress, bobAddress, toDecimals } from './common';
 import { Addr, OraiswapLimitOrderTypes, OraiswapTokenClient, OrderDirection, Uint128 } from '@oraichain/orderbook-contracts-sdk';
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
+import { run as processOrder } from '@oraichain/orderbook-matching-relayer';
 
 const totalOrders = 10;
 const cancelPercentage = 0.15;
-const [orderIntervalMin, orderIntervalMax] = [5000, 30000];
+const [orderIntervalMin, orderIntervalMax] = [2000, 3000];
 const [spreadMin, spreadMax] = [0.003, 0.006];
 const [volumeMin, volumeMax] = [100000, 150000];
 const buyPercentage = 0.55;
+const maxRepeat = 2;
 
 const client = new SimulateCosmWasmClient({
   chainId: 'Oraichain',
@@ -81,8 +83,13 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     'auto',
     ''
   );
-
+  let timer: NodeJS.Timer;
+  let processInd = 0;
   const enterOrderFn = async () => {
+    if (processInd >= maxRepeat) {
+      clearTimeout(timer);
+      return;
+    }
     // get price from coingecko
     const oraiPrice = await getCoingeckoPrice('oraichain-token');
 
@@ -128,10 +135,13 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     aliceBalance = await usdtToken.balance({ address: aliceAddress });
     console.log(aliceBalance);
 
+    processInd++;
     // waiting for interval then re call again
-    // const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
-    // setTimeout(enterOrderFn, interval);
+    const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
+    timer = setTimeout(enterOrderFn, interval);
   };
 
   await enterOrderFn();
+
+  // processOrder(client, senderAddress, orderbook.contractAddress);
 })();
