@@ -12,8 +12,11 @@ const runMatchingEngine = async (client: SigningCosmWasmClient, senderAddress: s
     const query_matchable = await client.queryContractSmart(contractAddr!, pair_is_matchable);
 
     if (query_matchable.is_matchable === true) {
+      const start = new Date();
       console.log('execute_pair: ', JSON.stringify(pair));
       const tx = await client.execute(senderAddress, contractAddr!, pair, 'auto');
+      const end = new Date();
+      console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
       console.log('matching done - txHash: ', tx.transactionHash);
       return tx;
     }
@@ -48,8 +51,6 @@ export async function run(client: SigningCosmWasmClient, senderAddress: string, 
   while (true) {
     let { amount } = await client.getBalance(senderAddress, denom);
     console.log(`balance of ${senderAddress} is ${amount}`);
-    console.log({ contractAddr: contractAddr });
-    const start = new Date();
     try {
       let promiseAll: any[] = [];
       execute_pairs.map((item) => {
@@ -57,7 +58,5 @@ export async function run(client: SigningCosmWasmClient, senderAddress: string, 
       });
       await Promise.all(promiseAll);
     } catch (error) {}
-    const end = new Date();
-    console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
   }
 }
