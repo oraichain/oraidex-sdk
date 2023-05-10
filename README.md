@@ -9,9 +9,9 @@ cw-gents ../oraiswap/contracts/oraiswap_limit_order ../oraiswap/contracts/oraisw
 yarn docs
 
 # update comments:
-git apply patches/contracts-gen.patch
-# edit contracts-gen
-git diff packages/contracts-gen > patches/contracts-gen.patch
+git apply patches/contracts-sdk.patch
+# edit contracts-sdk
+git diff packages/contracts-sdk > patches/contracts-sdk.patch
 # rollback
-git checkout packages/contracts-gen/src/DsourceEmpty.client.ts
+git checkout packages/contracts-sdk
 ```
