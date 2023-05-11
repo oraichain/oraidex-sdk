@@ -93,7 +93,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
         const submitOrderMsg = msg.submit_order;
         const [base, quote] = submitOrderMsg.assets;
         const buyerBalance = await usdtToken.balance({ address: buyerAddress }).then((b) => BigInt(b.balance));
-        const sellerBalance = BigInt(client.app.bank.getBalance(sellerAddress).find((c) => c.denom === 'orai').amount);
+        const sellerBalance = await client.getBalance(sellerAddress, 'orai').then((b) => BigInt(b.amount));
         if (submitOrderMsg.direction === 'sell') {
           if (sellerBalance < BigInt(base.amount)) {
             continue;
@@ -123,7 +123,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
 
     console.log('Balance after matching:');
-    console.log({ buyer: client.app.bank.getBalance(buyerAddress).find((c) => c.denom === 'orai').amount + 'orai', seller: (await usdtToken.balance({ address: sellerAddress }).then((b) => b.balance)) + 'usdt' });
+    console.log({ buyer: await client.getBalance(buyerAddress, 'orai').then((b) => b.amount + 'orai'), seller: await usdtToken.balance({ address: sellerAddress }).then((b) => b.balance + 'usdt') });
 
     // waiting for interval then re call again
     const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
