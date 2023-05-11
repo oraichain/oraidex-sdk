@@ -98,12 +98,14 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
           if (sellerBalance < BigInt(base.amount)) {
             continue;
           }
+          console.log({ seller: sellerBalance.toString() + 'orai' });
           orderbook.sender = sellerAddress;
           await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
         } else {
           if (buyerBalance < BigInt(quote.amount)) {
             continue;
           }
+          console.log({ buyer: buyerBalance.toString() + 'usdt' });
           usdtToken.sender = buyerAddress;
           await usdtToken.send({
             amount: quote.amount,
@@ -111,8 +113,6 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
             msg: toBinary(msg)
           });
         }
-
-        console.log({ buyer: buyerBalance.toString() + 'usdt', seller: sellerBalance.toString() + 'orai' });
       }
     }
 
