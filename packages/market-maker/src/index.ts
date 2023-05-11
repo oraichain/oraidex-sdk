@@ -12,7 +12,7 @@ const [orderIntervalMin, orderIntervalMax] = [2000, 3000];
 const [spreadMin, spreadMax] = [0.003, 0.006];
 const [volumeMin, volumeMax] = [100000, 150000];
 const buyPercentage = 0.55;
-const maxRepeat = 2;
+const maxRepeat = 20;
 
 const client = new SimulateCosmWasmClient({
   chainId: 'Oraichain',
