@@ -11,8 +11,12 @@ const runMatchingEngine = async (client: SigningCosmWasmClient, senderAddress: s
   const query_matchable = await client.queryContractSmart(contractAddr!, pair_is_matchable);
 
   if (query_matchable.is_matchable === true) {
+    const start = new Date();
     console.log('execute_pair: ', JSON.stringify(pair));
     const tx = await client.execute(senderAddress, contractAddr!, pair, 'auto');
+    const end = new Date();
+    console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
+    console.log('matching done - txHash: ', tx.transactionHash);
     return tx;
   }
 };
@@ -21,7 +25,7 @@ export const delay = (milliseconds: number) => {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 };
 
-export async function matchingOrder(client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, denom = 'orai'): Promise<ExecuteResult[]> {
+export async function matchingOrder(client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, limit = 30, denom = 'orai'): Promise<ExecuteResult[]> {
   const allPair: OraiswapLimitOrderTypes.QueryMsg = {
     order_books: {}
   };
@@ -36,20 +40,15 @@ export async function matchingOrder(client: SigningCosmWasmClient, senderAddress
     let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
       execute_order_book_pair: {
         asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info],
-        limit: 30
+        limit
       }
     };
 
     execute_pairs.push(ex_pair);
   }
 
-  let { amount } = await client.getBalance(senderAddress, denom);
+  const { amount } = await client.getBalance(senderAddress, denom);
   console.log(`balance of ${senderAddress} is ${amount}`);
-  console.log({ contractAddr: contractAddr });
-
-  let promiseAll: any[] = [];
-  execute_pairs.map((item) => {
-    promiseAll.push(runMatchingEngine(client, senderAddress, contractAddr, item));
-  });
-  return (await Promise.all(promiseAll)).fill(Boolean);
+  const promiseAll = execute_pairs.map((item) => runMatchingEngine(client, senderAddress, contractAddr, item));
+  return (await Promise.all(promiseAll)).filter(Boolean);
 }
