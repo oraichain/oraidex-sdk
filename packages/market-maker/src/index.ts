@@ -122,6 +122,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     await cancelOrder(orderbook, sellerAddress, assetInfos, cancelLimit);
     await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
 
+    console.log('Balance after matching:');
     console.log({ buyer: client.app.bank.getBalance(buyerAddress).find((c) => c.denom === 'orai').amount + 'orai', seller: (await usdtToken.balance({ address: sellerAddress }).then((b) => b.balance)) + 'usdt' });
 
     // waiting for interval then re call again
