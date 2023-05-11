@@ -1,29 +1,27 @@
-import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { ExecuteResult, SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { OraiswapLimitOrderTypes } from '@oraichain/orderbook-contracts-sdk';
 
 const runMatchingEngine = async (client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, pair: any) => {
-  try {
-    const pair_is_matchable: OraiswapLimitOrderTypes.QueryMsg = {
-      order_book_matchable: {
-        asset_infos: pair.execute_order_book_pair.asset_infos
-      }
-    };
-
-    const query_matchable = await client.queryContractSmart(contractAddr!, pair_is_matchable);
-
-    if (query_matchable.is_matchable === true) {
-      console.log('execute_pair: ', JSON.stringify(pair));
-      const tx = await client.execute(senderAddress, contractAddr!, pair, 'auto');
-      console.log('matching done - txHash: ', tx.transactionHash);
-      return tx;
+  const pair_is_matchable: OraiswapLimitOrderTypes.QueryMsg = {
+    order_book_matchable: {
+      asset_infos: pair.execute_order_book_pair.asset_infos
     }
-  } catch (error) {
-    console.error(error);
-    return error;
+  };
+
+  const query_matchable = await client.queryContractSmart(contractAddr!, pair_is_matchable);
+
+  if (query_matchable.is_matchable === true) {
+    console.log('execute_pair: ', JSON.stringify(pair));
+    const tx = await client.execute(senderAddress, contractAddr!, pair, 'auto');
+    return tx;
   }
 };
 
-export async function run(client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, denom = 'orai'): Promise<void> {
+export const delay = (milliseconds: number) => {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+};
+
+export async function matchingOrder(client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, denom = 'orai'): Promise<ExecuteResult[]> {
   const allPair: OraiswapLimitOrderTypes.QueryMsg = {
     order_books: {}
   };
@@ -45,19 +43,13 @@ export async function run(client: SigningCosmWasmClient, senderAddress: string, 
     execute_pairs.push(ex_pair);
   }
 
-  while (true) {
-    let { amount } = await client.getBalance(senderAddress, denom);
-    console.log(`balance of ${senderAddress} is ${amount}`);
-    console.log({ contractAddr: contractAddr });
-    const start = new Date();
-    try {
-      let promiseAll: any[] = [];
-      execute_pairs.map((item) => {
-        promiseAll.push(runMatchingEngine(client, senderAddress, contractAddr, item));
-      });
-      await Promise.all(promiseAll);
-    } catch (error) {}
-    const end = new Date();
-    console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
-  }
+  let { amount } = await client.getBalance(senderAddress, denom);
+  console.log(`balance of ${senderAddress} is ${amount}`);
+  console.log({ contractAddr: contractAddr });
+
+  let promiseAll: any[] = [];
+  execute_pairs.map((item) => {
+    promiseAll.push(runMatchingEngine(client, senderAddress, contractAddr, item));
+  });
+  return (await Promise.all(promiseAll)).fill(Boolean);
 }

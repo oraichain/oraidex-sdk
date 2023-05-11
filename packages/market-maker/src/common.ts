@@ -1,52 +1,10 @@
-import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes } from '@oraichain/orderbook-contracts-sdk';
+import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { getContractDir } from '@oraichain/orderbook-contracts-build';
 
-export const bobAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
-export const aliceAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
-export const senderAddress = 'orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g';
-
-export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name, decimals = 6, initial_balances }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }): Promise<OraiswapTokenClient> => {
-  return new OraiswapTokenClient(
-    client,
-    senderAddress,
-    (
-      await client.deploy<OraiswapTokenTypes.InstantiateMsg>(
-        senderAddress,
-        getContractDir('oraiswap_token'),
-        {
-          decimals,
-          symbol,
-          name,
-          mint: { minter: senderAddress },
-          initial_balances: [{ address: senderAddress, amount: '1000000000' }, ...initial_balances]
-        },
-        'token',
-        'auto'
-      )
-    ).contractAddress
-  );
-};
-
-export const deployOrderbook = async (client: SimulateCosmWasmClient): Promise<OraiswapLimitOrderClient> => {
-  return new OraiswapLimitOrderClient(
-    client,
-    senderAddress,
-    (
-      await client.deploy<OraiswapLimitOrderTypes.InstantiateMsg>(
-        senderAddress,
-        getContractDir('oraiswap_limit_order'),
-        {
-          admin: senderAddress,
-          version: '0.0.1',
-          name: 'Orderbook'
-        },
-        'limit_order',
-        'auto'
-      )
-    ).contractAddress
-  );
-};
+export const sellerAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
+export const buyerAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
+export const ownerAddress = 'orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g';
 
 export const getRandomRange = (min: number, max: number): number => {
   return ((Math.random() * (max - min + 1)) << 0) + min;
@@ -76,11 +34,6 @@ export const toAmount = (amount: number, decimals = 6): bigint => {
   return BigInt(Math.trunc(validatedAmount * atomic)) * BigInt(10 ** (decimals - truncDecimals));
 };
 
-export const toDecimal = (numerator: bigint, denominator: bigint): number => {
-  if (denominator === BigInt(0)) return 0;
-  return toDisplay((numerator * BigInt(atomic)) / denominator, truncDecimals);
-};
-
 export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecimals = 6): number => {
   if (!amount) return 0;
   if (typeof amount === 'string' && amount.indexOf('.') !== -1) amount = amount.split('.')[0];
@@ -106,4 +59,65 @@ export const getSpreadPrice = (price: number, spreadDecimal: number, desDecimals
  */
 export const getRandomPercentage = () => {
   return Math.round(Math.random() * 99) + 1;
+};
+
+export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name, decimals = 6, initial_balances }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }): Promise<OraiswapTokenClient> => {
+  return new OraiswapTokenClient(
+    client,
+    ownerAddress,
+    (
+      await client.deploy<OraiswapTokenTypes.InstantiateMsg>(
+        ownerAddress,
+        getContractDir('oraiswap_token'),
+        {
+          decimals,
+          symbol,
+          name,
+          mint: { minter: ownerAddress },
+          initial_balances: [{ address: ownerAddress, amount: '1000000000' }, ...initial_balances]
+        },
+        'token',
+        'auto'
+      )
+    ).contractAddress
+  );
+};
+
+export const deployOrderbook = async (client: SimulateCosmWasmClient): Promise<OraiswapLimitOrderClient> => {
+  return new OraiswapLimitOrderClient(
+    client,
+    ownerAddress,
+    (
+      await client.deploy<OraiswapLimitOrderTypes.InstantiateMsg>(
+        ownerAddress,
+        getContractDir('oraiswap_limit_order'),
+        {
+          admin: ownerAddress,
+          version: '0.0.1',
+          name: 'Orderbook'
+        },
+        'limit_order',
+        'auto'
+      )
+    ).contractAddress
+  );
+};
+
+export const cancelOrder = async (orderbook: OraiswapLimitOrderClient, senderAddress: string, assetInfos: AssetInfo[], limit: number) => {
+  const queryAll = await orderbook.orders({
+    assetInfos,
+    orderBy: 1,
+    limit,
+    filter: {
+      bidder: senderAddress
+    }
+  });
+
+  orderbook.sender = senderAddress;
+  for (const order of queryAll.orders) {
+    await orderbook.cancelOrder({
+      assetInfos,
+      orderId: order.order_id
+    });
+  }
 };

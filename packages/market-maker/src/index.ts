@@ -1,10 +1,10 @@
 import 'dotenv/config';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate';
 import { coin, coins } from '@cosmjs/amino';
-import { atomic, deployOrderbook, deployToken, getCoingeckoPrice, getRandomPercentage, getSpreadPrice, getRandomRange, senderAddress, toDecimal, aliceAddress, bobAddress, toDecimals } from './common';
-import { Addr, OraiswapLimitOrderTypes, OraiswapTokenClient, OrderDirection, Uint128 } from '@oraichain/orderbook-contracts-sdk';
+import { atomic, deployOrderbook, deployToken, getCoingeckoPrice, getRandomPercentage, getSpreadPrice, getRandomRange, ownerAddress, buyerAddress, sellerAddress, toDecimals, cancelOrder } from './common';
+import { Addr, OraiswapLimitOrderTypes, OrderDirection } from '@oraichain/orderbook-contracts-sdk';
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
-import { run as processOrder } from '@oraichain/orderbook-matching-relayer';
+import { delay, matchingOrder } from '@oraichain/orderbook-matching-relayer';
 
 const totalOrders = 10;
 const cancelPercentage = 0.15;
@@ -19,7 +19,7 @@ const client = new SimulateCosmWasmClient({
   bech32Prefix: 'orai'
 });
 
-client.app.bank.setBalance(senderAddress, [coin(toDecimals(1000), 'orai')]);
+client.app.bank.setBalance(ownerAddress, [coin(toDecimals(1000), 'orai')]);
 
 const getRandomSpread = (min: number, max: number) => {
   return getRandomRange(min * atomic, max * atomic) / atomic;
@@ -60,16 +60,12 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
   const usdtToken = await deployToken(client, {
     symbol: 'USDT',
     name: 'USDT token',
-    initial_balances: [
-      { address: aliceAddress, amount: toDecimals(10000) },
-      { address: bobAddress, amount: toDecimals(10000) }
-    ]
+    initial_balances: [{ address: buyerAddress, amount: toDecimals(10000) }]
   });
-  const assetInfos = [{ native_token: { denom: 'orai' } }, { token: { contract_addr: usdtToken.contractAddress } }];
-
   // set orai balance
-  client.app.bank.setBalance(aliceAddress, [coin(toDecimals(5000), 'orai')]);
-  client.app.bank.setBalance(bobAddress, [coin(toDecimals(5000), 'orai')]);
+  client.app.bank.setBalance(sellerAddress, [coin(toDecimals(5000), 'orai')]);
+
+  const assetInfos = [{ native_token: { denom: 'orai' } }, { token: { contract_addr: usdtToken.contractAddress } }];
 
   // deploy orderbook and create pair
   const orderbook = await deployOrderbook(client);
@@ -85,11 +81,8 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
   );
   let timer: NodeJS.Timer;
   let processInd = 0;
-  const enterOrderFn = async () => {
-    if (processInd >= maxRepeat) {
-      clearTimeout(timer);
-      return;
-    }
+
+  while (processInd < maxRepeat) {
     // get price from coingecko
     const oraiPrice = await getCoingeckoPrice('oraichain-token');
 
@@ -100,10 +93,10 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
         const submitOrderMsg = msg.submit_order;
         const [base, quote] = submitOrderMsg.assets;
         if (submitOrderMsg.direction === 'sell') {
-          orderbook.sender = aliceAddress;
+          orderbook.sender = sellerAddress;
           await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
         } else {
-          usdtToken.sender = aliceAddress;
+          usdtToken.sender = buyerAddress;
           await usdtToken.send({
             amount: quote.amount,
             contract: orderbook.contractAddress,
@@ -113,35 +106,16 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
       }
     }
 
-    let aliceBalance = await usdtToken.balance({ address: aliceAddress });
-    console.log(aliceBalance);
+    // process matching
+    await matchingOrder(client, ownerAddress, orderbook.contractAddress);
+    const cancelLimit = Math.round(totalOrders * cancelPercentage);
+    await cancelOrder(orderbook, sellerAddress, assetInfos, cancelLimit);
+    await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
+    console.log('buyer balance', await usdtToken.balance({ address: buyerAddress }), 'seller balance', await usdtToken.balance({ address: sellerAddress }));
 
-    const queryAll = await orderbook.orders({
-      assetInfos,
-      orderBy: 1,
-      limit: Math.round(totalOrders * cancelPercentage),
-      filter: {
-        bidder: aliceAddress
-      }
-    });
-
-    for (const order of queryAll.orders) {
-      await orderbook.cancelOrder({
-        assetInfos,
-        orderId: order.order_id
-      });
-    }
-
-    aliceBalance = await usdtToken.balance({ address: aliceAddress });
-    console.log(aliceBalance);
-
-    processInd++;
     // waiting for interval then re call again
     const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
-    timer = setTimeout(enterOrderFn, interval);
-  };
-
-  await enterOrderFn();
-
-  // processOrder(client, senderAddress, orderbook.contractAddress);
+    await delay(interval);
+    processInd++;
+  }
 })();
