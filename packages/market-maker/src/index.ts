@@ -7,7 +7,7 @@ import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { delay, matchingOrder } from '@oraichain/orderbook-matching-relayer';
 
 const totalOrders = 10;
-const cancelPercentage = 0.15; // 100% cancel
+const cancelPercentage = 1; // 100% cancel
 const [orderIntervalMin, orderIntervalMax] = [50, 100];
 const [spreadMin, spreadMax] = [0.003, 0.006];
 const [volumeMin, volumeMax] = [100000, 150000];
@@ -98,14 +98,15 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
           if (sellerBalance < BigInt(base.amount)) {
             continue;
           }
-          console.log({ seller: sellerBalance.toString() + 'orai' });
+          // console.log({ seller: sellerBalance.toString() + 'orai' });
           orderbook.sender = sellerAddress;
+          // console.dir(submitOrderMsg, { depth: null });
           await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
         } else {
           if (buyerBalance < BigInt(quote.amount)) {
             continue;
           }
-          console.log({ buyer: buyerBalance.toString() + 'usdt' });
+          // console.log({ buyer: buyerBalance.toString() + 'usdt' });
           usdtToken.sender = buyerAddress;
           await usdtToken.send({
             amount: quote.amount,
@@ -119,8 +120,10 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     // process matching, use buyer to get orai faster to switch
     await matchingOrder(client, buyerAddress, orderbook.contractAddress);
     const cancelLimit = Math.round(totalOrders * cancelPercentage);
+    // console.log(orderbook.contractAddress, await client.getBalance(orderbook.contractAddress, 'orai'));
     await cancelOrder(orderbook, sellerAddress, assetInfos, cancelLimit);
-    await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
+    // console.log(orderbook.contractAddress, await client.getBalance(orderbook.contractAddress, 'orai'));
+    // await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
 
     console.log('Balance after matching:');
     console.log({ buyer: await client.getBalance(buyerAddress, 'orai').then((b) => b.amount + 'orai'), seller: await usdtToken.balance({ address: sellerAddress }).then((b) => b.balance + 'usdt') });
