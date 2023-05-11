@@ -7,7 +7,7 @@ import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { delay, matchingOrder } from '@oraichain/orderbook-matching-relayer';
 
 const totalOrders = 10;
-const cancelPercentage = 0.1; // 100% cancel
+const cancelPercentage = 1; // 100% cancel
 const [orderIntervalMin, orderIntervalMax] = [50, 100];
 const [spreadMin, spreadMax] = [0.003, 0.006];
 const [volumeMin, volumeMax] = [100000, 150000];
