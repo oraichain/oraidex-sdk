@@ -7,7 +7,6 @@ import { delay, matchingOrder } from './index';
 
 (async () => {
   const prefix = 'orai';
-  const denom = process.env.DENOM;
   const mnemonic = process.env['MNEMONIC'];
   const contractAddr = process.env.CONTRACT;
   if (!mnemonic || mnemonic.length < 48) {
@@ -27,7 +26,7 @@ import { delay, matchingOrder } from './index';
   while (true) {
     try {
       const start = Date.now();
-      const result = await matchingOrder(client, senderAddress, contractAddr, denom);
+      const result = await matchingOrder(client, senderAddress, contractAddr, 30, 'orai');
       console.log('matching time:', Date.now() - start, 'ms', 'result', result);
     } catch (error) {
       console.error(error);
