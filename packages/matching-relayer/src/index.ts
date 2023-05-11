@@ -15,7 +15,7 @@ const runMatchingEngine = async (client: SigningCosmWasmClient, senderAddress: s
     console.log('execute_pair: ', JSON.stringify(pair));
     const tx = await client.execute(senderAddress, contractAddr!, pair, 'auto');
     const end = new Date();
-    console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
+    console.log(`matching time: ${end.getTime() - start.getTime()}ms`, await client.getHeight());
     console.log('matching done - txHash: ', tx.transactionHash);
     return tx;
   }
