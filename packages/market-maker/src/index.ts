@@ -7,12 +7,12 @@ import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { delay, matchingOrder } from '@oraichain/orderbook-matching-relayer';
 
 const totalOrders = 10;
-const cancelPercentage = 0.15;
-const [orderIntervalMin, orderIntervalMax] = [2000, 3000];
+const cancelPercentage = 0.15; // 100% cancel
+const [orderIntervalMin, orderIntervalMax] = [50, 100];
 const [spreadMin, spreadMax] = [0.003, 0.006];
 const [volumeMin, volumeMax] = [100000, 150000];
 const buyPercentage = 0.55;
-const maxRepeat = 20;
+const maxRepeat = 5;
 
 const client = new SimulateCosmWasmClient({
   chainId: 'Oraichain',
@@ -92,10 +92,18 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
       if ('submit_order' in msg) {
         const submitOrderMsg = msg.submit_order;
         const [base, quote] = submitOrderMsg.assets;
+        const buyerBalance = await usdtToken.balance({ address: buyerAddress }).then((b) => BigInt(b.balance));
+        const sellerBalance = BigInt(client.app.bank.getBalance(sellerAddress).find((c) => c.denom === 'orai').amount);
         if (submitOrderMsg.direction === 'sell') {
+          if (sellerBalance < BigInt(base.amount)) {
+            continue;
+          }
           orderbook.sender = sellerAddress;
           await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
         } else {
+          if (buyerBalance < BigInt(quote.amount)) {
+            continue;
+          }
           usdtToken.sender = buyerAddress;
           await usdtToken.send({
             amount: quote.amount,
@@ -103,6 +111,8 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
             msg: toBinary(msg)
           });
         }
+
+        console.log({ buyer: buyerBalance.toString() + 'usdt', seller: sellerBalance.toString() + 'orai' });
       }
     }
 
@@ -111,7 +121,8 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     const cancelLimit = Math.round(totalOrders * cancelPercentage);
     await cancelOrder(orderbook, sellerAddress, assetInfos, cancelLimit);
     await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
-    console.log('buyer balance', await usdtToken.balance({ address: buyerAddress }), 'seller balance', await usdtToken.balance({ address: sellerAddress }));
+
+    console.log({ buyer: client.app.bank.getBalance(buyerAddress).find((c) => c.denom === 'orai').amount + 'orai', seller: (await usdtToken.balance({ address: sellerAddress }).then((b) => b.balance)) + 'usdt' });
 
     // waiting for interval then re call again
     const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
