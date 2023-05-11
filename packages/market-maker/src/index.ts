@@ -116,8 +116,8 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
       }
     }
 
-    // process matching
-    await matchingOrder(client, ownerAddress, orderbook.contractAddress);
+    // process matching, use buyer to get orai faster to switch
+    await matchingOrder(client, buyerAddress, orderbook.contractAddress);
     const cancelLimit = Math.round(totalOrders * cancelPercentage);
     await cancelOrder(orderbook, sellerAddress, assetInfos, cancelLimit);
     await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
