@@ -25,7 +25,7 @@ export const delay = (milliseconds: number) => {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 };
 
-export async function matchingOrder(client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, limit = 30, denom = 'orai'): Promise<ExecuteResult[]> {
+export async function matchingOrders(client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, limit = 30, denom = 'orai'): Promise<ExecuteResult[]> {
   const allPair: OraiswapLimitOrderTypes.QueryMsg = {
     order_books: {}
   };

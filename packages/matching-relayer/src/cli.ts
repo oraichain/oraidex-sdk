@@ -3,7 +3,7 @@ import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { stringToPath } from '@cosmjs/crypto';
 import { GasPrice } from '@cosmjs/stargate';
-import { delay, matchingOrder } from './index';
+import { delay, matchingOrders } from './index';
 
 (async () => {
   const prefix = 'orai';
@@ -26,7 +26,7 @@ import { delay, matchingOrder } from './index';
   while (true) {
     try {
       const start = Date.now();
-      const result = await matchingOrder(client, senderAddress, contractAddr, 30, 'orai');
+      const result = await matchingOrders(client, senderAddress, contractAddr, 30, 'orai');
       console.log('matching time:', Date.now() - start, 'ms', 'result', result);
     } catch (error) {
       console.error(error);
