@@ -1,10 +1,30 @@
 import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { getContractDir } from '@oraichain/orderbook-contracts-build';
+import crypto from 'crypto';
 
 export const sellerAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
 export const buyerAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
 export const ownerAddress = 'orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g';
+
+export const encrypt = (password: crypto.BinaryLike, val: string) => {
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  const ENC_KEY = hash.substring(0, 32);
+  const IV = hash.substring(32, 16);
+  let cipher = crypto.createCipheriv('aes-256-cbc', ENC_KEY, IV);
+  let encrypted = cipher.update(val, 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+  return encrypted;
+};
+
+export const decrypt = (password: crypto.BinaryLike, encrypted: string) => {
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  const ENC_KEY = hash.substring(0, 32);
+  const IV = hash.substring(32, 16);
+  let decipher = crypto.createDecipheriv('aes-256-cbc', ENC_KEY, IV);
+  let decrypted = decipher.update(encrypted, 'base64', 'utf8');
+  return decrypted + decipher.final('utf8');
+};
 
 export const getRandomRange = (min: number, max: number): number => {
   return ((Math.random() * (max - min + 1)) << 0) + min;
