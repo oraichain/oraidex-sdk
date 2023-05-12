@@ -6,12 +6,13 @@ import { Addr, OraiswapLimitOrderTypes, OrderDirection } from '@oraichain/orderb
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { delay, matchingOrder } from '@oraichain/orderbook-matching-relayer';
 
+const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% cancel
+const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE ? process.env.ORDER_INTERVAL_RANGE.split(',').map(Number) : [50, 100];
+const [spreadMin, spreadMax] = process.env.SPREAD_RANGE ? process.env.SPREAD_RANGE.split(',').map(Number) : [0.003, 0.006];
+const [volumeMin, volumeMax] = process.env.VOLUME_RANGE ? process.env.VOLUME_RANGE.split(',').map(Number) : [100000, 150000];
+const buyPercentage = Number(process.env.BUY_PERCENTAGE || 0.55);
+
 const totalOrders = 10;
-const cancelPercentage = 1; // 100% cancel
-const [orderIntervalMin, orderIntervalMax] = [50, 100];
-const [spreadMin, spreadMax] = [0.003, 0.006];
-const [volumeMin, volumeMax] = [100000, 150000];
-const buyPercentage = 0.55;
 const maxRepeat = 5;
 
 const client = new SimulateCosmWasmClient({
@@ -79,7 +80,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr): Oraiswa
     'auto',
     ''
   );
-  let timer: NodeJS.Timer;
+
   let processInd = 0;
 
   while (processInd < maxRepeat) {
