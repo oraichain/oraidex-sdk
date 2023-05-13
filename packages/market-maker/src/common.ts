@@ -1,6 +1,6 @@
 import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
-import { getContractDir } from '@oraichain/orderbook-contracts-build';
+import { deployContract } from '@oraichain/orderbook-contracts-build';
 
 export const sellerAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
 export const buyerAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
@@ -66,9 +66,9 @@ export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name
     client,
     ownerAddress,
     (
-      await client.deploy<OraiswapTokenTypes.InstantiateMsg>(
+      await deployContract<OraiswapTokenTypes.InstantiateMsg>(
+        client,
         ownerAddress,
-        getContractDir('oraiswap_token'),
         {
           decimals,
           symbol,
@@ -77,7 +77,7 @@ export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name
           initial_balances: [{ address: ownerAddress, amount: '1000000000' }, ...initial_balances]
         },
         'token',
-        'auto'
+        'oraiswap_token'
       )
     ).contractAddress
   );
@@ -88,16 +88,17 @@ export const deployOrderbook = async (client: SimulateCosmWasmClient): Promise<O
     client,
     ownerAddress,
     (
-      await client.deploy<OraiswapLimitOrderTypes.InstantiateMsg>(
+      await deployContract<OraiswapLimitOrderTypes.InstantiateMsg>(
+        client,
         ownerAddress,
-        getContractDir('oraiswap_limit_order'),
+
         {
           admin: ownerAddress,
           version: '0.0.1',
           name: 'Orderbook'
         },
         'limit_order',
-        'auto'
+        'oraiswap_limit_order'
       )
     ).contractAddress
   );
