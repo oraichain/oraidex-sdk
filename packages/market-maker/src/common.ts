@@ -1,5 +1,4 @@
 import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
-import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { deployContract } from '@oraichain/orderbook-contracts-build';
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
@@ -43,6 +42,7 @@ export async function setupWallet(mnemonic: string): Promise<UserWallet> {
     gasPrice: GasPrice.fromString('0.002orai'),
     prefix
   });
+
   return { address, client };
 }
 
@@ -102,9 +102,9 @@ export const getRandomPercentage = () => {
 };
 
 export const deployToken = async (
-  client: SimulateCosmWasmClient,
+  client: SigningCosmWasmClient,
   senderAddress: string,
-  { symbol, name, decimals = 6, initial_balances }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }
+  { symbol, name, decimals = 6, initial_balances = [] }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }
 ): Promise<OraiswapTokenClient> => {
   return new OraiswapTokenClient(
     client,
@@ -127,7 +127,7 @@ export const deployToken = async (
   );
 };
 
-export const deployOrderbook = async (client: SimulateCosmWasmClient, senderAddress: string): Promise<OraiswapLimitOrderClient> => {
+export const deployOrderbook = async (client: SigningCosmWasmClient, senderAddress: string): Promise<OraiswapLimitOrderClient> => {
   return new OraiswapLimitOrderClient(
     client,
     senderAddress,
