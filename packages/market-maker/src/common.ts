@@ -1,6 +1,10 @@
 import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { getContractDir } from '@oraichain/orderbook-contracts-build';
+import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
+import { GasPrice } from '@cosmjs/stargate';
+import { stringToPath } from '@cosmjs/crypto';
 import crypto from 'crypto';
 
 export const sellerAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
@@ -24,6 +28,24 @@ export const decrypt = (password: crypto.BinaryLike, encrypted: string) => {
   let decipher = crypto.createDecipheriv('aes-256-cbc', ENC_KEY, IV);
   let decrypted = decipher.update(encrypted, 'base64', 'utf8');
   return decrypted + decipher.final('utf8');
+};
+
+export async function setupWallet(mnemonic: string): Promise<{ address: string; client: SigningCosmWasmClient; }> {
+  const prefix = 'orai';
+  if (!mnemonic || mnemonic.length < 48) {
+    throw new Error('Must set MNEMONIC to a 12 word phrase');
+  }
+  const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
+    hdPaths: [stringToPath(process.env.HD_PATH || "m/44'/118'/0'/0/0")],
+    prefix
+  });
+  const [firstAccount] = await wallet.getAccounts();
+  const address = firstAccount.address;
+  const client = await SigningCosmWasmClient.connectWithSigner(process.env.RPC_URL!, wallet, {
+    gasPrice: GasPrice.fromString('0.002orai'),
+    prefix
+  });
+  return {address, client};
 };
 
 export const getRandomRange = (min: number, max: number): number => {
