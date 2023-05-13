@@ -17,3 +17,11 @@ export const deployContract = async <T>(client: SigningCosmWasmClient, senderAdd
   const initRes = await client.instantiate(senderAddress, uploadRes.codeId, msg, label, 'auto');
   return { ...uploadRes, ...initRes };
 };
+
+export const migrateContract = async <T>(client: SigningCosmWasmClient, senderAddress: string, contractAddress: string, msg: T, label: string, contractName?: ContractName) => {
+  // upload and instantiate the contract
+  const wasmBytecode = readFileSync(getContractDir(contractName));
+  const uploadRes = await client.upload(senderAddress, wasmBytecode, 'auto');
+  const migrateRes = await client.migrate(senderAddress, contractAddress, uploadRes.codeId, msg, 'auto');
+  return { ...uploadRes, ...migrateRes };
+};
