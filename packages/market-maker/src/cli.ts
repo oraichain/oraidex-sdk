@@ -1,13 +1,16 @@
 import 'dotenv/config';
-import { coin } from '@cosmjs/amino';
 import { delay } from '@oraichain/orderbook-matching-relayer';
-import { SimulateCosmWasmClient } from '@terran-one/cw-simulate';
-import { MakeOrderConfig, makeOrders, buyerAddress, deployOrderbook, deployToken, getCoingeckoPrice, getRandomRange, ownerAddress, sellerAddress, toDecimals } from './index';
+import { MakeOrderConfig, makeOrders, getCoingeckoPrice, getRandomRange, decrypt, setupWallet } from './index';
+import { OraiswapLimitOrderClient, OraiswapTokenClient } from '@oraichain/orderbook-contracts-sdk';
+import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 
 const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% cancel
 const [volumeMin, volumeMax] = process.env.VOLUME_RANGE ? process.env.VOLUME_RANGE.split(',').map(Number) : [100000, 150000];
 const buyPercentage = Number(process.env.BUY_PERCENTAGE || 0.55);
 const [spreadMin, spreadMax] = process.env.SPREAD_RANGE ? process.env.SPREAD_RANGE.split(',').map(Number) : [0.003, 0.006];
+const orderBookContractAddr = process.env.ORDERBOOK_CONTRACT;
+const usdtContractAddr = process.env.USDT_CONTRACT;
+
 const orderConfig: MakeOrderConfig = {
   cancelPercentage,
   volumeMin,
@@ -20,45 +23,45 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE ? 
 const maxRepeat = 5;
 const totalOrders = 10;
 
-const client = new SimulateCosmWasmClient({
-  chainId: 'Oraichain',
-  bech32Prefix: 'orai'
-});
+const getBuyerAndSeller = async () => {
+  // for simulating
+  if ((process.env.NODE_ENV = 'test')) {
+    const client = new SimulateCosmWasmClient({
+      chainId: 'Oraichain',
+      bech32Prefix: 'orai'
+    });
+    return [
+      { client, address: 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv' },
+      { client, address: 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj' }
+    ];
+  }
+  const buyerMnemonic = decrypt(process.env.BUYER_MNEMONIC_PASS, process.env.BUYER_MNEMONIC_ENCRYPTED);
+  const buyerWallet = await setupWallet(buyerMnemonic);
+  const sellerMnemonic = decrypt(process.env.SELLER_MNEMONIC_PASS, process.env.SELLER_MNEMONIC_ENCRYPTED);
+  const sellerWallet = await setupWallet(sellerMnemonic);
 
-client.app.bank.setBalance(ownerAddress, [coin(toDecimals(1000), 'orai')]);
+  return [buyerWallet, sellerWallet];
+};
 
 (async () => {
-  const usdtToken = await deployToken(client, {
-    symbol: 'USDT',
-    name: 'USDT token',
-    initial_balances: [{ address: buyerAddress, amount: toDecimals(10000) }]
-  });
-  // set orai balance
-  client.app.bank.setBalance(sellerAddress, [coin(toDecimals(5000), 'orai')]);
+  const [buyerWallet, sellerWallet] = await getBuyerAndSeller();
+  console.log('buyerWallet address: ', buyerWallet.address, 'sellerWallet address: ', sellerWallet.address);
 
-  const assetInfos = [{ native_token: { denom: 'orai' } }, { token: { contract_addr: usdtToken.contractAddress } }];
+  const usdtToken = new OraiswapTokenClient(null, null, usdtContractAddr);
+  const orderBook = new OraiswapLimitOrderClient(null, null, orderBookContractAddr);
 
-  // deploy orderbook and create pair
-  const orderbook = await deployOrderbook(client);
-  await orderbook.createOrderBookPair(
-    {
-      baseCoinInfo: assetInfos[0],
-      quoteCoinInfo: assetInfos[1],
-      spread: '0.5',
-      minQuoteCoinAmount: '10'
-    },
-    'auto',
-    ''
-  );
   // get price from coingecko
   const oraiPrice = await getCoingeckoPrice('oraichain-token');
 
   let processInd = 0;
   while (processInd < maxRepeat) {
-    await makeOrders(usdtToken, orderbook, oraiPrice, totalOrders, orderConfig);
+    await makeOrders(buyerWallet, sellerWallet, usdtToken, orderBook, oraiPrice, totalOrders, orderConfig);
 
     console.log('Balance after matching:');
-    console.log({ buyer: await client.getBalance(buyerAddress, 'orai').then((b) => b.amount + 'orai'), seller: await usdtToken.balance({ address: sellerAddress }).then((b) => b.balance + 'usdt') });
+    console.log({
+      buyer: await buyerWallet.client.getBalance(buyerWallet.address, 'orai').then((b) => b.amount + 'orai'),
+      seller: await usdtToken.balance({ address: sellerWallet.address }).then((b) => b.balance + 'usdt')
+    });
 
     // waiting for interval then re call again
     const interval = getRandomRange(orderIntervalMin, orderIntervalMax);

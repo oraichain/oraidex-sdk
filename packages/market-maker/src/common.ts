@@ -1,10 +1,50 @@
 import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { deployContract } from '@oraichain/orderbook-contracts-build';
+import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
+import { GasPrice } from '@cosmjs/stargate';
+import { stringToPath } from '@cosmjs/crypto';
+import crypto from 'crypto';
 
-export const sellerAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
-export const buyerAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
-export const ownerAddress = 'orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g';
+export const encrypt = (password: crypto.BinaryLike, val: string) => {
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  const ENC_KEY = hash.substring(0, 32);
+  const IV = hash.substring(32, 16);
+  let cipher = crypto.createCipheriv('aes-256-cbc', ENC_KEY, IV);
+  let encrypted = cipher.update(val, 'utf8', 'base64');
+  encrypted += cipher.final('base64');
+  return encrypted;
+};
+
+export const decrypt = (password: crypto.BinaryLike, encrypted: string) => {
+  const hash = crypto.createHash('sha256').update(password).digest('hex');
+  const ENC_KEY = hash.substring(0, 32);
+  const IV = hash.substring(32, 16);
+  let decipher = crypto.createDecipheriv('aes-256-cbc', ENC_KEY, IV);
+  let decrypted = decipher.update(encrypted, 'base64', 'utf8');
+  return decrypted + decipher.final('utf8');
+};
+
+export type UserWallet = { address: string; client: SigningCosmWasmClient };
+
+export async function setupWallet(mnemonic: string): Promise<UserWallet> {
+  const prefix = 'orai';
+  if (!mnemonic || mnemonic.length < 48) {
+    throw new Error('Must set MNEMONIC to a 12 word phrase');
+  }
+  const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
+    hdPaths: [stringToPath(process.env.HD_PATH || "m/44'/118'/0'/0/0")],
+    prefix
+  });
+  const [firstAccount] = await wallet.getAccounts();
+  const address = firstAccount.address;
+  const client = await SigningCosmWasmClient.connectWithSigner(process.env.RPC_URL!, wallet, {
+    gasPrice: GasPrice.fromString('0.002orai'),
+    prefix
+  });
+  return { address, client };
+}
 
 export const getRandomRange = (min: number, max: number): number => {
   return ((Math.random() * (max - min + 1)) << 0) + min;
@@ -61,20 +101,24 @@ export const getRandomPercentage = () => {
   return Math.round(Math.random() * 99) + 1;
 };
 
-export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name, decimals = 6, initial_balances }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }): Promise<OraiswapTokenClient> => {
+export const deployToken = async (
+  client: SimulateCosmWasmClient,
+  senderAddress: string,
+  { symbol, name, decimals = 6, initial_balances }: { symbol: string; name: string; decimals?: number; initial_balances?: Cw20Coin[] }
+): Promise<OraiswapTokenClient> => {
   return new OraiswapTokenClient(
     client,
-    ownerAddress,
+    senderAddress,
     (
       await deployContract<OraiswapTokenTypes.InstantiateMsg>(
         client,
-        ownerAddress,
+        senderAddress,
         {
           decimals,
           symbol,
           name,
-          mint: { minter: ownerAddress },
-          initial_balances: [{ address: ownerAddress, amount: '1000000000' }, ...initial_balances]
+          mint: { minter: senderAddress },
+          initial_balances: [{ address: senderAddress, amount: '1000000000' }, ...initial_balances]
         },
         'token',
         'oraiswap_token'
@@ -83,17 +127,17 @@ export const deployToken = async (client: SimulateCosmWasmClient, { symbol, name
   );
 };
 
-export const deployOrderbook = async (client: SimulateCosmWasmClient): Promise<OraiswapLimitOrderClient> => {
+export const deployOrderbook = async (client: SimulateCosmWasmClient, senderAddress: string): Promise<OraiswapLimitOrderClient> => {
   return new OraiswapLimitOrderClient(
     client,
-    ownerAddress,
+    senderAddress,
     (
       await deployContract<OraiswapLimitOrderTypes.InstantiateMsg>(
         client,
-        ownerAddress,
+        senderAddress,
 
         {
-          admin: ownerAddress,
+          admin: senderAddress,
           version: '0.0.1',
           name: 'Orderbook'
         },
@@ -104,17 +148,17 @@ export const deployOrderbook = async (client: SimulateCosmWasmClient): Promise<O
   );
 };
 
-export const cancelOrder = async (orderbook: OraiswapLimitOrderClient, senderAddress: string, assetInfos: AssetInfo[], limit: number) => {
+export const cancelOrder = async (orderbook: OraiswapLimitOrderClient, sender: UserWallet, assetInfos: AssetInfo[], limit: number) => {
   const queryAll = await orderbook.orders({
     assetInfos,
     orderBy: 1,
     limit,
     filter: {
-      bidder: senderAddress
+      bidder: sender.address
     }
   });
-
-  orderbook.sender = senderAddress;
+  orderbook.client = sender.client;
+  orderbook.sender = sender.address;
   for (const order of queryAll.orders) {
     await orderbook.cancelOrder({
       assetInfos,

@@ -2,7 +2,7 @@ import { coins } from '@cosmjs/amino';
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { Addr, OraiswapLimitOrderClient, OraiswapLimitOrderTypes, OraiswapTokenClient, OrderDirection } from '@oraichain/orderbook-contracts-sdk';
 import { matchingOrders } from '@oraichain/orderbook-matching-relayer';
-import { atomic, buyerAddress, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice, sellerAddress } from './common';
+import { UserWallet, atomic, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice } from './common';
 
 export type MakeOrderConfig = {
   spreadMin: number;
@@ -48,34 +48,36 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
   };
 };
 
-export async function makeOrders(token: OraiswapTokenClient, orderbook: OraiswapLimitOrderClient, oraiPrice: number, totalOrders: number, config: MakeOrderConfig, limit = 30, denom = 'orai') {
-  const assetInfos = [{ native_token: { denom } }, { token: { contract_addr: token.contractAddress } }];
+export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToken: OraiswapTokenClient, orderBook: OraiswapLimitOrderClient, oraiPrice: number, totalOrders: number, config: MakeOrderConfig, limit = 30, denom = 'orai') {
+  const assetInfos = [{ native_token: { denom } }, { token: { contract_addr: usdtToken.contractAddress } }];
 
   for (let i = 0; i < totalOrders; ++i) {
-    const msg = generateOrderMsg(oraiPrice, token.contractAddress, config);
+    const msg = generateOrderMsg(oraiPrice, usdtToken.contractAddress, config);
 
     if ('submit_order' in msg) {
       const submitOrderMsg = msg.submit_order;
       const [base, quote] = submitOrderMsg.assets;
-      const buyerBalance = await token.balance({ address: buyerAddress }).then((b) => BigInt(b.balance));
-      const sellerBalance = await orderbook.client.getBalance(sellerAddress, 'orai').then((b) => BigInt(b.amount));
+      const buyerBalance = await usdtToken.balance({ address: buyer.address }).then((b) => BigInt(b.balance));
+      const sellerBalance = await seller.client.getBalance(seller.address, 'orai').then((b) => BigInt(b.amount));
       if (submitOrderMsg.direction === 'sell') {
         if (sellerBalance < BigInt(base.amount)) {
           continue;
         }
-        // console.log({ seller: sellerBalance.toString() + 'orai' });
-        orderbook.sender = sellerAddress;
+        console.log({ seller: sellerBalance.toString() + 'orai' });
+        orderBook.client = seller.client;
+        orderBook.sender = seller.address;
         // console.dir(submitOrderMsg, { depth: null });
-        await orderbook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
+        await orderBook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
       } else {
         if (buyerBalance < BigInt(quote.amount)) {
           continue;
         }
-        // console.log({ buyer: buyerBalance.toString() + 'usdt' });
-        token.sender = buyerAddress;
-        await token.send({
+        console.log({ buyer: buyerBalance.toString() + 'usdt' });
+        usdtToken.client = buyer.client;
+        usdtToken.sender = buyer.address;
+        await usdtToken.send({
           amount: quote.amount,
-          contract: orderbook.contractAddress,
+          contract: orderBook.contractAddress,
           msg: toBinary(msg)
         });
       }
@@ -83,12 +85,12 @@ export async function makeOrders(token: OraiswapTokenClient, orderbook: Oraiswap
   }
 
   // process matching, use buyer to get orai faster to switch
-  await matchingOrders(orderbook.client, buyerAddress, orderbook.contractAddress, limit, denom);
+  await matchingOrders(buyer.client, buyer.address, orderBook.contractAddress, limit, denom);
   const cancelLimit = Math.round(totalOrders * config.cancelPercentage);
   // console.log(orderbook.contractAddress, await client.getBalance(orderbook.contractAddress, 'orai'));
-  await cancelOrder(orderbook, sellerAddress, assetInfos, cancelLimit);
+  await cancelOrder(orderBook, seller, assetInfos, cancelLimit);
   // console.log(orderbook.contractAddress, await client.getBalance(orderbook.contractAddress, 'orai'));
-  // await cancelOrder(orderbook, buyerAddress, assetInfos, cancelLimit);
+  await cancelOrder(orderBook, buyer, assetInfos, cancelLimit);
 }
 
 export * from './common';
