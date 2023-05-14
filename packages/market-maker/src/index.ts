@@ -3,6 +3,7 @@ import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { Addr, OraiswapLimitOrderClient, OraiswapLimitOrderTypes, OraiswapTokenClient, OrderDirection } from '@oraichain/orderbook-contracts-sdk';
 import { matchingOrders } from '@oraichain/orderbook-matching-relayer';
 import { UserWallet, atomic, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice } from './common';
+import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 
 export type MakeOrderConfig = {
   spreadMin: number;
@@ -50,7 +51,8 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
 
 export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToken: OraiswapTokenClient, orderBook: OraiswapLimitOrderClient, oraiPrice: number, totalOrders: number, config: MakeOrderConfig, limit = 30, denom = 'orai') {
   const assetInfos = [{ native_token: { denom } }, { token: { contract_addr: usdtToken.contractAddress } }];
-
+  const multipleBuyMsg: ExecuteInstruction[] = [];
+  const multipleSellMsg: ExecuteInstruction[] = [];
   for (let i = 0; i < totalOrders; ++i) {
     const msg = generateOrderMsg(oraiPrice, usdtToken.contractAddress, config);
 
@@ -63,11 +65,17 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
         if (sellerBalance < BigInt(base.amount)) {
           continue;
         }
+        const sellMsg: ExecuteInstruction = {
+          contractAddress: orderBook.contractAddress,
+          msg: msg,
+          funds: [{ amount: base.amount, denom: 'orai' }]
+        };
+
+        multipleSellMsg.push(sellMsg);
         console.log({ seller: sellerBalance.toString() + 'orai' });
         orderBook.client = seller.client;
         orderBook.sender = seller.address;
         // console.dir(submitOrderMsg, { depth: null });
-        await orderBook.submitOrder(submitOrderMsg, 'auto', undefined, coins(base.amount, 'orai'));
       } else {
         if (buyerBalance < BigInt(quote.amount)) {
           continue;
@@ -75,13 +83,32 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
         console.log({ buyer: buyerBalance.toString() + 'usdt' });
         usdtToken.client = buyer.client;
         usdtToken.sender = buyer.address;
-        await usdtToken.send({
-          amount: quote.amount,
-          contract: orderBook.contractAddress,
-          msg: toBinary(msg)
-        });
+        const buyMsg: ExecuteInstruction = {
+          contractAddress: usdtToken.contractAddress,
+          msg: {
+            send: {
+              amount: quote.amount,
+              contract: orderBook.contractAddress,
+              msg: toBinary(msg)
+            }
+          }
+        };
+
+        multipleBuyMsg.push(buyMsg);
       }
     }
+  }
+  console.log('multipleBuyOrders: ', JSON.stringify(multipleBuyMsg));
+  console.log('multipleSellOrders: ', JSON.stringify(multipleSellMsg));
+  if (multipleBuyMsg.length > 0) {
+    const buyResult = await buyer.client.executeMultiple(buyer.address, multipleBuyMsg, "auto");
+    console.log('buyResult:', buyResult);
+    multipleBuyMsg.splice(0, multipleBuyMsg.length);
+  }
+  if (multipleSellMsg.length > 0) {
+    const sellResult = await seller.client.executeMultiple(seller.address, multipleSellMsg, "auto");
+    console.log('sellResult:', sellResult);
+    multipleSellMsg.splice(0, multipleSellMsg.length);
   }
 
   // process matching, use buyer to get orai faster to switch
