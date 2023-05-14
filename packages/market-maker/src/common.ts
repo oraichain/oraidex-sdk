@@ -1,6 +1,6 @@
 import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
 import { deployContract } from '@oraichain/orderbook-contracts-build';
-import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { SigningCosmWasmClient, ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { GasPrice } from '@cosmjs/stargate';
 import { stringToPath } from '@cosmjs/crypto';
@@ -159,10 +159,23 @@ export const cancelOrder = async (orderbook: OraiswapLimitOrderClient, sender: U
   });
   orderbook.client = sender.client;
   orderbook.sender = sender.address;
+
+  const multipleCancelMsg: ExecuteInstruction[] = [];
   for (const order of queryAll.orders) {
-    await orderbook.cancelOrder({
-      assetInfos,
-      orderId: order.order_id
-    });
+    const cancelMsg: ExecuteInstruction = {
+      contractAddress: orderbook.contractAddress,
+      msg: {
+        cancel_order: {
+          asset_infos: assetInfos,
+          order_id: order.order_id
+        }
+      },
+    };
+    multipleCancelMsg.push(cancelMsg);
+  }
+  if (multipleCancelMsg.length > 0) {
+    const cancelResult = await orderbook.client.executeMultiple(orderbook.sender, multipleCancelMsg, "auto");
+    console.log('cancelResult: ', cancelResult);
+    multipleCancelMsg.splice(0, multipleCancelMsg.length);
   }
 };
