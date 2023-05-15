@@ -73,16 +73,12 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
 
         multipleSellMsg.push(sellMsg);
         console.log({ seller: sellerBalance.toString() + 'orai' });
-        orderBook.client = seller.client;
-        orderBook.sender = seller.address;
         // console.dir(submitOrderMsg, { depth: null });
       } else {
         if (buyerBalance < BigInt(quote.amount)) {
           continue;
         }
         console.log({ buyer: buyerBalance.toString() + 'usdt' });
-        usdtToken.client = buyer.client;
-        usdtToken.sender = buyer.address;
         const buyMsg: ExecuteInstruction = {
           contractAddress: usdtToken.contractAddress,
           msg: {
@@ -105,12 +101,10 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   if (multipleBuyMsg.length > 0) {
     const buyResult = await buyer.client.executeMultiple(buyer.address, multipleBuyMsg, 'auto');
     console.log('buyResult:', buyResult);
-    multipleBuyMsg.splice(0, multipleBuyMsg.length);
   }
   if (multipleSellMsg.length > 0) {
     const sellResult = await seller.client.executeMultiple(seller.address, multipleSellMsg, 'auto');
     console.log('sellResult:', sellResult);
-    multipleSellMsg.splice(0, multipleSellMsg.length);
   }
 
   // process matching, use buyer to get orai faster to switch
