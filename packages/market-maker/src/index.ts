@@ -98,15 +98,17 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       }
     }
   }
-  console.log('multipleBuyOrders: ', JSON.stringify(multipleBuyMsg));
-  console.log('multipleSellOrders: ', JSON.stringify(multipleSellMsg));
+  console.log('multipleBuyOrders: ');
+  console.dir(multipleBuyMsg, { depth: 4 });
+  console.log('multipleSellOrders: ');
+  console.dir(multipleSellMsg, { depth: 4 });
   if (multipleBuyMsg.length > 0) {
-    const buyResult = await buyer.client.executeMultiple(buyer.address, multipleBuyMsg, "auto");
+    const buyResult = await buyer.client.executeMultiple(buyer.address, multipleBuyMsg, 'auto');
     console.log('buyResult:', buyResult);
     multipleBuyMsg.splice(0, multipleBuyMsg.length);
   }
   if (multipleSellMsg.length > 0) {
-    const sellResult = await seller.client.executeMultiple(seller.address, multipleSellMsg, "auto");
+    const sellResult = await seller.client.executeMultiple(seller.address, multipleSellMsg, 'auto');
     console.log('sellResult:', sellResult);
     multipleSellMsg.splice(0, multipleSellMsg.length);
   }
