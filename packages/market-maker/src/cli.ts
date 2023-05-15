@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import { delay } from '@oraichain/orderbook-matching-relayer';
-import { MakeOrderConfig, makeOrders, getCoingeckoPrice, getRandomRange, decrypt, setupWallet, deployToken, deployOrderbook, toDecimals } from './index';
+import { MakeOrderConfig, makeOrders, getCoingeckoPrice, getRandomRange, decrypt, setupWallet, deployToken, deployOrderbook, toDecimals, UserWallet } from './index';
 import { OraiswapLimitOrderClient, OraiswapTokenClient } from '@oraichain/orderbook-contracts-sdk';
 import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
 import { coin } from '@cosmjs/amino';
@@ -9,7 +9,6 @@ const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% can
 const [volumeMin, volumeMax] = process.env.VOLUME_RANGE ? process.env.VOLUME_RANGE.split(',').map(Number) : [100000, 150000];
 const buyPercentage = Number(process.env.BUY_PERCENTAGE || 0.55);
 const [spreadMin, spreadMax] = process.env.SPREAD_RANGE ? process.env.SPREAD_RANGE.split(',').map(Number) : [0.003, 0.006];
-const isSimulate = process.env.NODE_ENV === 'test';
 
 const orderConfig: MakeOrderConfig = {
   cancelPercentage,
@@ -23,38 +22,17 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE ? 
 const maxRepeat = 5;
 const totalOrders = 10;
 
-const getBuyerAndSeller = async () => {
-  // for simulating
-  if (isSimulate) {
+(async () => {
+  let buyer: UserWallet, seller: UserWallet, usdtToken: OraiswapTokenClient, orderBook: OraiswapLimitOrderClient;
+  // init data for test
+  if (process.env.NODE_ENV === 'test') {
     const client = new SimulateCosmWasmClient({
       chainId: 'Oraichain',
       bech32Prefix: 'orai'
     });
-    const buyerAddress = 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv';
-    const sellerAddress = 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj';
-    client.app.bank.setBalance(sellerAddress, [coin(toDecimals(1000), 'orai')]);
-    return [
-      { client, address: buyerAddress },
-      { client, address: sellerAddress }
-    ];
-  }
-  const buyerMnemonic = decrypt(process.env.BUYER_MNEMONIC_PASS, process.env.BUYER_MNEMONIC_ENCRYPTED);
-  const buyer = await setupWallet(buyerMnemonic);
-  const sellerMnemonic = decrypt(process.env.SELLER_MNEMONIC_PASS, process.env.SELLER_MNEMONIC_ENCRYPTED);
-  const seller = await setupWallet(sellerMnemonic);
-
-  return [buyer, seller];
-};
-
-(async () => {
-  const [buyer, seller] = await getBuyerAndSeller();
-  console.log('buyer address: ', buyer.address, 'seller address: ', seller.address);
-
-  let usdtToken: OraiswapTokenClient;
-  let orderBook: OraiswapLimitOrderClient;
-
-  // init data for test
-  if (isSimulate) {
+    buyer = { client, address: 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv' };
+    seller = { client, address: 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj' };
+    client.app.bank.setBalance(seller.address, [coin(toDecimals(1000), 'orai')]);
     usdtToken = await deployToken(buyer.client, buyer.address, {
       symbol: 'USDT',
       name: 'USDT token'
@@ -67,9 +45,13 @@ const getBuyerAndSeller = async () => {
       minQuoteCoinAmount: '10'
     });
   } else {
+    buyer = await setupWallet(decrypt(process.env.BUYER_MNEMONIC_PASS, process.env.BUYER_MNEMONIC_ENCRYPTED));
+    seller = await setupWallet(decrypt(process.env.SELLER_MNEMONIC_PASS, process.env.SELLER_MNEMONIC_ENCRYPTED));
     usdtToken = new OraiswapTokenClient(buyer.client, buyer.address, process.env.USDT_CONTRACT);
     orderBook = new OraiswapLimitOrderClient(buyer.client, buyer.address, process.env.ORDERBOOK_CONTRACT);
   }
+
+  console.log('buyer address: ', buyer.address, 'seller address: ', seller.address);
 
   // get price from coingecko
   const oraiPrice = await getCoingeckoPrice('oraichain-token');
