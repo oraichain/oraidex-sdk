@@ -8,6 +8,6 @@
   },
   "main": "src/index.ts",
   "scripts": {
-    "start": "ts-node src/index.ts"
+    "start": "ts-node src/cli.ts"
   }
 }
