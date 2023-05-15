@@ -50,22 +50,19 @@ const getBuyerAndSeller = async () => {
   const [buyer, seller] = await getBuyerAndSeller();
   console.log('buyer address: ', buyer.address, 'seller address: ', seller.address);
 
-  const usdtContractAddr = isSimulate
+  const usdtToken = isSimulate
     ? await deployToken(buyer.client, buyer.address, {
         symbol: 'USDT',
         name: 'USDT token'
-      }).then((c) => c.contractAddress)
-    : process.env.USDT_CONTRACT;
-  const orderBookContractAddr = isSimulate ? await deployOrderbook(buyer.client, buyer.address).then((c) => c.contractAddress) : process.env.ORDERBOOK_CONTRACT;
-
-  const usdtToken = new OraiswapTokenClient(buyer.client, buyer.address, usdtContractAddr);
-  const orderBook = new OraiswapLimitOrderClient(buyer.client, buyer.address, orderBookContractAddr);
+      })
+    : new OraiswapTokenClient(buyer.client, buyer.address, process.env.USDT_CONTRACT);
+  const orderBook = isSimulate ? await deployOrderbook(buyer.client, buyer.address) : new OraiswapLimitOrderClient(buyer.client, buyer.address, process.env.ORDERBOOK_CONTRACT);
 
   // init data for test
   if (isSimulate) {
     await orderBook.createOrderBookPair({
       baseCoinInfo: { native_token: { denom: 'orai' } },
-      quoteCoinInfo: { token: { contract_addr: usdtContractAddr } },
+      quoteCoinInfo: { token: { contract_addr: usdtToken.contractAddress } },
       spread: '0.5',
       minQuoteCoinAmount: '10'
     });
@@ -76,7 +73,7 @@ const getBuyerAndSeller = async () => {
 
   let processInd = 0;
   while (processInd < maxRepeat) {
-    await makeOrders(buyer, seller, usdtContractAddr, orderBookContractAddr, oraiPrice, totalOrders, orderConfig);
+    await makeOrders(buyer, seller, usdtToken.contractAddress, orderBook.contractAddress, oraiPrice, totalOrders, orderConfig);
 
     console.log('Balance after matching:');
     console.log({
