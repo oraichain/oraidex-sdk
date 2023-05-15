@@ -50,22 +50,25 @@ const getBuyerAndSeller = async () => {
   const [buyer, seller] = await getBuyerAndSeller();
   console.log('buyer address: ', buyer.address, 'seller address: ', seller.address);
 
-  const usdtToken = isSimulate
-    ? await deployToken(buyer.client, buyer.address, {
-        symbol: 'USDT',
-        name: 'USDT token'
-      })
-    : new OraiswapTokenClient(buyer.client, buyer.address, process.env.USDT_CONTRACT);
-  const orderBook = isSimulate ? await deployOrderbook(buyer.client, buyer.address) : new OraiswapLimitOrderClient(buyer.client, buyer.address, process.env.ORDERBOOK_CONTRACT);
+  let usdtToken: OraiswapTokenClient;
+  let orderBook: OraiswapLimitOrderClient;
 
   // init data for test
   if (isSimulate) {
+    usdtToken = await deployToken(buyer.client, buyer.address, {
+      symbol: 'USDT',
+      name: 'USDT token'
+    });
+    orderBook = await deployOrderbook(buyer.client, buyer.address);
     await orderBook.createOrderBookPair({
       baseCoinInfo: { native_token: { denom: 'orai' } },
       quoteCoinInfo: { token: { contract_addr: usdtToken.contractAddress } },
       spread: '0.5',
       minQuoteCoinAmount: '10'
     });
+  } else {
+    usdtToken = new OraiswapTokenClient(buyer.client, buyer.address, process.env.USDT_CONTRACT);
+    orderBook = new OraiswapLimitOrderClient(buyer.client, buyer.address, process.env.ORDERBOOK_CONTRACT);
   }
 
   // get price from coingecko
