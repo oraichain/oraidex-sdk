@@ -67,8 +67,8 @@ const totalOrders = 10;
     });
 
     // waiting for interval then re call again
-    const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
-    await delay(interval);
+    // const interval = getRandomRange(orderIntervalMin, orderIntervalMax);
+    // await delay(interval);
     processInd++;
   }
 })();

@@ -25,13 +25,11 @@ import { delay, matchingOrders } from './index';
 
   while (true) {
     try {
-      const start = Date.now();
-      const result = await matchingOrders(client, senderAddress, contractAddr, 30, 'orai');
-      console.log('matching time:', Date.now() - start, 'ms', 'result', result);
+      await matchingOrders(client, senderAddress, contractAddr, 30, 'orai');
     } catch (error) {
       console.error(error);
     }
 
-    await delay(1000);
+    // await delay(1000);
   }
 })();
