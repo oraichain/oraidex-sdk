@@ -1294,7 +1294,7 @@
 
 "@terran-one/cosmwasm-vm-js@https://github.com/oraichain/cosmwasm-vm-js.git":
   version "0.2.16"
-  resolved "https://github.com/oraichain/cosmwasm-vm-js.git#fe23d2f3e927beba81d5f701ad59a14a1684815f"
+  resolved "https://github.com/oraichain/cosmwasm-vm-js.git#9bec817fda42747a6de7b3ca57c6c9d714ba9a09"
   dependencies:
     "@cosmjs/amino" "^0.29.5"
     "@cosmjs/crypto" "^0.29.5"
@@ -1310,7 +1310,7 @@
 
 "@terran-one/cw-simulate@https://github.com/oraichain/cw-simulate.git":
   version "2.8.4"
-  resolved "https://github.com/oraichain/cw-simulate.git#14a9877444a900c9ef9b7fdf8c951b95f611d0e9"
+  resolved "https://github.com/oraichain/cw-simulate.git#b51bca600bc125bd454305d9d0d8a966308be820"
   dependencies:
     "@cosmjs/amino" "^0.29.5"
     "@cosmjs/cosmwasm-stargate" "^0.29.5"
