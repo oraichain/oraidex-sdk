@@ -76,7 +76,7 @@ const getBuyerAndSeller = async () => {
 
   let processInd = 0;
   while (processInd < maxRepeat) {
-    await makeOrders(buyer, seller, usdtToken, orderBook, oraiPrice, totalOrders, orderConfig);
+    await makeOrders(buyer, seller, usdtContractAddr, orderBookContractAddr, oraiPrice, totalOrders, orderConfig);
 
     console.log('Balance after matching:');
     console.log({

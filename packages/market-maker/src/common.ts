@@ -1,4 +1,4 @@
-import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo } from '@oraichain/orderbook-contracts-sdk';
+import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo, Addr } from '@oraichain/orderbook-contracts-sdk';
 import { deployContract } from '@oraichain/orderbook-contracts-build';
 import { SigningCosmWasmClient, ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
@@ -148,33 +148,33 @@ export const deployOrderbook = async (client: SigningCosmWasmClient, senderAddre
   );
 };
 
-export const cancelOrder = async (orderbook: OraiswapLimitOrderClient, sender: UserWallet, assetInfos: AssetInfo[], limit: number) => {
-  const queryAll = await orderbook.orders({
-    assetInfos,
-    orderBy: 1,
-    limit,
-    filter: {
-      bidder: sender.address
+export const cancelOrder = async (orderbookAddress: Addr, sender: UserWallet, assetInfos: AssetInfo[], limit: number) => {
+  const queryAll = await sender.client.queryContractSmart(orderbookAddress, {
+    orders: {
+      asset_infos: assetInfos,
+      order_by: 1,
+      limit,
+      filter: {
+        bidder: sender.address
+      }
     }
-  });
-  orderbook.client = sender.client;
-  orderbook.sender = sender.address;
+  } as OraiswapLimitOrderTypes.QueryMsg);
 
   const multipleCancelMsg: ExecuteInstruction[] = [];
   for (const order of queryAll.orders) {
     const cancelMsg: ExecuteInstruction = {
-      contractAddress: orderbook.contractAddress,
+      contractAddress: orderbookAddress,
       msg: {
         cancel_order: {
           asset_infos: assetInfos,
           order_id: order.order_id
         }
-      },
+      }
     };
     multipleCancelMsg.push(cancelMsg);
   }
   if (multipleCancelMsg.length > 0) {
-    const cancelResult = await orderbook.client.executeMultiple(orderbook.sender, multipleCancelMsg, "auto");
+    const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, 'auto');
     console.log('cancelResult: ', cancelResult);
     multipleCancelMsg.splice(0, multipleCancelMsg.length);
   }
