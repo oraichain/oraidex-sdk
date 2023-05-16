@@ -99,20 +99,35 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   console.dir(multipleSellMsg, { depth: 4 });
   if (multipleBuyMsg.length > 0) {
     const buyResult = await buyer.client.executeMultiple(buyer.address, multipleBuyMsg, 'auto');
-    console.log('buyResult:', buyResult);
+    console.log('buy orders - txHash:', buyResult.transactionHash);
   }
   if (multipleSellMsg.length > 0) {
     const sellResult = await seller.client.executeMultiple(seller.address, multipleSellMsg, 'auto');
-    console.log('sellResult:', sellResult);
+    console.log('sell orders - txHash:', sellResult.transactionHash);
   }
 
   // process matching, use buyer to get orai faster to switch
-  await matchingOrders(buyer.client, buyer.address, orderBookAddress, limit, denom);
+  try {
+    await matchingOrders(buyer.client, buyer.address, orderBookAddress, limit, denom);
+  } catch (error) {
+    console.error(error);
+  }
   const cancelLimit = Math.round(totalOrders * config.cancelPercentage);
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
-  await cancelOrder(orderBookAddress, seller, assetInfos, cancelLimit);
+
+  try {
+    await cancelOrder(orderBookAddress, seller, assetInfos, cancelLimit);
+  } catch (error) {
+    console.error(error);
+  }
+  
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
-  await cancelOrder(orderBookAddress, buyer, assetInfos, cancelLimit);
+
+  try {
+    await cancelOrder(orderBookAddress, buyer, assetInfos, cancelLimit);
+  } catch (error) {
+    console.error(error);
+  }
 }
 
 export * from './common';

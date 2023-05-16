@@ -175,7 +175,6 @@ export const cancelOrder = async (orderbookAddress: Addr, sender: UserWallet, as
   }
   if (multipleCancelMsg.length > 0) {
     const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, 'auto');
-    console.log('cancelResult: ', cancelResult);
-    multipleCancelMsg.splice(0, multipleCancelMsg.length);
+    console.log('cancel orders - txHash:', cancelResult.transactionHash);
   }
 };
