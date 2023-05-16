@@ -53,6 +53,9 @@ export async function matchingOrders(client: SigningCosmWasmClient, senderAddres
 
   const { amount } = await client.getBalance(senderAddress, denom);
   console.log(`balance of ${senderAddress} is ${amount}`);
+  if (parseInt(amount) <= 1000000) {
+    throw new Error(`Balance(${amount}) of ${senderAddress} must be greater than 1 ORAI`);
+  }
   const promiseAll = execute_pairs.map((item) => runMatchingEngine(client, senderAddress, contractAddr, item));
   return (await Promise.all(promiseAll)).filter(Boolean);
 }
