@@ -6,7 +6,7 @@
     "@oraichain/orderbook-contracts-sdk": "^1.0.0",
     "dotenv": "^16.0.3"
   },
-  "main": "src/index.ts",
+  "main": "build/index.js",
   "scripts": {
     "start": "ts-node src/cli.ts"
   },
