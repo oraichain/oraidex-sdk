@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/orderbook-market-maker",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "dependencies": {
     "@oraichain/orderbook-contracts-build": "^1.0.1",
     "@oraichain/orderbook-contracts-sdk": "^1.0.0",
