@@ -4,7 +4,8 @@
   "dependencies": {
     "@oraichain/orderbook-contracts-build": "1.0.0",
     "@oraichain/orderbook-contracts-sdk": "1.0.0",
-    "@oraichain/orderbook-matching-relayer": "0.1.0"
+    "@oraichain/orderbook-matching-relayer": "0.1.0",
+    "dotenv": "^16.0.3"
   },
   "main": "src/index.ts",
   "scripts": {

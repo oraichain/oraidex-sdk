@@ -3,8 +3,10 @@
 ## Generate code and docs
 
 ```bash
+# build code:
+cwtools build ../oraiswap/contracts/* -o packages/contracts-build/data
 # gen code:
-cw-gents ../oraiswap/contracts/oraiswap_limit_order ../oraiswap/contracts/oraiswap_token -o packages/contracts-sdk/src
+cwtools gents ../oraiswap/contracts/* -o packages/contracts-sdk/src
 # gen doc:
 yarn docs
 

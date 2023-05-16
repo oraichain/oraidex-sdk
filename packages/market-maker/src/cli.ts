@@ -2,7 +2,7 @@ import 'dotenv/config';
 import { delay } from '@oraichain/orderbook-matching-relayer';
 import { MakeOrderConfig, makeOrders, getCoingeckoPrice, getRandomRange, decrypt, setupWallet, deployToken, deployOrderbook, toDecimals, UserWallet } from './index';
 import { OraiswapLimitOrderClient, OraiswapTokenClient } from '@oraichain/orderbook-contracts-sdk';
-import { SimulateCosmWasmClient } from '@terran-one/cw-simulate/src';
+import { SimulateCosmWasmClient } from '@terran-one/cw-simulate';
 import { coin } from '@cosmjs/amino';
 
 const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% cancel

@@ -1,6 +1,7 @@
 import {Addr, Uint128, Binary, AssetInfo, Decimal, OrderDirection, Cw20ReceiveMsg, Asset, OrderFilter} from "./types";
 export interface InstantiateMsg {
   admin?: Addr | null;
+  commission_rate?: string | null;
   name?: string | null;
   version?: string | null;
 }

@@ -5,5 +5,6 @@
     "data"
   ],
   "main": "index.ts",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {}
 }

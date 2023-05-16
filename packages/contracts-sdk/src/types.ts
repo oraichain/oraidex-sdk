@@ -1,6 +1,6 @@
-export type Addr = string;
 export type Uint128 = string;
 export type Binary = string;
+export type Addr = string;
 export type AssetInfo = {
   token: {
     contract_addr: Addr;
@@ -10,21 +10,75 @@ export type AssetInfo = {
     denom: string;
   };
 };
-export type Decimal = string;
-export type OrderDirection = "buy" | "sell";
 export interface Cw20ReceiveMsg {
   amount: Uint128;
   msg: Binary;
   sender: string;
 }
+export interface TokenInfo {
+  decimals: number;
+  info: AssetInfo;
+}
+export type Decimal = string;
+export interface TokenRatio {
+  info: AssetInfo;
+  ratio: Decimal;
+}
 export interface Asset {
   amount: Uint128;
   info: AssetInfo;
 }
+export interface PairInfo {
+  asset_infos: [AssetInfo, AssetInfo];
+  commission_rate: string;
+  contract_addr: Addr;
+  liquidity_token: Addr;
+  oracle_addr: Addr;
+}
+export type OracleTreasuryQuery = {
+  tax_rate: {};
+} | {
+  tax_cap: {
+    denom: string;
+  };
+};
+export type OracleExchangeQuery = {
+  exchange_rate: {
+    base_denom?: string | null;
+    quote_denom: string;
+  };
+} | {
+  exchange_rates: {
+    base_denom?: string | null;
+    quote_denoms: string[];
+  };
+};
+export type OracleContractQuery = {
+  contract_info: {};
+} | {
+  reward_pool: {
+    denom: string;
+  };
+};
+export interface ExchangeRateItem {
+  exchange_rate: Decimal;
+  quote_denom: string;
+}
+export interface Coin {
+  amount: Uint128;
+  denom: string;
+}
+export type OrderDirection = "buy" | "sell";
 export type OrderFilter = ("tick" | "none") | {
   bidder: string;
 } | {
   price: Decimal;
+};
+export type SwapOperation = {
+  orai_swap: {
+    ask_asset_info: AssetInfo;
+    offer_asset_info: AssetInfo;
+  };
 };
 export type Logo = {
   url: string;
@@ -68,3 +122,10 @@ export interface SpenderAllowanceInfo {
 export type LogoInfo = {
   url: string;
 } | "embedded";
+export interface RewardInfoResponseItem {
+  asset_info: AssetInfo;
+  bond_amount: Uint128;
+  pending_reward: Uint128;
+  pending_withdraw: Asset[];
+  should_migrate?: boolean | null;
+}
