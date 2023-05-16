@@ -57,7 +57,7 @@ jobs:
       env:
         NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
     - name: Publish package
-      run: lerna publish --force-publish --yes
+      run: lerna publish patch --force-publish --yes
       env:
         GH_TOKEN: ${{ secrets.GIT_PAT }}
         GITHUB_TOKEN: ${{ secrets.GIT_PAT }}
