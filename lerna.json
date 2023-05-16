@@ -3,7 +3,7 @@
   "npmClient": "yarn",
   "useNx": true,
   "useWorkspaces": true,
-  "version": "1.0.4",
+  "version": "1.0.5",
   "command": {
     "publish": {
       "registry": "https://registry.npmjs.org/"
