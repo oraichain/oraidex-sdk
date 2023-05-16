@@ -9,5 +9,6 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "ts-node src/cli.ts"
-  }
+  },
+  "gitHead": "391d64bf33ae49493cc05021997c9917deb5ffae"
 }
