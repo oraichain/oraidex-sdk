@@ -12,12 +12,12 @@ const runMatchingEngine = async (client: SigningCosmWasmClient, senderAddress: s
 
   if (query_matchable.is_matchable === true) {
     const start = new Date();
-    console.log('execute_pair: ', JSON.stringify(pair));
+    console.log('execute_pair:', JSON.stringify(pair));
     try {
       const tx = await client.execute(senderAddress, contractAddr!, pair, 'auto');
       const end = new Date();
       console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
-      console.log('matching done - txHash: ', tx.transactionHash);
+      console.log('matching done - txHash:', tx.transactionHash);
       return tx;
     } catch (error) {
       console.error(error);

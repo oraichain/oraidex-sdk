@@ -119,7 +119,6 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
     await cancelOrder(orderBookAddress, seller, assetInfos, cancelLimit);
   } catch (error) {
     console.error(error);
-    await cancelOrder(orderBookAddress, seller, assetInfos, cancelLimit);
   }
   
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
@@ -128,7 +127,6 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
     await cancelOrder(orderBookAddress, buyer, assetInfos, cancelLimit);
   } catch (error) {
     console.error(error);
-    await cancelOrder(orderBookAddress, buyer, assetInfos, cancelLimit);
   }
 }
 
