@@ -1,0 +1,44 @@
+# This is a basic workflow to help you get started with Actions
+
+name: publish_package
+
+# Controls when the action will run. 
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        node-version: [">=16.0.0"]
+
+    steps:
+    - name: Cancel Previous Runs
+      uses: styfle/cancel-workflow-action@0.8.0
+      with:
+        access_token: ${{ github.token }}
+    - uses: actions/checkout@v2    
+    - name: Use Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v2
+      with:
+        node-version: ${{ matrix.node-version }}
+    - name: Install Dependencies
+      run: npm install
+      env: 
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    - uses: actions/setup-node@v3
+      with:
+        node-version: '16.x'
+        registry-url: 'https://registry.npmjs.org'
+    - name: Publish
+      run: npm run publish
+      env:
+        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
