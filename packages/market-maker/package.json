@@ -2,9 +2,9 @@
   "name": "@oraichain/orderbook-market-maker",
   "version": "1.0.6",
   "dependencies": {
-    "@oraichain/orderbook-contracts-build": "^1.0.1",
-    "@oraichain/orderbook-contracts-sdk": "^1.0.0",
-    "@oraichain/orderbook-matching-relayer": "^1.0.2",
+    "@oraichain/orderbook-contracts-build": "^1.0.6",
+    "@oraichain/orderbook-contracts-sdk": "^1.0.6",
+    "@oraichain/orderbook-matching-relayer": "^1.0.6",
     "dotenv": "^16.0.3"
   },
   "main": "build/index.js",
