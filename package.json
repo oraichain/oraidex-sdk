@@ -5,7 +5,8 @@
   "scripts": {
     "postinstall": "patch-package",
     "docs": "typedoc --entryPointStrategy expand --name 'Orderbook SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
-    "publish": "lerna publish --no-private --access public"
+    "build:sdk": "tsc -p packages/contracts-sdk/tsconfig.json",
+    "publish:sdk": "yarn publish --access public packages/contracts-sdk"
   },
   "workspaces": [
     "packages/*"
