@@ -2,6 +2,7 @@
   "name": "root",
   "private": true,
   "scripts": {
+    "publish": "lerna publish --no-private",
     "postinstall": "patch-package",
     "docs": "typedoc --entryPointStrategy expand --name 'Orderbook SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src"
   },
