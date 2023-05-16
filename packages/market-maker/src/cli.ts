@@ -32,6 +32,7 @@ const totalOrders = 10;
     });
     buyer = { client, address: 'orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv' };
     seller = { client, address: 'orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj' };
+    client.app.bank.setBalance(buyer.address, [coin(toDecimals(1000), 'orai')]);
     client.app.bank.setBalance(seller.address, [coin(toDecimals(1000), 'orai')]);
     usdtToken = await deployToken(buyer.client, buyer.address, {
       symbol: 'USDT',
