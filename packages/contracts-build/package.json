@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/orderbook-contracts-build",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "files": [
     "data"
   ],

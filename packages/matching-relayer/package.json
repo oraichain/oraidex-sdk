@@ -1,9 +1,9 @@
 {
   "name": "@oraichain/orderbook-matching-relayer",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "dependencies": {
-    "@oraichain/orderbook-contracts-build": "^1.0.3",
-    "@oraichain/orderbook-contracts-sdk": "^1.0.3",
+    "@oraichain/orderbook-contracts-build": "^1.0.4",
+    "@oraichain/orderbook-contracts-sdk": "^1.0.4",
     "dotenv": "^16.0.3"
   },
   "main": "build/index.js",
