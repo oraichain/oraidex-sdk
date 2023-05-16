@@ -2,6 +2,5 @@
   "name": "@oraichain/orderbook-contracts-sdk",
   "version": "1.0.0",
   "main": "src/index.ts",
-  "license": "MIT",
-  "dependencies": {}
+  "license": "MIT"
 }
