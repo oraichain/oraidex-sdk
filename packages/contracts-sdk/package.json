@@ -1,5 +1,5 @@
 {
-  "name": "@oraichain/orderbook-contracts-sdk",
+  "name": "@oraichain/oraidex-contracts-sdk",
   "version": "1.0.7",
   "main": "build/index.js",
   "license": "MIT"

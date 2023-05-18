@@ -2,13 +2,12 @@
   "name": "@oraichain/orderbook-matching-relayer",
   "version": "1.0.7",
   "dependencies": {
-    "@oraichain/orderbook-contracts-build": "^1.0.7",
-    "@oraichain/orderbook-contracts-sdk": "^1.0.7",
+    "@oraichain/oraidex-contracts-build": "^1.0.7",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.7",
     "dotenv": "^16.0.3"
   },
   "main": "build/index.js",
   "scripts": {
     "start": "ts-node src/cli.ts"
-  },
-  "gitHead": "372edc0afce69401c79a5fb28473fe7e9b96e3a7"
+  }
 }
