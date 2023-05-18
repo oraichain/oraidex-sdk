@@ -1,9 +1,9 @@
-import { Cw20Coin, OraiswapLimitOrderClient, OraiswapTokenClient, OraiswapTokenTypes, OraiswapLimitOrderTypes, AssetInfo, Addr } from '@oraichain/orderbook-contracts-sdk';
-import { deployContract } from '@oraichain/orderbook-contracts-build';
-import { SigningCosmWasmClient, ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
+import { ExecuteInstruction, SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { stringToPath } from '@cosmjs/crypto';
 import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { GasPrice } from '@cosmjs/stargate';
-import { stringToPath } from '@cosmjs/crypto';
+import { deployContract } from '@oraichain/oraidex-contracts-build';
+import { Addr, AssetInfo, Cw20Coin, OraiswapLimitOrderClient, OraiswapLimitOrderTypes, OraiswapTokenClient } from '@oraichain/oraidex-contracts-sdk';
 import crypto from 'crypto';
 
 export const encrypt = (password: crypto.BinaryLike, val: string) => {
@@ -110,7 +110,7 @@ export const deployToken = async (
     client,
     senderAddress,
     (
-      await deployContract<OraiswapTokenTypes.InstantiateMsg>(
+      await deployContract(
         client,
         senderAddress,
         {
@@ -132,7 +132,7 @@ export const deployOrderbook = async (client: SigningCosmWasmClient, senderAddre
     client,
     senderAddress,
     (
-      await deployContract<OraiswapLimitOrderTypes.InstantiateMsg>(
+      await deployContract(
         client,
         senderAddress,
 
