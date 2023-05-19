@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { stringToPath } from '@cosmjs/crypto';
+import { DirectSecp256k1HdWallet } from '@cosmjs/proto-signing';
 import { GasPrice } from '@cosmjs/stargate';
-import { delay, matchingOrders } from './index';
+import 'dotenv/config';
+import { matchingOrders } from './index';
 
 (async () => {
   const prefix = 'orai';

@@ -1,5 +1,5 @@
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
-import { Addr, OraiswapLimitOrderTypes, OraiswapTokenTypes, OrderDirection } from '@oraichain/orderbook-contracts-sdk';
+import { Addr, OraiswapLimitOrderTypes, OraiswapTokenTypes, OrderDirection } from '@oraichain/oraidex-contracts-sdk';
 import { matchingOrders } from '@oraichain/orderbook-matching-relayer';
 import { UserWallet, atomic, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice } from './common';
 import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
@@ -73,13 +73,13 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       console.log("seller's balances:", sellerOraiBalance.toString() + 'orai', sellerUsdtBalance.toString() + 'usdt');
 
       if (buyerUsdtBalance < BigInt(usdtThreshold) || sellerOraiBalance < BigInt(oraiThreshold)) {
-        console.log("Switch buyer <=> seller");
-        if (sellerUsdtBalance >= BigInt(usdtThreshold) && buyerOraiBalance >= BigInt(oraiThreshold)){
+        console.log('Switch buyer <=> seller');
+        if (sellerUsdtBalance >= BigInt(usdtThreshold) && buyerOraiBalance >= BigInt(oraiThreshold)) {
           buyerWallet = seller;
           sellerWallet = buyer;
         } else {
           throw new Error(`Seller(${sellerOraiBalance}) or Buyer(${buyerUsdtBalance}) have not enough funds to run trading bot`);
-        };
+        }
       }
 
       if (sellerOraiBalance < BigInt(1000000) || buyerOraiBalance < BigInt(1000000)) {
@@ -146,7 +146,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   } catch (error) {
     console.error(error);
   }
-  
+
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
 
   try {

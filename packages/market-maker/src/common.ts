@@ -110,19 +110,13 @@ export const deployToken = async (
     client,
     senderAddress,
     (
-      await deployContract(
-        client,
-        senderAddress,
-        {
-          decimals,
-          symbol,
-          name,
-          mint: { minter: senderAddress },
-          initial_balances: [{ address: senderAddress, amount: '1000000000' }, ...initial_balances]
-        },
-        'token',
-        'oraiswap_token'
-      )
+      await deployContract(client, senderAddress, 'oraiswap_token', {
+        decimals,
+        symbol,
+        name,
+        mint: { minter: senderAddress },
+        initial_balances: [{ address: senderAddress, amount: '1000000000' }, ...initial_balances]
+      })
     ).contractAddress
   );
 };
@@ -132,18 +126,11 @@ export const deployOrderbook = async (client: SigningCosmWasmClient, senderAddre
     client,
     senderAddress,
     (
-      await deployContract(
-        client,
-        senderAddress,
-
-        {
-          admin: senderAddress,
-          version: '0.0.1',
-          name: 'Orderbook'
-        },
-        'limit_order',
-        'oraiswap_limit_order'
-      )
+      await deployContract(client, senderAddress, 'oraiswap_limit_order', {
+        admin: senderAddress,
+        version: '0.0.1',
+        name: 'Orderbook'
+      })
     ).contractAddress
   );
 };

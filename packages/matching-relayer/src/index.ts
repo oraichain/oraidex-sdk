@@ -1,5 +1,5 @@
 import { ExecuteResult, SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
-import { OraiswapLimitOrderTypes } from '@oraichain/orderbook-contracts-sdk';
+import { OraiswapLimitOrderTypes } from '@oraichain/oraidex-contracts-sdk';
 
 const runMatchingEngine = async (client: SigningCosmWasmClient, senderAddress: string, contractAddr: string, pair: any) => {
   const pair_is_matchable: OraiswapLimitOrderTypes.QueryMsg = {
