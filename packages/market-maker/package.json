@@ -8,6 +8,9 @@
     "dotenv": "^16.0.3"
   },
   "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
   "scripts": {
     "start": "ts-node src/cli.ts"
   }

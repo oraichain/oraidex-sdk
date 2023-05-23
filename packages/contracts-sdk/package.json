@@ -2,5 +2,8 @@
   "name": "@oraichain/oraidex-contracts-sdk",
   "version": "1.0.7",
   "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
   "license": "MIT"
 }
