@@ -162,9 +162,3 @@ export const cancelOrder = async (orderbookAddress: Addr, sender: UserWallet, as
     console.log('cancel orders - txHash:', cancelResult.transactionHash);
   }
 };
-
-const mnemonic = 'abc def';
-const pass = '12345678';
-const encrypted = encrypt(pass, mnemonic);
-const decrypted = decrypt(pass, encrypted);
-console.log(encrypted, decrypted);
