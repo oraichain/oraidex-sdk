@@ -6,23 +6,20 @@ import { deployContract } from '@oraichain/oraidex-contracts-build';
 import { Addr, AssetInfo, Cw20Coin, OraiswapLimitOrderClient, OraiswapLimitOrderTypes, OraiswapTokenClient } from '@oraichain/oraidex-contracts-sdk';
 import crypto from 'crypto';
 
-export const encrypt = (password: crypto.BinaryLike, val: string) => {
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
-  const ENC_KEY = hash.substring(0, 32);
-  const IV = hash.substring(32, 16);
-  let cipher = crypto.createCipheriv('aes-256-cbc', ENC_KEY, IV);
-  let encrypted = cipher.update(val, 'utf8', 'base64');
-  encrypted += cipher.final('base64');
-  return encrypted;
+export const encrypt = (password: string, val: string) => {
+  const hashedPassword = crypto.createHash('sha256').update(password).digest();
+  const IV = crypto.randomBytes(16);
+  const cipher = crypto.createCipheriv('aes-256-cbc', hashedPassword, IV);
+  return Buffer.concat([IV, cipher.update(val), cipher.final()]).toString('base64');
 };
 
-export const decrypt = (password: crypto.BinaryLike, encrypted: string) => {
-  const hash = crypto.createHash('sha256').update(password).digest('hex');
-  const ENC_KEY = hash.substring(0, 32);
-  const IV = hash.substring(32, 16);
-  let decipher = crypto.createDecipheriv('aes-256-cbc', ENC_KEY, IV);
-  let decrypted = decipher.update(encrypted, 'base64', 'utf8');
-  return decrypted + decipher.final('utf8');
+export const decrypt = (password: string, val: string) => {
+  const hashedPassword = crypto.createHash('sha256').update(password).digest();
+  const encryptedText = Buffer.from(val, 'base64');
+  const IV = encryptedText.subarray(0, 16);
+  const encrypted = encryptedText.subarray(16);
+  const decipher = crypto.createDecipheriv('aes-256-cbc', hashedPassword, IV);
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString();
 };
 
 export type UserWallet = { address: string; client: SigningCosmWasmClient };
@@ -165,3 +162,9 @@ export const cancelOrder = async (orderbookAddress: Addr, sender: UserWallet, as
     console.log('cancel orders - txHash:', cancelResult.transactionHash);
   }
 };
+
+const mnemonic = 'abc def';
+const pass = '12345678';
+const encrypted = encrypt(pass, mnemonic);
+const decrypted = decrypt(pass, encrypted);
+console.log(encrypted, decrypted);
