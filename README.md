@@ -16,4 +16,12 @@ git apply patches/contracts-sdk.patch
 git diff packages/contracts-sdk > patches/contracts-sdk.patch
 # rollback
 git checkout packages/contracts-sdk
+
+# build packages
+## build matching relayer
+yarn build packages/matching-relayer/ --outDir packages/matching-relayer/build
+
+## build contracts-sdk
+yarn build packages/contracts-sdk/ --outDir packages/contracts-sdk/build
+
 ```

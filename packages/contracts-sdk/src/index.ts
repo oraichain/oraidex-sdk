@@ -1,3 +1,7 @@
+export * as CwIcs20LatestTypes from './CwIcs20Latest.types';
+export * from './CwIcs20Latest.client';
+export * as MulticallTypes from './Multicall.types';
+export * from './Multicall.client';
 export * as OraiswapConverterTypes from './OraiswapConverter.types';
 export * from './OraiswapConverter.client';
 export * as OraiswapFactoryTypes from './OraiswapFactory.types';

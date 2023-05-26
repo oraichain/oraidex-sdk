@@ -1,7 +1,6 @@
 import {Addr, Uint128, Binary, AssetInfo, Decimal, OrderDirection, Cw20ReceiveMsg, Asset, OrderFilter} from "./types";
 export interface InstantiateMsg {
   admin?: Addr | null;
-  commission_rate?: string | null;
   name?: string | null;
   version?: string | null;
 }
@@ -14,9 +13,9 @@ export type ExecuteMsg = {
 } | {
   create_order_book_pair: {
     base_coin_info: AssetInfo;
-    min_quote_coin_amount: Uint128;
+    min_base_coin_amount: Uint128;
+    precision?: Decimal | null;
     quote_coin_info: AssetInfo;
-    spread?: Decimal | null;
   };
 } | {
   submit_order: {
@@ -24,17 +23,27 @@ export type ExecuteMsg = {
     direction: OrderDirection;
   };
 } | {
+  update_order: {
+    assets: [Asset, Asset];
+    order_id: number;
+  };
+} | {
   cancel_order: {
     asset_infos: [AssetInfo, AssetInfo];
     order_id: number;
   };
 } | {
-  execute_order_book_pair: {
-    asset_infos: [AssetInfo, AssetInfo];
-    limit?: number | null;
+  execute_order: {
+    ask_asset: Asset;
+    offer_info: AssetInfo;
+    order_id: number;
   };
 } | {
-  remove_order_book_pair: {
+  execute_order_book_pair: {
+    asset_infos: [AssetInfo, AssetInfo];
+  };
+} | {
+  remove_order_book: {
     asset_infos: [AssetInfo, AssetInfo];
   };
 };
@@ -80,10 +89,6 @@ export type QueryMsg = {
   };
 } | {
   last_order_id: {};
-} | {
-  order_book_matchable: {
-    asset_infos: [AssetInfo, AssetInfo];
-  };
 };
 export interface MigrateMsg {}
 export interface ContractInfoResponse {
@@ -105,12 +110,9 @@ export interface OrderResponse {
 }
 export interface OrderBookResponse {
   base_coin_info: AssetInfo;
-  min_quote_coin_amount: Uint128;
+  min_base_coin_amount: Uint128;
+  precision?: Decimal | null;
   quote_coin_info: AssetInfo;
-  spread?: Decimal | null;
-}
-export interface OrderBookMatchableResponse {
-  is_matchable: boolean;
 }
 export interface OrderBooksResponse {
   order_books: OrderBookResponse[];
