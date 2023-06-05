@@ -5,6 +5,7 @@ import { UserWallet, atomic, cancelOrder, getRandomPercentage, getRandomRange, g
 import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 
 export type MakeOrderConfig = {
+  makeProfit?: boolean;
   spreadMin: number;
   spreadMax: number;
   buyPercentage: number;
@@ -20,12 +21,12 @@ const getRandomSpread = (min: number, max: number) => {
   return getRandomRange(min * atomic, max * atomic) / atomic;
 };
 
-const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, volumeMin, volumeMax }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
+const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, volumeMin, volumeMax, makeProfit }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
   const spread = getRandomSpread(spreadMin, spreadMax);
   // buy percentage is 55%
   const direction: OrderDirection = getRandomPercentage() < buyPercentage * 100 ? 'buy' : 'sell';
-
-  const oraiPriceEntry = getSpreadPrice(oraiPrice, spread * (direction === 'buy' ? 1 : -1));
+  // if make profit then buy lower, sell higher than market
+  const oraiPriceEntry = getSpreadPrice(oraiPrice, spread * (direction === 'buy' ? 1 : -1) * (makeProfit ? -1 : 1));
 
   const oraiVolume = getRandomRange(volumeMin, volumeMax); // between 0.1 and 0.15 orai
   const usdtVolume = (oraiPriceEntry * oraiVolume).toFixed(0);
