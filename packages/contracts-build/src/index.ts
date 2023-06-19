@@ -21,7 +21,7 @@ export const getContractDir = (name: ContractName = 'oraiswap_limit_order') => {
   return path.join(contractDir, name + '.wasm');
 };
 
-export const deployContract = async (client: SigningCosmWasmClient, senderAddress: string, contractName?: ContractName, msg?: InstantiateMsg, label?: string) => {
+export const deployContract = async (client: SigningCosmWasmClient, senderAddress: string, msg?: InstantiateMsg, contractName?: ContractName, label?: string) => {
   // upload and instantiate the contract
   const wasmBytecode = readFileSync(getContractDir(contractName));
   const uploadRes = await client.upload(senderAddress, wasmBytecode, 'auto');
