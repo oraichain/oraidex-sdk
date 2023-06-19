@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-contracts-build",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "main": "build/index.js",
   "license": "MIT",
   "files": [
@@ -8,6 +8,6 @@
     "data/"
   ],
   "dependencies": {
-    "@oraichain/oraidex-contracts-sdk": "^1.0.7"
+    "@oraichain/oraidex-contracts-sdk": "^1.0.9"
   }
 }
