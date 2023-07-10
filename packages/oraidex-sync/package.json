@@ -1,0 +1,16 @@
+{
+  "name": "@oraichain/oraidex-sync",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "license": "MIT",
+  "files": [
+    "build/",
+    "data/"
+  ],
+  "dependencies": {
+    "@cosmjs/tendermint-rpc": "^0.31.0",
+    "@oraichain/cosmos-rpc-sync": "^1.0.5",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.13",
+    "duckdb-async": "^0.8.1"
+  }
+}
