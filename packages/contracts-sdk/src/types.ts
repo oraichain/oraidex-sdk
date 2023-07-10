@@ -24,10 +24,6 @@ export interface TokenRatio {
   info: AssetInfo;
   ratio: Decimal;
 }
-export interface Asset {
-  amount: Uint128;
-  info: AssetInfo;
-}
 export interface PairInfo {
   asset_infos: [AssetInfo, AssetInfo];
   commission_rate: string;
@@ -35,6 +31,19 @@ export interface PairInfo {
   liquidity_token: Addr;
   oracle_addr: Addr;
 }
+export type OrderDirection = "buy" | "sell";
+export interface Asset {
+  amount: Uint128;
+  info: AssetInfo;
+}
+export type OrderFilter = ("tick" | "none") | {
+  bidder: string;
+} | {
+  price: Decimal;
+} | {
+  status: OrderStatus;
+};
+export type OrderStatus = "open" | "partial_filled" | "fulfilled" | "cancel";
 export type OracleTreasuryQuery = {
   tax_rate: {};
 } | {
@@ -68,12 +77,6 @@ export interface Coin {
   amount: Uint128;
   denom: string;
 }
-export type OrderDirection = "buy" | "sell";
-export type OrderFilter = ("tick" | "none") | {
-  bidder: string;
-} | {
-  price: Decimal;
-};
 export type SwapOperation = {
   orai_swap: {
     ask_asset_info: AssetInfo;
@@ -122,10 +125,4 @@ export interface SpenderAllowanceInfo {
 export type LogoInfo = {
   url: string;
 } | "embedded";
-export interface RewardInfoResponseItem {
-  asset_info: AssetInfo;
-  bond_amount: Uint128;
-  pending_reward: Uint128;
-  pending_withdraw: Asset[];
-  should_migrate?: boolean | null;
-}
+export { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";

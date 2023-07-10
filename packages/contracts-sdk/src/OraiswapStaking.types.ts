@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset, RewardInfoResponseItem} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
 export interface InstantiateMsg {
   base_denom?: string | null;
   factory_addr: Addr;
@@ -110,6 +110,13 @@ export interface PoolInfoResponse {
 export interface RewardInfoResponse {
   reward_infos: RewardInfoResponseItem[];
   staker_addr: Addr;
+}
+export interface RewardInfoResponseItem {
+  asset_info: AssetInfo;
+  bond_amount: Uint128;
+  pending_reward: Uint128;
+  pending_withdraw: Asset[];
+  should_migrate?: boolean | null;
 }
 export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {
