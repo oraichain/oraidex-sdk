@@ -1,5 +1,4 @@
 import { Log } from "@cosmjs/stargate/build/logs";
-import { Tx } from "@oraichain/cosmos-rpc-sync";
 import {
   Addr,
   Asset,
@@ -9,7 +8,6 @@ import {
   Uint128,
 } from "@oraichain/oraidex-contracts-sdk";
 import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
-import { ExecuteMsg as OraiswapTokenMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 
 export type AssetData = {
@@ -92,4 +90,8 @@ export type OraiswapPairCw20HookMsg = {
   swap:
     | { belief_price?: Decimal; max_spread?: Decimal; to?: string }
     | { withdraw_liquidity: {} };
+};
+
+export type PairMapping = {
+  asset_infos: [AssetInfo, AssetInfo];
 };
