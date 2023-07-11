@@ -27,3 +27,5 @@ typings/
 
 .npmrc
 build
+*data
+*data.wal

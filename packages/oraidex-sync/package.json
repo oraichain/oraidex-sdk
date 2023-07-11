@@ -7,6 +7,9 @@
     "build/",
     "data/"
   ],
+  "scripts": {
+    "start": "npx ts-node src/index.ts"
+  },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.31.0",
     "@oraichain/cosmos-rpc-sync": "^1.0.5",
