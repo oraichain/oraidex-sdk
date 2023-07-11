@@ -13,8 +13,8 @@ class WriteOrders extends WriteData {
   async process(chunk: any): Promise<boolean> {
     try {
       const { txs, offset: newOffset, queryTags } = chunk as Txs;
-      console.log("txs: ", txs.length);
-      parseTxs(txs);
+      const result = parseTxs(txs);
+      console.dir(result, { depth: null });
     } catch (error) {
       console.log("error processing data: ", error);
       return false;

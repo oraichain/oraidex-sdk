@@ -31,10 +31,6 @@ function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
     .map((event) => event.attributes);
 }
 
-function parseOraidexAttributes(attributes: readonly Attribute[]) {
-  return;
-}
-
 function parseTxLog(rawLog: string): Log[] {
   return JSON.parse(rawLog);
 }
@@ -56,6 +52,113 @@ function parseTxToMsgExecuteContractMsgs(tx: Tx): MsgExecuteContractWithLogs[] {
   return msgs;
 }
 
+function extractSwapOperations(
+  txhash: string,
+  events: readonly Event[]
+): SwapOperationData[] {
+  const wasmAttributes = parseWasmEvents(events);
+  let swapData: SwapOperationData[] = [];
+  let offerDenoms: string[] = [];
+  let askDenoms: string[] = [];
+  let commissionAmounts: string[] = [];
+  let offerAmounts: string[] = [];
+  let returnAmounts: string[] = [];
+  let taxAmounts: string[] = [];
+  let spreadAmounts: string[] = [];
+  for (let attrs of wasmAttributes) {
+    if (!attrs.find((attr) => attr.key === "swap")) continue;
+    for (let attr of attrs) {
+      if (attr.key === "offer_asset") {
+        offerDenoms.push(attr.value);
+      }
+      if (attr.key === "ask_asset") {
+        askDenoms.push(attr.value);
+      }
+      if (attr.key === "offer_amount") {
+        offerAmounts.push(attr.value);
+      }
+      if (attr.key === "return_amount") {
+        returnAmounts.push(attr.value);
+      }
+      if (attr.key === "tax_amount") {
+        taxAmounts.push(attr.value);
+      }
+      if (attr.key === "commission_amount") {
+        commissionAmounts.push(attr.value);
+      }
+      if (attr.key === "spread_amount") {
+        spreadAmounts.push(attr.value);
+      }
+    }
+  }
+  // TODO: check length of above data should be equal because otherwise we would miss information
+  for (let i = 0; i < askDenoms.length; i++) {
+    swapData.push({
+      txhash,
+      offerDenom: offerDenoms[i],
+      offerAmount: offerAmounts[i],
+      returnAmount: returnAmounts[i],
+      commissionAmount: parseInt(commissionAmounts[i]),
+      spreadAmount: parseInt(spreadAmounts[i]),
+      taxAmount: parseInt(taxAmounts[i]),
+      askDenom: askDenoms[i],
+    });
+  }
+  return swapData;
+}
+
+function extractMsgProvideLiquidity(
+  txhash: string,
+  msg: MsgType,
+  provider: string
+): ProvideLiquidityOperationData | undefined {
+  if ("provide_liquidity" in msg) {
+    return {
+      txhash,
+      firstTokenAsset: msg.provide_liquidity.assets[0],
+      secondTokenAsset: msg.provide_liquidity.assets[1],
+      provider,
+    };
+  }
+  return undefined;
+}
+
+function parseWithdrawLiquidityAssets(assets: string): string[] {
+  // format: "2591orai, 773ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
+  const regex = /^(\d+)([a-zA-Z\/0-9]+), (\d+)([a-zA-Z\/0-9]+)/;
+  const matches = assets.match(regex);
+  console.log("matches: ", matches);
+  if (!matches || matches.length < 5) return []; // check < 5 because the string should be split into two numbers and two strings
+  return matches.slice(1, 5);
+}
+
+function extractMsgWithdrawLiquidity(
+  txhash: string,
+  events: readonly Event[],
+  withdrawer: string
+): WithdrawLiquidityOperationData[] {
+  const withdrawData: WithdrawLiquidityOperationData[] = [];
+  const wasmAttributes = parseWasmEvents(events);
+
+  for (let attrs of wasmAttributes) {
+    if (!attrs.find((attr) => attr.key === "withdraw_liquidity")) continue;
+    const assetAttr = attrs.find((attr) => attr.key === "refund_assets");
+    if (!assetAttr) continue;
+    const assets = parseWithdrawLiquidityAssets(assetAttr.value);
+    // sanity check. only push data if can parse asset successfully
+    if (assets.length !== 4) continue;
+    withdrawData.push({
+      txhash,
+      firstTokenAmount: assets[0],
+      firstTokenDenom: assets[1],
+      secondTokenAmount: assets[2],
+      secondTokenDenom: assets[3],
+      withdrawer,
+    });
+  }
+  return withdrawData;
+}
+
 function parseExecuteContractToOraidexMsgs(
   msgs: MsgExecuteContractWithLogs[]
 ): ModifiedMsgExecuteContract[] {
@@ -66,8 +169,13 @@ function parseExecuteContractToOraidexMsgs(
         ...msg,
         msg: JSON.parse(Buffer.from(msg.msg).toString("utf-8")),
       };
-      // Should be provide, remove liquidity or other oraidex related types
-      if ("provide_liquidity" in obj.msg || "swap" in obj.msg) objs.push(obj);
+      // Should be provide, remove liquidity, swap, or other oraidex related types
+      if (
+        "provide_liquidity" in obj.msg ||
+        "execute_swap_operations" in obj.msg ||
+        "execute_swap_operation" in obj.msg
+      )
+        objs.push(obj);
       if ("send" in obj.msg) {
         try {
           const contractSendMsg: OraiswapPairCw20HookMsg = JSON.parse(
@@ -90,7 +198,6 @@ function parseExecuteContractToOraidexMsgs(
 }
 
 function parseTxs(txs: Tx[]): TxAnlysisResult {
-  let pairAssets: Asset[][] = [];
   let transactions: Tx[] = [];
   let swapOpsData: SwapOperationData[] = [];
   let accountTxs: AccountTx[] = [];
@@ -100,15 +207,36 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     transactions.push(tx);
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
     const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
-    console.dir(msgs, { depth: null });
+    const txhash = tx.hash;
+    for (let msg of msgs) {
+      const sender = msg.sender;
+      swapOpsData.push(...extractSwapOperations(txhash, msg.logs.events));
+      const provideLiquidityData = extractMsgProvideLiquidity(
+        txhash,
+        msg.msg,
+        sender
+      );
+      if (provideLiquidityData)
+        provideLiquidityOpsData.push(provideLiquidityData);
+      withdrawLiquidityOpsData.push(
+        ...extractMsgWithdrawLiquidity(txhash, msg.logs.events, sender)
+      );
+      accountTxs.push({ txhash, accountAddress: sender });
+    }
   }
-  return undefined;
+  return {
+    // transactions: txs,
+    swapOpsData,
+    accountTxs,
+    provideLiquidityOpsData,
+    withdrawLiquidityOpsData,
+  };
 }
 
 export {
   parseAssetInfo,
   delay,
   parseWasmEvents,
-  parseOraidexAttributes,
   parseTxs,
+  parseWithdrawLiquidityAssets,
 };

@@ -1,7 +1,14 @@
 import { Log } from "@cosmjs/stargate/build/logs";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
-import { Asset, AssetInfo, Decimal } from "@oraichain/oraidex-contracts-sdk";
-import { ExecuteMsg as OraiswapPairExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
+import {
+  Addr,
+  Asset,
+  AssetInfo,
+  Binary,
+  Decimal,
+  Uint128,
+} from "@oraichain/oraidex-contracts-sdk";
+import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { ExecuteMsg as OraiswapTokenMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 
@@ -14,8 +21,10 @@ export type AssetData = {
 
 export type SwapOperationData = {
   txhash: string;
-  offerAsset: Asset;
-  askAsset: Asset;
+  offerDenom: string;
+  offerAmount: string;
+  askDenom: string;
+  returnAmount: string;
   taxAmount: number;
   commissionAmount: number;
   spreadAmount: number;
@@ -33,9 +42,17 @@ export type ProvideLiquidityOperationData = {
   provider: string;
 };
 
+export type WithdrawLiquidityOperationData = {
+  txhash: string;
+  firstTokenDenom: string;
+  firstTokenAmount: string;
+  secondTokenDenom: string;
+  secondTokenAmount: string;
+  withdrawer: string;
+};
+
 export type TxAnlysisResult = {
-  pairAssets: Asset[][];
-  transactions: Tx[];
+  //   transactions: Tx[];
   swapOpsData: SwapOperationData[];
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
@@ -54,11 +71,22 @@ export type ModifiedMsgExecuteContract = Omit<
 };
 
 export type MsgType =
-  | OraiswapPairExecuteMsg
-  | OraiswapTokenMsg
+  | {
+      provide_liquidity: {
+        assets: [Asset, Asset];
+        receiver?: Addr | null;
+        slippage_tolerance?: Decimal | null;
+      };
+    }
+  | OraiswapRouterExecuteMsg
+  | {
+      send: {
+        amount: Uint128;
+        contract: string;
+        msg: Binary;
+      };
+    }
   | OraiswapPairCw20HookMsg;
-
-export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
 export type OraiswapPairCw20HookMsg = {
   swap:
