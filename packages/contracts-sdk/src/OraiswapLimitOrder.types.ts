@@ -1,8 +1,9 @@
-import {Addr, Uint128, Binary, AssetInfo, Decimal, OrderDirection, Cw20ReceiveMsg, Asset, OrderFilter} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, OrderDirection, Cw20ReceiveMsg, Asset, OrderFilter, OrderStatus} from "./types";
 export interface InstantiateMsg {
   admin?: Addr | null;
   commission_rate?: string | null;
   name?: string | null;
+  reward_address?: Addr | null;
   version?: string | null;
 }
 export type ExecuteMsg = {
@@ -10,6 +11,11 @@ export type ExecuteMsg = {
 } | {
   update_admin: {
     admin: Addr;
+  };
+} | {
+  update_config: {
+    commission_rate?: string | null;
+    reward_address?: Addr | null;
   };
 } | {
   create_order_book_pair: {
@@ -102,6 +108,7 @@ export interface OrderResponse {
   filled_offer_amount: Uint128;
   offer_asset: Asset;
   order_id: number;
+  status: OrderStatus;
 }
 export interface OrderBookResponse {
   base_coin_info: AssetInfo;
