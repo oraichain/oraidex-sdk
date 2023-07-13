@@ -15,6 +15,7 @@ describe("test-duckdb", () => {
       duckDb.insertLpOps([
         {
           txhash: "foo",
+          timestamp: new Date().toISOString(),
           firstTokenAmount: "abcd" as any,
           firstTokenDenom: "orai",
           secondTokenAmount: 2,
@@ -31,6 +32,7 @@ describe("test-duckdb", () => {
     await duckDb.insertLpOps([
       {
         txhash: "foo",
+        timestamp: new Date().toISOString(),
         firstTokenAmount: 1,
         firstTokenDenom: "orai",
         secondTokenAmount: 2,

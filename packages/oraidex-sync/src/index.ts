@@ -48,8 +48,8 @@ const sync = async () => {
       offset: currentInd,
       rpcUrl,
       queryTags: [],
-      limit: 100,
-      maxThreadLevel: 1,
+      limit: 1000,
+      maxThreadLevel: 3,
       interval: 5000
     }).pipe(new WriteOrders());
   } catch (error) {

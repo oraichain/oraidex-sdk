@@ -51,7 +51,7 @@ function parseTxToMsgExecuteContractMsgs(tx: Tx): MsgExecuteContractWithLogs[] {
   return msgs;
 }
 
-function extractSwapOperations(txhash: string, events: readonly Event[]): SwapOperationData[] {
+function extractSwapOperations(events: readonly Event[]): SwapOperationData[] {
   const wasmAttributes = parseWasmEvents(events);
   let swapData: SwapOperationData[] = [];
   let offerDenoms: string[] = [];
@@ -90,7 +90,8 @@ function extractSwapOperations(txhash: string, events: readonly Event[]): SwapOp
   // TODO: check length of above data should be equal because otherwise we would miss information
   for (let i = 0; i < askDenoms.length; i++) {
     swapData.push({
-      txhash,
+      txhash: "",
+      timestamp: "",
       offerDenom: offerDenoms[i],
       offerAmount: offerAmounts[i],
       askDenom: askDenoms[i],
@@ -103,16 +104,13 @@ function extractSwapOperations(txhash: string, events: readonly Event[]): SwapOp
   return swapData;
 }
 
-function extractMsgProvideLiquidity(
-  txhash: string,
-  msg: MsgType,
-  txCreator: string
-): ProvideLiquidityOperationData | undefined {
+function extractMsgProvideLiquidity(msg: MsgType, txCreator: string): ProvideLiquidityOperationData | undefined {
   if ("provide_liquidity" in msg) {
     const firstAsset = msg.provide_liquidity.assets[0];
     const secAsset = msg.provide_liquidity.assets[1];
     return {
-      txhash,
+      txhash: "",
+      timestamp: "",
       firstTokenAmount: parseInt(firstAsset.amount),
       firstTokenDenom: parseAssetInfo(firstAsset.info),
       secondTokenAmount: parseInt(secAsset.amount),
@@ -132,11 +130,7 @@ function parseWithdrawLiquidityAssets(assets: string): string[] {
   return matches.slice(1, 5);
 }
 
-function extractMsgWithdrawLiquidity(
-  txhash: string,
-  events: readonly Event[],
-  txCreator: string
-): WithdrawLiquidityOperationData[] {
+function extractMsgWithdrawLiquidity(events: readonly Event[], txCreator: string): WithdrawLiquidityOperationData[] {
   const withdrawData: WithdrawLiquidityOperationData[] = [];
   const wasmAttributes = parseWasmEvents(events);
 
@@ -148,7 +142,8 @@ function extractMsgWithdrawLiquidity(
     // sanity check. only push data if can parse asset successfully
     if (assets.length !== 4) continue;
     withdrawData.push({
-      txhash,
+      txhash: "",
+      timestamp: "",
       firstTokenAmount: parseInt(assets[0]),
       firstTokenDenom: assets[1],
       secondTokenAmount: parseInt(assets[2]),
@@ -204,10 +199,18 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     const txhash = tx.hash;
     for (let msg of msgs) {
       const sender = msg.sender;
-      swapOpsData.push(...extractSwapOperations(txhash, msg.logs.events));
-      const provideLiquidityData = extractMsgProvideLiquidity(txhash, msg.msg, sender);
+      swapOpsData.push(
+        ...extractSwapOperations(msg.logs.events).map((op) => ({ txhash, timestamp: tx.timestamp, ...op }))
+      );
+      const provideLiquidityData = { txhash, timestamp: tx.timestamp, ...extractMsgProvideLiquidity(msg.msg, sender) };
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
-      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(txhash, msg.logs.events, sender));
+      withdrawLiquidityOpsData.push(
+        ...extractMsgWithdrawLiquidity(msg.logs.events, sender).map((op) => ({
+          txhash,
+          timestamp: tx.timestamp,
+          ...op
+        }))
+      );
       accountTxs.push({ txhash, accountAddress: sender });
     }
   }
