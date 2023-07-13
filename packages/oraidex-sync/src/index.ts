@@ -17,7 +17,7 @@ class WriteOrders extends WriteData {
       const { txs, offset: newOffset, queryTags } = chunk as Txs;
       const result = parseTxs(txs);
       // insert txs
-      console.log("result: ", result);
+      await duckDb.insertHeightSnapshot(newOffset);
       await insertParsedTxs(result);
 
       const swapOps = await querySwapOps();

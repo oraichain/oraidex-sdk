@@ -16,12 +16,11 @@ async function insertLiquidityOps(ops: ProvideLiquidityOperationData[] | Withdra
 
 async function insertParsedTxs(txs: TxAnlysisResult) {
   // insert swap ops
-  const results = await Promise.all([
+  await Promise.all([
     insertSwapOps(txs.swapOpsData),
     insertLiquidityOps(txs.provideLiquidityOpsData),
     insertLiquidityOps(txs.withdrawLiquidityOpsData)
   ]);
-  console.log("insert results: ", results);
 }
 
 export { insertParsedTxs };

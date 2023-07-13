@@ -19,7 +19,7 @@ export class DuckDb {
 
   async createHeightSnapshot() {
     const db = await this.initDuckDbConnection();
-    await db.exec("CREATE TABLE IF NOT EXISTS height_snapshot (currentInd INTEGER,PRIMARY KEY (currentInd))");
+    await db.exec("CREATE TABLE IF NOT EXISTS height_snapshot (currentInd UINTEGER,PRIMARY KEY (currentInd))");
   }
 
   async loadHeightSnapshot() {
@@ -30,7 +30,7 @@ export class DuckDb {
 
   async insertHeightSnapshot(currentInd: number) {
     const db = await this.initDuckDbConnection();
-    await db.exec("INSERT OR REPLACE INTO height_snapshot VALUES (?)", currentInd);
+    await db.run("INSERT OR REPLACE INTO height_snapshot VALUES (?)", currentInd);
   }
 
   private async insertBulkData(data: any[], tableName: string) {
@@ -47,7 +47,7 @@ export class DuckDb {
   async createSwapOpsTable() {
     const db = await this.initDuckDbConnection();
     await db.exec(
-      "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, offerDenom VARCHAR, offerAmount INTEGER, askDenom VARCHAR, returnAmount INTEGER, taxAmount INTEGER, commissionAmount INTEGER, spreadAmount INTEGER)"
+      "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, offerDenom VARCHAR, offerAmount UBIGINT, askDenom VARCHAR, returnAmount UBIGINT, taxAmount UBIGINT, commissionAmount UBIGINT, spreadAmount UBIGINT)"
     );
   }
 
@@ -64,7 +64,7 @@ export class DuckDb {
       await db.exec("CREATE TYPE LPOPTYPE AS ENUM ('provide','withdraw');");
     }
     await db.exec(
-      "CREATE TABLE IF NOT EXISTS lp_ops_data (txhash VARCHAR, firstTokenAmount INTEGER, firstTokenDenom VARCHAR, secondTokenAmount INTEGER, secondTokenDenom VARCHAR, txCreator VARCHAR, opType LPOPTYPE)"
+      "CREATE TABLE IF NOT EXISTS lp_ops_data (txhash VARCHAR, firstTokenAmount UBIGINT, firstTokenDenom VARCHAR, secondTokenAmount UBIGINT, secondTokenDenom VARCHAR, txCreator VARCHAR, opType LPOPTYPE)"
     );
   }
 
@@ -74,11 +74,11 @@ export class DuckDb {
 
   async querySwapOps() {
     const db = await this.initDuckDbConnection();
-    return db.all("SELECT * from swap_ops_data limit 1");
+    return db.all("SELECT count(*) from swap_ops_data");
   }
 
   async queryLpOps() {
     const db = await this.initDuckDbConnection();
-    return db.all("SELECT * from lp_ops_data limit 1");
+    return db.all("SELECT count(*) from lp_ops_data");
   }
 }
