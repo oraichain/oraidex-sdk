@@ -152,8 +152,8 @@ function extractMsgWithdrawLiquidity(
     // sanity check. only push data if can parse asset successfully
     if (assets.length !== 4) continue;
     withdrawData.push({
-      txhash: "",
-      timestamp: "",
+      txhash,
+      timestamp,
       firstTokenAmount: parseInt(assets[0]),
       firstTokenDenom: assets[1],
       secondTokenAmount: parseInt(assets[2]),
