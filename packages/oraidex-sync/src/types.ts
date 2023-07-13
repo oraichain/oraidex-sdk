@@ -1,4 +1,5 @@
 import { Log } from "@cosmjs/stargate/build/logs";
+import { Tx } from "@oraichain/cosmos-rpc-sync";
 import {
   Addr,
   Asset,
@@ -50,7 +51,7 @@ export type WithdrawLiquidityOperationData = {
 };
 
 export type TxAnlysisResult = {
-  //   transactions: Tx[];
+  transactions: Tx[];
   swapOpsData: SwapOperationData[];
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];

@@ -225,7 +225,7 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     }
   }
   return {
-    // transactions: txs,
+    transactions: txs,
     swapOpsData,
     accountTxs,
     provideLiquidityOpsData,
