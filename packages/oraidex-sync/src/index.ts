@@ -48,7 +48,7 @@ const sync = async () => {
       offset: currentInd,
       rpcUrl,
       queryTags: [],
-      limit: 1000,
+      limit: 100,
       maxThreadLevel: 3,
       interval: 5000
     }).pipe(new WriteOrders());

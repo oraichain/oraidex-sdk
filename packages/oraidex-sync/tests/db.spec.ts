@@ -2,10 +2,10 @@ import { DuckDb } from "../src/db";
 
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
-  beforeEach(async () => {
+  beforeAll(async () => {
     // fixture
     duckDb = new DuckDb();
-    await duckDb.initDuckDb();
+    await duckDb.initDuckDb("oraidex-sync-data-test");
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
   });
 

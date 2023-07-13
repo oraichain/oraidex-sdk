@@ -1,0 +1,12 @@
+diff --git a/node_modules/@cosmjs/stargate/build/stargateclient.js b/node_modules/@cosmjs/stargate/build/stargateclient.js
+index 3268b13..70bbbec 100644
+--- a/node_modules/@cosmjs/stargate/build/stargateclient.js
++++ b/node_modules/@cosmjs/stargate/build/stargateclient.js
+@@ -299,6 +299,7 @@ class StargateClient {
+         return results.txs.map((tx) => {
+             const txMsgData = abci_1.TxMsgData.decode(tx.result.data ?? new Uint8Array());
+             return {
++                ...tx,
+                 height: tx.height,
+                 txIndex: tx.index,
+                 hash: (0, encoding_1.toHex)(tx.hash).toUpperCase(),
