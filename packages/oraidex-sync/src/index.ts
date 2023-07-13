@@ -1,8 +1,9 @@
 import "dotenv/config";
-import { parseTxs, parseWasmEvents } from "./helper";
+import { parseTxs } from "./tx-parsing";
 import { DuckDb } from "./db";
 import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
+import { insertParsedTxs } from "./tx-insert";
 
 const duckDb = new DuckDb();
 class WriteOrders extends WriteData {
@@ -14,6 +15,8 @@ class WriteOrders extends WriteData {
     try {
       const { txs, offset: newOffset, queryTags } = chunk as Txs;
       const result = parseTxs(txs);
+      // insert txs
+      await insertParsedTxs(result);
       console.dir(result, { depth: null });
     } catch (error) {
       console.log("error processing data: ", error);

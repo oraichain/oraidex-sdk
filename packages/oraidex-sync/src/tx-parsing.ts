@@ -1,6 +1,6 @@
-import { Attribute, Event, IndexedTx } from "@cosmjs/stargate";
+import { Attribute, Event } from "@cosmjs/stargate";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
-import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import {
