@@ -1,30 +1,27 @@
+import { duckDb } from "../src";
 import {
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
-  WithdrawLiquidityOperationData,
+  WithdrawLiquidityOperationData
 } from "./types";
 
-async function insertSwapOps(ops: SwapOperationData[]) {}
+async function insertSwapOps(ops: SwapOperationData[]) {
+  await duckDb.insertSwapOps(ops);
+}
 
-async function insertProvideLiquidityOps(
-  ops: ProvideLiquidityOperationData[]
-) {}
-
-async function insertWithdrawLiquidityOps(
-  ops: WithdrawLiquidityOperationData[]
-) {}
+async function insertLiquidityOps(ops: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]) {
+  await duckDb.insertLpOps(ops);
+}
 
 async function insertParsedTxs(txs: TxAnlysisResult) {
   // insert swap ops
-  const insertResults = await Promise.all([
+  const results = await Promise.all([
     insertSwapOps(txs.swapOpsData),
-    insertProvideLiquidityOps(txs.provideLiquidityOpsData),
-    insertWithdrawLiquidityOps(txs.withdrawLiquidityOpsData),
+    insertLiquidityOps(txs.provideLiquidityOpsData),
+    insertLiquidityOps(txs.withdrawLiquidityOpsData)
   ]);
-  console.log("insert results: ", insertResults);
-  // insert provide liquidity ops
-  // insert withdraw liquidity ops
+  console.log("insert results: ", results);
 }
 
 export { insertParsedTxs };

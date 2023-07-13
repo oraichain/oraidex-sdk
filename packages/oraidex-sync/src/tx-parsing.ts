@@ -1,8 +1,8 @@
-import { Attribute, Event } from '@cosmjs/stargate';
-import { Tx } from '@oraichain/cosmos-rpc-sync';
-import { AssetInfo } from '@oraichain/oraidex-contracts-sdk';
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
-import { Tx as CosmosTx } from 'cosmjs-types/cosmos/tx/v1beta1/tx';
+import { Attribute, Event } from "@cosmjs/stargate";
+import { Tx } from "@oraichain/cosmos-rpc-sync";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
+import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import {
   AccountTx,
   ModifiedMsgExecuteContract,
@@ -13,11 +13,11 @@ import {
   SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
-} from './types';
-import { Log } from '@cosmjs/stargate/build/logs';
+} from "./types";
+import { Log } from "@cosmjs/stargate/build/logs";
 
 function parseAssetInfo(info: AssetInfo): string {
-  if ('native_token' in info) return info.native_token.denom;
+  if ("native_token" in info) return info.native_token.denom;
   return info.token.contract_addr;
 }
 
@@ -26,7 +26,7 @@ async function delay(timeout: number) {
 }
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
-  return events.filter((event) => event.type === 'wasm').map((event) => event.attributes);
+  return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
 }
 
 function parseTxLog(rawLog: string): Log[] {
@@ -41,7 +41,7 @@ function parseTxToMsgExecuteContractMsgs(tx: Tx): MsgExecuteContractWithLogs[] {
   const msgs: MsgExecuteContractWithLogs[] = [];
   for (let i = 0; i < cosmosTx.body.messages.length; i++) {
     const msg = cosmosTx.body.messages[i];
-    if (msg.typeUrl === '/cosmwasm.wasm.v1.MsgExecuteContract') {
+    if (msg.typeUrl === "/cosmwasm.wasm.v1.MsgExecuteContract") {
       const msgExecuteContract = MsgExecuteContract.decode(msg.value);
       // TODO: this is an assumption that the log order is the same as the message order.
       msgs.push({ ...msgExecuteContract, logs: logs[i] });
@@ -61,27 +61,27 @@ function extractSwapOperations(txhash: string, events: readonly Event[]): SwapOp
   let taxAmounts: string[] = [];
   let spreadAmounts: string[] = [];
   for (let attrs of wasmAttributes) {
-    if (!attrs.find((attr) => attr.key === 'swap')) continue;
+    if (!attrs.find((attr) => attr.key === "swap")) continue;
     for (let attr of attrs) {
-      if (attr.key === 'offer_asset') {
+      if (attr.key === "offer_asset") {
         offerDenoms.push(attr.value);
       }
-      if (attr.key === 'ask_asset') {
+      if (attr.key === "ask_asset") {
         askDenoms.push(attr.value);
       }
-      if (attr.key === 'offer_amount') {
+      if (attr.key === "offer_amount") {
         offerAmounts.push(attr.value);
       }
-      if (attr.key === 'return_amount') {
+      if (attr.key === "return_amount") {
         returnAmounts.push(attr.value);
       }
-      if (attr.key === 'tax_amount') {
+      if (attr.key === "tax_amount") {
         taxAmounts.push(attr.value);
       }
-      if (attr.key === 'commission_amount') {
+      if (attr.key === "commission_amount") {
         commissionAmounts.push(attr.value);
       }
-      if (attr.key === 'spread_amount') {
+      if (attr.key === "spread_amount") {
         spreadAmounts.push(attr.value);
       }
     }
@@ -107,7 +107,7 @@ function extractMsgProvideLiquidity(
   msg: MsgType,
   txCreator: string
 ): ProvideLiquidityOperationData | undefined {
-  if ('provide_liquidity' in msg) {
+  if ("provide_liquidity" in msg) {
     const firstAsset = msg.provide_liquidity.assets[0];
     const secAsset = msg.provide_liquidity.assets[1];
     return {
@@ -116,7 +116,8 @@ function extractMsgProvideLiquidity(
       firstTokenDenom: parseAssetInfo(firstAsset.info),
       secondTokenAmount: parseInt(secAsset.amount),
       secondTokenDenom: parseAssetInfo(secAsset.info),
-      txCreator
+      txCreator,
+      opType: "provide"
     };
   }
   return undefined;
@@ -139,8 +140,8 @@ function extractMsgWithdrawLiquidity(
   const wasmAttributes = parseWasmEvents(events);
 
   for (let attrs of wasmAttributes) {
-    if (!attrs.find((attr) => attr.key === 'withdraw_liquidity')) continue;
-    const assetAttr = attrs.find((attr) => attr.key === 'refund_assets');
+    if (!attrs.find((attr) => attr.key === "withdraw_liquidity")) continue;
+    const assetAttr = attrs.find((attr) => attr.key === "refund_assets");
     if (!assetAttr) continue;
     const assets = parseWithdrawLiquidityAssets(assetAttr.value);
     // sanity check. only push data if can parse asset successfully
@@ -151,7 +152,8 @@ function extractMsgWithdrawLiquidity(
       firstTokenDenom: assets[1],
       secondTokenAmount: parseInt(assets[2]),
       secondTokenDenom: assets[3],
-      txCreator
+      txCreator,
+      opType: "withdraw"
     });
   }
   return withdrawData;
@@ -163,17 +165,17 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
     try {
       const obj: ModifiedMsgExecuteContract = {
         ...msg,
-        msg: JSON.parse(Buffer.from(msg.msg).toString('utf-8'))
+        msg: JSON.parse(Buffer.from(msg.msg).toString("utf-8"))
       };
       // Should be provide, remove liquidity, swap, or other oraidex related types
-      if ('provide_liquidity' in obj.msg || 'execute_swap_operations' in obj.msg || 'execute_swap_operation' in obj.msg)
+      if ("provide_liquidity" in obj.msg || "execute_swap_operations" in obj.msg || "execute_swap_operation" in obj.msg)
         objs.push(obj);
-      if ('send' in obj.msg) {
+      if ("send" in obj.msg) {
         try {
           const contractSendMsg: OraiswapPairCw20HookMsg = JSON.parse(
-            Buffer.from(obj.msg.send.msg, 'base64').toString('utf-8')
+            Buffer.from(obj.msg.send.msg, "base64").toString("utf-8")
           );
-          if ('swap' in contractSendMsg || 'withdraw_liquidity' in contractSendMsg)
+          if ("swap" in contractSendMsg || "withdraw_liquidity" in contractSendMsg)
             objs.push({ ...msg, msg: contractSendMsg });
         } catch (error) {
           // do nothing because we dont care about other types of msgs
@@ -207,7 +209,7 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     }
   }
   return {
-    transactions: txs,
+    // transactions: txs,
     swapOpsData,
     accountTxs,
     provideLiquidityOpsData,

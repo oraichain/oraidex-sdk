@@ -1,8 +1,8 @@
-import { Log } from '@cosmjs/stargate/build/logs';
-import { Tx } from '@oraichain/cosmos-rpc-sync';
-import { Addr, Asset, AssetInfo, Binary, Decimal, Uint128 } from '@oraichain/oraidex-contracts-sdk';
-import { ExecuteMsg as OraiswapRouterExecuteMsg } from '@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types';
-import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
+import { Log } from "@cosmjs/stargate/build/logs";
+import { Tx } from "@oraichain/cosmos-rpc-sync";
+import { Addr, Asset, AssetInfo, Binary, Decimal, Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 
 export type AssetData = {
   info: AssetInfo;
@@ -27,6 +27,8 @@ export type AccountTx = {
   txhash: string;
 };
 
+export type LiquidityOpType = "provide" | "withdraw";
+
 export type ProvideLiquidityOperationData = {
   txhash: string;
   firstTokenAmount: number;
@@ -34,12 +36,13 @@ export type ProvideLiquidityOperationData = {
   secondTokenAmount: number;
   secondTokenDenom: string;
   txCreator: string;
+  opType: LiquidityOpType;
 };
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
 export type TxAnlysisResult = {
-  transactions: Tx[];
+  // transactions: Tx[];
   swapOpsData: SwapOperationData[];
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
@@ -50,7 +53,7 @@ export type MsgExecuteContractWithLogs = MsgExecuteContract & {
   logs: Log;
 };
 
-export type ModifiedMsgExecuteContract = Omit<MsgExecuteContractWithLogs, 'msg'> & {
+export type ModifiedMsgExecuteContract = Omit<MsgExecuteContractWithLogs, "msg"> & {
   msg: MsgType;
 };
 
