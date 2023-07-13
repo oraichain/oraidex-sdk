@@ -1,15 +1,8 @@
-import { Log } from "@cosmjs/stargate/build/logs";
-import { Tx } from "@oraichain/cosmos-rpc-sync";
-import {
-  Addr,
-  Asset,
-  AssetInfo,
-  Binary,
-  Decimal,
-  Uint128,
-} from "@oraichain/oraidex-contracts-sdk";
-import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
-import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
+import { Log } from '@cosmjs/stargate/build/logs';
+import { Tx } from '@oraichain/cosmos-rpc-sync';
+import { Addr, Asset, AssetInfo, Binary, Decimal, Uint128 } from '@oraichain/oraidex-contracts-sdk';
+import { ExecuteMsg as OraiswapRouterExecuteMsg } from '@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types';
+import { MsgExecuteContract } from 'cosmjs-types/cosmwasm/wasm/v1/tx';
 
 export type AssetData = {
   info: AssetInfo;
@@ -36,19 +29,14 @@ export type AccountTx = {
 
 export type ProvideLiquidityOperationData = {
   txhash: string;
-  firstTokenAsset: Asset;
-  secondTokenAsset: Asset;
-  provider: string;
+  firstTokenAmount: number;
+  firstTokenDenom: string;
+  secondTokenAmount: number;
+  secondTokenDenom: string;
+  txCreator: string;
 };
 
-export type WithdrawLiquidityOperationData = {
-  txhash: string;
-  firstTokenDenom: string;
-  firstTokenAmount: string;
-  secondTokenDenom: string;
-  secondTokenAmount: string;
-  withdrawer: string;
-};
+export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
 export type TxAnlysisResult = {
   transactions: Tx[];
@@ -62,10 +50,7 @@ export type MsgExecuteContractWithLogs = MsgExecuteContract & {
   logs: Log;
 };
 
-export type ModifiedMsgExecuteContract = Omit<
-  MsgExecuteContractWithLogs,
-  "msg"
-> & {
+export type ModifiedMsgExecuteContract = Omit<MsgExecuteContractWithLogs, 'msg'> & {
   msg: MsgType;
 };
 
@@ -88,9 +73,7 @@ export type MsgType =
   | OraiswapPairCw20HookMsg;
 
 export type OraiswapPairCw20HookMsg = {
-  swap:
-    | { belief_price?: Decimal; max_spread?: Decimal; to?: string }
-    | { withdraw_liquidity: {} };
+  swap: { belief_price?: Decimal; max_spread?: Decimal; to?: string } | { withdraw_liquidity: {} };
 };
 
 export type PairMapping = {
