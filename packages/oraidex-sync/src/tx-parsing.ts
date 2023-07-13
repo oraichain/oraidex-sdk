@@ -220,4 +220,11 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
   };
 }
 
-export { parseAssetInfo, delay, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets };
+export {
+  parseAssetInfo,
+  delay,
+  parseWasmEvents,
+  parseTxs,
+  parseWithdrawLiquidityAssets,
+  parseTxToMsgExecuteContractMsgs
+};
