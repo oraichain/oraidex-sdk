@@ -9,6 +9,7 @@ import {
   MsgExecuteContractWithLogs,
   MsgType,
   OraiswapPairCw20HookMsg,
+  OraiswapRouterCw20HookMsg,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
@@ -61,7 +62,7 @@ function extractSwapOperations(txhash: string, events: readonly Event[]): SwapOp
   let taxAmounts: string[] = [];
   let spreadAmounts: string[] = [];
   for (let attrs of wasmAttributes) {
-    if (!attrs.find((attr) => attr.key === "swap")) continue;
+    if (!attrs.find((attr) => attr.key === "action" && attr.value === "swap")) continue;
     for (let attr of attrs) {
       if (attr.key === "offer_asset") {
         offerDenoms.push(attr.value);
@@ -92,11 +93,11 @@ function extractSwapOperations(txhash: string, events: readonly Event[]): SwapOp
       txhash,
       offerDenom: offerDenoms[i],
       offerAmount: offerAmounts[i],
+      askDenom: askDenoms[i],
       returnAmount: returnAmounts[i],
-      commissionAmount: parseInt(commissionAmounts[i]),
-      spreadAmount: parseInt(spreadAmounts[i]),
       taxAmount: parseInt(taxAmounts[i]),
-      askDenom: askDenoms[i]
+      commissionAmount: parseInt(commissionAmounts[i]),
+      spreadAmount: parseInt(spreadAmounts[i])
     });
   }
   return swapData;
@@ -172,12 +173,14 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
         objs.push(obj);
       if ("send" in obj.msg) {
         try {
-          const contractSendMsg: OraiswapPairCw20HookMsg = JSON.parse(
+          const contractSendMsg: OraiswapPairCw20HookMsg | OraiswapRouterCw20HookMsg = JSON.parse(
             Buffer.from(obj.msg.send.msg, "base64").toString("utf-8")
           );
-          if ("swap" in contractSendMsg || "withdraw_liquidity" in contractSendMsg)
+          if ("execute_swap_operations" in contractSendMsg || "withdraw_liquidity" in contractSendMsg) {
             objs.push({ ...msg, msg: contractSendMsg });
+          }
         } catch (error) {
+          console.log("parsing msg send error: ", error);
           // do nothing because we dont care about other types of msgs
         }
       }
