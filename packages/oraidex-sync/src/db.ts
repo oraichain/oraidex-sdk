@@ -3,50 +3,39 @@ import { SwapOperationData, WithdrawLiquidityOperationData } from "./types";
 import fs from "fs";
 
 export class DuckDb {
-  private db: Database;
+  protected constructor(public readonly conn: Connection) {}
 
-  closeDuckDb(): void {
-    this.db.close();
-  }
-
-  async initDuckDb(fileName?: string): Promise<void> {
-    this.db = await Database.create(fileName ?? "oraidex-sync-data");
-  }
-
-  async initDuckDbConnection(): Promise<Connection> {
-    return this.db.connect();
+  static async create(fileName?: string): Promise<DuckDb> {
+    const db = await Database.create(fileName ?? "data");
+    const conn = await db.connect();
+    return new DuckDb(conn);
   }
 
   async createHeightSnapshot() {
-    const db = await this.initDuckDbConnection();
-    await db.exec("CREATE TABLE IF NOT EXISTS height_snapshot (currentInd UINTEGER,PRIMARY KEY (currentInd))");
+    await this.conn.exec("CREATE TABLE IF NOT EXISTS height_snapshot (currentInd UINTEGER,PRIMARY KEY (currentInd))");
   }
 
   async loadHeightSnapshot() {
-    const db = await this.initDuckDbConnection();
-    const result = await db.all("SELECT * FROM height_snapshot");
+    const result = await this.conn.all("SELECT * FROM height_snapshot");
     return result.length > 0 ? result[0] : { currentInd: 1 };
   }
 
   async insertHeightSnapshot(currentInd: number) {
-    const db = await this.initDuckDbConnection();
-    await db.run("INSERT OR REPLACE INTO height_snapshot VALUES (?)", currentInd);
+    await this.conn.run("INSERT OR REPLACE INTO height_snapshot VALUES (?)", currentInd);
   }
 
   private async insertBulkData(data: any[], tableName: string) {
     // we wont insert anything if the data is empty. Otherwise it would throw an error while inserting
     if (data.length === 0) return;
-    const db = await this.initDuckDbConnection();
     const tableFile = `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(data));
-    await db.run(`INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`, tableFile);
+    await this.conn.run(`INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`, tableFile);
     await fs.promises.unlink(tableFile);
   }
 
   async createSwapOpsTable() {
-    const db = await this.initDuckDbConnection();
-    await db.exec(
+    await this.conn.exec(
       "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, timestamp TIMESTAMP, offerDenom VARCHAR, offerAmount UBIGINT, askDenom VARCHAR, returnAmount UBIGINT, taxAmount UBIGINT, commissionAmount UBIGINT, spreadAmount UBIGINT)"
     );
   }
@@ -56,14 +45,13 @@ export class DuckDb {
   }
 
   async createLiquidityOpsTable() {
-    const db = await this.initDuckDbConnection();
     try {
-      await db.all("select enum_range(NULL::LPOPTYPE);");
+      await this.conn.all("select enum_range(NULL::LPOPTYPE);");
     } catch (error) {
       // if error it means the enum does not exist => create new
-      await db.exec("CREATE TYPE LPOPTYPE AS ENUM ('provide','withdraw');");
+      await this.conn.exec("CREATE TYPE LPOPTYPE AS ENUM ('provide','withdraw');");
     }
-    await db.exec(
+    await this.conn.exec(
       "CREATE TABLE IF NOT EXISTS lp_ops_data (txhash VARCHAR, timestamp TIMESTAMP, firstTokenAmount UBIGINT, firstTokenDenom VARCHAR, secondTokenAmount UBIGINT, secondTokenDenom VARCHAR, txCreator VARCHAR, opType LPOPTYPE)"
     );
   }
@@ -73,12 +61,10 @@ export class DuckDb {
   }
 
   async querySwapOps() {
-    const db = await this.initDuckDbConnection();
-    return db.all("SELECT count(*) from swap_ops_data");
+    return this.conn.all("SELECT count(*) from swap_ops_data");
   }
 
   async queryLpOps() {
-    const db = await this.initDuckDbConnection();
-    return db.all("SELECT count(*) from lp_ops_data");
+    return this.conn.all("SELECT count(*) from lp_ops_data");
   }
 }
