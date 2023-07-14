@@ -1,5 +1,5 @@
 import { Database, Connection } from "duckdb-async";
-import { SwapOperationData, WithdrawLiquidityOperationData } from "./types";
+import { PairInfoData, SwapOperationData, WithdrawLiquidityOperationData } from "./types";
 import fs from "fs";
 
 export class DuckDb {
@@ -17,11 +17,12 @@ export class DuckDb {
 
   async loadHeightSnapshot() {
     const result = await this.conn.all("SELECT * FROM height_snapshot");
-    return result.length > 0 ? result[0] : { currentInd: 1 };
+    console.log("result: ", result);
+    return result.length > 0 ? result[result.length - 1] : { currentInd: 1 };
   }
 
   async insertHeightSnapshot(currentInd: number) {
-    await this.conn.run("INSERT OR REPLACE INTO height_snapshot VALUES (?)", currentInd);
+    await this.conn.run("INSERT OR REPLACE into height_snapshot(currentInd) VALUES (?)", currentInd);
   }
 
   private async insertBulkData(data: any[], tableName: string) {
@@ -58,6 +59,16 @@ export class DuckDb {
 
   async insertLpOps(ops: WithdrawLiquidityOperationData[]) {
     await this.insertBulkData(ops, "lp_ops_data");
+  }
+
+  async createPairInfosTable() {
+    await this.conn.exec(
+      "CREATE TABLE IF NOT EXISTS pair_infos (firstAssetInfo VARCHAR, secondAssetInfo VARCHAR, commissionRate VARCHAR, pairAddr VARCHAR, liquidityAddr VARCHAR, oracleAddr VARCHAR,PRIMARY KEY (pairAddr) )"
+    );
+  }
+
+  async insertPairInfos(ops: PairInfoData[]) {
+    await this.insertBulkData(ops, "pair_infos");
   }
 
   async querySwapOps() {

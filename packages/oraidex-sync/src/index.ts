@@ -1,11 +1,12 @@
 import "dotenv/config";
-import { parseTxs } from "./tx-parsing";
+import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import { DuckDb } from "./db";
 import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { pairs } from "./pairs";
-import { CosmWasmClient, OraiswapFactoryQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
+  PairInfoData,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
@@ -78,15 +79,18 @@ class OraiDexSync {
       cosmwasmClient,
       process.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
     );
-    const liquidityResults = (
+    const liquidityResults: PairInfo[] = (
       await Promise.allSettled([
         ...pairs.map((pair) => firstFactoryClient.pair({ assetInfos: pair.asset_infos })),
         ...pairs.map((pair) => secondFactoryClient.pair({ assetInfos: pair.asset_infos }))
       ])
-    ).filter((res) => {
-      if (res.status === "fulfilled") return res.value;
-    });
-    console.dir(liquidityResults, { depth: null });
+    )
+      .filter((res) => {
+        if (res.status === "fulfilled") return true;
+        return false;
+      })
+      .map((data) => (data as any).value as PairInfo);
+    return liquidityResults;
   }
 
   public async sync() {
@@ -94,24 +98,38 @@ class OraiDexSync {
       await Promise.all([
         this.duckDb.createHeightSnapshot(),
         this.duckDb.createLiquidityOpsTable(),
-        this.duckDb.createSwapOpsTable()
+        this.duckDb.createSwapOpsTable(),
+        this.duckDb.createPairInfosTable()
       ]);
-      console.log("rpc url: ", this.rpcUrl);
       let { currentInd } = await this.duckDb.loadHeightSnapshot();
       console.log("current ind: ", currentInd);
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
       if (currentInd <= 12388825) {
         currentInd = 12388825;
       }
-      await this.getAllPairInfos(12389125);
-      // new SyncData({
-      //   offset: currentInd,
-      //   rpcUrl,
-      //   queryTags: [],
-      //   limit: 100,
-      //   maxThreadLevel: 3,
-      //   interval: 5000
-      // }).pipe(new WriteOrders());
+      const pairInfos = await this.getAllPairInfos();
+      // await this.duckDb.insertPairInfos(
+      //   pairInfos.map(
+      //     (pair) =>
+      //       ({
+      //         firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
+      //         secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+      //         commissionRate: pair.commission_rate,
+      //         pairAddr: pair.contract_addr,
+      //         liquidityAddr: pair.liquidity_token,
+      //         oracleAddr: pair.oracle_addr
+      //       } as PairInfoData)
+      //   )
+      // );
+      console.dir(pairInfos, { depth: null });
+      new SyncData({
+        offset: currentInd,
+        rpcUrl: this.rpcUrl,
+        queryTags: [],
+        limit: 100,
+        maxThreadLevel: 1,
+        interval: 5000
+      }).pipe(new WriteOrders(this.duckDb));
     } catch (error) {
       console.log("error in start: ", error);
     }

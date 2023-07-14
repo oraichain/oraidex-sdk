@@ -18,8 +18,9 @@ import {
 import { Log } from "@cosmjs/stargate/build/logs";
 
 function parseAssetInfo(info: AssetInfo): string {
-  if ("native_token" in info) return info.native_token.denom;
-  return info.token.contract_addr;
+  // if ("native_token" in info) return info.native_token.denom;
+  // return info.token.contract_addr;
+  return JSON.stringify(info);
 }
 
 async function delay(timeout: number) {

@@ -26,6 +26,15 @@ export type SwapOperationData = BasicTxData & {
   spreadAmount: number;
 };
 
+export type PairInfoData = {
+  firstAssetInfo: string;
+  secondAssetInfo: string;
+  commissionRate: string;
+  pairAddr: string;
+  liquidityAddr: string;
+  oracleAddr: string;
+};
+
 export type AccountTx = {
   accountAddress: string;
   txhash: string;
