@@ -19,4 +19,3 @@ async function testAggregateLp() {
   }
   console.log("new results: ", result);
 }
-testAggregateLp();

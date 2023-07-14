@@ -11,30 +11,34 @@ export class DuckDb {
     return new DuckDb(conn);
   }
 
-  async createHeightSnapshot() {
-    await this.conn.exec("CREATE TABLE IF NOT EXISTS height_snapshot (currentInd UINTEGER,PRIMARY KEY (currentInd))");
-  }
-
-  async loadHeightSnapshot() {
-    const result = await this.conn.all("SELECT * FROM height_snapshot");
-    console.log("result: ", result);
-    return result.length > 0 ? result[result.length - 1] : { currentInd: 1 };
-  }
-
-  async insertHeightSnapshot(currentInd: number) {
-    await this.conn.run("INSERT OR REPLACE into height_snapshot(currentInd) VALUES (?)", currentInd);
-  }
-
-  private async insertBulkData(data: any[], tableName: string) {
+  private async insertBulkData(data: any[], tableName: string, replace?: boolean) {
     // we wont insert anything if the data is empty. Otherwise it would throw an error while inserting
     if (data.length === 0) return;
     const tableFile = `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(data));
-    await this.conn.run(`INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`, tableFile);
+    const query = replace
+      ? `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`
+      : `INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`;
+    await this.conn.run(query, tableFile);
     await fs.promises.unlink(tableFile);
   }
 
+  // sync height table
+  async createHeightSnapshot() {
+    await this.conn.exec("CREATE TABLE IF NOT EXISTS height_snapshot (config VARCHAR PRIMARY KEY, value UINTEGER)");
+  }
+
+  async loadHeightSnapshot() {
+    const result = await this.conn.all("SELECT value FROM height_snapshot where config = 'last_block_height'");
+    return result.length > 0 ? result[0].value : { currentInd: 1 };
+  }
+
+  async insertHeightSnapshot(currentInd: number) {
+    await this.conn.run("INSERT OR REPLACE into height_snapshot VALUES ('last_block_height',?)", currentInd);
+  }
+
+  // swap operation table handling
   async createSwapOpsTable() {
     await this.conn.exec(
       "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, timestamp TIMESTAMP, offerDenom VARCHAR, offerAmount UBIGINT, askDenom VARCHAR, returnAmount UBIGINT, taxAmount UBIGINT, commissionAmount UBIGINT, spreadAmount UBIGINT)"
@@ -45,6 +49,7 @@ export class DuckDb {
     await this.insertBulkData(ops, "swap_ops_data");
   }
 
+  // liquidity operations (provide, withdraw lp) handling
   async createLiquidityOpsTable() {
     try {
       await this.conn.all("select enum_range(NULL::LPOPTYPE);");
@@ -61,6 +66,7 @@ export class DuckDb {
     await this.insertBulkData(ops, "lp_ops_data");
   }
 
+  // store all the current pair infos of oraiDEX. Will be updated to the latest pair list after the sync is restarted
   async createPairInfosTable() {
     await this.conn.exec(
       "CREATE TABLE IF NOT EXISTS pair_infos (firstAssetInfo VARCHAR, secondAssetInfo VARCHAR, commissionRate VARCHAR, pairAddr VARCHAR, liquidityAddr VARCHAR, oracleAddr VARCHAR,PRIMARY KEY (pairAddr) )"
@@ -68,8 +74,12 @@ export class DuckDb {
   }
 
   async insertPairInfos(ops: PairInfoData[]) {
-    await this.insertBulkData(ops, "pair_infos");
+    await this.insertBulkData(ops, "pair_infos", true);
   }
+
+  // we need to:
+  // price history should contain: timestamp, tx height, tx hash, asset info, price
+  // if cannot find then we spawn another stream and sync it started from the common sync height. We will re-sync it if its latest height is too behind compared to the common sync height
 
   async querySwapOps() {
     return this.conn.all("SELECT count(*) from swap_ops_data");

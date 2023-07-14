@@ -35,12 +35,12 @@ class WriteOrders extends WriteData {
     ]);
   }
 
-  private async querySwapOps() {
-    return this.duckDb.querySwapOps();
+  private async querySwapOps(): Promise<SwapOperationData[]> {
+    return this.duckDb.querySwapOps() as Promise<SwapOperationData[]>;
   }
 
-  private async queryLpOps() {
-    return this.duckDb.queryLpOps();
+  private async queryLpOps(): Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]> {
+    return this.duckDb.queryLpOps() as Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]>;
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -101,34 +101,34 @@ class OraiDexSync {
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable()
       ]);
-      let { currentInd } = await this.duckDb.loadHeightSnapshot();
+      let currentInd = await this.duckDb.loadHeightSnapshot();
       console.log("current ind: ", currentInd);
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
       if (currentInd <= 12388825) {
         currentInd = 12388825;
       }
       const pairInfos = await this.getAllPairInfos();
-      // await this.duckDb.insertPairInfos(
-      //   pairInfos.map(
-      //     (pair) =>
-      //       ({
-      //         firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
-      //         secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
-      //         commissionRate: pair.commission_rate,
-      //         pairAddr: pair.contract_addr,
-      //         liquidityAddr: pair.liquidity_token,
-      //         oracleAddr: pair.oracle_addr
-      //       } as PairInfoData)
-      //   )
-      // );
-      console.dir(pairInfos, { depth: null });
+      await this.duckDb.insertPairInfos(
+        pairInfos.map(
+          (pair) =>
+            ({
+              firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
+              secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+              commissionRate: pair.commission_rate,
+              pairAddr: pair.contract_addr,
+              liquidityAddr: pair.liquidity_token,
+              oracleAddr: pair.oracle_addr
+            } as PairInfoData)
+        )
+      );
+      // console.dir(pairInfos, { depth: null });
       new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: 100,
+        limit: 1,
         maxThreadLevel: 1,
-        interval: 5000
+        interval: 1000
       }).pipe(new WriteOrders(this.duckDb));
     } catch (error) {
       console.log("error in start: ", error);
