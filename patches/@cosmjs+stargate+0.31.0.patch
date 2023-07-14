@@ -1,20 +1,32 @@
 diff --git a/node_modules/@cosmjs/stargate/build/queryclient/queryclient.js b/node_modules/@cosmjs/stargate/build/queryclient/queryclient.js
-index ebf0c7c..7a0ddce 100644
+index ebf0c7c..afa645f 100644
 --- a/node_modules/@cosmjs/stargate/build/queryclient/queryclient.js
 +++ b/node_modules/@cosmjs/stargate/build/queryclient/queryclient.js
-@@ -16,9 +16,9 @@ function checkAndParseOp(op, kind, key) {
-     return ics23_1.ics23.CommitmentProof.decode(op.data);
- }
- class QueryClient {
--    static withExtensions(tmClient, ...extensionSetups) {
--        const client = new QueryClient(tmClient);
--        const extensions = extensionSetups.map((setupExtension) => setupExtension(client));
-+    static withExtensions(tmClient, height = undefined, ...extensionSetups) {
+@@ -32,6 +32,24 @@ class QueryClient {
+         }
+         return client;
+     }
++
++    static withExtensionsWithHeight(tmClient, height, ...extensionSetups) {
 +        const client = new QueryClient(tmClient, height);
 +        const extensions = extensionSetups.map((setupExtension) => setupExtension(client, height));
-         for (const extension of extensions) {
-             (0, utils_1.assert)((0, utils_1.isNonNullObject)(extension), `Extension must be a non-null object`);
-             for (const [moduleKey, moduleValue] of Object.entries(extension)) {
++        for (const extension of extensions) {
++            (0, utils_1.assert)((0, utils_1.isNonNullObject)(extension), `Extension must be a non-null object`);
++            for (const [moduleKey, moduleValue] of Object.entries(extension)) {
++                (0, utils_1.assert)((0, utils_1.isNonNullObject)(moduleValue), `Module must be a non-null object. Found type ${typeof moduleValue} for module "${moduleKey}".`);
++                const current = client[moduleKey] || {};
++                client[moduleKey] = {
++                    ...current,
++                    ...moduleValue,
++                };
++            }
++        }
++        return client;
++    }
++
+     constructor(tmClient) {
+         this.tmClient = tmClient;
+     }
 diff --git a/node_modules/@cosmjs/stargate/build/queryclient/utils.d.ts b/node_modules/@cosmjs/stargate/build/queryclient/utils.d.ts
 index 5317078..75d149e 100644
 --- a/node_modules/@cosmjs/stargate/build/queryclient/utils.d.ts
