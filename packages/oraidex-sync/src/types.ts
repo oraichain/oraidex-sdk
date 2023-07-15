@@ -35,6 +35,13 @@ export type PairInfoData = {
   oracleAddr: string;
 };
 
+export type PriceInfo = {
+  txheight: string;
+  timestamp: string;
+  assetInfo: string;
+  price: number;
+};
+
 export type AccountTx = {
   accountAddress: string;
   txhash: string;

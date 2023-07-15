@@ -1,5 +1,5 @@
 import { Database, Connection } from "duckdb-async";
-import { PairInfoData, SwapOperationData, WithdrawLiquidityOperationData } from "./types";
+import { PairInfoData, PriceInfo, SwapOperationData, WithdrawLiquidityOperationData } from "./types";
 import fs from "fs";
 
 export class DuckDb {
@@ -11,10 +11,10 @@ export class DuckDb {
     return new DuckDb(conn);
   }
 
-  private async insertBulkData(data: any[], tableName: string, replace?: boolean) {
+  private async insertBulkData(data: any[], tableName: string, replace?: boolean, fileName?: string) {
     // we wont insert anything if the data is empty. Otherwise it would throw an error while inserting
     if (data.length === 0) return;
-    const tableFile = `${tableName}.json`;
+    const tableFile = fileName ?? `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(data));
     const query = replace
@@ -78,8 +78,19 @@ export class DuckDb {
   }
 
   // we need to:
-  // price history should contain: timestamp, tx height, tx hash, asset info, price
+  // price history should contain: timestamp, tx height, asset info, price
   // if cannot find then we spawn another stream and sync it started from the common sync height. We will re-sync it if its latest height is too behind compared to the common sync height
+  // if 
+
+  async createPriceInfoTable() {
+    await this.conn.exec(
+      "CREATE TABLE IF NOT EXISTS price_infos (txheight VARCHAR, timestamp TIMESTAMP, assetInfo VARCHAR, price FLOAT4)"
+    );
+  }
+
+  async insertPriceInfos(ops: PriceInfo[]) {
+    await this.insertBulkData(ops, "price_infos", false, `price_infos-${Math.random() * 1000}`);
+  }
 
   async querySwapOps() {
     return this.conn.all("SELECT count(*) from swap_ops_data");

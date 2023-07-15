@@ -12,6 +12,9 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
+import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 class WriteOrders extends WriteData {
   constructor(private duckDb: DuckDb) {
@@ -68,9 +71,28 @@ class WriteOrders extends WriteData {
 class OraiDexSync {
   constructor(private duckDb: DuckDb, private rpcUrl: string) {}
 
-  private async getAllPairInfos(wantedHeight?: number) {
+  private async getPoolInfos(pairs: PairInfo[], wantedHeight?: number): Promise<PoolResponse[]> {
     const cosmwasmClient = await CosmWasmClient.connect(this.rpcUrl);
     cosmwasmClient.setQueryClientWithHeight(wantedHeight);
+    const multicall = new MulticallQueryClient(
+      cosmwasmClient,
+      process.env.MULTICALL_CONTRACT_ADDRES || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
+    );
+    const res = await multicall.tryAggregate({
+      queries: pairs.map((pair) => {
+        return {
+          address: pair.contract_addr,
+          data: toBinary({
+            pool: {}
+          })
+        };
+      })
+    });
+    return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+  }
+
+  private async getAllPairInfos(): Promise<PairInfo[]> {
+    const cosmwasmClient = await CosmWasmClient.connect(this.rpcUrl);
     const firstFactoryClient = new OraiswapFactoryQueryClient(
       cosmwasmClient,
       process.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
@@ -108,6 +130,9 @@ class OraiDexSync {
         currentInd = 12388825;
       }
       const pairInfos = await this.getAllPairInfos();
+      // TODO: only get pool infos of selected pairs if that pair does not exist in the pair info database, meaning it is new. Otherwise, it would have been called before and stored the pool result given the wanted height.
+      const poolResultsAtOldHeight = await this.getPoolInfos(pairInfos, currentInd);
+      // Promise.all([insert pool info, and insert pair info. Promise all because pool info & updated pair info must go together])
       await this.duckDb.insertPairInfos(
         pairInfos.map(
           (pair) =>

@@ -4,8 +4,7 @@ describe("test-duckdb", () => {
   let duckDb: DuckDb;
   beforeAll(async () => {
     // fixture
-    duckDb = new DuckDb();
-    await duckDb.initDuckDb("oraidex-sync-data-test");
+    duckDb = await DuckDb.create("oraidex-sync-data-test");
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
   });
 

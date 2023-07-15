@@ -4,13 +4,9 @@ export const oraixCw20Address = "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge";
 export const usdtCw20Address = "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh";
 export const kwtCw20Address = "orai1nd4r053e3kgedgld2ymen8l9yrw8xpjyaal7j5";
 export const milkyCw20Address = "orai1gzvndtzceqwfymu2kqhta2jn6gmzxvzqwdgvjw";
-export const tronCw20Address =
-  "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40xs3ugd0es5encn0";
-export const scOraiCw20Address =
-  "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5h5mphd0qlcs47pclp";
-export const usdcCw20Address =
-  "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
-export const atomIbcDenom =
-  "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
-export const osmosisIbcDenom =
-  "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";
+export const scAtomCw20Address = "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq";
+export const tronCw20Address = "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40xs3ugd0es5encn0";
+export const scOraiCw20Address = "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5h5mphd0qlcs47pclp";
+export const usdcCw20Address = "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
+export const atomIbcDenom = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
+export const osmosisIbcDenom = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";

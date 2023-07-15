@@ -23,6 +23,11 @@ function parseAssetInfo(info: AssetInfo): string {
   return JSON.stringify(info);
 }
 
+function parseAssetInfoOnlyDenom(info: AssetInfo): string {
+  if ("native_token" in info) return info.native_token.denom;
+  return info.token.contract_addr;
+}
+
 async function delay(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 }
@@ -232,5 +237,6 @@ export {
   parseWasmEvents,
   parseTxs,
   parseWithdrawLiquidityAssets,
-  parseTxToMsgExecuteContractMsgs
+  parseTxToMsgExecuteContractMsgs,
+  parseAssetInfoOnlyDenom
 };

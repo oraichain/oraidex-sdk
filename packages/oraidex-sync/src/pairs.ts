@@ -8,6 +8,7 @@ import {
   milkyCw20Address,
   oraixCw20Address,
   osmosisIbcDenom,
+  scAtomCw20Address,
   scOraiCw20Address,
   tronCw20Address,
   usdcCw20Address,
@@ -50,5 +51,8 @@ export const pairs: PairMapping[] = [
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: tronCw20Address } }]
+  },
+  {
+    asset_infos: [{ native_token: { denom: atomIbcDenom } }, { token: { contract_addr: scAtomCw20Address } }]
   }
 ];
