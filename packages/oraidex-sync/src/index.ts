@@ -5,6 +5,7 @@ import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { pairs } from "./pairs";
 import {
+  Asset,
   AssetInfo,
   CosmWasmClient,
   OraiswapFactoryQueryClient,
@@ -17,7 +18,9 @@ import {
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
-  WithdrawLiquidityOperationData
+  WithdrawLiquidityOperationData,
+  InitialData,
+  PriceInfo
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
@@ -26,8 +29,10 @@ import { extractUniqueAndFlatten, findAssetInfoPathToUsdt, generateSwapOperation
 import { tenAmountInDecimalSix } from "./constants";
 
 class WriteOrders extends WriteData {
-  constructor(private duckDb: DuckDb) {
+  private firstWrite: boolean;
+  constructor(private duckDb: DuckDb, private initialData: InitialData) {
     super();
+    this.firstWrite = true;
   }
 
   private async insertSwapOps(ops: SwapOperationData[]) {
@@ -57,6 +62,24 @@ class WriteOrders extends WriteData {
 
   async process(chunk: any): Promise<boolean> {
     try {
+      // first time calling of the application then we query past data and be ready to store them into the db for prefix sum
+      // this helps the flow go smoothly and remove dependency between different streams
+      if (this.firstWrite) {
+        console.log("initial data: ", this.initialData);
+        const { height, time } = this.initialData.blockHeader;
+        await this.duckDb.insertPriceInfos(
+          this.initialData.tokenPrices.map(
+            (tokenPrice) =>
+              ({
+                txheight: height,
+                timestamp: time,
+                assetInfo: parseAssetInfo(tokenPrice.info),
+                price: parseInt(tokenPrice.amount)
+              } as PriceInfo)
+          )
+        );
+        this.firstWrite = false;
+      }
       const { txs, offset: newOffset, queryTags } = chunk as Txs;
       console.log("new offset: ", newOffset);
       const result = parseTxs(txs);
@@ -130,14 +153,15 @@ class OraiDexSync {
     return liquidityResults;
   }
 
-  private async simulateSwapPrice(info: AssetInfo, wantedHeight?: number): Promise<string> {
+  private async simulateSwapPrice(info: AssetInfo, wantedHeight?: number): Promise<Asset> {
     // adjust the query height to get data from the past
     this.cosmwasmClient.setQueryClientWithHeight(wantedHeight);
     const infoPath = findAssetInfoPathToUsdt(info);
     // usdt case, price is always 1
-    if (infoPath.length === 1) return tenAmountInDecimalSix.substring(0, tenAmountInDecimalSix.length - 1);
+    if (infoPath.length === 1)
+      return { info, amount: tenAmountInDecimalSix.substring(0, tenAmountInDecimalSix.length - 1) };
     const operations = generateSwapOperations(info);
-    if (operations.length === 0) return "0"; // error case. Will be handled by the caller function
+    if (operations.length === 0) return { info, amount: "0" }; // error case. Will be handled by the caller function
     const routerContract = new OraiswapRouterQueryClient(
       this.cosmwasmClient,
       process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
@@ -150,11 +174,12 @@ class OraiDexSync {
       });
       // reset query client to latest for other functions to call.
       this.cosmwasmClient.setQueryClientWithHeight();
-      return data.amount.substring(0, data.amount.length - 1); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+      return { info, amount: data.amount.substring(0, data.amount.length - 1) }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
     } catch (error) {
-      throw new Error(
-        `Error when trying to simulate swap with asset info: ${JSON.stringify(info)} using router: ${error}`
-      );
+      console.log(`Error when trying to simulate swap with asset info: ${JSON.stringify(info)} using router: ${error}`);
+      // reset query client to latest for other functions to call.
+      this.cosmwasmClient.setQueryClientWithHeight();
+      return { info, amount: "0" }; // error case. Will be handled by the caller function
     }
   }
 
@@ -167,6 +192,7 @@ class OraiDexSync {
         this.duckDb.createPairInfosTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
+      let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
       console.log("current ind: ", currentInd);
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
       if (currentInd <= 12388825) {
@@ -176,7 +202,9 @@ class OraiDexSync {
       const tokenPrices = await Promise.all(
         extractUniqueAndFlatten(pairs).map((info) => this.simulateSwapPrice(info, currentInd))
       );
-      console.log("token prices: ", tokenPrices);
+      const initialBlockHeader = (await this.cosmwasmClient.getBlock(currentInd)).header;
+      initialData.tokenPrices = tokenPrices;
+      initialData.blockHeader = initialBlockHeader;
       // const pairInfos = await this.getAllPairInfos();
       // // TODO: only get pool infos of selected pairs if that pair does not exist in the pair info database, meaning it is new. Otherwise, it would have been called before and stored the pool result given the wanted height.
       // const poolResultsAtOldHeight = await this.getPoolInfos(pairInfos, currentInd);
@@ -195,14 +223,14 @@ class OraiDexSync {
       //   )
       // );
       // // console.dir(pairInfos, { depth: null });
-      // new SyncData({
-      //   offset: currentInd,
-      //   rpcUrl: this.rpcUrl,
-      //   queryTags: [],
-      //   limit: 1,
-      //   maxThreadLevel: 1,
-      //   interval: 1000
-      // }).pipe(new WriteOrders(this.duckDb));
+      new SyncData({
+        offset: currentInd,
+        rpcUrl: this.rpcUrl,
+        queryTags: [],
+        limit: 1,
+        maxThreadLevel: 1,
+        interval: 1000
+      }).pipe(new WriteOrders(this.duckDb, initialData));
     } catch (error) {
       console.log("error in start: ", error);
     }

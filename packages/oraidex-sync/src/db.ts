@@ -80,11 +80,11 @@ export class DuckDb {
   // we need to:
   // price history should contain: timestamp, tx height, asset info, price
   // if cannot find then we spawn another stream and sync it started from the common sync height. We will re-sync it if its latest height is too behind compared to the common sync height
-  // if 
+  // if
 
   async createPriceInfoTable() {
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS price_infos (txheight VARCHAR, timestamp TIMESTAMP, assetInfo VARCHAR, price FLOAT4)"
+      "CREATE TABLE IF NOT EXISTS price_infos (txheight UINTEGER, timestamp TIMESTAMP, assetInfo VARCHAR, price UINTEGER)"
     );
   }
 

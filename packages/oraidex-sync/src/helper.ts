@@ -1,14 +1,8 @@
 import { Asset, AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./tx-parsing";
 import { pairs } from "./pairs";
-import { isEqual, map } from "lodash";
 import { ORAI, usdtCw20Address } from "./constants";
-import { PairMapping } from "./types";
-
-export type PrefixSumHandlingData = {
-  denom: string;
-  amount: number;
-};
+import { PairMapping, PrefixSumHandlingData } from "./types";
 
 function calculatePrefixSum(initialAmount: number, handlingData: PrefixSumHandlingData[]): PrefixSumHandlingData[] {
   let prefixSumObj = {};

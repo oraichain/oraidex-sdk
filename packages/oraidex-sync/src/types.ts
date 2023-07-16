@@ -1,3 +1,4 @@
+import { BlockHeader } from "@cosmjs/stargate";
 import { Log } from "@cosmjs/stargate/build/logs";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { Addr, Asset, AssetInfo, Binary, Decimal, SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
@@ -36,7 +37,7 @@ export type PairInfoData = {
 };
 
 export type PriceInfo = {
-  txheight: string;
+  txheight: number;
   timestamp: string;
   assetInfo: string;
   price: number;
@@ -108,4 +109,14 @@ export type OraiswapPairCw20HookMsg = {
 };
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
+};
+
+export type InitialData = {
+  tokenPrices: Asset[];
+  blockHeader: BlockHeader;
+};
+
+export type PrefixSumHandlingData = {
+  denom: string;
+  amount: number;
 };
