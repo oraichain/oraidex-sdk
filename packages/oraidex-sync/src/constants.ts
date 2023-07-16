@@ -10,3 +10,4 @@ export const scOraiCw20Address = "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5
 export const usdcCw20Address = "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
 export const atomIbcDenom = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
 export const osmosisIbcDenom = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";
+export const tenAmountInDecimalSix = "10000000";

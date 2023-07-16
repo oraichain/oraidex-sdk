@@ -1,8 +1,9 @@
-import { AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./tx-parsing";
 import { pairs } from "./pairs";
 import { isEqual, map } from "lodash";
 import { ORAI, usdtCw20Address } from "./constants";
+import { PairMapping } from "./types";
 
 export type PrefixSumHandlingData = {
   denom: string;
@@ -55,4 +56,37 @@ function findAssetInfoPathToUsdt(info: AssetInfo): AssetInfo[] {
   return [info, ...findAssetInfoPathToUsdt(pairedInfo[0])]; // only need the first found paired token with the one we are matching
 }
 
-export { calculatePrefixSum, findMappedTargetedAssetInfo, findAssetInfoPathToUsdt };
+function generateSwapOperations(info: AssetInfo): SwapOperation[] {
+  const infoPath = findAssetInfoPathToUsdt(info);
+  let swapOps: SwapOperation[] = [];
+  for (let i = 0; i < infoPath.length - 1; i++) {
+    swapOps.push({ orai_swap: { offer_asset_info: infoPath[i], ask_asset_info: infoPath[i + 1] } } as SwapOperation);
+  }
+  return swapOps;
+}
+
+function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
+  const uniqueItems = new Set();
+
+  data.forEach((item) => {
+    item.asset_infos.forEach((info) => {
+      const stringValue = JSON.stringify(info);
+
+      if (!uniqueItems.has(stringValue)) {
+        uniqueItems.add(stringValue);
+      }
+    });
+  });
+
+  const uniqueFlattenedArray = Array.from(uniqueItems).map((item) => JSON.parse(item as string));
+
+  return uniqueFlattenedArray;
+}
+
+export {
+  calculatePrefixSum,
+  findMappedTargetedAssetInfo,
+  findAssetInfoPathToUsdt,
+  generateSwapOperations,
+  extractUniqueAndFlatten
+};
