@@ -16,8 +16,10 @@ describe("test-duckdb", () => {
           txhash: "foo",
           timestamp: new Date().toISOString(),
           firstTokenAmount: "abcd" as any,
+          firstTokenLp: 0,
           firstTokenDenom: "orai",
           secondTokenAmount: 2,
+          secondTokenLp: 0,
           secondTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide"
@@ -33,8 +35,10 @@ describe("test-duckdb", () => {
         txhash: "foo",
         timestamp: new Date().toISOString(),
         firstTokenAmount: 1,
+        firstTokenLp: 0,
         firstTokenDenom: "orai",
         secondTokenAmount: 2,
+        secondTokenLp: 0,
         secondTokenDenom: "atom",
         txCreator: "foobar",
         opType: "withdraw"

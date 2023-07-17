@@ -20,7 +20,9 @@ export type BasicTxData = {
 export type SwapOperationData = BasicTxData & {
   offerDenom: string;
   offerAmount: string;
+  offerVolume: number;
   askDenom: string;
+  askVolume: number;
   returnAmount: string;
   taxAmount: number;
   commissionAmount: number;
@@ -52,8 +54,10 @@ export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = BasicTxData & {
   firstTokenAmount: number;
+  firstTokenLp: number;
   firstTokenDenom: string;
   secondTokenAmount: number;
+  secondTokenLp: number;
   secondTokenDenom: string;
   txCreator: string;
   opType: LiquidityOpType;

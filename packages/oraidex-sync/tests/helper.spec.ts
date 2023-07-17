@@ -212,7 +212,7 @@ describe("test-helper", () => {
 
   it("test-calculatePriceByPool", () => {
     const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
-    expect(result).toEqual(9902432);
+    expect(result).toEqual(BigInt(9902432));
   });
 
   it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
