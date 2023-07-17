@@ -27,5 +27,4 @@ typings/
 
 .npmrc
 build
-*data
-*data.wal
+*oraidex-sync-data*

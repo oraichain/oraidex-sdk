@@ -1,18 +1,21 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   calculatePrefixSum,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
-  extractUniqueAndFlatten
+  extractUniqueAndFlatten,
+  findPairAddress
 } from "../src/helper";
 import { pairs } from "../src/pairs";
 import {
+  ORAI,
   airiCw20Adress,
   milkyCw20Address,
   scAtomCw20Address,
   usdcCw20Address,
   usdtCw20Address
 } from "../src/constants";
+import { PairInfoData } from "../src/types";
 
 describe("test-helper", () => {
   it.each<[AssetInfo, number]>([
@@ -97,5 +100,28 @@ describe("test-helper", () => {
         token: { contract_addr: "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq" }
       }
     ]);
+  });
+  it.each<[AssetInfo, string | undefined]>([
+    [{ token: { contract_addr: usdtCw20Address } }, "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt"],
+    [{ token: { contract_addr: "foo" } }, undefined]
+  ])("test-findPairAddress", (assetInfo, expectedPairAddr) => {
+    // setup
+    let pairInfoData: PairInfoData[] = [
+      {
+        firstAssetInfo: JSON.stringify({ native_token: { denom: ORAI } } as AssetInfo),
+        secondAssetInfo: JSON.stringify({ token: { contract_addr: usdtCw20Address } } as AssetInfo),
+        commissionRate: "",
+        pairAddr: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
+        liquidityAddr: "",
+        oracleAddr: ""
+      }
+    ];
+    let assetInfos: [AssetInfo, AssetInfo] = [{ native_token: { denom: ORAI } }, assetInfo];
+
+    // act
+    const result = findPairAddress(pairInfoData, assetInfos);
+
+    // assert
+    expect(result).toEqual(expectedPairAddr);
   });
 });
