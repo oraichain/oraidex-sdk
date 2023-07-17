@@ -27,6 +27,7 @@ import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { extractUniqueAndFlatten, findAssetInfoPathToUsdt, generateSwapOperations } from "./helper";
 import { tenAmountInDecimalSix } from "./constants";
+import { getAllPairInfos, getPoolInfos, simulateSwapPrice } from "./query";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -115,19 +116,10 @@ class OraiDexSync {
       this.cosmwasmClient,
       process.env.MULTICALL_CONTRACT_ADDRES || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
     );
-    const res = await multicall.tryAggregate({
-      queries: pairs.map((pair) => {
-        return {
-          address: pair.contract_addr,
-          data: toBinary({
-            pool: {}
-          })
-        };
-      })
-    });
+    const res = await getPoolInfos(pairs, multicall);
     // reset query client to latest for other functions to call
     this.cosmwasmClient.setQueryClientWithHeight();
-    return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+    return res;
   }
 
   private async getAllPairInfos(): Promise<PairInfo[]> {
@@ -139,48 +131,25 @@ class OraiDexSync {
       this.cosmwasmClient,
       process.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
     );
-    const liquidityResults: PairInfo[] = (
-      await Promise.allSettled([
-        ...pairs.map((pair) => firstFactoryClient.pair({ assetInfos: pair.asset_infos })),
-        ...pairs.map((pair) => secondFactoryClient.pair({ assetInfos: pair.asset_infos }))
-      ])
-    )
-      .filter((res) => {
-        if (res.status === "fulfilled") return true;
-        return false;
-      })
-      .map((data) => (data as any).value as PairInfo);
-    return liquidityResults;
+    return getAllPairInfos(firstFactoryClient, secondFactoryClient);
   }
 
   private async simulateSwapPrice(info: AssetInfo, wantedHeight?: number): Promise<Asset> {
     // adjust the query height to get data from the past
     this.cosmwasmClient.setQueryClientWithHeight(wantedHeight);
+    const routerContract = new OraiswapRouterQueryClient(
+      this.cosmwasmClient,
+      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+    );
     const infoPath = findAssetInfoPathToUsdt(info);
     // usdt case, price is always 1
     if (infoPath.length === 1)
       return { info, amount: tenAmountInDecimalSix.substring(0, tenAmountInDecimalSix.length - 1) };
     const operations = generateSwapOperations(info);
     if (operations.length === 0) return { info, amount: "0" }; // error case. Will be handled by the caller function
-    const routerContract = new OraiswapRouterQueryClient(
-      this.cosmwasmClient,
-      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-    );
-
-    try {
-      const data = await routerContract.simulateSwapOperations({
-        offerAmount: tenAmountInDecimalSix,
-        operations
-      });
-      // reset query client to latest for other functions to call.
-      this.cosmwasmClient.setQueryClientWithHeight();
-      return { info, amount: data.amount.substring(0, data.amount.length - 1) }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
-    } catch (error) {
-      console.log(`Error when trying to simulate swap with asset info: ${JSON.stringify(info)} using router: ${error}`);
-      // reset query client to latest for other functions to call.
-      this.cosmwasmClient.setQueryClientWithHeight();
-      return { info, amount: "0" }; // error case. Will be handled by the caller function
-    }
+    const data = await simulateSwapPrice(info, routerContract);
+    this.cosmwasmClient.setQueryClientWithHeight();
+    return data;
   }
 
   public async sync() {
