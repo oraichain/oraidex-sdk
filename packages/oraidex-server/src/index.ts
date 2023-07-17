@@ -120,7 +120,7 @@ app.get("/tickers", async (req, res) => {
     if (result.status === "fulfilled") return result.value;
   });
   console.table(data);
-  res.status(200).send("hello world");
+  res.status(200).send(data);
 });
 
 app.listen(port, hostname, async () => {
