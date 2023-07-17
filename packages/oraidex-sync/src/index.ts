@@ -215,3 +215,8 @@ const start = async () => {
 start();
 
 export { OraiDexSync };
+
+export * from "./types";
+export * from "./query";
+export * from "./helper";
+export * from "./db";
