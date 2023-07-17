@@ -204,9 +204,11 @@ class OraiDexSync {
 
 // start();
 
-// export { OraiDexSync };
+export { OraiDexSync };
 
 export * from "./types";
 export * from "./query";
 export * from "./helper";
 export * from "./db";
+export * from "./pairs";
+export * from "./constants";

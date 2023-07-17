@@ -1,27 +1,137 @@
 import * as dotenv from "dotenv";
 import express from "express";
-import { DuckDb, OraiDexSync } from "@oraichain/oraidex-sync";
+import {
+  AssetData,
+  DuckDb,
+  OraiDexSync,
+  PairMapping,
+  TickerInfo,
+  pairs,
+  simulateSwapPricePair,
+  parseAssetInfoOnlyDenom,
+  usdtCw20Address,
+  usdcCw20Address,
+  getAllPairInfos,
+  parseAssetInfo,
+  PairInfoData
+} from "@oraichain/oraidex-sync";
 import cors from "cors";
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import {
+  AssetInfo,
+  OraiswapFactoryQueryClient,
+  OraiswapRouterQueryClient,
+  PairInfo
+} from "@oraichain/oraidex-contracts-sdk";
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 
-const port = process.env.PORT || 2024;
 let duckDb: DuckDb;
 
-app.get("/v1/test", async (req, res) => {
-  const result = await duckDb.conn.all("select count(*) from swap_ops_data;");
-  res.status(200).send(result);
+const port = process.env.PORT || 2024;
+
+async function queryAllPairInfos(): Promise<PairInfo[]> {
+  const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
+  const firstFactoryClient = new OraiswapFactoryQueryClient(
+    cosmwasmClient,
+    process.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
+  );
+  const secondFactoryClient = new OraiswapFactoryQueryClient(
+    cosmwasmClient,
+    process.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
+  );
+  return getAllPairInfos(firstFactoryClient, secondFactoryClient);
+}
+
+app.get("/tickers", async (req, res) => {
+  const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
+  const routerContract = new OraiswapRouterQueryClient(
+    cosmwasmClient,
+    process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+  );
+  const pairInfos = await duckDb.queryPairInfos();
+  const data: TickerInfo[] = (
+    await Promise.allSettled(
+      pairs.map(async (pair) => {
+        const symbols = pair.symbols;
+        const pairAddr = pairInfos.find(
+          (pairInfo) =>
+            pair.asset_infos.some((info) => parseAssetInfo(info) === pairInfo.firstAssetInfo) &&
+            pair.asset_infos.some((info) => parseAssetInfo(info) === pairInfo.secondAssetInfo)
+        )?.pairAddr;
+        try {
+          const hasUsdInPair = pair.asset_infos.some(
+            (info) =>
+              parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
+          );
+          // reverse because in pairs, we put base info as first index
+          const price = await simulateSwapPricePair(
+            hasUsdInPair ? pair.asset_infos : (pair.asset_infos.reverse() as [AssetInfo, AssetInfo]),
+            routerContract
+          );
+          return {
+            ticker_id: `${symbols[0]}_${symbols[1]}`,
+            base_currency: symbols[0],
+            target_currency: symbols[1],
+            last_price: price,
+            base_volume: "0",
+            target_volume: "0",
+            pool_id: pairAddr ?? "",
+            base: symbols[0],
+            target: symbols[1]
+          } as TickerInfo;
+        } catch (error) {
+          return {
+            ticker_id: `${symbols[0]}_${symbols[1]}`,
+            base_currency: symbols[0],
+            target_currency: symbols[1],
+            last_price: "0",
+            base_volume: "0",
+            target_volume: "0",
+            pool_id: pairAddr ?? "",
+            base: symbols[0],
+            target: symbols[1]
+          };
+        }
+      })
+    )
+  ).map((result) => {
+    if (result.status === "fulfilled") return result.value;
+  });
+  console.table(data);
+  res.status(200).send("hello world");
 });
 
 app.listen(port, async () => {
   // sync data for the service to read
-  const duckDb = await DuckDb.create("oraidex-sync-data");
-  const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-  await oraidexSync.sync();
-  console.log(`[server]: Orderbook Info is running at http://localhost:${port}`);
+  duckDb = await DuckDb.create("oraidex-sync-data");
+  await Promise.all([
+    duckDb.createHeightSnapshot(),
+    duckDb.createLiquidityOpsTable(),
+    duckDb.createSwapOpsTable(),
+    duckDb.createPairInfosTable(),
+    duckDb.createPriceInfoTable()
+  ]);
+  const pairInfos = await queryAllPairInfos();
+  // Promise.all([insert pool info, and insert pair info. Promise all because pool info & updated pair info must go together])
+  await duckDb.insertPairInfos(
+    pairInfos.map(
+      (pair) =>
+        ({
+          firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
+          secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+          commissionRate: pair.commission_rate,
+          pairAddr: pair.contract_addr,
+          liquidityAddr: pair.liquidity_token,
+          oracleAddr: pair.oracle_addr
+        } as PairInfoData)
+    )
+  );
+  // console.dir(pairInfos, { depth: null });
+  // const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
+  // await oraidexSync.sync();
+  console.log(`[server]: oraiDEX info server is running at http://localhost:${port}`);
 });
-
-// demo pair id in hex form: 5b7b226e61746976655f746f6b656e223a7b2264656e6f6d223a226f726169227d7d2c7b22746f6b656e223a7b22636f6e74726163745f61646472223a226f7261693132687a6a7866683737776c35373267647a637432667876326172786377683667796b63377168227d7d5d

@@ -109,6 +109,7 @@ export type OraiswapPairCw20HookMsg = {
 };
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
+  symbols: [string, string];
 };
 
 export type InitialData = {

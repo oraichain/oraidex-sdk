@@ -1,8 +1,22 @@
 import { Asset, AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
-import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./tx-parsing";
 import { pairs } from "./pairs";
 import { ORAI, usdtCw20Address } from "./constants";
 import { PairMapping, PrefixSumHandlingData } from "./types";
+
+function parseAssetInfo(info: AssetInfo): string {
+  // if ("native_token" in info) return info.native_token.denom;
+  // return info.token.contract_addr;
+  return JSON.stringify(info);
+}
+
+function parseAssetInfoOnlyDenom(info: AssetInfo): string {
+  if ("native_token" in info) return info.native_token.denom;
+  return info.token.contract_addr;
+}
+
+async function delay(timeout: number) {
+  return new Promise((resolve) => setTimeout(resolve, timeout));
+}
 
 function calculatePrefixSum(initialAmount: number, handlingData: PrefixSumHandlingData[]): PrefixSumHandlingData[] {
   let prefixSumObj = {};
@@ -81,5 +95,8 @@ export {
   findMappedTargetedAssetInfo,
   findAssetInfoPathToUsdt,
   generateSwapOperations,
-  extractUniqueAndFlatten
+  extractUniqueAndFlatten,
+  parseAssetInfo,
+  parseAssetInfoOnlyDenom,
+  delay
 };

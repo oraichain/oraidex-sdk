@@ -16,21 +16,7 @@ import {
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
-
-function parseAssetInfo(info: AssetInfo): string {
-  // if ("native_token" in info) return info.native_token.denom;
-  // return info.token.contract_addr;
-  return JSON.stringify(info);
-}
-
-function parseAssetInfoOnlyDenom(info: AssetInfo): string {
-  if ("native_token" in info) return info.native_token.denom;
-  return info.token.contract_addr;
-}
-
-async function delay(timeout: number) {
-  return new Promise((resolve) => setTimeout(resolve, timeout));
-}
+import { parseAssetInfo } from "./helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -231,12 +217,4 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
   };
 }
 
-export {
-  parseAssetInfo,
-  delay,
-  parseWasmEvents,
-  parseTxs,
-  parseWithdrawLiquidityAssets,
-  parseTxToMsgExecuteContractMsgs,
-  parseAssetInfoOnlyDenom
-};
+export { parseAssetInfo, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets, parseTxToMsgExecuteContractMsgs };

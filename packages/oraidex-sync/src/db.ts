@@ -99,4 +99,10 @@ export class DuckDb {
   async queryLpOps() {
     return this.conn.all("SELECT count(*) from lp_ops_data");
   }
+
+  async queryPairInfos(): Promise<PairInfoData[]> {
+    return (await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr from pair_infos")).map(
+      (data) => data as PairInfoData
+    );
+  }
 }

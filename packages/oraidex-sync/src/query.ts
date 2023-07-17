@@ -9,7 +9,7 @@ import { MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { pairs } from "./pairs";
 import { findAssetInfoPathToUsdt, generateSwapOperations } from "./helper";
-import { tenAmountInDecimalSix } from "./constants";
+import { priceDecimals, tenAmountInDecimalSix } from "./constants";
 
 async function getPoolInfos(pairs: PairInfo[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -77,7 +77,7 @@ async function simulateSwapPricePair(
       offerAmount: tenAmountInDecimalSix,
       operations
     });
-    return data.amount.substring(0, data.amount.length - 1); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+    return (parseInt(data.amount) / priceDecimals / 10).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
   } catch (error) {
     console.log(`Error when trying to simulate swap with pair: ${JSON.stringify(pair)} using router: ${error}`);
     return "0"; // error case. Will be handled by the caller function

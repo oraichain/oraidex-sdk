@@ -12,6 +12,7 @@
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
     "@cosmjs/stargate": "^0.31.0",
+    "@oraichain/common-contracts-sdk": "1.0.13",
     "@cosmjs/tendermint-rpc": "^0.31.0",
     "@oraichain/cosmos-rpc-sync": "^1.0.5",
     "@oraichain/oraidex-sync": "1.0.0",
