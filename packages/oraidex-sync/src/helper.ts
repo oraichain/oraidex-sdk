@@ -101,14 +101,14 @@ function calculatePriceByPool(offerPool: bigint, askPool: bigint, commissionRate
   return (askPool - (offerPool * askPool) / (offerPool + BigInt(tenAmountInDecimalSix))) * BigInt(1 - commissionRate);
 }
 
-function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): AssetInfo {
+function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): { base: string; target: AssetInfo } {
   const firstInfo = parseAssetInfoOnlyDenom(infos[0]);
   const secondInfo = parseAssetInfoOnlyDenom(infos[1]);
-  if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address) return infos[1];
-  if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address) return infos[0];
-  if (firstInfo === ORAI) return infos[1];
-  if (secondInfo === ORAI) return infos[0];
-  return infos[0]; // default we calculate the first info in the asset info list
+  if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address) return { base: firstInfo, target: infos[1] };
+  if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address) return { base: secondInfo, target: infos[0] };
+  if (firstInfo === ORAI) return { base: firstInfo, target: infos[1] };
+  if (secondInfo === ORAI) return { base: secondInfo, target: infos[0] };
+  return { base: secondInfo, target: infos[0] }; // default we calculate the first info in the asset info list
 }
 
 export {

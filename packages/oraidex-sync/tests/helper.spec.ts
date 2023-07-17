@@ -134,27 +134,32 @@ describe("test-helper", () => {
     console.log("result: ", result.toString());
   });
 
-  it.each<[[AssetInfo, AssetInfo], AssetInfo]>([
+  it.each<[[AssetInfo, AssetInfo], AssetInfo, string]>([
     [
       [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
-      { native_token: { denom: atomIbcDenom } }
+      { native_token: { denom: atomIbcDenom } },
+      ORAI
     ],
     [
       [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
-      { native_token: { denom: ORAI } }
+      { native_token: { denom: ORAI } },
+      usdtCw20Address
     ],
     [
       [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
-      { native_token: { denom: ORAI } }
+      { native_token: { denom: ORAI } },
+      usdcCw20Address
     ],
     [
       [{ token: { contract_addr: tronCw20Address } }, { native_token: { denom: atomIbcDenom } }],
-      { token: { contract_addr: tronCw20Address } }
+      { token: { contract_addr: tronCw20Address } },
+      atomIbcDenom
     ]
-  ])("test-findUsdOraiInPair", (infos, expectedInfo) => {
+  ])("test-findUsdOraiInPair", (infos, expectedInfo, expectedBase) => {
     // act
     const result = findUsdOraiInPair(infos);
     // assert
-    expect(result).toEqual(expectedInfo);
+    expect(result.target).toEqual(expectedInfo);
+    expect(result.base).toEqual(expectedBase);
   });
 });

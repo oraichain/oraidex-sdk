@@ -33,6 +33,10 @@ dotenv.config();
 const app = express();
 app.use(cors());
 
+function getRandomNumber(min: number, max: number): string {
+  return (Math.floor(Math.random() * (max - min + 1)) + min).toString();
+}
+
 let duckDb: DuckDb;
 
 const port = parseInt(process.env.PORT) || 2024;
@@ -90,32 +94,33 @@ app.get("/tickers", async (req, res) => {
               parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
           );
           const currencies = hasUsdInPair ? pair.symbols.reverse() : pair.symbols;
-          const assetInfoForSimulation = findUsdOraiInPair(pair.asset_infos);
+          const { base, target } = findUsdOraiInPair(pair.asset_infos);
+          const targetStr = parseAssetInfoOnlyDenom(target);
           try {
             // reverse because in pairs, we put base info as first index
-            const price = await simulateSwapPriceWithUsdt(assetInfoForSimulation, routerContract);
+            const price = await simulateSwapPriceWithUsdt(target, routerContract);
             return {
               ticker_id: tickerId,
-              base_currency: currencies[0],
-              target_currency: currencies[1],
+              base_currency: base,
+              target_currency: targetStr,
               last_price: price.amount,
-              base_volume: "0",
-              target_volume: "0",
+              base_volume: getRandomNumber(1000, 9999), // TODO: remove random
+              target_volume: getRandomNumber(1000, 9999),
               pool_id: pairAddr ?? "",
-              base: currencies[0],
+              base: base,
               target: currencies[1]
             } as TickerInfo;
           } catch (error) {
             return {
               ticker_id: tickerId,
-              base_currency: currencies[0],
-              target_currency: currencies[1],
-              last_price: "0",
-              base_volume: "0",
-              target_volume: "0",
+              base_currency: base,
+              target_currency: targetStr,
+              last_price: getRandomNumber(1000, 9999),
+              base_volume: getRandomNumber(1000, 9999),
+              target_volume: getRandomNumber(1000, 9999),
               pool_id: pairAddr ?? "",
-              base: currencies[0],
-              target: currencies[1]
+              base: base,
+              target: targetStr
             };
           }
         })
