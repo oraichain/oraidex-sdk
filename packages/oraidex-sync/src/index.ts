@@ -17,7 +17,8 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData,
   InitialData,
-  PriceInfo
+  PriceInfo,
+  PairInfoData
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
@@ -141,6 +142,23 @@ class OraiDexSync {
     return data;
   }
 
+  private async updateLatestPairInfos() {
+    const pairInfos = await this.getAllPairInfos();
+    await this.duckDb.insertPairInfos(
+      pairInfos.map(
+        (pair) =>
+          ({
+            firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
+            secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+            commissionRate: pair.commission_rate,
+            pairAddr: pair.contract_addr,
+            liquidityAddr: pair.liquidity_token,
+            oracleAddr: pair.oracle_addr
+          } as PairInfoData)
+      )
+    );
+  }
+
   public async sync() {
     try {
       await Promise.all([
@@ -164,24 +182,7 @@ class OraiDexSync {
       const initialBlockHeader = (await this.cosmwasmClient.getBlock(currentInd)).header;
       initialData.tokenPrices = tokenPrices;
       initialData.blockHeader = initialBlockHeader;
-      // const pairInfos = await this.getAllPairInfos();
-      // // TODO: only get pool infos of selected pairs if that pair does not exist in the pair info database, meaning it is new. Otherwise, it would have been called before and stored the pool result given the wanted height.
-      // const poolResultsAtOldHeight = await this.getPoolInfos(pairInfos, currentInd);
-      // // Promise.all([insert pool info, and insert pair info. Promise all because pool info & updated pair info must go together])
-      // await this.duckDb.insertPairInfos(
-      //   pairInfos.map(
-      //     (pair) =>
-      //       ({
-      //         firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
-      //         secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
-      //         commissionRate: pair.commission_rate,
-      //         pairAddr: pair.contract_addr,
-      //         liquidityAddr: pair.liquidity_token,
-      //         oracleAddr: pair.oracle_addr
-      //       } as PairInfoData)
-      //   )
-      // );
-      // // console.dir(pairInfos, { depth: null });
+      await this.updateLatestPairInfos();
       new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,
