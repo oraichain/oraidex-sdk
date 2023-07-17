@@ -5,14 +5,17 @@ import {
   findMappedTargetedAssetInfo,
   extractUniqueAndFlatten,
   findPairAddress,
-  calculatePriceByPool
+  calculatePriceByPool,
+  findUsdOraiInPair
 } from "../src/helper";
 import { pairs } from "../src/pairs";
 import {
   ORAI,
   airiCw20Adress,
+  atomIbcDenom,
   milkyCw20Address,
   scAtomCw20Address,
+  tronCw20Address,
   usdcCw20Address,
   usdtCw20Address
 } from "../src/constants";
@@ -129,5 +132,29 @@ describe("test-helper", () => {
   it("test-calculatePriceByPool", () => {
     const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
     console.log("result: ", result.toString());
+  });
+
+  it.each<[[AssetInfo, AssetInfo], AssetInfo]>([
+    [
+      [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
+      { native_token: { denom: atomIbcDenom } }
+    ],
+    [
+      [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
+      { native_token: { denom: ORAI } }
+    ],
+    [
+      [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
+      { native_token: { denom: ORAI } }
+    ],
+    [
+      [{ token: { contract_addr: tronCw20Address } }, { native_token: { denom: atomIbcDenom } }],
+      { token: { contract_addr: tronCw20Address } }
+    ]
+  ])("test-findUsdOraiInPair", (infos, expectedInfo) => {
+    // act
+    const result = findUsdOraiInPair(infos);
+    // assert
+    expect(result).toEqual(expectedInfo);
   });
 });

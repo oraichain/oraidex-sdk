@@ -1,6 +1,6 @@
 import { Asset, AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { pairs } from "./pairs";
-import { ORAI, tenAmountInDecimalSix, usdtCw20Address } from "./constants";
+import { ORAI, tenAmountInDecimalSix, usdcCw20Address, usdtCw20Address } from "./constants";
 import { PairInfoData, PairMapping, PrefixSumHandlingData } from "./types";
 
 function parseAssetInfo(info: AssetInfo): string {
@@ -101,6 +101,16 @@ function calculatePriceByPool(offerPool: bigint, askPool: bigint, commissionRate
   return (askPool - (offerPool * askPool) / (offerPool + BigInt(tenAmountInDecimalSix))) * BigInt(1 - commissionRate);
 }
 
+function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): AssetInfo {
+  const firstInfo = parseAssetInfoOnlyDenom(infos[0]);
+  const secondInfo = parseAssetInfoOnlyDenom(infos[1]);
+  if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address) return infos[1];
+  if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address) return infos[0];
+  if (firstInfo === ORAI) return infos[1];
+  if (secondInfo === ORAI) return infos[0];
+  return infos[0]; // default we calculate the first info in the asset info list
+}
+
 export {
   calculatePrefixSum,
   findMappedTargetedAssetInfo,
@@ -111,5 +121,6 @@ export {
   parseAssetInfoOnlyDenom,
   delay,
   findPairAddress,
-  calculatePriceByPool
+  calculatePriceByPool,
+  findUsdOraiInPair
 };

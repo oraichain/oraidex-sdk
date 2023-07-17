@@ -14,7 +14,9 @@ import {
   getAllPairInfos,
   parseAssetInfo,
   PairInfoData,
-  findPairAddress
+  findPairAddress,
+  simulateSwapPriceWithUsdt,
+  findUsdOraiInPair
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -88,18 +90,15 @@ app.get("/tickers", async (req, res) => {
               parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
           );
           const currencies = hasUsdInPair ? pair.symbols.reverse() : pair.symbols;
-          const assetInfosForSimulation = hasUsdInPair ? pair.asset_infos : pair.asset_infos.reverse();
+          const assetInfoForSimulation = findUsdOraiInPair(pair.asset_infos);
           try {
             // reverse because in pairs, we put base info as first index
-            const price = await simulateSwapPricePair(
-              assetInfosForSimulation as [AssetInfo, AssetInfo],
-              routerContract
-            );
+            const price = await simulateSwapPriceWithUsdt(assetInfoForSimulation, routerContract);
             return {
               ticker_id: tickerId,
               base_currency: currencies[0],
               target_currency: currencies[1],
-              last_price: price,
+              last_price: price.amount,
               base_volume: "0",
               target_volume: "0",
               pool_id: pairAddr ?? "",

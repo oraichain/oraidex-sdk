@@ -49,8 +49,6 @@ async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouter
   // adjust the query height to get data from the past
   const infoPath = findAssetInfoPathToUsdt(info);
   // usdt case, price is always 1
-  if (infoPath.length === 1)
-    return { info, amount: tenAmountInDecimalSix.substring(0, tenAmountInDecimalSix.length - 1) };
   const operations = generateSwapOperations(infoPath);
   if (operations.length === 0) return { info, amount: "0" }; // error case. Will be handled by the caller function
   try {
@@ -58,7 +56,7 @@ async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouter
       offerAmount: tenAmountInDecimalSix,
       operations
     });
-    return { info, amount: data.amount.substring(0, data.amount.length - 1) }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+    return { info, amount: (parseInt(data.amount) / priceDecimals).toString() }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
   } catch (error) {
     console.log(`Error when trying to simulate swap with asset info: ${JSON.stringify(info)} using router: ${error}`);
     return { info, amount: "0" }; // error case. Will be handled by the caller function
