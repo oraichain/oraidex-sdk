@@ -120,3 +120,15 @@ export type PrefixSumHandlingData = {
   denom: string;
   amount: number;
 };
+
+export type TickerInfo = {
+  base_currency: string;
+  target_currency: string;
+  last_price: string;
+  base_volume: string;
+  target_volume: string;
+  ticker_id: string;
+  base: string;
+  target: string;
+  pool_id: string;
+};

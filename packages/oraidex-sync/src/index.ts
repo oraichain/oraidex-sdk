@@ -2,7 +2,6 @@ import "dotenv/config";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import { DuckDb } from "./db";
 import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
-import "dotenv/config";
 import { pairs } from "./pairs";
 import {
   Asset,
@@ -10,11 +9,9 @@ import {
   CosmWasmClient,
   OraiswapFactoryQueryClient,
   OraiswapRouterQueryClient,
-  PairInfo,
-  SwapOperation
+  PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import {
-  PairInfoData,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
@@ -23,11 +20,9 @@ import {
   PriceInfo
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
-import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { extractUniqueAndFlatten, findAssetInfoPathToUsdt, generateSwapOperations } from "./helper";
-import { tenAmountInDecimalSix } from "./constants";
-import { getAllPairInfos, getPoolInfos, simulateSwapPrice } from "./query";
+import { extractUniqueAndFlatten } from "./helper";
+import { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -141,13 +136,7 @@ class OraiDexSync {
       this.cosmwasmClient,
       process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
     );
-    const infoPath = findAssetInfoPathToUsdt(info);
-    // usdt case, price is always 1
-    if (infoPath.length === 1)
-      return { info, amount: tenAmountInDecimalSix.substring(0, tenAmountInDecimalSix.length - 1) };
-    const operations = generateSwapOperations(info);
-    if (operations.length === 0) return { info, amount: "0" }; // error case. Will be handled by the caller function
-    const data = await simulateSwapPrice(info, routerContract);
+    const data = await simulateSwapPriceWithUsdt(info, routerContract);
     this.cosmwasmClient.setQueryClientWithHeight();
     return data;
   }
@@ -158,7 +147,8 @@ class OraiDexSync {
         this.duckDb.createHeightSnapshot(),
         this.duckDb.createLiquidityOpsTable(),
         this.duckDb.createSwapOpsTable(),
-        this.duckDb.createPairInfosTable()
+        this.duckDb.createPairInfosTable(),
+        this.duckDb.createPriceInfoTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
@@ -206,15 +196,15 @@ class OraiDexSync {
   }
 }
 
-const start = async () => {
-  const duckDb = await DuckDb.create("oraidex-sync-data");
-  const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-  await oraidexSync.sync();
-};
+// const start = async () => {
+//   const duckDb = await DuckDb.create("oraidex-sync-data");
+//   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
+//   await oraidexSync.sync();
+// };
 
-start();
+// start();
 
-export { OraiDexSync };
+// export { OraiDexSync };
 
 export * from "./types";
 export * from "./query";

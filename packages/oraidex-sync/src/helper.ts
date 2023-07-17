@@ -50,8 +50,7 @@ function findAssetInfoPathToUsdt(info: AssetInfo): AssetInfo[] {
   return [info, ...findAssetInfoPathToUsdt(pairedInfo[0])]; // only need the first found paired token with the one we are matching
 }
 
-function generateSwapOperations(info: AssetInfo): SwapOperation[] {
-  const infoPath = findAssetInfoPathToUsdt(info);
+function generateSwapOperations(infoPath: AssetInfo[]): SwapOperation[] {
   let swapOps: SwapOperation[] = [];
   for (let i = 0; i < infoPath.length - 1; i++) {
     swapOps.push({ orai_swap: { offer_asset_info: infoPath[i], ask_asset_info: infoPath[i + 1] } } as SwapOperation);

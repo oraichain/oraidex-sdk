@@ -29,9 +29,9 @@ export class DuckDb {
     await this.conn.exec("CREATE TABLE IF NOT EXISTS height_snapshot (config VARCHAR PRIMARY KEY, value UINTEGER)");
   }
 
-  async loadHeightSnapshot() {
+  async loadHeightSnapshot(): Promise<number> {
     const result = await this.conn.all("SELECT value FROM height_snapshot where config = 'last_block_height'");
-    return result.length > 0 ? result[0].value : { currentInd: 1 };
+    return result.length > 0 ? (result[0].value as number) : 1;
   }
 
   async insertHeightSnapshot(currentInd: number) {
