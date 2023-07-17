@@ -8,8 +8,8 @@ import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { pairs } from "./pairs";
-import { findAssetInfoPathToUsdt, generateSwapOperations } from "./helper";
-import { priceDecimals, tenAmountInDecimalSix } from "./constants";
+import { findAssetInfoPathToUsdt, generateSwapOperations, toDisplay } from "./helper";
+import { tenAmountInDecimalSix } from "./constants";
 
 async function getPoolInfos(pairs: PairInfo[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -56,7 +56,7 @@ async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouter
       offerAmount: tenAmountInDecimalSix,
       operations
     });
-    return { info, amount: (parseInt(data.amount) / priceDecimals).toString() }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+    return { info, amount: toDisplay(data.amount, 7).toString() }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
   } catch (error) {
     console.log(`Error when trying to simulate swap with asset info: ${JSON.stringify(info)} using router: ${error}`);
     return { info, amount: "0" }; // error case. Will be handled by the caller function
@@ -75,7 +75,7 @@ async function simulateSwapPricePair(
       offerAmount: tenAmountInDecimalSix,
       operations
     });
-    return (parseInt(data.amount) / priceDecimals).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+    return toDisplay(data.amount, 7).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
   } catch (error) {
     console.log(`Error when trying to simulate swap with pair: ${JSON.stringify(pair)} using router: ${error}`);
     return "0"; // error case. Will be handled by the caller function
