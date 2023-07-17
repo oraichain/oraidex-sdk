@@ -138,7 +138,7 @@ describe("test-helper", () => {
     [
       [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
       { native_token: { denom: atomIbcDenom } },
-      ORAI
+      ORAI.toUpperCase()
     ],
     [
       [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],

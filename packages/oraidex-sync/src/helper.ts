@@ -106,8 +106,8 @@ function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): { base: string; targe
   const secondInfo = parseAssetInfoOnlyDenom(infos[1]);
   if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address) return { base: firstInfo, target: infos[1] };
   if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address) return { base: secondInfo, target: infos[0] };
-  if (firstInfo === ORAI) return { base: firstInfo, target: infos[1] };
-  if (secondInfo === ORAI) return { base: secondInfo, target: infos[0] };
+  if (firstInfo === ORAI) return { base: firstInfo.toUpperCase(), target: infos[1] };
+  if (secondInfo === ORAI) return { base: secondInfo.toUpperCase(), target: infos[0] };
   return { base: secondInfo, target: infos[0] }; // default we calculate the first info in the asset info list
 }
 
