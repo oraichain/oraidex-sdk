@@ -24,6 +24,7 @@ import {
   OraiswapRouterQueryClient,
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
+import { parseSymbolsToTickerId } from "./helper";
 
 dotenv.config();
 
@@ -56,7 +57,7 @@ app.get("/pairs", async (req, res) => {
       pairs.map((pair) => {
         const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
         return {
-          ticker_id: `${pair.symbols[0]}_${pair.symbols[1]}`,
+          ticker_id: parseSymbolsToTickerId(pair.symbols),
           base: pair.symbols[0],
           target: pair.symbols[1],
           pool_id: pairAddr ?? ""
@@ -92,7 +93,7 @@ app.get("/tickers", async (req, res) => {
               routerContract
             );
             return {
-              ticker_id: `${symbols[0]}_${symbols[1]}`,
+              ticker_id: parseSymbolsToTickerId(symbols),
               base_currency: symbols[0],
               target_currency: symbols[1],
               last_price: price,
