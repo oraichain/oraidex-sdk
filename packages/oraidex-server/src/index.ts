@@ -93,36 +93,26 @@ app.get("/tickers", async (req, res) => {
             (info) =>
               parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
           );
-          const currencies = hasUsdInPair ? pair.symbols.reverse() : pair.symbols;
-          const { base, target } = findUsdOraiInPair(pair.asset_infos);
-          const targetStr = parseAssetInfoOnlyDenom(target);
+          const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
+          let tickerInfo: TickerInfo = {
+            ticker_id: tickerId,
+            base_currency: symbols[baseIndex],
+            target_currency: symbols[targetIndex],
+            last_price: "",
+            base_volume: getRandomNumber(1000, 9999), // TODO: remove random
+            target_volume: getRandomNumber(1000, 9999),
+            pool_id: pairAddr ?? "",
+            base: symbols[baseIndex],
+            target: symbols[targetIndex]
+          };
           try {
             // reverse because in pairs, we put base info as first index
             const price = await simulateSwapPriceWithUsdt(target, routerContract);
-            return {
-              ticker_id: tickerId,
-              base_currency: base,
-              target_currency: targetStr,
-              last_price: price.amount,
-              base_volume: getRandomNumber(1000, 9999), // TODO: remove random
-              target_volume: getRandomNumber(1000, 9999),
-              pool_id: pairAddr ?? "",
-              base: base,
-              target: currencies[1]
-            } as TickerInfo;
+            tickerInfo.last_price = price.amount;
           } catch (error) {
-            return {
-              ticker_id: tickerId,
-              base_currency: base,
-              target_currency: targetStr,
-              last_price: getRandomNumber(1000, 9999),
-              base_volume: getRandomNumber(1000, 9999),
-              target_volume: getRandomNumber(1000, 9999),
-              pool_id: pairAddr ?? "",
-              base: base,
-              target: targetStr
-            };
+            tickerInfo.last_price = "0";
           }
+          return tickerInfo;
         })
       )
     ).map((result) => {

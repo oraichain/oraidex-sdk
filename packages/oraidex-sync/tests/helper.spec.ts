@@ -215,32 +215,32 @@ describe("test-helper", () => {
     expect(result).toEqual(9902432);
   });
 
-  it.each<[[AssetInfo, AssetInfo], AssetInfo, string]>([
+  it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
     [
       [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
       { native_token: { denom: atomIbcDenom } },
-      ORAI.toUpperCase()
+      0
     ],
     [
       [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
       { native_token: { denom: ORAI } },
-      usdtCw20Address
+      1
     ],
     [
       [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
       { native_token: { denom: ORAI } },
-      usdcCw20Address
+      1
     ],
     [
       [{ token: { contract_addr: tronCw20Address } }, { native_token: { denom: atomIbcDenom } }],
       { token: { contract_addr: tronCw20Address } },
-      atomIbcDenom
+      1
     ]
   ])("test-findUsdOraiInPair", (infos, expectedInfo, expectedBase) => {
     // act
     const result = findUsdOraiInPair(infos);
     // assert
     expect(result.target).toEqual(expectedInfo);
-    expect(result.base).toEqual(expectedBase);
+    expect(result.baseIndex).toEqual(expectedBase);
   });
 });
