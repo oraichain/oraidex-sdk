@@ -41,7 +41,7 @@ export class DuckDb {
   // swap operation table handling
   async createSwapOpsTable() {
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, timestamp TIMESTAMP, offerDenom VARCHAR, offerAmount UBIGINT, askDenom VARCHAR, returnAmount UBIGINT, taxAmount UBIGINT, commissionAmount UBIGINT, spreadAmount UBIGINT)"
+      "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, timestamp TIMESTAMP, offerDenom VARCHAR, offerAmount UBIGINT, offerVolume UBIGINT, askDenom VARCHAR, askVolume UBIGINT, returnAmount UBIGINT, taxAmount UBIGINT, commissionAmount UBIGINT, spreadAmount UBIGINT)"
     );
   }
 
@@ -58,7 +58,7 @@ export class DuckDb {
       await this.conn.exec("CREATE TYPE LPOPTYPE AS ENUM ('provide','withdraw');");
     }
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS lp_ops_data (txhash VARCHAR, timestamp TIMESTAMP, firstTokenAmount UBIGINT, firstTokenDenom VARCHAR, secondTokenAmount UBIGINT, secondTokenDenom VARCHAR, txCreator VARCHAR, opType LPOPTYPE)"
+      "CREATE TABLE IF NOT EXISTS lp_ops_data (txhash VARCHAR, timestamp TIMESTAMP, firstTokenAmount UBIGINT, firstTokenLp UBIGINT, firstTokenDenom VARCHAR, secondTokenAmount UBIGINT, secondTokenLp UBIGINT, secondTokenDenom VARCHAR, txCreator VARCHAR, opType LPOPTYPE)"
     );
   }
 

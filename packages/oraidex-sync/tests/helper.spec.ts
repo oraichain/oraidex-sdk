@@ -4,7 +4,8 @@ import {
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
   extractUniqueAndFlatten,
-  findPairAddress
+  findPairAddress,
+  calculatePriceByPool
 } from "../src/helper";
 import { pairs } from "../src/pairs";
 import {
@@ -123,5 +124,10 @@ describe("test-helper", () => {
 
     // assert
     expect(result).toEqual(expectedPairAddr);
+  });
+
+  it("test-calculatePriceByPool", () => {
+    const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
+    console.log("result: ", result.toString());
   });
 });
