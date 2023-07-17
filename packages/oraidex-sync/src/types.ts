@@ -19,11 +19,11 @@ export type BasicTxData = {
 
 export type SwapOperationData = BasicTxData & {
   offerDenom: string;
-  offerAmount: string;
+  offerAmount: number;
   offerVolume: number;
   askDenom: string;
   askVolume: number;
-  returnAmount: string;
+  returnAmount: number;
   taxAmount: number;
   commissionAmount: number;
   spreadAmount: number;

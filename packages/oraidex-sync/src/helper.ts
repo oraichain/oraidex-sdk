@@ -71,7 +71,6 @@ function calculatePrefixSum(initialAmount: number, handlingData: PrefixSumHandli
     prefixSumObj[`temp-${data.denom}`] += data.amount;
     data.amount = prefixSumObj[`temp-${data.denom}`];
   }
-  console.log("new results: ", handlingData);
   return handlingData;
 }
 

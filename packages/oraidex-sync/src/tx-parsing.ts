@@ -10,13 +10,14 @@ import {
   MsgType,
   OraiswapPairCw20HookMsg,
   OraiswapRouterCw20HookMsg,
+  PrefixSumHandlingData,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
-import { parseAssetInfo } from "./helper";
+import { calculatePrefixSum, parseAssetInfo } from "./helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -85,11 +86,11 @@ function extractSwapOperations(txhash: string, timestamp: string, events: readon
       txhash,
       timestamp,
       offerDenom: offerDenoms[i],
-      offerAmount: offerAmounts[i],
-      offerVolume: 0,
+      offerAmount: parseInt(offerAmounts[i]),
+      offerVolume: parseInt(offerAmounts[i]),
       askDenom: askDenoms[i],
-      askVolume: 0,
-      returnAmount: returnAmounts[i],
+      askVolume: parseInt(returnAmounts[i]),
+      returnAmount: parseInt(returnAmounts[i]),
       taxAmount: parseInt(taxAmounts[i]),
       commissionAmount: parseInt(commissionAmounts[i]),
       spreadAmount: parseInt(spreadAmounts[i])
@@ -111,10 +112,10 @@ function extractMsgProvideLiquidity(
       txhash,
       timestamp,
       firstTokenAmount: parseInt(firstAsset.amount),
-      firstTokenLp: 0,
+      firstTokenLp: parseInt(firstAsset.amount),
       firstTokenDenom: parseAssetInfo(firstAsset.info),
       secondTokenAmount: parseInt(secAsset.amount),
-      secondTokenLp: 0,
+      secondTokenLp: parseInt(secAsset.amount),
       secondTokenDenom: parseAssetInfo(secAsset.info),
       txCreator,
       opType: "provide"
@@ -151,10 +152,10 @@ function extractMsgWithdrawLiquidity(
       txhash,
       timestamp,
       firstTokenAmount: parseInt(assets[0]),
-      firstTokenLp: 0,
+      firstTokenLp: parseInt(assets[0]),
       firstTokenDenom: assets[1],
       secondTokenAmount: parseInt(assets[2]),
-      secondTokenLp: 0,
+      secondTokenLp: parseInt(assets[2]),
       secondTokenDenom: assets[3],
       txCreator,
       opType: "withdraw"

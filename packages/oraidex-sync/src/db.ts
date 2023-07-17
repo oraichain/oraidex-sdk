@@ -92,8 +92,8 @@ export class DuckDb {
     await this.insertBulkData(ops, "price_infos", false, `price_infos-${Math.random() * 1000}`);
   }
 
-  async querySwapOps() {
-    return this.conn.all("SELECT count(*) from swap_ops_data");
+  async queryLatestTimestampSwapOps() {
+    return this.conn.all("SELECT offerVolume, askVolume, timestamp from swap_ops_data order by timestamp desc limit 1");
   }
 
   async queryLpOps() {

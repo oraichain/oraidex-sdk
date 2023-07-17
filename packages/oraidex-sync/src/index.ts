@@ -22,7 +22,7 @@ import {
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { extractUniqueAndFlatten } from "./helper";
+import { calculatePrefixSum, extractUniqueAndFlatten } from "./helper";
 import { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
 
 class WriteOrders extends WriteData {
@@ -49,8 +49,8 @@ class WriteOrders extends WriteData {
     ]);
   }
 
-  private async querySwapOps(): Promise<SwapOperationData[]> {
-    return this.duckDb.querySwapOps() as Promise<SwapOperationData[]>;
+  private async queryLatestSwapOps(): Promise<SwapOperationData[]> {
+    return this.duckDb.queryLatestTimestampSwapOps() as Promise<SwapOperationData[]>;
   }
 
   private async queryLpOps(): Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]> {
@@ -79,15 +79,39 @@ class WriteOrders extends WriteData {
       }
       const { txs, offset: newOffset, queryTags } = chunk as Txs;
       console.log("new offset: ", newOffset);
-      const result = parseTxs(txs);
+      let result = parseTxs(txs);
+
+      // collect the latest offer & ask volume to accumulate the results
+      const swapOps = await this.queryLatestSwapOps();
+
+      const prefixSum = calculatePrefixSum(
+        100000000,
+        result.swapOpsData
+          .map((data) => [
+            { denom: data.offerDenom, amount: data.offerAmount },
+            { denom: data.askDenom, amount: data.returnAmount }
+          ])
+          .flat()
+      );
+      let newSwapOps: SwapOperationData[] = result.swapOpsData;
+      let prefixSumIndex = 0;
+      if (prefixSum.length !== result.swapOpsData.length * 2) {
+        throw Error("Prefix sum length does not match the swap ops length");
+      }
+      for (let i = 0; i < result.swapOpsData.length; i++) {
+        if (newSwapOps[i].offerDenom === prefixSum[prefixSumIndex].denom) {
+          newSwapOps[i].offerVolume = prefixSum[prefixSumIndex].amount;
+        }
+        if (newSwapOps[i].askDenom === prefixSum[prefixSumIndex + 1].denom) {
+          newSwapOps[i].askVolume = prefixSum[prefixSumIndex + 1].amount;
+        }
+        prefixSumIndex += 2;
+      }
       // insert txs
       await this.duckDb.insertHeightSnapshot(newOffset);
       await this.insertParsedTxs(result);
 
-      const swapOps = await this.querySwapOps();
       const lpOps = await this.queryLpOps();
-
-      console.log("swap ops: ", swapOps);
       console.log("lp ops: ", lpOps);
     } catch (error) {
       console.log("error processing data: ", error);
@@ -187,9 +211,9 @@ class OraiDexSync {
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: 1,
+        limit: 100,
         maxThreadLevel: 1,
-        interval: 1000
+        interval: 5000
       }).pipe(new WriteOrders(this.duckDb, initialData));
     } catch (error) {
       console.log("error in start: ", error);
@@ -197,13 +221,13 @@ class OraiDexSync {
   }
 }
 
-// const start = async () => {
-//   const duckDb = await DuckDb.create("oraidex-sync-data");
-//   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-//   await oraidexSync.sync();
-// };
+const start = async () => {
+  const duckDb = await DuckDb.create("oraidex-sync-data");
+  const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
+  await oraidexSync.sync();
+};
 
-// start();
+start();
 
 export { OraiDexSync };
 
