@@ -69,58 +69,62 @@ app.get("/pairs", async (req, res) => {
 });
 
 app.get("/tickers", async (req, res) => {
-  const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-  const routerContract = new OraiswapRouterQueryClient(
-    cosmwasmClient,
-    process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-  );
-  const pairInfos = await duckDb.queryPairInfos();
-  const data: TickerInfo[] = (
-    await Promise.allSettled(
-      pairs.map(async (pair) => {
-        const symbols = pair.symbols;
-        const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
-        try {
-          const hasUsdInPair = pair.asset_infos.some(
-            (info) =>
-              parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
-          );
-          // reverse because in pairs, we put base info as first index
-          const price = await simulateSwapPricePair(
-            hasUsdInPair ? pair.asset_infos : (pair.asset_infos.reverse() as [AssetInfo, AssetInfo]),
-            routerContract
-          );
-          return {
-            ticker_id: `${symbols[0]}_${symbols[1]}`,
-            base_currency: symbols[0],
-            target_currency: symbols[1],
-            last_price: price,
-            base_volume: "0",
-            target_volume: "0",
-            pool_id: pairAddr ?? "",
-            base: symbols[0],
-            target: symbols[1]
-          } as TickerInfo;
-        } catch (error) {
-          return {
-            ticker_id: `${symbols[0]}_${symbols[1]}`,
-            base_currency: symbols[0],
-            target_currency: symbols[1],
-            last_price: "0",
-            base_volume: "0",
-            target_volume: "0",
-            pool_id: pairAddr ?? "",
-            base: symbols[0],
-            target: symbols[1]
-          };
-        }
-      })
-    )
-  ).map((result) => {
-    if (result.status === "fulfilled") return result.value;
-  });
-  console.table(data);
-  res.status(200).send(data);
+  try {
+    const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
+    const routerContract = new OraiswapRouterQueryClient(
+      cosmwasmClient,
+      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+    );
+    const pairInfos = await duckDb.queryPairInfos();
+    const data: TickerInfo[] = (
+      await Promise.allSettled(
+        pairs.map(async (pair) => {
+          const symbols = pair.symbols;
+          const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
+          try {
+            const hasUsdInPair = pair.asset_infos.some(
+              (info) =>
+                parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
+            );
+            // reverse because in pairs, we put base info as first index
+            const price = await simulateSwapPricePair(
+              hasUsdInPair ? pair.asset_infos : (pair.asset_infos.reverse() as [AssetInfo, AssetInfo]),
+              routerContract
+            );
+            return {
+              ticker_id: `${symbols[0]}_${symbols[1]}`,
+              base_currency: symbols[0],
+              target_currency: symbols[1],
+              last_price: price,
+              base_volume: "0",
+              target_volume: "0",
+              pool_id: pairAddr ?? "",
+              base: symbols[0],
+              target: symbols[1]
+            } as TickerInfo;
+          } catch (error) {
+            return {
+              ticker_id: `${symbols[0]}_${symbols[1]}`,
+              base_currency: symbols[0],
+              target_currency: symbols[1],
+              last_price: "0",
+              base_volume: "0",
+              target_volume: "0",
+              pool_id: pairAddr ?? "",
+              base: symbols[0],
+              target: symbols[1]
+            };
+          }
+        })
+      )
+    ).map((result) => {
+      if (result.status === "fulfilled") return result.value;
+    });
+    console.table(data);
+    res.status(200).send(data);
+  } catch (error) {
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
 });
 
 app.listen(port, hostname, async () => {
