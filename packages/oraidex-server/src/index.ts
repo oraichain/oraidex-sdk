@@ -82,38 +82,41 @@ app.get("/tickers", async (req, res) => {
         pairs.map(async (pair) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
+          const tickerId = parseSymbolsToTickerId(symbols);
+          const hasUsdInPair = pair.asset_infos.some(
+            (info) =>
+              parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
+          );
+          const currencies = hasUsdInPair ? pair.symbols.reverse() : pair.symbols;
+          const assetInfosForSimulation = hasUsdInPair ? pair.asset_infos : pair.asset_infos.reverse();
           try {
-            const hasUsdInPair = pair.asset_infos.some(
-              (info) =>
-                parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
-            );
             // reverse because in pairs, we put base info as first index
             const price = await simulateSwapPricePair(
-              hasUsdInPair ? pair.asset_infos : (pair.asset_infos.reverse() as [AssetInfo, AssetInfo]),
+              assetInfosForSimulation as [AssetInfo, AssetInfo],
               routerContract
             );
             return {
-              ticker_id: parseSymbolsToTickerId(symbols),
-              base_currency: symbols[0],
-              target_currency: symbols[1],
+              ticker_id: tickerId,
+              base_currency: currencies[0],
+              target_currency: currencies[1],
               last_price: price,
               base_volume: "0",
               target_volume: "0",
               pool_id: pairAddr ?? "",
-              base: symbols[0],
-              target: symbols[1]
+              base: currencies[0],
+              target: currencies[1]
             } as TickerInfo;
           } catch (error) {
             return {
-              ticker_id: `${symbols[0]}_${symbols[1]}`,
-              base_currency: symbols[0],
-              target_currency: symbols[1],
+              ticker_id: tickerId,
+              base_currency: currencies[0],
+              target_currency: currencies[1],
               last_price: "0",
               base_volume: "0",
               target_volume: "0",
               pool_id: pairAddr ?? "",
-              base: symbols[0],
-              target: symbols[1]
+              base: currencies[0],
+              target: currencies[1]
             };
           }
         })

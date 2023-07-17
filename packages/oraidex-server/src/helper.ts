@@ -1,3 +1,3 @@
 export function parseSymbolsToTickerId(symbols: [string, string]) {
-  return `${symbols[1]}_${symbols[0]}`;
+  return `${symbols[0]}_${symbols[1]}`;
 }
