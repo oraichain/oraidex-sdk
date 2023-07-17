@@ -1,7 +1,7 @@
 import { Asset, AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { pairs } from "./pairs";
 import { ORAI, usdtCw20Address } from "./constants";
-import { PairMapping, PrefixSumHandlingData } from "./types";
+import { PairInfoData, PairMapping, PrefixSumHandlingData } from "./types";
 
 function parseAssetInfo(info: AssetInfo): string {
   // if ("native_token" in info) return info.native_token.denom;
@@ -89,6 +89,13 @@ function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
 
   return uniqueFlattenedArray;
 }
+function findPairAddress(pairInfos: PairInfoData[], infos: [AssetInfo, AssetInfo]) {
+  return pairInfos.find(
+    (pairInfo) =>
+      infos.some((info) => parseAssetInfo(info) === pairInfo.firstAssetInfo) &&
+      infos.some((info) => parseAssetInfo(info) === pairInfo.secondAssetInfo)
+  )?.pairAddr;
+}
 
 export {
   calculatePrefixSum,
@@ -98,5 +105,6 @@ export {
   extractUniqueAndFlatten,
   parseAssetInfo,
   parseAssetInfoOnlyDenom,
-  delay
+  delay,
+  findPairAddress
 };

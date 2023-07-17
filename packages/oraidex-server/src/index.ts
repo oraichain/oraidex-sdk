@@ -13,7 +13,8 @@ import {
   usdcCw20Address,
   getAllPairInfos,
   parseAssetInfo,
-  PairInfoData
+  PairInfoData,
+  findPairAddress
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -46,6 +47,25 @@ async function queryAllPairInfos(): Promise<PairInfo[]> {
   return getAllPairInfos(firstFactoryClient, secondFactoryClient);
 }
 
+app.get("/pairs", async (req, res) => {
+  try {
+    const pairInfos = await duckDb.queryPairInfos();
+    res.status(200).send(
+      pairs.map((pair) => {
+        const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
+        return {
+          ticker_id: `${pair.symbols[0]}_${pair.symbols[1]}`,
+          base: pair.symbols[0],
+          target: pair.symbols[1],
+          pool_id: pairAddr ?? ""
+        };
+      })
+    );
+  } catch (error) {
+    res.status(500).send(`Error getting pair infos: ${JSON.stringify(error)}`);
+  }
+});
+
 app.get("/tickers", async (req, res) => {
   const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
   const routerContract = new OraiswapRouterQueryClient(
@@ -57,11 +77,7 @@ app.get("/tickers", async (req, res) => {
     await Promise.allSettled(
       pairs.map(async (pair) => {
         const symbols = pair.symbols;
-        const pairAddr = pairInfos.find(
-          (pairInfo) =>
-            pair.asset_infos.some((info) => parseAssetInfo(info) === pairInfo.firstAssetInfo) &&
-            pair.asset_infos.some((info) => parseAssetInfo(info) === pairInfo.secondAssetInfo)
-        )?.pairAddr;
+        const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
         try {
           const hasUsdInPair = pair.asset_infos.some(
             (info) =>
