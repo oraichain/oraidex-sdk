@@ -32,7 +32,7 @@ app.use(cors());
 
 let duckDb: DuckDb;
 
-const port = process.env.PORT || 2024;
+const port = parseInt(process.env.PORT) || 2024;
 
 async function queryAllPairInfos(): Promise<PairInfo[]> {
   const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
@@ -121,7 +121,7 @@ app.get("/tickers", async (req, res) => {
   res.status(200).send("hello world");
 });
 
-app.listen(port, async () => {
+app.listen(port, "0.0.0.0", async () => {
   // sync data for the service to read
   duckDb = await DuckDb.create("oraidex-sync-data");
   await Promise.all([
