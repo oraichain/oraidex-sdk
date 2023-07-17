@@ -33,9 +33,10 @@ app.use(cors());
 let duckDb: DuckDb;
 
 const port = parseInt(process.env.PORT) || 2024;
+const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 
 async function queryAllPairInfos(): Promise<PairInfo[]> {
-  const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
+  const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
   const firstFactoryClient = new OraiswapFactoryQueryClient(
     cosmwasmClient,
     process.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
@@ -67,7 +68,7 @@ app.get("/pairs", async (req, res) => {
 });
 
 app.get("/tickers", async (req, res) => {
-  const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
+  const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
   const routerContract = new OraiswapRouterQueryClient(
     cosmwasmClient,
     process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
