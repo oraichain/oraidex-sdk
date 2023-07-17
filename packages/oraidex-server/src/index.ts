@@ -33,6 +33,7 @@ app.use(cors());
 let duckDb: DuckDb;
 
 const port = parseInt(process.env.PORT) || 2024;
+const hostname = process.env.HOSTNAME || "0.0.0.0";
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 
 async function queryAllPairInfos(): Promise<PairInfo[]> {
@@ -122,7 +123,7 @@ app.get("/tickers", async (req, res) => {
   res.status(200).send("hello world");
 });
 
-app.listen(port, "0.0.0.0", async () => {
+app.listen(port, hostname, async () => {
   // sync data for the service to read
   duckDb = await DuckDb.create("oraidex-sync-data");
   await Promise.all([
@@ -150,5 +151,5 @@ app.listen(port, "0.0.0.0", async () => {
   // console.dir(pairInfos, { depth: null });
   // const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
   // await oraidexSync.sync();
-  console.log(`[server]: oraiDEX info server is running at http://localhost:${port}`);
+  console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
 });
