@@ -167,6 +167,7 @@ export class DuckDb {
     startTime: string,
     endTime: string
   ): Promise<TokenVolumeData> {
+    // need to replace because the denom can contain numbers and other figures. We replace for temporary only, will be reverted once finish reducing
     const modifiedOfferDenom = replaceAllNonAlphaBetChar(offerDenom);
     const modifiedAskDenom = replaceAllNonAlphaBetChar(askDenom);
     const volume = (
@@ -196,7 +197,7 @@ export class DuckDb {
     return {
       offerDenom,
       askDenom,
-      volume: this.reduceVolume(volume, { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom })
+      volume: this.reduceVolume(volume, { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom }) // reduce volume to aggregate ask & offer volume of a token together
     };
   }
 
