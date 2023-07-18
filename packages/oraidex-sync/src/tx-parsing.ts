@@ -17,7 +17,7 @@ import {
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
-import { calculatePrefixSum, parseAssetInfo } from "./helper";
+import { calculatePrefixSum, parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -80,20 +80,17 @@ function extractSwapOperations(txhash: string, timestamp: string, events: readon
       }
     }
   }
-  // TODO: check length of above data should be equal because otherwise we would miss information
   for (let i = 0; i < askDenoms.length; i++) {
     swapData.push({
-      txhash,
-      timestamp,
-      offerDenom: offerDenoms[i],
-      offerAmount: parseInt(offerAmounts[i]),
-      offerVolume: parseInt(offerAmounts[i]),
       askDenom: askDenoms[i],
-      askVolume: parseInt(returnAmounts[i]),
-      returnAmount: parseInt(returnAmounts[i]),
-      taxAmount: parseInt(taxAmounts[i]),
       commissionAmount: parseInt(commissionAmounts[i]),
-      spreadAmount: parseInt(spreadAmounts[i])
+      offerAmount: parseInt(offerAmounts[i]),
+      offerDenom: offerDenoms[i],
+      returnAmount: parseInt(returnAmounts[i]),
+      spreadAmount: parseInt(spreadAmounts[i]),
+      taxAmount: parseInt(taxAmounts[i]),
+      timestamp,
+      txhash
     });
   }
   return swapData;
@@ -109,16 +106,16 @@ function extractMsgProvideLiquidity(
     const firstAsset = msg.provide_liquidity.assets[0];
     const secAsset = msg.provide_liquidity.assets[1];
     return {
-      txhash,
-      timestamp,
       firstTokenAmount: parseInt(firstAsset.amount),
+      firstTokenDenom: parseAssetInfoOnlyDenom(firstAsset.info),
       firstTokenLp: parseInt(firstAsset.amount),
-      firstTokenDenom: parseAssetInfo(firstAsset.info),
+      opType: "provide",
       secondTokenAmount: parseInt(secAsset.amount),
+      secondTokenDenom: parseAssetInfoOnlyDenom(secAsset.info),
       secondTokenLp: parseInt(secAsset.amount),
-      secondTokenDenom: parseAssetInfo(secAsset.info),
+      timestamp,
       txCreator,
-      opType: "provide"
+      txhash
     };
   }
   return undefined;
@@ -149,16 +146,16 @@ function extractMsgWithdrawLiquidity(
     // sanity check. only push data if can parse asset successfully
     if (assets.length !== 4) continue;
     withdrawData.push({
-      txhash,
-      timestamp,
       firstTokenAmount: parseInt(assets[0]),
-      firstTokenLp: parseInt(assets[0]),
       firstTokenDenom: assets[1],
+      firstTokenLp: parseInt(assets[0]),
+      opType: "withdraw",
       secondTokenAmount: parseInt(assets[2]),
-      secondTokenLp: parseInt(assets[2]),
       secondTokenDenom: assets[3],
-      txCreator,
-      opType: "withdraw"
+      secondTokenLp: parseInt(assets[2]),
+      timestamp,
+      txhash,
+      txCreator
     });
   }
   return withdrawData;

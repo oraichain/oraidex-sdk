@@ -18,7 +18,8 @@ import {
   WithdrawLiquidityOperationData,
   InitialData,
   PriceInfo,
-  PairInfoData
+  PairInfoData,
+  PrefixSumHandlingData
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
@@ -47,10 +48,6 @@ class WriteOrders extends WriteData {
       this.insertLiquidityOps(txs.provideLiquidityOpsData),
       this.insertLiquidityOps(txs.withdrawLiquidityOpsData)
     ]);
-  }
-
-  private async queryLatestSwapOps(): Promise<SwapOperationData[]> {
-    return this.duckDb.queryLatestTimestampSwapOps() as Promise<SwapOperationData[]>;
   }
 
   private async queryLpOps(): Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]> {
@@ -82,31 +79,6 @@ class WriteOrders extends WriteData {
       let result = parseTxs(txs);
 
       // collect the latest offer & ask volume to accumulate the results
-      const swapOps = await this.queryLatestSwapOps();
-
-      const prefixSum = calculatePrefixSum(
-        100000000,
-        result.swapOpsData
-          .map((data) => [
-            { denom: data.offerDenom, amount: data.offerAmount },
-            { denom: data.askDenom, amount: data.returnAmount }
-          ])
-          .flat()
-      );
-      let newSwapOps: SwapOperationData[] = result.swapOpsData;
-      let prefixSumIndex = 0;
-      if (prefixSum.length !== result.swapOpsData.length * 2) {
-        throw Error("Prefix sum length does not match the swap ops length");
-      }
-      for (let i = 0; i < result.swapOpsData.length; i++) {
-        if (newSwapOps[i].offerDenom === prefixSum[prefixSumIndex].denom) {
-          newSwapOps[i].offerVolume = prefixSum[prefixSumIndex].amount;
-        }
-        if (newSwapOps[i].askDenom === prefixSum[prefixSumIndex + 1].denom) {
-          newSwapOps[i].askVolume = prefixSum[prefixSumIndex + 1].amount;
-        }
-        prefixSumIndex += 2;
-      }
       // insert txs
       await this.duckDb.insertHeightSnapshot(newOffset);
       await this.insertParsedTxs(result);

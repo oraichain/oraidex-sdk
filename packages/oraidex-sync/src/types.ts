@@ -13,20 +13,23 @@ export type AssetData = {
 };
 
 export type BasicTxData = {
-  txhash: string;
   timestamp: string;
+  txhash: string;
 };
 
-export type SwapOperationData = BasicTxData & {
-  offerDenom: string;
-  offerAmount: number;
-  offerVolume: number;
+export type SwapOperationData = {
   askDenom: string;
-  askVolume: number;
-  returnAmount: number;
-  taxAmount: number;
   commissionAmount: number;
+  offerAmount: number;
+  offerDenom: string;
+  returnAmount: number;
   spreadAmount: number;
+  taxAmount: number;
+} & BasicTxData;
+
+export type TokenVolumeData = {
+  denom: string;
+  volume: number;
 };
 
 export type PairInfoData = {
@@ -52,16 +55,16 @@ export type AccountTx = {
 
 export type LiquidityOpType = "provide" | "withdraw";
 
-export type ProvideLiquidityOperationData = BasicTxData & {
+export type ProvideLiquidityOperationData = {
   firstTokenAmount: number;
-  firstTokenLp: number;
   firstTokenDenom: string;
+  firstTokenLp: number;
   secondTokenAmount: number;
-  secondTokenLp: number;
   secondTokenDenom: string;
-  txCreator: string;
+  secondTokenLp: number;
   opType: LiquidityOpType;
-};
+  txCreator: string;
+} & BasicTxData;
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 

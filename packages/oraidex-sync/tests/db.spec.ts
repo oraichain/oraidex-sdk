@@ -8,39 +8,34 @@ describe("test-duckdb", () => {
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
   });
 
-  it("test-duckdb-queryLatestTimestampSwapOps-should-return-the-latest-timestamp-row", async () => {
+  it("test-duckdb-queryAllVolume-should-return-total-volume-of-hello", async () => {
     await duckDb.insertSwapOps([
       {
-        txhash: "foo",
-        timestamp: new Date(1689610068000).toISOString(),
-        offerAmount: 1,
-        offerDenom: "0",
-        offerVolume: 1,
         askDenom: "orai",
-        askVolume: 2,
-        returnAmount: 0,
-        taxAmount: 0,
         commissionAmount: 0,
-        spreadAmount: 0
+        offerAmount: 10000,
+        offerDenom: "hello",
+        returnAmount: 0,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: new Date(1689610068000).toISOString(),
+        txhash: "foo"
       },
       {
-        txhash: "foo",
-        timestamp: new Date(1589610068000).toISOString(),
-        offerAmount: 1,
-        offerDenom: "0",
-        offerVolume: 1,
-        askDenom: "orai",
-        askVolume: 2,
-        returnAmount: 0,
-        taxAmount: 0,
+        askDenom: "hello",
         commissionAmount: 0,
-        spreadAmount: 0
+        offerAmount: 0,
+        offerDenom: "foo",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: new Date(1589610068000).toISOString(),
+        txhash: "foo"
       }
     ]);
-    const queryResult = await duckDb.queryLatestTimestampSwapOps();
-    expect(new Date(queryResult[0].timestamp).toISOString()).toEqual(
-      new Date("2023-07-17T16:07:48.000Z").toISOString()
-    );
+    const queryResult = await duckDb.queryAllVolume("hello");
+    expect(queryResult.volume).toEqual(10001);
+    expect(queryResult.denom).toEqual("hello");
   });
 
   it("test-duckdb-insert-bulk-should-throw-error-when-wrong-data", async () => {
@@ -65,23 +60,23 @@ describe("test-duckdb", () => {
 
   it("test-duckdb-insert-bulk-should-pass-and-can-query", async () => {
     // act & test
-    const newDate = new Date().toISOString();
+    const newDate = new Date(1689610068000).toISOString();
     await duckDb.insertLpOps([
       {
-        txhash: "foo",
-        timestamp: newDate,
         firstTokenAmount: 1,
-        firstTokenLp: 0,
         firstTokenDenom: "orai",
+        firstTokenLp: 0,
+        opType: "withdraw",
         secondTokenAmount: 2,
-        secondTokenLp: 0,
         secondTokenDenom: "atom",
+        secondTokenLp: 0,
+        timestamp: newDate,
         txCreator: "foobar",
-        opType: "withdraw"
+        txhash: "foo"
       }
     ]);
-    const queryResult = await duckDb.queryLpOps();
-    console.log("query result: ", queryResult);
+    let queryResult = await duckDb.queryLpOps();
+    queryResult[0].timestamp = new Date(queryResult[0].timestamp).toISOString();
     expect(queryResult[0]).toEqual({
       txhash: "foo",
       timestamp: newDate,

@@ -1,5 +1,5 @@
 import { Database, Connection } from "duckdb-async";
-import { PairInfoData, PriceInfo, SwapOperationData, WithdrawLiquidityOperationData } from "./types";
+import { PairInfoData, PriceInfo, SwapOperationData, TokenVolumeData, WithdrawLiquidityOperationData } from "./types";
 import fs from "fs";
 
 export class DuckDb {
@@ -41,7 +41,16 @@ export class DuckDb {
   // swap operation table handling
   async createSwapOpsTable() {
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS swap_ops_data (txhash VARCHAR, timestamp TIMESTAMP, offerDenom VARCHAR, offerAmount UBIGINT, offerVolume UBIGINT, askDenom VARCHAR, askVolume UBIGINT, returnAmount UBIGINT, taxAmount UBIGINT, commissionAmount UBIGINT, spreadAmount UBIGINT)"
+      `CREATE TABLE IF NOT EXISTS swap_ops_data (
+        askDenom VARCHAR, 
+        commissionAmount UBIGINT,
+        offerAmount UBIGINT,
+        offerDenom VARCHAR, 
+        returnAmount UBIGINT, 
+        spreadAmount UBIGINT, 
+        taxAmount UBIGINT, 
+        timestamp TIMESTAMP, 
+        txhash VARCHAR)`
     );
   }
 
@@ -58,7 +67,17 @@ export class DuckDb {
       await this.conn.exec("CREATE TYPE LPOPTYPE AS ENUM ('provide','withdraw');");
     }
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS lp_ops_data (txhash VARCHAR, timestamp TIMESTAMP, firstTokenAmount UBIGINT, firstTokenLp UBIGINT, firstTokenDenom VARCHAR, secondTokenAmount UBIGINT, secondTokenLp UBIGINT, secondTokenDenom VARCHAR, txCreator VARCHAR, opType LPOPTYPE)"
+      `CREATE TABLE IF NOT EXISTS lp_ops_data (
+        firstTokenAmount UBIGINT, 
+        firstTokenDenom VARCHAR, 
+        firstTokenLp UBIGINT, 
+        opType LPOPTYPE, 
+        secondTokenAmount UBIGINT, 
+        secondTokenDenom VARCHAR, 
+        secondTokenLp UBIGINT,
+        timestamp TIMESTAMP,
+        txCreator VARCHAR, 
+        txhash VARCHAR)`
     );
   }
 
@@ -92,12 +111,21 @@ export class DuckDb {
     await this.insertBulkData(ops, "price_infos", false, `price_infos-${Math.random() * 1000}`);
   }
 
-  async queryLatestTimestampSwapOps() {
-    return this.conn.all("SELECT offerVolume, askVolume, timestamp from swap_ops_data order by timestamp desc limit 1");
+  async queryAllVolume(denom: string): Promise<TokenVolumeData> {
+    // TODO: justify limit 1 here
+    const offerVolume = await this.conn.all(
+      `SELECT offerDenom as denom, sum(offerAmount) as volume from swap_ops_data where denom = '${denom}' group by denom limit 1;`
+    );
+    const askVolume = await this.conn.all(
+      `SELECT askDenom as denom, sum(returnAmount) as volume from swap_ops_data where denom = '${denom}' group by denom limit 1;`
+    );
+    if (offerVolume.length === 0 && askVolume.length === 0) return { denom, volume: 0 };
+    if (offerVolume.length === 0) return askVolume[0] as TokenVolumeData;
+    return offerVolume[0] as TokenVolumeData;
   }
 
   async queryLpOps() {
-    return this.conn.all("SELECT count(*) from lp_ops_data");
+    return this.conn.all("SELECT * from lp_ops_data");
   }
 
   async queryPairInfos(): Promise<PairInfoData[]> {
