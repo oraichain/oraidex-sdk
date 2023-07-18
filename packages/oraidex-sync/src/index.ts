@@ -79,6 +79,7 @@ class WriteOrders extends WriteData {
 
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
+      console.log("new offset: ", newOffset);
       await this.duckDb.insertHeightSnapshot(newOffset);
       await this.insertParsedTxs(result);
 
