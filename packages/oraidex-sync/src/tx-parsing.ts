@@ -80,6 +80,9 @@ function extractSwapOperations(txhash: string, timestamp: string, events: readon
       }
     }
   }
+  const swapAttrs = [offerAmounts, offerDenoms, askDenoms, returnAmounts, taxAmounts, commissionAmounts, spreadAmounts];
+  // faulty swap attributes, wont collect
+  if (!swapAttrs.every((array) => array.length === askDenoms.length)) return [];
   for (let i = 0; i < askDenoms.length; i++) {
     swapData.push({
       askDenom: askDenoms[i],

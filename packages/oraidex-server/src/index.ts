@@ -112,6 +112,6 @@ app.listen(port, hostname, async () => {
   // console.dir(pairInfos, { depth: null });
   duckDb = await DuckDb.create("oraidex-sync-data");
   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-  await oraidexSync.sync();
+  oraidexSync.sync();
   console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
 });
