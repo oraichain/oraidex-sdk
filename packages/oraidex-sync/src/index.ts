@@ -74,8 +74,7 @@ class WriteOrders extends WriteData {
         );
         this.firstWrite = false;
       }
-      const { txs, offset: newOffset, queryTags } = chunk as Txs;
-      console.log("new offset: ", newOffset);
+      const { txs, offset: newOffset } = chunk as Txs;
       let result = parseTxs(txs);
 
       // collect the latest offer & ask volume to accumulate the results
@@ -84,7 +83,11 @@ class WriteOrders extends WriteData {
       await this.insertParsedTxs(result);
 
       const lpOps = await this.queryLpOps();
-      console.log("lp ops: ", lpOps);
+      const swapOpsCount = await this.duckDb.querySwapOps();
+      console.log("lp ops: ", lpOps.length);
+      console.log("swap ops: ", swapOpsCount);
+      const totalVolume = await this.duckDb.queryAllVolume("orai");
+      console.log("total volume: ", totalVolume);
     } catch (error) {
       console.log("error processing data: ", error);
       return false;
@@ -184,7 +187,7 @@ class OraiDexSync {
         rpcUrl: this.rpcUrl,
         queryTags: [],
         limit: 100,
-        maxThreadLevel: 1,
+        maxThreadLevel: 3,
         interval: 5000
       }).pipe(new WriteOrders(this.duckDb, initialData));
     } catch (error) {

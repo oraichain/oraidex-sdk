@@ -2,43 +2,50 @@ import { DuckDb } from "../src/db";
 
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
-  beforeAll(async () => {
-    // fixture
-    duckDb = await DuckDb.create(":memory:");
-    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
-  });
 
-  it("test-duckdb-queryAllVolume-should-return-total-volume-of-hello", async () => {
-    await duckDb.insertSwapOps([
-      {
-        askDenom: "orai",
-        commissionAmount: 0,
-        offerAmount: 10000,
-        offerDenom: "hello",
-        returnAmount: 0,
-        spreadAmount: 0,
-        taxAmount: 0,
-        timestamp: new Date(1689610068000).toISOString(),
-        txhash: "foo"
-      },
-      {
-        askDenom: "hello",
-        commissionAmount: 0,
-        offerAmount: 0,
-        offerDenom: "foo",
-        returnAmount: 1,
-        spreadAmount: 0,
-        taxAmount: 0,
-        timestamp: new Date(1589610068000).toISOString(),
-        txhash: "foo"
-      }
-    ]);
-    const queryResult = await duckDb.queryAllVolume("hello");
-    expect(queryResult.volume).toEqual(10001);
-    expect(queryResult.denom).toEqual("hello");
-  });
+  it.each<[string, number]>([
+    ["hello", 10001],
+    ["orai", 100],
+    ["foo", 10]
+  ])(
+    "test-duckdb-queryAllVolume-should-return-correct-total-volume-given-%s-should-have-%d",
+    async (denom, expectedVolume) => {
+      duckDb = await DuckDb.create(":memory:");
+      await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
+      await duckDb.insertSwapOps([
+        {
+          askDenom: "orai",
+          commissionAmount: 0,
+          offerAmount: 10000,
+          offerDenom: "hello",
+          returnAmount: 100,
+          spreadAmount: 0,
+          taxAmount: 0,
+          timestamp: new Date(1689610068000).toISOString(),
+          txhash: "foo"
+        },
+        {
+          askDenom: "hello",
+          commissionAmount: 0,
+          offerAmount: 10,
+          offerDenom: "foo",
+          returnAmount: 1,
+          spreadAmount: 0,
+          taxAmount: 0,
+          timestamp: new Date(1589610068000).toISOString(),
+          txhash: "foo"
+        }
+      ]);
+      const queryResult = await duckDb.queryAllVolume(denom);
+      expect(queryResult.volume).toEqual(expectedVolume);
+      expect(queryResult.denom).toEqual(denom);
+    }
+  );
 
   it("test-duckdb-insert-bulk-should-throw-error-when-wrong-data", async () => {
+    //setup
+    duckDb = await DuckDb.create(":memory:");
+    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
     // act & test
     await expect(
       duckDb.insertLpOps([
@@ -59,6 +66,9 @@ describe("test-duckdb", () => {
   });
 
   it("test-duckdb-insert-bulk-should-pass-and-can-query", async () => {
+    //setup
+    duckDb = await DuckDb.create(":memory:");
+    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
     // act & test
     const newDate = new Date(1689610068000).toISOString();
     await duckDb.insertLpOps([

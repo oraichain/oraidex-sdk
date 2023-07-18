@@ -16,7 +16,8 @@ import {
   PairInfoData,
   findPairAddress,
   simulateSwapPriceWithUsdt,
-  findUsdOraiInPair
+  findUsdOraiInPair,
+  toDisplay
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -94,13 +95,15 @@ app.get("/tickers", async (req, res) => {
               parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
           );
           const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
+          const baseVolume = await duckDb.queryAllVolume(parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]));
+          const targetVolume = await duckDb.queryAllVolume(parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]));
           let tickerInfo: TickerInfo = {
             ticker_id: tickerId,
             base_currency: symbols[baseIndex],
             target_currency: symbols[targetIndex],
             last_price: "",
-            base_volume: getRandomNumber(1000, 9999), // TODO: remove random
-            target_volume: getRandomNumber(1000, 9999),
+            base_volume: toDisplay(BigInt(baseVolume.volume)).toString(), // TODO: remove random
+            target_volume: toDisplay(BigInt(targetVolume.volume)).toString(),
             pool_id: pairAddr ?? "",
             base: symbols[baseIndex],
             target: symbols[targetIndex]

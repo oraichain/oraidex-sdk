@@ -112,16 +112,25 @@ export class DuckDb {
   }
 
   async queryAllVolume(denom: string): Promise<TokenVolumeData> {
-    // TODO: justify limit 1 here
-    const offerVolume = await this.conn.all(
-      `SELECT offerDenom as denom, sum(offerAmount) as volume from swap_ops_data where denom = '${denom}' group by denom limit 1;`
-    );
-    const askVolume = await this.conn.all(
-      `SELECT askDenom as denom, sum(returnAmount) as volume from swap_ops_data where denom = '${denom}' group by denom limit 1;`
-    );
-    if (offerVolume.length === 0 && askVolume.length === 0) return { denom, volume: 0 };
-    if (offerVolume.length === 0) return askVolume[0] as TokenVolumeData;
-    return offerVolume[0] as TokenVolumeData;
+    const volume = (
+      await Promise.all([
+        this.conn.all("SELECT sum(offerAmount) as volume from swap_ops_data where offerDenom = ?;", denom),
+        this.conn.all("SELECT sum(returnAmount) as volume from swap_ops_data where askDenom = ?;", denom)
+      ])
+    )
+      .flat()
+      .filter((vol) => vol.volume);
+    console.log("volume: ", volume);
+    return {
+      denom,
+      volume: volume.reduce((accumulator, currentObject) => {
+        return accumulator + currentObject.volume;
+      }, 0)
+    };
+  }
+
+  async querySwapOps() {
+    return this.conn.all("SELECT count(*) from swap_ops_data");
   }
 
   async queryLpOps() {
@@ -134,3 +143,5 @@ export class DuckDb {
     );
   }
 }
+
+[{ volume: 1 }, { volume: 3 }];
