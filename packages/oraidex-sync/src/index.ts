@@ -184,8 +184,8 @@ class OraiDexSync {
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: 100,
-        maxThreadLevel: 3,
+        limit: parseInt(process.env.LIMIT) || 100,
+        maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 5000
       }).pipe(new WriteOrders(this.duckDb, initialData));
     } catch (error) {
