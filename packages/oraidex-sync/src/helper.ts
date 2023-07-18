@@ -45,6 +45,22 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
   return Number(returnAmount) / (displayDecimals === truncDecimals ? atomic : 10 ** displayDecimals);
 };
 
+export function renameKey(object: Object, oldKey: string, newKey: string): any {
+  if (oldKey === newKey) return object;
+  // Check if the old key exists in the object
+  if (object.hasOwnProperty(oldKey)) {
+    // Create the new key and assign the value from the old key
+    object[newKey] = object[oldKey];
+    // Delete the old key
+    delete object[oldKey];
+  }
+  return object;
+}
+
+export function replaceAllNonAlphaBetChar(columnName: string): string {
+  return columnName.replace(/[^a-zA-Z]/g, "a");
+}
+
 function parseAssetInfo(info: AssetInfo): string {
   // if ("native_token" in info) return info.native_token.denom;
   // return info.token.contract_addr;

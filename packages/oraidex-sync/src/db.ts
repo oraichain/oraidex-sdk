@@ -1,6 +1,14 @@
 import { Database, Connection } from "duckdb-async";
-import { PairInfoData, PriceInfo, SwapOperationData, TokenVolumeData, WithdrawLiquidityOperationData } from "./types";
-import fs from "fs";
+import {
+  PairInfoData,
+  PriceInfo,
+  SwapOperationData,
+  TokenVolumeData,
+  VolumeData,
+  WithdrawLiquidityOperationData
+} from "./types";
+import fs, { rename } from "fs";
+import { renameKey, replaceAllNonAlphaBetChar } from "./helper";
 
 export class DuckDb {
   protected constructor(public readonly conn: Connection) {}
@@ -106,48 +114,89 @@ export class DuckDb {
     await this.insertBulkData(ops, "price_infos", false, `price_infos-${Math.random() * 1000}`);
   }
 
-  async queryAllVolume(denom: string): Promise<TokenVolumeData> {
-    const volume = (
-      await Promise.all([
-        this.conn.all("SELECT sum(offerAmount) as volume from swap_ops_data where offerDenom = ?;", denom),
-        this.conn.all("SELECT sum(returnAmount) as volume from swap_ops_data where askDenom = ?;", denom)
-      ])
-    )
-      .flat()
-      .filter((vol) => vol.volume);
-    console.log("volume: ", volume);
-    return {
-      denom,
-      volume: volume.reduce((accumulator, currentObject) => {
-        return accumulator + currentObject.volume;
-      }, 0)
-    };
+  reduceVolume(
+    volume: VolumeData[],
+    data: { modifiedOfferDenom: string; modifiedAskDenom: string; offerDenom: string; askDenom: string }
+  ): VolumeData {
+    // by default, the offer denom & ask denom
+    const { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom } = data;
+    let volumeData = volume.reduce((accumulator, currentObject) => {
+      accumulator[modifiedOfferDenom] = (accumulator[modifiedOfferDenom] || 0) + currentObject[modifiedOfferDenom];
+      accumulator[modifiedAskDenom] = (accumulator[modifiedAskDenom] || 0) + currentObject[modifiedAskDenom];
+      return accumulator;
+    }, {}) as VolumeData;
+    volumeData = renameKey(volumeData, modifiedOfferDenom, offerDenom);
+    volumeData = renameKey(volumeData, modifiedAskDenom, askDenom);
+
+    return volumeData;
   }
 
-  async queryAllVolumeRange(denom: string, startTime: string, endTime: string) {
+  async queryAllVolume(offerDenom: string, askDenom: string): Promise<TokenVolumeData> {
+    const modifiedOfferDenom = replaceAllNonAlphaBetChar(offerDenom);
+    const modifiedAskDenom = replaceAllNonAlphaBetChar(askDenom);
     const volume = (
       await Promise.all([
         this.conn.all(
-          `SELECT sum(offerAmount) 
-        as volume 
-        from swap_ops_data 
-        where offerDenom = ? and timestamp >= '${startTime}'::TIMESTAMP and timestamp <= '${endTime}'::TIMESTAMP`,
-          denom
+          `SELECT sum(offerAmount) as ${modifiedOfferDenom}, sum(returnAmount) as ${modifiedAskDenom} 
+          from swap_ops_data 
+          where offerDenom = ? 
+          and askDenom = ?`,
+          offerDenom,
+          askDenom
         ),
         this.conn.all(
-          `SELECT sum(returnAmount) 
-        as volume 
-        from swap_ops_data 
-        where askDenom = ? and timestamp >= '${startTime}'::TIMESTAMP and timestamp <= '${endTime}'::TIMESTAMP`,
-          denom
+          `SELECT sum(offerAmount) as ${modifiedAskDenom}, sum(returnAmount) as ${modifiedOfferDenom} 
+          from swap_ops_data 
+          where offerDenom = ? 
+          and askDenom = ?`,
+          askDenom,
+          offerDenom
         )
       ])
     ).flat();
     return {
-      denom,
-      volume: volume.reduce((accumulator, currentObject) => {
-        return accumulator + currentObject.volume;
-      }, 0)
+      offerDenom,
+      askDenom,
+      volume: this.reduceVolume(volume, { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom })
+    };
+  }
+
+  async queryAllVolumeRange(
+    offerDenom: string,
+    askDenom: string,
+    startTime: string,
+    endTime: string
+  ): Promise<TokenVolumeData> {
+    const modifiedOfferDenom = replaceAllNonAlphaBetChar(offerDenom);
+    const modifiedAskDenom = replaceAllNonAlphaBetChar(askDenom);
+    const volume = (
+      await Promise.all([
+        this.conn.all(
+          `SELECT sum(offerAmount) as ${modifiedOfferDenom}, sum(returnAmount) as ${modifiedAskDenom}
+        from swap_ops_data 
+        where offerDenom = ? 
+        and askDenom = ? 
+        and timestamp >= '${startTime}'::TIMESTAMP 
+        and timestamp <= '${endTime}'::TIMESTAMP`,
+          offerDenom,
+          askDenom
+        ),
+        this.conn.all(
+          `SELECT sum(offerAmount) as ${modifiedAskDenom}, sum(returnAmount) as ${modifiedOfferDenom}
+        from swap_ops_data 
+        where offerDenom = ? 
+        and askDenom = ? 
+        and timestamp >= '${startTime}'::TIMESTAMP 
+        and timestamp <= '${endTime}'::TIMESTAMP`,
+          askDenom,
+          offerDenom
+        )
+      ])
+    ).flat();
+    return {
+      offerDenom,
+      askDenom,
+      volume: this.reduceVolume(volume, { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom })
     };
   }
 
@@ -170,5 +219,3 @@ export class DuckDb {
     );
   }
 }
-
-[{ volume: 1 }, { volume: 3 }];

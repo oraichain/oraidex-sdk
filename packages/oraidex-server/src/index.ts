@@ -64,23 +64,16 @@ app.get("/tickers", async (req, res) => {
           const latestTimestamp = await duckDb.queryLatestTimestampSwapOps();
           const now = new Date(latestTimestamp);
           const then = getDate24hBeforeNow(now).toISOString();
-          const baseVolume = await duckDb.queryAllVolumeRange(
-            parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]),
-            then,
-            now.toISOString()
-          );
-          const targetVolume = await duckDb.queryAllVolumeRange(
-            parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]),
-            then,
-            now.toISOString()
-          );
+          const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
+          const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
+          const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, now.toISOString());
           let tickerInfo: TickerInfo = {
             ticker_id: tickerId,
             base_currency: symbols[baseIndex],
             target_currency: symbols[targetIndex],
             last_price: "",
-            base_volume: toDisplay(BigInt(baseVolume.volume)).toString(), // TODO: remove random
-            target_volume: toDisplay(BigInt(targetVolume.volume)).toString(),
+            base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(), // TODO: remove random
+            target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
             pool_id: pairAddr ?? "",
             base: symbols[baseIndex],
             target: symbols[targetIndex]
@@ -112,6 +105,6 @@ app.listen(port, hostname, async () => {
   // console.dir(pairInfos, { depth: null });
   duckDb = await DuckDb.create("oraidex-sync-data");
   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-  oraidexSync.sync();
+  // oraidexSync.sync();
   console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
 });

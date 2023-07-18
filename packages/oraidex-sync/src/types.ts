@@ -27,9 +27,14 @@ export type SwapOperationData = {
   taxAmount: number;
 } & BasicTxData;
 
+export type VolumeData = {
+  [k: string]: number;
+};
+
 export type TokenVolumeData = {
-  denom: string;
-  volume: number;
+  offerDenom: string;
+  askDenom: string;
+  volume: VolumeData;
 };
 
 export type PairInfoData = {
