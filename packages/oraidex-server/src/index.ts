@@ -1,61 +1,31 @@
 import * as dotenv from "dotenv";
 import express from "express";
 import {
-  AssetData,
   DuckDb,
-  OraiDexSync,
-  PairMapping,
   TickerInfo,
   pairs,
-  simulateSwapPricePair,
   parseAssetInfoOnlyDenom,
-  usdtCw20Address,
-  usdcCw20Address,
-  getAllPairInfos,
-  parseAssetInfo,
-  PairInfoData,
   findPairAddress,
   simulateSwapPriceWithUsdt,
   findUsdOraiInPair,
-  toDisplay
+  toDisplay,
+  OraiDexSync
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import {
-  AssetInfo,
-  OraiswapFactoryQueryClient,
-  OraiswapRouterQueryClient,
-  PairInfo
-} from "@oraichain/oraidex-contracts-sdk";
-import { parseSymbolsToTickerId } from "./helper";
+import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { getDate24hBeforeNow, parseSymbolsToTickerId } from "./helper";
 
 dotenv.config();
 
 const app = express();
 app.use(cors());
 
-function getRandomNumber(min: number, max: number): string {
-  return (Math.floor(Math.random() * (max - min + 1)) + min).toString();
-}
-
 let duckDb: DuckDb;
 
 const port = parseInt(process.env.PORT) || 2024;
 const hostname = process.env.HOSTNAME || "0.0.0.0";
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
-
-async function queryAllPairInfos(): Promise<PairInfo[]> {
-  const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-  const firstFactoryClient = new OraiswapFactoryQueryClient(
-    cosmwasmClient,
-    process.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
-  );
-  const secondFactoryClient = new OraiswapFactoryQueryClient(
-    cosmwasmClient,
-    process.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
-  );
-  return getAllPairInfos(firstFactoryClient, secondFactoryClient);
-}
 
 app.get("/pairs", async (req, res) => {
   try {
@@ -90,13 +60,20 @@ app.get("/tickers", async (req, res) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
           const tickerId = parseSymbolsToTickerId(symbols);
-          const hasUsdInPair = pair.asset_infos.some(
-            (info) =>
-              parseAssetInfoOnlyDenom(info) === usdtCw20Address || parseAssetInfoOnlyDenom(info) === usdcCw20Address
-          );
           const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
-          const baseVolume = await duckDb.queryAllVolume(parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]));
-          const targetVolume = await duckDb.queryAllVolume(parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]));
+          const latestTimestamp = await duckDb.queryLatestTimestampSwapOps();
+          const now = new Date(latestTimestamp);
+          const then = getDate24hBeforeNow(now).toISOString();
+          const baseVolume = await duckDb.queryAllVolumeRange(
+            parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]),
+            then,
+            now.toISOString()
+          );
+          const targetVolume = await duckDb.queryAllVolumeRange(
+            parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]),
+            then,
+            now.toISOString()
+          );
           let tickerInfo: TickerInfo = {
             ticker_id: tickerId,
             base_currency: symbols[baseIndex],
@@ -120,41 +97,21 @@ app.get("/tickers", async (req, res) => {
       )
     ).map((result) => {
       if (result.status === "fulfilled") return result.value;
+      else console.log("result: ", result.reason);
     });
     console.table(data);
     res.status(200).send(data);
   } catch (error) {
+    console.log("error: ", error);
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
 });
 
 app.listen(port, hostname, async () => {
   // sync data for the service to read
-  duckDb = await DuckDb.create("oraidex-sync-data");
-  await Promise.all([
-    duckDb.createHeightSnapshot(),
-    duckDb.createLiquidityOpsTable(),
-    duckDb.createSwapOpsTable(),
-    duckDb.createPairInfosTable(),
-    duckDb.createPriceInfoTable()
-  ]);
-  const pairInfos = await queryAllPairInfos();
-  // Promise.all([insert pool info, and insert pair info. Promise all because pool info & updated pair info must go together])
-  await duckDb.insertPairInfos(
-    pairInfos.map(
-      (pair) =>
-        ({
-          firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
-          secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
-          commissionRate: pair.commission_rate,
-          pairAddr: pair.contract_addr,
-          liquidityAddr: pair.liquidity_token,
-          oracleAddr: pair.oracle_addr
-        } as PairInfoData)
-    )
-  );
   // console.dir(pairInfos, { depth: null });
-  // const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-  // await oraidexSync.sync();
+  duckDb = await DuckDb.create("oraidex-sync-data");
+  const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
+  await oraidexSync.sync();
   console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
 });

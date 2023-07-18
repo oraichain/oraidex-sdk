@@ -42,6 +42,52 @@ describe("test-duckdb", () => {
     }
   );
 
+  it("test-query-volume-last-24h", async () => {
+    duckDb = await DuckDb.create(":memory:");
+    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
+    await duckDb.insertSwapOps([
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "hello",
+        returnAmount: 100,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: new Date("2023-07-17T16:07:48.000Z").toISOString(),
+        txhash: "foo"
+      },
+      {
+        askDenom: "",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "hello",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: new Date("2023-07-16T16:07:48.000Z").toISOString(),
+        txhash: "foo"
+      },
+      {
+        askDenom: "",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "hello",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: new Date("2023-07-16T15:07:48.000Z").toISOString(),
+        txhash: "foo"
+      }
+    ]);
+    const queryResult = await duckDb.queryAllVolumeRange(
+      "hello",
+      "2023-07-16T16:07:48.000Z",
+      "2023-07-17T16:07:48.000Z"
+    );
+    expect(queryResult.volume).toEqual(20);
+  });
+
   it("test-duckdb-insert-bulk-should-throw-error-when-wrong-data", async () => {
     //setup
     duckDb = await DuckDb.create(":memory:");

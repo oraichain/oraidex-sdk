@@ -96,11 +96,6 @@ export class DuckDb {
     await this.insertBulkData(ops, "pair_infos", true);
   }
 
-  // we need to:
-  // price history should contain: timestamp, tx height, asset info, price
-  // if cannot find then we spawn another stream and sync it started from the common sync height. We will re-sync it if its latest height is too behind compared to the common sync height
-  // if
-
   async createPriceInfoTable() {
     await this.conn.exec(
       "CREATE TABLE IF NOT EXISTS price_infos (txheight UINTEGER, timestamp TIMESTAMP, assetInfo VARCHAR, price UINTEGER)"
@@ -127,6 +122,38 @@ export class DuckDb {
         return accumulator + currentObject.volume;
       }, 0)
     };
+  }
+
+  async queryAllVolumeRange(denom: string, startTime: string, endTime: string) {
+    const volume = (
+      await Promise.all([
+        this.conn.all(
+          `SELECT sum(offerAmount) 
+        as volume 
+        from swap_ops_data 
+        where offerDenom = ? and timestamp >= '${startTime}'::TIMESTAMP and timestamp <= '${endTime}'::TIMESTAMP`,
+          denom
+        ),
+        this.conn.all(
+          `SELECT sum(returnAmount) 
+        as volume 
+        from swap_ops_data 
+        where askDenom = ? and timestamp >= '${startTime}'::TIMESTAMP and timestamp <= '${endTime}'::TIMESTAMP`,
+          denom
+        )
+      ])
+    ).flat();
+    return {
+      denom,
+      volume: volume.reduce((accumulator, currentObject) => {
+        return accumulator + currentObject.volume;
+      }, 0)
+    };
+  }
+
+  async queryLatestTimestampSwapOps(): Promise<string> {
+    const latestTimestamp = await this.conn.all("SELECT timestamp from swap_ops_data order by timestamp desc limit 1");
+    return latestTimestamp[0].timestamp as string;
   }
 
   async querySwapOps() {

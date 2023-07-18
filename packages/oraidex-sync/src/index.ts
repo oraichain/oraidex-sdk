@@ -86,8 +86,6 @@ class WriteOrders extends WriteData {
       const swapOpsCount = await this.duckDb.querySwapOps();
       console.log("lp ops: ", lpOps.length);
       console.log("swap ops: ", swapOpsCount);
-      const totalVolume = await this.duckDb.queryAllVolume("orai");
-      console.log("total volume: ", totalVolume);
     } catch (error) {
       console.log("error processing data: ", error);
       return false;
@@ -196,13 +194,13 @@ class OraiDexSync {
   }
 }
 
-const start = async () => {
-  const duckDb = await DuckDb.create("oraidex-sync-data");
-  const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-  await oraidexSync.sync();
-};
+// const start = async () => {
+//   const duckDb = await DuckDb.create("oraidex-sync-data");
+//   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
+//   await oraidexSync.sync();
+// };
 
-start();
+// start();
 
 export { OraiDexSync };
 
