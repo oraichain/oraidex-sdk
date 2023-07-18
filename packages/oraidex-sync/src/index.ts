@@ -56,24 +56,24 @@ class WriteOrders extends WriteData {
 
   async process(chunk: any): Promise<boolean> {
     try {
-      // first time calling of the application then we query past data and be ready to store them into the db for prefix sum
-      // this helps the flow go smoothly and remove dependency between different streams
-      if (this.firstWrite) {
-        console.log("initial data: ", this.initialData);
-        const { height, time } = this.initialData.blockHeader;
-        await this.duckDb.insertPriceInfos(
-          this.initialData.tokenPrices.map(
-            (tokenPrice) =>
-              ({
-                txheight: height,
-                timestamp: time,
-                assetInfo: parseAssetInfo(tokenPrice.info),
-                price: parseInt(tokenPrice.amount)
-              } as PriceInfo)
-          )
-        );
-        this.firstWrite = false;
-      }
+      // // first time calling of the application then we query past data and be ready to store them into the db for prefix sum
+      // // this helps the flow go smoothly and remove dependency between different streams
+      // if (this.firstWrite) {
+      //   console.log("initial data: ", this.initialData);
+      //   const { height, time } = this.initialData.blockHeader;
+      //   await this.duckDb.insertPriceInfos(
+      //     this.initialData.tokenPrices.map(
+      //       (tokenPrice) =>
+      //         ({
+      //           txheight: height,
+      //           timestamp: time,
+      //           assetInfo: parseAssetInfo(tokenPrice.info),
+      //           price: parseInt(tokenPrice.amount)
+      //         } as PriceInfo)
+      //     )
+      //   );
+      //   this.firstWrite = false;
+      // }
       const { txs, offset: newOffset } = chunk as Txs;
       let result = parseTxs(txs);
 
@@ -168,19 +168,19 @@ class OraiDexSync {
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
-      console.log("current ind: ", currentInd);
-      // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
-      if (currentInd <= 12388825) {
-        currentInd = 12388825;
-      }
+      // console.log("current ind: ", currentInd);
+      // // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
+      // if (currentInd <= 12388825) {
+      //   currentInd = 12388825;
+      // }
 
-      const tokenPrices = await Promise.all(
-        extractUniqueAndFlatten(pairs).map((info) => this.simulateSwapPrice(info, currentInd))
-      );
-      const initialBlockHeader = (await this.cosmwasmClient.getBlock(currentInd)).header;
-      initialData.tokenPrices = tokenPrices;
-      initialData.blockHeader = initialBlockHeader;
-      await this.updateLatestPairInfos();
+      // const tokenPrices = await Promise.all(
+      //   extractUniqueAndFlatten(pairs).map((info) => this.simulateSwapPrice(info, currentInd))
+      // );
+      // const initialBlockHeader = (await this.cosmwasmClient.getBlock(currentInd)).header;
+      // initialData.tokenPrices = tokenPrices;
+      // initialData.blockHeader = initialBlockHeader;
+      // await this.updateLatestPairInfos();
       new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,
