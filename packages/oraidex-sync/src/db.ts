@@ -203,6 +203,7 @@ export class DuckDb {
 
   async queryLatestTimestampSwapOps(): Promise<string> {
     const latestTimestamp = await this.conn.all("SELECT timestamp from swap_ops_data order by timestamp desc limit 1");
+    if (latestTimestamp.length === 0 || !latestTimestamp[0].timestamp) return new Date().toISOString(); // fallback case
     return latestTimestamp[0].timestamp as string;
   }
 
