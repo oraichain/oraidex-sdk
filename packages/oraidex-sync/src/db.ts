@@ -11,12 +11,18 @@ import fs, { rename } from "fs";
 import { renameKey, replaceAllNonAlphaBetChar } from "./helper";
 
 export class DuckDb {
-  protected constructor(public readonly conn: Connection) {}
+  protected constructor(public readonly conn: Connection, private db: Database) {}
 
   static async create(fileName?: string): Promise<DuckDb> {
-    const db = await Database.create(fileName ?? "data");
+    let db = await Database.create(fileName ?? "data");
+    await db.close(); // close to flush WAL file
+    db = await Database.create(fileName ?? "data");
     const conn = await db.connect();
-    return new DuckDb(conn);
+    return new DuckDb(conn, db);
+  }
+
+  async closeDb() {
+    this.db.close();
   }
 
   private async insertBulkData(data: any[], tableName: string, replace?: boolean, fileName?: string) {
@@ -244,7 +250,7 @@ export class DuckDb {
     // );
     // console.log("time bucket: ", result);
     const pivotResult = await this.conn.all(
-      "with pivot_lp_ops as ( pivot lp_ops_data on opType using sum(firstTokenAmount + secondTokenAmount) as liquidity ) SELECT time_bucket(INTERVAL '5 minutes', timestamp) as dateTime, sum(provide_liquidity) as liquidity from pivot_lp_ops group by dateTime order by dateTime"
+      "with pivot_lp_ops as ( pivot lp_ops_data on opType using sum(firstTokenAmount + secondTokenAmount) as liquidity ) SELECT time_bucket(INTERVAL '5 minutes', timestamp) as dateTime, sum(provide_liquidity + withdraw_liquidity) as liquidity from pivot_lp_ops group by dateTime order by dateTime"
     );
     console.log("pivot result: ", pivotResult);
   }
