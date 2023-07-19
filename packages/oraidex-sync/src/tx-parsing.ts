@@ -45,8 +45,7 @@ function parseTxToMsgExecuteContractMsgs(tx: Tx): MsgExecuteContractWithLogs[] {
   return msgs;
 }
 
-function extractSwapOperations(txData: BasicTxData, events: readonly Event[]): SwapOperationData[] {
-  const wasmAttributes = parseWasmEvents(events);
+function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly Attribute[])[]): SwapOperationData[] {
   let swapData: SwapOperationData[] = [];
   let offerDenoms: string[] = [];
   let askDenoms: string[] = [];
@@ -136,14 +135,13 @@ function parseWithdrawLiquidityAssets(assets: string): string[] {
 
 function extractMsgWithdrawLiquidity(
   txData: BasicTxData,
-  events: readonly Event[],
+  wasmAttributes: (readonly Attribute[])[],
   txCreator: string
 ): WithdrawLiquidityOperationData[] {
   const withdrawData: WithdrawLiquidityOperationData[] = [];
-  const wasmAttributes = parseWasmEvents(events);
 
   for (let attrs of wasmAttributes) {
-    if (!attrs.find((attr) => attr.key === "withdraw_liquidity")) continue;
+    if (!attrs.find((attr) => attr.key === "action" && attr.value === "withdraw_liquidity")) continue;
     const assetAttr = attrs.find((attr) => attr.key === "refund_assets");
     if (!assetAttr) continue;
     const assets = parseWithdrawLiquidityAssets(assetAttr.value);
@@ -158,8 +156,8 @@ function extractMsgWithdrawLiquidity(
       secondTokenDenom: assets[3],
       secondTokenLp: parseInt(assets[2]),
       timestamp: txData.timestamp,
-      txhash: txData.txhash,
       txCreator,
+      txhash: txData.txhash,
       txheight: txData.txheight
     });
   }
@@ -210,10 +208,11 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     const basicTxData: BasicTxData = { timestamp: tx.timestamp, txhash: tx.hash, txheight: tx.height };
     for (let msg of msgs) {
       const sender = msg.sender;
-      swapOpsData.push(...extractSwapOperations(basicTxData, msg.logs.events));
+      const wasmAttributes = parseWasmEvents(msg.logs.events);
+      swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
       const provideLiquidityData = extractMsgProvideLiquidity(basicTxData, msg.msg, sender);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
-      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(basicTxData, msg.logs.events, sender));
+      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender));
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }

@@ -238,18 +238,14 @@ export class DuckDb {
     );
   }
 
-  // handle total liquidity history of oraidex
-  // store all the total liquidity history of oraiDEX. Total history liquidity is inserted when syncing
-  async createTotalLiquidityHistoryTable() {
-    await this.conn.exec(
-      `CREATE TABLE IF NOT EXISTS total_lp_history (
-        firstAssetInfo VARCHAR, 
-        secondAssetInfo VARCHAR, 
-        commissionRate VARCHAR, 
-        pairAddr VARCHAR, 
-        liquidityAddr VARCHAR, 
-        oracleAddr VARCHAR,
-        PRIMARY KEY (pairAddr) )`
+  async queryAllLp() {
+    // const result = await this.conn.all(
+    //   "SELECT time_bucket(INTERVAL '5 minutes', timestamp) as dateTime, sum(firstTokenAmount + secondTokenAmount) as liquidity from lp_ops_data group by dateTime order by dateTime limit 3"
+    // );
+    // console.log("time bucket: ", result);
+    const pivotResult = await this.conn.all(
+      "with pivot_lp_ops as ( pivot lp_ops_data on opType using sum(firstTokenAmount + secondTokenAmount) as liquidity ) SELECT time_bucket(INTERVAL '5 minutes', timestamp) as dateTime, sum(provide_liquidity) as liquidity from pivot_lp_ops group by dateTime order by dateTime"
     );
+    console.log("pivot result: ", pivotResult);
   }
 }

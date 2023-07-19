@@ -1952,6 +1952,13 @@
   dependencies:
     "@cosmjs/stargate" "^0.31.0"
 
+"@oraichain/cosmos-rpc-sync@^1.0.6":
+  version "1.0.6"
+  resolved "https://registry.yarnpkg.com/@oraichain/cosmos-rpc-sync/-/cosmos-rpc-sync-1.0.6.tgz#bdf59afce6d4308a3f7fec4723d40052b5ac9e7e"
+  integrity sha512-3LJgKT+lpTdThbpw6W1oZvgu3oAkep8SJ+qbE4tPYVaN4rD4SAx3IV0z8ccBPXgVs2t3yjaHfx9y++TQs7ZN0Q==
+  dependencies:
+    "@cosmjs/stargate" "^0.31.0"
+
 "@parcel/watcher@2.0.4":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@parcel/watcher/-/watcher-2.0.4.tgz#f300fef4cc38008ff4b8c29d92588eced3ce014b"

@@ -40,11 +40,9 @@ class WriteOrders extends WriteData {
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
     // insert swap ops
-    await Promise.all([
-      this.insertSwapOps(txs.swapOpsData),
-      this.insertLiquidityOps(txs.provideLiquidityOpsData),
-      this.insertLiquidityOps(txs.withdrawLiquidityOpsData)
-    ]);
+    await Promise.all([this.insertSwapOps(txs.swapOpsData), this.insertLiquidityOps(txs.provideLiquidityOpsData)]);
+    // has to split this out because they are sharing the same table, will clash when inserting
+    await this.insertLiquidityOps(txs.withdrawLiquidityOpsData);
   }
 
   private async queryLpOps(): Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]> {
@@ -165,11 +163,11 @@ class OraiDexSync {
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
-      // console.log("current ind: ", currentInd);
       // // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
-      // if (currentInd <= 12388825) {
-      //   currentInd = 12388825;
-      // }
+      if (currentInd <= 12508025) {
+        currentInd = 12508025;
+      }
+      console.log("current ind: ", currentInd);
 
       // const tokenPrices = await Promise.all(
       //   extractUniqueAndFlatten(pairs).map((info) => this.simulateSwapPrice(info, currentInd))
@@ -191,14 +189,6 @@ class OraiDexSync {
     }
   }
 }
-
-// const start = async () => {
-//   const duckDb = await DuckDb.create("oraidex-sync-data");
-//   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
-//   await oraidexSync.sync();
-// };
-
-// start();
 
 export { OraiDexSync };
 
