@@ -1,4 +1,4 @@
-import { OraiDexSync } from "src";
+import { OraiDexSync } from "./index";
 import { DuckDb } from "./db";
 import "dotenv/config";
 
