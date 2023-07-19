@@ -104,7 +104,7 @@ app.get("/tickers", async (req, res) => {
 app.listen(port, hostname, async () => {
   // sync data for the service to read
   // console.dir(pairInfos, { depth: null });
-  duckDb = await DuckDb.create("oraidex-sync-data");
+  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "oraidex-sync-data");
   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL || "https://rpc.orai.io");
   oraidexSync.sync();
   console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
