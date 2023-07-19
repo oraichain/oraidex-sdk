@@ -207,20 +207,4 @@ describe("test-duckdb", () => {
       txheight: 1
     });
   });
-
-  it("test-realdb", async () => {
-    duckDb = await DuckDb.create("oraidex-sync-data");
-    await duckDb.queryAllLp();
-    // const latestTimestamp = await duckDb.queryLatestTimestampSwapOps();
-    // const now = new Date(latestTimestamp);
-    // function getDate24hBeforeNow(time: Date) {
-    //   const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-    //   const date24hBeforeNow = new Date(time.getTime() - twentyFourHoursInMilliseconds);
-    //   return date24hBeforeNow;
-    // }
-    // const then = getDate24hBeforeNow(now).toISOString();
-    // // const baseVolume = await duckDb.queryAllVolumeRange("orai", then, now.toISOString());
-    // const baseVolume = await duckDb.queryAllVolume("orai");
-    // console.log("base volume: ", toDisplay(BigInt(baseVolume.volume)));
-  });
 });

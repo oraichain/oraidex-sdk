@@ -4,6 +4,7 @@ import {
   PriceInfo,
   SwapOperationData,
   TokenVolumeData,
+  TotalLiquidity,
   VolumeData,
   WithdrawLiquidityOperationData
 } from "./types";
@@ -244,14 +245,33 @@ export class DuckDb {
     );
   }
 
-  async queryAllLp() {
-    // const result = await this.conn.all(
-    //   "SELECT time_bucket(INTERVAL '5 minutes', timestamp) as dateTime, sum(firstTokenAmount + secondTokenAmount) as liquidity from lp_ops_data group by dateTime order by dateTime limit 3"
-    // );
-    // console.log("time bucket: ", result);
-    const pivotResult = await this.conn.all(
-      "with pivot_lp_ops as ( pivot lp_ops_data on opType using sum(firstTokenAmount + secondTokenAmount) as liquidity ) SELECT time_bucket(INTERVAL '5 minutes', timestamp) as dateTime, sum(provide_liquidity + withdraw_liquidity) as liquidity from pivot_lp_ops group by dateTime order by dateTime"
+  /**
+   * query total lp with time frame. negative lp is withdraw. COALESCE - if null then use default value
+   * @param tf timeframe in seconds
+   * @param startTime start time in iso format
+   * @param endTime end time in iso format
+   */
+  async queryTotalLpTimeFrame(tf: number, startTime: string, endTime: string): Promise<TotalLiquidity[]> {
+    const result = await this.conn.all(
+      `with pivot_lp_ops as (
+        pivot lp_ops_data
+        on opType
+        using sum(firstTokenAmount + secondTokenAmount) as liquidity )
+        SELECT (epoch(timestamp) // ?) as time,
+        sum(COALESCE(provide_liquidity,0) - COALESCE(withdraw_liquidity, 0)) as liquidity
+        from pivot_lp_ops
+        where timestamp >= ?::TIMESTAMP 
+        and timestamp <= ?::TIMESTAMP
+        group by time
+        order by time`,
+      tf,
+      startTime,
+      endTime
     );
-    console.log("pivot result: ", pivotResult);
+    // reset time to iso format after dividing in the query
+    result.forEach((item) => {
+      item.time = new Date(parseInt((item.time * tf * 1000).toFixed(0))).toISOString();
+    });
+    return result as TotalLiquidity[];
   }
 }
