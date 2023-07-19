@@ -1,16 +1,20 @@
 import { DuckDb } from "../src/db";
-import { toDisplay } from "../src/helper";
 
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
 
-  it.each<[string, number]>([
-    ["hello", 10001]
-    // ["orai", 100],
-    // ["foo", 10]
+  it.each<[string[], number[]]>([
+    [
+      ["orai", "atom"],
+      [121, 10012]
+    ],
+    [
+      ["atom", "orai"],
+      [10012, 121]
+    ]
   ])(
     "test-duckdb-queryAllVolume-should-return-correct-total-volume-given-%s-should-have-%d",
-    async (denom, expectedVolume) => {
+    async (denoms, expectedVolumes) => {
       duckDb = await DuckDb.create(":memory:");
       await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
       await duckDb.insertSwapOps([
@@ -59,15 +63,9 @@ describe("test-duckdb", () => {
           txhash: "foo"
         }
       ]);
-      let queryResult = await duckDb.queryAllVolume("orai", "atom");
-      console.log("query result: ", queryResult);
-      expect(queryResult.volume["orai"]).toEqual(121);
-      expect(queryResult.volume["atom"]).toEqual(10012);
-
-      queryResult = await duckDb.queryAllVolume("atom", "orai");
-      console.log("query result: ", queryResult);
-      expect(queryResult.volume["orai"]).toEqual(121);
-      expect(queryResult.volume["atom"]).toEqual(10012);
+      let queryResult = await duckDb.queryAllVolume(denoms[0], denoms[1]);
+      expect(queryResult.volume[denoms[0]]).toEqual(expectedVolumes[0]);
+      expect(queryResult.volume[denoms[1]]).toEqual(expectedVolumes[1]);
     }
   );
 
@@ -100,9 +98,9 @@ describe("test-duckdb", () => {
       {
         askDenom: "orai",
         commissionAmount: 0,
-        offerAmount: 10,
+        offerAmount: 100000,
         offerDenom: "atom",
-        returnAmount: 1,
+        returnAmount: 10000,
         spreadAmount: 0,
         taxAmount: 0,
         timestamp: new Date(1389610068000).toISOString(),
@@ -111,9 +109,9 @@ describe("test-duckdb", () => {
       {
         askDenom: "atom",
         commissionAmount: 0,
-        offerAmount: 10,
+        offerAmount: 1000000,
         offerDenom: "orai",
-        returnAmount: 1,
+        returnAmount: 10000,
         spreadAmount: 0,
         taxAmount: 0,
         timestamp: new Date(1389610068000).toISOString(),

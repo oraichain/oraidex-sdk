@@ -184,20 +184,24 @@ export class DuckDb {
         from swap_ops_data 
         where offerDenom = ? 
         and askDenom = ? 
-        and timestamp >= '${startTime}'::TIMESTAMP 
-        and timestamp <= '${endTime}'::TIMESTAMP`,
+        and timestamp >= ?::TIMESTAMP 
+        and timestamp <= ?::TIMESTAMP`,
           offerDenom,
-          askDenom
+          askDenom,
+          startTime,
+          endTime
         ),
         this.conn.all(
           `SELECT sum(offerAmount) as ${modifiedAskDenom}, sum(returnAmount) as ${modifiedOfferDenom}
         from swap_ops_data 
         where offerDenom = ? 
         and askDenom = ? 
-        and timestamp >= '${startTime}'::TIMESTAMP 
-        and timestamp <= '${endTime}'::TIMESTAMP`,
+        and timestamp >= ?::TIMESTAMP 
+        and timestamp <= ?::TIMESTAMP`,
           askDenom,
-          offerDenom
+          offerDenom,
+          startTime,
+          endTime
         )
       ])
     ).flat();
