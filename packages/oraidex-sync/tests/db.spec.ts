@@ -27,7 +27,8 @@ describe("test-duckdb", () => {
           spreadAmount: 0,
           taxAmount: 0,
           timestamp: new Date(1689610068000).toISOString(),
-          txhash: "foo"
+          txhash: "foo",
+          txheight: 1
         },
         {
           askDenom: "orai",
@@ -38,7 +39,8 @@ describe("test-duckdb", () => {
           spreadAmount: 0,
           taxAmount: 0,
           timestamp: new Date(1589610068000).toISOString(),
-          txhash: "foo"
+          txhash: "foo",
+          txheight: 1
         },
         {
           askDenom: "atom",
@@ -49,7 +51,8 @@ describe("test-duckdb", () => {
           spreadAmount: 0,
           taxAmount: 0,
           timestamp: new Date(1589610068000).toISOString(),
-          txhash: "foo"
+          txhash: "foo",
+          txheight: 1
         },
         {
           askDenom: "atom",
@@ -60,7 +63,8 @@ describe("test-duckdb", () => {
           spreadAmount: 0,
           taxAmount: 0,
           timestamp: new Date(1589610068000).toISOString(),
-          txhash: "foo"
+          txhash: "foo",
+          txheight: 1
         }
       ]);
       let queryResult = await duckDb.queryAllVolume(denoms[0], denoms[1]);
@@ -82,7 +86,8 @@ describe("test-duckdb", () => {
         spreadAmount: 0,
         taxAmount: 0,
         timestamp: new Date("2023-07-17T16:07:48.000Z").toISOString(),
-        txhash: "foo"
+        txhash: "foo",
+        txheight: 1
       },
       {
         askDenom: "atom",
@@ -93,7 +98,8 @@ describe("test-duckdb", () => {
         spreadAmount: 0,
         taxAmount: 0,
         timestamp: new Date("2023-07-16T16:07:48.000Z").toISOString(),
-        txhash: "foo"
+        txhash: "foo",
+        txheight: 1
       },
       {
         askDenom: "orai",
@@ -104,7 +110,8 @@ describe("test-duckdb", () => {
         spreadAmount: 0,
         taxAmount: 0,
         timestamp: new Date(1389610068000).toISOString(),
-        txhash: "foo"
+        txhash: "foo",
+        txheight: 1
       },
       {
         askDenom: "atom",
@@ -115,7 +122,8 @@ describe("test-duckdb", () => {
         spreadAmount: 0,
         taxAmount: 0,
         timestamp: new Date(1389610068000).toISOString(),
-        txhash: "foo"
+        txhash: "foo",
+        txheight: 1
       }
     ]);
     let queryResult = await duckDb.queryAllVolumeRange(
@@ -155,7 +163,8 @@ describe("test-duckdb", () => {
           secondTokenLp: 0,
           secondTokenDenom: "atom",
           txCreator: "foobar",
-          opType: "provide"
+          opType: "provide",
+          txheight: 1
         }
       ])
     ).rejects.toThrow();
@@ -178,7 +187,8 @@ describe("test-duckdb", () => {
         secondTokenLp: 0,
         timestamp: newDate,
         txCreator: "foobar",
-        txhash: "foo"
+        txhash: "foo",
+        txheight: 1
       }
     ]);
     let queryResult = await duckDb.queryLpOps();
@@ -193,7 +203,8 @@ describe("test-duckdb", () => {
       secondTokenLp: 0,
       secondTokenDenom: "atom",
       txCreator: "foobar",
-      opType: "withdraw"
+      opType: "withdraw",
+      txheight: 1
     });
   });
 

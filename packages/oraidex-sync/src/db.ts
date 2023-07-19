@@ -58,7 +58,8 @@ export class DuckDb {
         spreadAmount UBIGINT, 
         taxAmount UBIGINT, 
         timestamp TIMESTAMP, 
-        txhash VARCHAR)`
+        txhash VARCHAR,
+        txheight UINTEGER)`
     );
   }
 
@@ -85,7 +86,8 @@ export class DuckDb {
         secondTokenLp UBIGINT,
         timestamp TIMESTAMP,
         txCreator VARCHAR, 
-        txhash VARCHAR)`
+        txhash VARCHAR,
+        txheight UINTEGER)`
     );
   }
 
@@ -113,7 +115,11 @@ export class DuckDb {
 
   async createPriceInfoTable() {
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS price_infos (txheight UINTEGER, timestamp TIMESTAMP, assetInfo VARCHAR, price UINTEGER)"
+      `CREATE TABLE IF NOT EXISTS price_infos (
+        txheight UINTEGER, 
+        timestamp TIMESTAMP, 
+        assetInfo VARCHAR, 
+        price UINTEGER)`
     );
   }
 
@@ -229,6 +235,21 @@ export class DuckDb {
   async queryPairInfos(): Promise<PairInfoData[]> {
     return (await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr from pair_infos")).map(
       (data) => data as PairInfoData
+    );
+  }
+
+  // handle total liquidity history of oraidex
+  // store all the total liquidity history of oraiDEX. Total history liquidity is inserted when syncing
+  async createTotalLiquidityHistoryTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS total_lp_history (
+        firstAssetInfo VARCHAR, 
+        secondAssetInfo VARCHAR, 
+        commissionRate VARCHAR, 
+        pairAddr VARCHAR, 
+        liquidityAddr VARCHAR, 
+        oracleAddr VARCHAR,
+        PRIMARY KEY (pairAddr) )`
     );
   }
 }

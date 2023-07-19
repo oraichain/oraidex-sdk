@@ -15,6 +15,7 @@ export type AssetData = {
 export type BasicTxData = {
   timestamp: string;
   txhash: string;
+  txheight: number;
 };
 
 export type SwapOperationData = {

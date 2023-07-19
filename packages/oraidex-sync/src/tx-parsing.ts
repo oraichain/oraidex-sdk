@@ -5,6 +5,7 @@ import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import {
   AccountTx,
+  BasicTxData,
   ModifiedMsgExecuteContract,
   MsgExecuteContractWithLogs,
   MsgType,
@@ -44,7 +45,7 @@ function parseTxToMsgExecuteContractMsgs(tx: Tx): MsgExecuteContractWithLogs[] {
   return msgs;
 }
 
-function extractSwapOperations(txhash: string, timestamp: string, events: readonly Event[]): SwapOperationData[] {
+function extractSwapOperations(txData: BasicTxData, events: readonly Event[]): SwapOperationData[] {
   const wasmAttributes = parseWasmEvents(events);
   let swapData: SwapOperationData[] = [];
   let offerDenoms: string[] = [];
@@ -92,16 +93,16 @@ function extractSwapOperations(txhash: string, timestamp: string, events: readon
       returnAmount: parseInt(returnAmounts[i]),
       spreadAmount: parseInt(spreadAmounts[i]),
       taxAmount: parseInt(taxAmounts[i]),
-      timestamp,
-      txhash
+      timestamp: txData.timestamp,
+      txhash: txData.txhash,
+      txheight: txData.txheight
     });
   }
   return swapData;
 }
 
 function extractMsgProvideLiquidity(
-  txhash: string,
-  timestamp: string,
+  txData: BasicTxData,
   msg: MsgType,
   txCreator: string
 ): ProvideLiquidityOperationData | undefined {
@@ -116,9 +117,10 @@ function extractMsgProvideLiquidity(
       secondTokenAmount: parseInt(secAsset.amount),
       secondTokenDenom: parseAssetInfoOnlyDenom(secAsset.info),
       secondTokenLp: parseInt(secAsset.amount),
-      timestamp,
+      timestamp: txData.timestamp,
       txCreator,
-      txhash
+      txhash: txData.txhash,
+      txheight: txData.txheight
     };
   }
   return undefined;
@@ -133,8 +135,7 @@ function parseWithdrawLiquidityAssets(assets: string): string[] {
 }
 
 function extractMsgWithdrawLiquidity(
-  txhash: string,
-  timestamp: string,
+  txData: BasicTxData,
   events: readonly Event[],
   txCreator: string
 ): WithdrawLiquidityOperationData[] {
@@ -156,9 +157,10 @@ function extractMsgWithdrawLiquidity(
       secondTokenAmount: parseInt(assets[2]),
       secondTokenDenom: assets[3],
       secondTokenLp: parseInt(assets[2]),
-      timestamp,
-      txhash,
-      txCreator
+      timestamp: txData.timestamp,
+      txhash: txData.txhash,
+      txCreator,
+      txheight: txData.txheight
     });
   }
   return withdrawData;
@@ -205,14 +207,14 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     transactions.push(tx);
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
     const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
-    const txhash = tx.hash;
+    const basicTxData: BasicTxData = { timestamp: tx.timestamp, txhash: tx.hash, txheight: tx.height };
     for (let msg of msgs) {
       const sender = msg.sender;
-      swapOpsData.push(...extractSwapOperations(txhash, tx.timestamp, msg.logs.events));
-      const provideLiquidityData = extractMsgProvideLiquidity(txhash, tx.timestamp, msg.msg, sender);
+      swapOpsData.push(...extractSwapOperations(basicTxData, msg.logs.events));
+      const provideLiquidityData = extractMsgProvideLiquidity(basicTxData, msg.msg, sender);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
-      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(txhash, tx.timestamp, msg.logs.events, sender));
-      accountTxs.push({ txhash, accountAddress: sender });
+      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(basicTxData, msg.logs.events, sender));
+      accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
   return {
