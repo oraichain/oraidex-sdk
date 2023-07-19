@@ -163,9 +163,10 @@ class OraiDexSync {
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
+      const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
-      if (currentInd <= 12508025) {
-        currentInd = 12508025;
+      if (currentInd <= initialSyncHeight) {
+        currentInd = initialSyncHeight;
       }
       console.log("current ind: ", currentInd);
 
