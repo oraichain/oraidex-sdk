@@ -31,6 +31,7 @@ async function getAllPairInfos(
   factoryV1: OraiswapFactoryReadOnlyInterface,
   factoryV2: OraiswapFactoryReadOnlyInterface
 ): Promise<PairInfo[]> {
+  // TODO: change this to multicall
   const liquidityResults: PairInfo[] = (
     await Promise.allSettled([
       ...pairs.map((pair) => factoryV1.pair({ assetInfos: pair.asset_infos })),
@@ -48,27 +49,19 @@ async function getAllPairInfos(
 async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouterReadOnlyInterface): Promise<Asset> {
   // adjust the query height to get data from the past
   const infoPath = findAssetInfoPathToUsdt(info);
-  // usdt case, price is always 1
-  const operations = generateSwapOperations(infoPath);
-  if (operations.length === 0) return { info, amount: "0" }; // error case. Will be handled by the caller function
-  try {
-    const data = await router.simulateSwapOperations({
-      offerAmount: tenAmountInDecimalSix,
-      operations
-    });
-    return { info, amount: toDisplay(data.amount, 7).toString() }; // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
-  } catch (error) {
-    console.log(`Error when trying to simulate swap with asset info: ${JSON.stringify(info)} using router: ${error}`);
-    return { info, amount: "0" }; // error case. Will be handled by the caller function
-  }
+  const amount = await simulateSwapPrice(infoPath, router);
+  return { info, amount };
 }
 
-async function simulateSwapPricePair(
-  pair: [AssetInfo, AssetInfo],
-  router: OraiswapRouterReadOnlyInterface
-): Promise<string> {
+/**
+ * Simulate price for pair[0]/pair[pair.length - 1] where the amount of pair[0] is 10^7. This is a multihop simulate swap function. The asset infos in between of the array are for hopping
+ * @param pairPath - the path starting from the offer asset info to the ask asset info
+ * @param router - router contract
+ * @returns - pricea fter simulating
+ */
+async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterReadOnlyInterface): Promise<string> {
   // usdt case, price is always 1
-  const operations = generateSwapOperations(pair);
+  const operations = generateSwapOperations(pairPath);
   if (operations.length === 0) return "0"; // error case. Will be handled by the caller function
   try {
     const data = await router.simulateSwapOperations({
@@ -77,9 +70,9 @@ async function simulateSwapPricePair(
     });
     return toDisplay(data.amount, 7).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
   } catch (error) {
-    console.log(`Error when trying to simulate swap with pair: ${JSON.stringify(pair)} using router: ${error}`);
+    console.log(`Error when trying to simulate swap with pair: ${JSON.stringify(pairPath)} using router: ${error}`);
     return "0"; // error case. Will be handled by the caller function
   }
 }
 
-export { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt, simulateSwapPricePair };
+export { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt, simulateSwapPrice };

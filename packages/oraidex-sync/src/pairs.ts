@@ -1,5 +1,6 @@
 // TODO: Need to somehow synchronize with the whitelist pairs on oraiDEX. Maybe it can be a smart contract containing all whitelisted pairs
 
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,
   airiCw20Adress,
@@ -16,18 +17,19 @@ import {
 } from "./constants";
 import { PairMapping } from "./types";
 
+// the orders are important! Do not change the order of the asset_infos.
 export const pairs: PairMapping[] = [
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: airiCw20Adress } }],
-    symbols: ["ORAI", "AIRI"]
+    asset_infos: [{ token: { contract_addr: airiCw20Adress } }, { native_token: { denom: ORAI } }],
+    symbols: ["AIRI", "ORAI"]
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: oraixCw20Address } }],
-    symbols: ["ORAI", "ORAIX"]
+    asset_infos: [{ token: { contract_addr: oraixCw20Address } }, { native_token: { denom: ORAI } }],
+    symbols: ["ORAIX", "ORAI"]
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: scOraiCw20Address } }],
-    symbols: ["ORAI", "scORAI"]
+    asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+    symbols: ["scORAI", "ORAI"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
@@ -38,8 +40,8 @@ export const pairs: PairMapping[] = [
     symbols: ["ORAI", "USDT"]
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: kwtCw20Address } }],
-    symbols: ["ORAI", "KWT"]
+    asset_infos: [{ token: { contract_addr: kwtCw20Address } }, { native_token: { denom: ORAI } }],
+    symbols: ["KWT", "ORAI"]
   },
   {
     asset_infos: [
@@ -63,7 +65,27 @@ export const pairs: PairMapping[] = [
     symbols: ["ORAI", "WTRX"]
   },
   {
-    asset_infos: [{ native_token: { denom: atomIbcDenom } }, { token: { contract_addr: scAtomCw20Address } }],
-    symbols: ["ATOM", "scATOM"]
+    asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
+    symbols: ["scATOM", "ATOM"]
   }
 ];
+
+export function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
+  const uniqueItems = new Set();
+
+  data.forEach((item) => {
+    item.asset_infos.forEach((info) => {
+      const stringValue = JSON.stringify(info);
+
+      if (!uniqueItems.has(stringValue)) {
+        uniqueItems.add(stringValue);
+      }
+    });
+  });
+
+  const uniqueFlattenedArray = Array.from(uniqueItems).map((item) => JSON.parse(item as string));
+
+  return uniqueFlattenedArray;
+}
+
+export const uniqueInfos = extractUniqueAndFlatten(pairs);

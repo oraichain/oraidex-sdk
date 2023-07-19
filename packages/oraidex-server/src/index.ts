@@ -6,10 +6,9 @@ import {
   pairs,
   parseAssetInfoOnlyDenom,
   findPairAddress,
-  simulateSwapPriceWithUsdt,
-  findUsdOraiInPair,
   toDisplay,
-  OraiDexSync
+  OraiDexSync,
+  simulateSwapPrice
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -60,7 +59,9 @@ app.get("/tickers", async (req, res) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
           const tickerId = parseSymbolsToTickerId(symbols);
-          const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
+          // const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
+          const baseIndex = 0;
+          const targetIndex = 1;
           const latestTimestamp = await duckDb.queryLatestTimestampSwapOps();
           const now = new Date(latestTimestamp);
           const then = getDate24hBeforeNow(now).toISOString();
@@ -80,8 +81,8 @@ app.get("/tickers", async (req, res) => {
           };
           try {
             // reverse because in pairs, we put base info as first index
-            const price = await simulateSwapPriceWithUsdt(target, routerContract);
-            tickerInfo.last_price = price.amount;
+            const price = await simulateSwapPrice(pair.asset_infos, routerContract);
+            tickerInfo.last_price = price;
           } catch (error) {
             tickerInfo.last_price = "0";
           }

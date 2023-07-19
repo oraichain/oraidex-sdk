@@ -118,7 +118,7 @@ export class DuckDb {
     volume: VolumeData[],
     data: { modifiedOfferDenom: string; modifiedAskDenom: string; offerDenom: string; askDenom: string }
   ): VolumeData {
-    // by default, the offer denom & ask denom
+    // by default, the offer denom & ask denom are in modified state. Need to rename them afterwards
     const { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom } = data;
     let volumeData = volume.reduce((accumulator, currentObject) => {
       accumulator[modifiedOfferDenom] = (accumulator[modifiedOfferDenom] || 0) + currentObject[modifiedOfferDenom];

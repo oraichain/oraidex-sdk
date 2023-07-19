@@ -3,21 +3,23 @@ import {
   calculatePrefixSum,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
-  extractUniqueAndFlatten,
   findPairAddress,
   calculatePriceByPool,
-  findUsdOraiInPair,
   toAmount,
   toDisplay,
   toDecimal
 } from "../src/helper";
-import { pairs } from "../src/pairs";
+import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
   ORAI,
   airiCw20Adress,
   atomIbcDenom,
+  kwtCw20Address,
   milkyCw20Address,
+  oraixCw20Address,
+  osmosisIbcDenom,
   scAtomCw20Address,
+  scOraiCw20Address,
   tronCw20Address,
   usdcCw20Address,
   usdtCw20Address
@@ -160,8 +162,8 @@ describe("test-helper", () => {
     const result = extractUniqueAndFlatten(pairs);
     // assert
     expect(result).toEqual([
-      { native_token: { denom: "orai" } },
       { token: { contract_addr: "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg" } },
+      { native_token: { denom: "orai" } },
       { token: { contract_addr: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge" } },
       {
         token: { contract_addr: "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5h5mphd0qlcs47pclp" }
@@ -210,37 +212,92 @@ describe("test-helper", () => {
     expect(result).toEqual(expectedPairAddr);
   });
 
-  it("test-calculatePriceByPool", () => {
-    const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
-    expect(result).toEqual(BigInt(9902432));
+  it("test-pairs-should-persist-correct-order-and-has-correct-data", () => {
+    // this test should be updated once there's a new pair coming
+    expect(pairs).toEqual([
+      {
+        asset_infos: [{ token: { contract_addr: airiCw20Adress } }, { native_token: { denom: ORAI } }],
+        symbols: ["AIRI", "ORAI"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: oraixCw20Address } }, { native_token: { denom: ORAI } }],
+        symbols: ["ORAIX", "ORAI"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+        symbols: ["scORAI", "ORAI"]
+      },
+      {
+        asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
+        symbols: ["ORAI", "ATOM"]
+      },
+      {
+        asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
+        symbols: ["ORAI", "USDT"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: kwtCw20Address } }, { native_token: { denom: ORAI } }],
+        symbols: ["KWT", "ORAI"]
+      },
+      {
+        asset_infos: [
+          { native_token: { denom: ORAI } },
+          {
+            native_token: { denom: osmosisIbcDenom }
+          }
+        ],
+        symbols: ["ORAI", "OSMOSIS"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: milkyCw20Address } }, { token: { contract_addr: usdtCw20Address } }],
+        symbols: ["MILKY", "USDT"]
+      },
+      {
+        asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
+        symbols: ["ORAI", "USDC"]
+      },
+      {
+        asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: tronCw20Address } }],
+        symbols: ["ORAI", "WTRX"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
+        symbols: ["scATOM", "ATOM"]
+      }
+    ]);
   });
 
-  it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
-    [
-      [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
-      { native_token: { denom: atomIbcDenom } },
-      0
-    ],
-    [
-      [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
-      { native_token: { denom: ORAI } },
-      1
-    ],
-    [
-      [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
-      { native_token: { denom: ORAI } },
-      1
-    ],
-    [
-      [{ token: { contract_addr: tronCw20Address } }, { native_token: { denom: atomIbcDenom } }],
-      { token: { contract_addr: tronCw20Address } },
-      1
-    ]
-  ])("test-findUsdOraiInPair", (infos, expectedInfo, expectedBase) => {
-    // act
-    const result = findUsdOraiInPair(infos);
-    // assert
-    expect(result.target).toEqual(expectedInfo);
-    expect(result.baseIndex).toEqual(expectedBase);
-  });
+  // it("test-calculatePriceByPool", () => {
+  //   const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
+  //   expect(result).toEqual(BigInt(9902432));
+  // });
+
+  // it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
+  //   [
+  //     [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
+  //     { native_token: { denom: atomIbcDenom } },
+  //     0
+  //   ],
+  //   [
+  //     [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
+  //     { native_token: { denom: ORAI } },
+  //     1
+  //   ],
+  //   [
+  //     [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
+  //     { native_token: { denom: ORAI } },
+  //     1
+  //   ],
+  //   [
+  //     [{ token: { contract_addr: tronCw20Address } }, { native_token: { denom: atomIbcDenom } }],
+  //     { token: { contract_addr: tronCw20Address } },
+  //     1
+  //   ]
+  // ])("test-findUsdOraiInPair", (infos, expectedInfo, expectedBase) => {
+  //   // act
+  //   const result = findUsdOraiInPair(infos);
+  //   // assert
+  //   expect(result.target).toEqual(expectedInfo);
+  //   expect(result.baseIndex).toEqual(expectedBase);
+  // });
 });

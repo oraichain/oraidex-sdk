@@ -17,13 +17,10 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData,
   InitialData,
-  PriceInfo,
-  PairInfoData,
-  PrefixSumHandlingData
+  PairInfoData
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { calculatePrefixSum, extractUniqueAndFlatten } from "./helper";
 import { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
 
 class WriteOrders extends WriteData {

@@ -129,23 +129,6 @@ function generateSwapOperations(infoPath: AssetInfo[]): SwapOperation[] {
   return swapOps;
 }
 
-function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
-  const uniqueItems = new Set();
-
-  data.forEach((item) => {
-    item.asset_infos.forEach((info) => {
-      const stringValue = JSON.stringify(info);
-
-      if (!uniqueItems.has(stringValue)) {
-        uniqueItems.add(stringValue);
-      }
-    });
-  });
-
-  const uniqueFlattenedArray = Array.from(uniqueItems).map((item) => JSON.parse(item as string));
-
-  return uniqueFlattenedArray;
-}
 function findPairAddress(pairInfos: PairInfoData[], infos: [AssetInfo, AssetInfo]) {
   return pairInfos.find(
     (pairInfo) =>
@@ -158,32 +141,35 @@ function calculatePriceByPool(offerPool: bigint, askPool: bigint, commissionRate
   return (askPool - (offerPool * askPool) / (offerPool + BigInt(tenAmountInDecimalSix))) * BigInt(1 - commissionRate);
 }
 
-function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): {
-  baseIndex: number;
-  targetIndex: number;
-  target: AssetInfo;
-} {
-  const firstInfo = parseAssetInfoOnlyDenom(infos[0]);
-  const secondInfo = parseAssetInfoOnlyDenom(infos[1]);
-  if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address)
-    return { baseIndex: 0, targetIndex: 1, target: infos[1] };
-  if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address)
-    return { baseIndex: 1, targetIndex: 0, target: infos[0] };
-  if (firstInfo === ORAI) return { baseIndex: 0, targetIndex: 1, target: infos[1] };
-  if (secondInfo === ORAI) return { baseIndex: 1, targetIndex: 0, target: infos[0] };
-  return { baseIndex: 1, targetIndex: 0, target: infos[0] }; // default we calculate the first info in the asset info list
-}
+// /**
+//  *
+//  * @param infos
+//  * @returns
+//  */
+// function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): {
+//   baseIndex: number;
+//   targetIndex: number;
+//   target: AssetInfo;
+// } {
+//   const firstInfo = parseAssetInfoOnlyDenom(infos[0]);
+//   const secondInfo = parseAssetInfoOnlyDenom(infos[1]);
+//   if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address)
+//     return { baseIndex: 0, targetIndex: 1, target: infos[1] };
+//   if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address)
+//     return { baseIndex: 1, targetIndex: 0, target: infos[0] };
+//   if (firstInfo === ORAI) return { baseIndex: 0, targetIndex: 1, target: infos[1] };
+//   if (secondInfo === ORAI) return { baseIndex: 1, targetIndex: 0, target: infos[0] };
+//   return { baseIndex: 1, targetIndex: 0, target: infos[0] }; // default we calculate the first info in the asset info list
+// }
 
 export {
   calculatePrefixSum,
   findMappedTargetedAssetInfo,
   findAssetInfoPathToUsdt,
   generateSwapOperations,
-  extractUniqueAndFlatten,
   parseAssetInfo,
   parseAssetInfoOnlyDenom,
   delay,
   findPairAddress,
-  calculatePriceByPool,
-  findUsdOraiInPair
+  calculatePriceByPool
 };
