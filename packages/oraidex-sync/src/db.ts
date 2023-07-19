@@ -96,7 +96,14 @@ export class DuckDb {
   // store all the current pair infos of oraiDEX. Will be updated to the latest pair list after the sync is restarted
   async createPairInfosTable() {
     await this.conn.exec(
-      "CREATE TABLE IF NOT EXISTS pair_infos (firstAssetInfo VARCHAR, secondAssetInfo VARCHAR, commissionRate VARCHAR, pairAddr VARCHAR, liquidityAddr VARCHAR, oracleAddr VARCHAR,PRIMARY KEY (pairAddr) )"
+      `CREATE TABLE IF NOT EXISTS pair_infos (
+        firstAssetInfo VARCHAR, 
+        secondAssetInfo VARCHAR, 
+        commissionRate VARCHAR, 
+        pairAddr VARCHAR, 
+        liquidityAddr VARCHAR, 
+        oracleAddr VARCHAR,
+        PRIMARY KEY (pairAddr) )`
     );
   }
 
