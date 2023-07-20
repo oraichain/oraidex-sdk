@@ -182,8 +182,8 @@ export class DuckDb {
   }
 
   async queryAllVolumeRange(
-    offerDenom: string,
-    askDenom: string,
+    offerDenom: string, // eg: orai
+    askDenom: string, // usdt
     startTime: string,
     endTime: string
   ): Promise<TokenVolumeData> {
@@ -258,7 +258,8 @@ export class DuckDb {
         on opType
         using sum(firstTokenAmount + secondTokenAmount) as liquidity )
         SELECT (epoch(timestamp) // ?) as time,
-        sum(COALESCE(provide_liquidity,0) - COALESCE(withdraw_liquidity, 0)) as liquidity
+        sum(COALESCE(provide_liquidity,0) - COALESCE(withdraw_liquidity, 0)) as liquidity,
+        any_value(txheight) as height
         from pivot_lp_ops
         where timestamp >= ?::TIMESTAMP 
         and timestamp <= ?::TIMESTAMP

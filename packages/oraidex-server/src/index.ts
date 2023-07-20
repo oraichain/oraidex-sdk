@@ -8,12 +8,15 @@ import {
   findPairAddress,
   toDisplay,
   OraiDexSync,
-  simulateSwapPrice
+  simulateSwapPrice,
+  getPoolInfos,
+  calculatePrefixSum
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { OraiswapRouterQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
 import { getDate24hBeforeNow, parseSymbolsToTickerId } from "./helper";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 
 dotenv.config();
 
@@ -47,6 +50,7 @@ app.get("/pairs", async (req, res) => {
 
 app.get("/tickers", async (req, res) => {
   try {
+    const { endTime } = req.query;
     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
     const routerContract = new OraiswapRouterQueryClient(
       cosmwasmClient,
@@ -62,7 +66,7 @@ app.get("/tickers", async (req, res) => {
           // const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
           const baseIndex = 0;
           const targetIndex = 1;
-          const latestTimestamp = await duckDb.queryLatestTimestampSwapOps();
+          const latestTimestamp = parseInt(endTime as string) ?? (await duckDb.queryLatestTimestampSwapOps());
           const now = new Date(latestTimestamp);
           const then = getDate24hBeforeNow(now).toISOString();
           const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
@@ -100,6 +104,63 @@ app.get("/tickers", async (req, res) => {
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
 });
+
+// app.get("/liquidity/v2/historical/chart", async (req, res) => {
+//   let { start, end, tf } = req.query;
+//   // start, end time is timestamp in ms. tf is the in sec
+//   let timeframe: number;
+//   console.log(start, end, tf);
+
+//   try {
+//     start = new Date(parseInt(start as string)).toISOString();
+//     end = new Date(parseInt(end as string)).toISOString();
+//     timeframe = parseInt(tf as string);
+//   } catch (error) {
+//     console.log("input error /liquidity/v2/historical/chart: ", error);
+//     res.status(400).send(error);
+//     return;
+//   }
+
+//   try {
+//     const result = await duckDb.queryTotalLpTimeFrame(timeframe, start as string, end as string);
+//     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
+//     cosmwasmClient.setQueryClientWithHeight(result[0].height);
+//     const multicall = new MulticallQueryClient(
+//       cosmwasmClient,
+//       process.env.MULTICALL_CONTRACT_ADDRES || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
+//     );
+//     const pairInfos = await duckDb.queryPairInfos();
+//     const poolInfos = await getPoolInfos(
+//       pairInfos.map(
+//         (info) =>
+//           ({
+//             asset_infos: [JSON.parse(info.firstAssetInfo), JSON.parse(info.secondAssetInfo)],
+//             commission_rate: info.commissionRate,
+//             contract_addr: info.pairAddr,
+//             liquidity_token: info.liquidityAddr,
+//             oracle_addr: info.oracleAddr
+//           } as PairInfo)
+//       ),
+//       multicall
+//     );
+//     let totalInitialLp = 0;
+//     for (let info of poolInfos) {
+//       totalInitialLp += parseInt(info.total_share);
+//     }
+//     console.log("total init lp: ", totalInitialLp);
+//     const prefixSum = calculatePrefixSum(
+//       totalInitialLp,
+//       result.map((res) => ({ ...res, denom: "", amount: res.liquidity }))
+//     );
+//     console.log("prefix sum: ", prefixSum);
+//     res.status(200).send("hello world");
+//   } catch (error) {
+//     console.log("server error /liquidity/v2/historical/chart: ", error);
+//     res.status(500).send(JSON.stringify(error));
+//   } finally {
+//     return;
+//   }
+// });
 
 app.listen(port, hostname, async () => {
   // sync data for the service to read

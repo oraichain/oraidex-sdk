@@ -176,7 +176,7 @@ class OraiDexSync {
       // const initialBlockHeader = (await this.cosmwasmClient.getBlock(currentInd)).header;
       // initialData.tokenPrices = tokenPrices;
       // initialData.blockHeader = initialBlockHeader;
-      // await this.updateLatestPairInfos();
+      await this.updateLatestPairInfos();
       new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,

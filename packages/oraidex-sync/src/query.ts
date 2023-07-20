@@ -24,7 +24,7 @@ async function getPoolInfos(pairs: PairInfo[], multicall: MulticallReadOnlyInter
     })
   });
   // reset query client to latest for other functions to call
-  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)).filter((data) => data); // remove undefined items
 }
 
 async function getAllPairInfos(

@@ -150,4 +150,5 @@ export type TickerInfo = {
 export type TotalLiquidity = {
   time: string;
   liquidity: number;
+  height: number;
 };
