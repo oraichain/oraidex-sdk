@@ -1,4 +1,4 @@
-import {Addr, AssetInfo, PairInfo} from "./types";
+import {Addr, AssetInfo, Binary, PairInfo} from "./types";
 export interface InstantiateMsg {
   commission_rate?: string | null;
   oracle_addr: Addr;
@@ -19,6 +19,12 @@ export type ExecuteMsg = {
 } | {
   add_pair: {
     pair_info: PairInfo;
+  };
+} | {
+  migrate_contract: {
+    contract_addr: string;
+    msg: Binary;
+    new_code_id: number;
   };
 };
 export type QueryMsg = {
