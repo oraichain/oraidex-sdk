@@ -6,6 +6,7 @@ import {
   TokenVolumeData,
   TotalLiquidity,
   VolumeData,
+  VolumeInfo,
   WithdrawLiquidityOperationData
 } from "./types";
 import fs, { rename } from "fs";
@@ -64,7 +65,7 @@ export class DuckDb {
         returnAmount UBIGINT, 
         spreadAmount UBIGINT, 
         taxAmount UBIGINT, 
-        timestamp TIMESTAMP, 
+        timestamp UINTEGER, 
         txhash VARCHAR,
         txheight UINTEGER)`
     );
@@ -91,7 +92,7 @@ export class DuckDb {
         secondTokenAmount UBIGINT, 
         secondTokenDenom VARCHAR, 
         secondTokenLp UBIGINT,
-        timestamp TIMESTAMP,
+        timestamp UINTEGER,
         txCreator VARCHAR, 
         txhash VARCHAR,
         txheight UINTEGER)`
@@ -124,7 +125,7 @@ export class DuckDb {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS price_infos (
         txheight UINTEGER, 
-        timestamp TIMESTAMP, 
+        timestamp UINTEGER, 
         assetInfo VARCHAR, 
         price UINTEGER)`
     );
@@ -184,8 +185,8 @@ export class DuckDb {
   async queryAllVolumeRange(
     offerDenom: string, // eg: orai
     askDenom: string, // usdt
-    startTime: string,
-    endTime: string
+    startTime: number,
+    endTime: number
   ): Promise<TokenVolumeData> {
     // need to replace because the denom can contain numbers and other figures. We replace for temporary only, will be reverted once finish reducing
     const modifiedOfferDenom = replaceAllNonAlphaBetChar(offerDenom);
@@ -197,8 +198,8 @@ export class DuckDb {
         from swap_ops_data 
         where offerDenom = ? 
         and askDenom = ? 
-        and timestamp >= ?::TIMESTAMP 
-        and timestamp <= ?::TIMESTAMP`,
+        and timestamp >= ? 
+        and timestamp <= ?`,
           offerDenom,
           askDenom,
           startTime,
@@ -209,8 +210,8 @@ export class DuckDb {
         from swap_ops_data 
         where offerDenom = ? 
         and askDenom = ? 
-        and timestamp >= ?::TIMESTAMP 
-        and timestamp <= ?::TIMESTAMP`,
+        and timestamp >= ? 
+        and timestamp <= ?`,
           askDenom,
           offerDenom,
           startTime,
@@ -225,10 +226,10 @@ export class DuckDb {
     };
   }
 
-  async queryLatestTimestampSwapOps(): Promise<string> {
+  async queryLatestTimestampSwapOps(): Promise<number> {
     const latestTimestamp = await this.conn.all("SELECT timestamp from swap_ops_data order by timestamp desc limit 1");
-    if (latestTimestamp.length === 0 || !latestTimestamp[0].timestamp) return new Date().toISOString(); // fallback case
-    return latestTimestamp[0].timestamp as string;
+    if (latestTimestamp.length === 0 || !latestTimestamp[0].timestamp) return new Date().getTime() / 1000; // fallback case
+    return latestTimestamp[0].timestamp as number;
   }
 
   async querySwapOps() {
@@ -257,12 +258,12 @@ export class DuckDb {
         pivot lp_ops_data
         on opType
         using sum(firstTokenAmount + secondTokenAmount) as liquidity )
-        SELECT (epoch(timestamp) // ?) as time,
+        SELECT (timestamp // ?) as time,
         sum(COALESCE(provide_liquidity,0) - COALESCE(withdraw_liquidity, 0)) as liquidity,
         any_value(txheight) as height
         from pivot_lp_ops
-        where timestamp >= ?::TIMESTAMP 
-        and timestamp <= ?::TIMESTAMP
+        where timestamp >= ? 
+        and timestamp <= ?
         group by time
         order by time`,
       tf,
@@ -271,8 +272,23 @@ export class DuckDb {
     );
     // reset time to iso format after dividing in the query
     result.forEach((item) => {
-      item.time = new Date(parseInt((item.time * tf * 1000).toFixed(0))).toISOString();
+      item.time = parseInt((item.time * tf).toFixed(0));
     });
     return result as TotalLiquidity[];
+  }
+
+  async createVolumeInfo() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS volume_info (
+        denom VARCHAR,
+        timestamp UINTEGER,
+        txheight UINTEGER,
+        volume UBIGINT)
+        `
+    );
+  }
+
+  async insertVolumeInfo(volumeInfos: VolumeInfo[]) {
+    await this.insertBulkData(volumeInfos, "volume_info");
   }
 }

@@ -45,6 +45,10 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
   return Number(returnAmount) / (displayDecimals === truncDecimals ? atomic : 10 ** displayDecimals);
 };
 
+export function isoToTimestampNumber(time: string) {
+  return new Date(time).getTime() / 1000;
+}
+
 export function renameKey(object: Object, oldKey: string, newKey: string): any {
   if (oldKey === newKey) return object;
   // Check if the old key exists in the object

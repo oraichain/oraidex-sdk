@@ -1,4 +1,5 @@
 import { DuckDb } from "../src/db";
+import { isoToTimestampNumber } from "../src/helper";
 
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
@@ -26,7 +27,7 @@ describe("test-duckdb", () => {
           returnAmount: 100,
           spreadAmount: 0,
           taxAmount: 0,
-          timestamp: new Date(1689610068000).toISOString(),
+          timestamp: 168961006800 / 1000,
           txhash: "foo",
           txheight: 1
         },
@@ -38,7 +39,7 @@ describe("test-duckdb", () => {
           returnAmount: 1,
           spreadAmount: 0,
           taxAmount: 0,
-          timestamp: new Date(1589610068000).toISOString(),
+          timestamp: 1589610068000 / 1000,
           txhash: "foo",
           txheight: 1
         },
@@ -50,7 +51,7 @@ describe("test-duckdb", () => {
           returnAmount: 1,
           spreadAmount: 0,
           taxAmount: 0,
-          timestamp: new Date(1589610068000).toISOString(),
+          timestamp: 1589610068000 / 1000,
           txhash: "foo",
           txheight: 1
         },
@@ -62,7 +63,7 @@ describe("test-duckdb", () => {
           returnAmount: 1,
           spreadAmount: 0,
           taxAmount: 0,
-          timestamp: new Date(1589610068000).toISOString(),
+          timestamp: 1589610068000 / 1000,
           txhash: "foo",
           txheight: 1
         }
@@ -85,7 +86,7 @@ describe("test-duckdb", () => {
         returnAmount: 100,
         spreadAmount: 0,
         taxAmount: 0,
-        timestamp: new Date("2023-07-17T16:07:48.000Z").toISOString(),
+        timestamp: new Date("2023-07-17T16:07:48.000Z").getTime() / 1000,
         txhash: "foo",
         txheight: 1
       },
@@ -97,7 +98,7 @@ describe("test-duckdb", () => {
         returnAmount: 1,
         spreadAmount: 0,
         taxAmount: 0,
-        timestamp: new Date("2023-07-16T16:07:48.000Z").toISOString(),
+        timestamp: new Date("2023-07-16T16:07:48.000Z").getTime() / 1000,
         txhash: "foo",
         txheight: 1
       },
@@ -109,7 +110,7 @@ describe("test-duckdb", () => {
         returnAmount: 10000,
         spreadAmount: 0,
         taxAmount: 0,
-        timestamp: new Date(1389610068000).toISOString(),
+        timestamp: new Date(1389610068000).getTime() / 1000,
         txhash: "foo",
         txheight: 1
       },
@@ -121,7 +122,7 @@ describe("test-duckdb", () => {
         returnAmount: 10000,
         spreadAmount: 0,
         taxAmount: 0,
-        timestamp: new Date(1389610068000).toISOString(),
+        timestamp: new Date(1389610068000).getTime() / 1000,
         txhash: "foo",
         txheight: 1
       }
@@ -129,8 +130,8 @@ describe("test-duckdb", () => {
     let queryResult = await duckDb.queryAllVolumeRange(
       "orai",
       "atom",
-      "2023-07-16T16:07:48.000Z",
-      "2023-07-17T16:07:48.000Z"
+      isoToTimestampNumber("2023-07-16T16:07:48.000Z"),
+      isoToTimestampNumber("2023-07-17T16:07:48.000Z")
     );
     console.log("result: ", queryResult);
     expect(queryResult.volume["orai"]).toEqual(110);
@@ -139,8 +140,8 @@ describe("test-duckdb", () => {
     queryResult = await duckDb.queryAllVolumeRange(
       "orai",
       "atom",
-      "2023-07-16T16:07:48.000Z",
-      "2023-07-17T16:07:48.000Z"
+      isoToTimestampNumber("2023-07-16T16:07:48.000Z"),
+      isoToTimestampNumber("2023-07-17T16:07:48.000Z")
     );
     expect(queryResult.volume["orai"]).toEqual(110);
     expect(queryResult.volume["atom"]).toEqual(10001);
@@ -155,7 +156,7 @@ describe("test-duckdb", () => {
       duckDb.insertLpOps([
         {
           txhash: "foo",
-          timestamp: new Date().toISOString(),
+          timestamp: new Date().getTime() / 1000,
           firstTokenAmount: "abcd" as any,
           firstTokenLp: 0,
           firstTokenDenom: "orai",
@@ -175,7 +176,7 @@ describe("test-duckdb", () => {
     duckDb = await DuckDb.create(":memory:");
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
     // act & test
-    const newDate = new Date(1689610068000).toISOString();
+    const newDate = 1689610068000 / 1000;
     await duckDb.insertLpOps([
       {
         firstTokenAmount: 1,
@@ -192,7 +193,7 @@ describe("test-duckdb", () => {
       }
     ]);
     let queryResult = await duckDb.queryLpOps();
-    queryResult[0].timestamp = new Date(queryResult[0].timestamp).toISOString();
+    queryResult[0].timestamp = queryResult[0].timestamp;
     expect(queryResult[0]).toEqual({
       txhash: "foo",
       timestamp: newDate,

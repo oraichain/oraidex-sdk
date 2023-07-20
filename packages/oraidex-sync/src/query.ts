@@ -8,8 +8,8 @@ import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { pairs } from "./pairs";
-import { findAssetInfoPathToUsdt, generateSwapOperations, toDisplay } from "./helper";
-import { tenAmountInDecimalSix } from "./constants";
+import { findAssetInfoPathToUsdt, generateSwapOperations, parseAssetInfoOnlyDenom, toDisplay } from "./helper";
+import { tenAmountInDecimalSix, usdtCw20Address } from "./constants";
 
 async function getPoolInfos(pairs: PairInfo[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -48,6 +48,7 @@ async function getAllPairInfos(
 
 async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouterReadOnlyInterface): Promise<Asset> {
   // adjust the query height to get data from the past
+  if (parseAssetInfoOnlyDenom(info) === usdtCw20Address) return { info, amount: "1" };
   const infoPath = findAssetInfoPathToUsdt(info);
   const amount = await simulateSwapPrice(infoPath, router);
   return { info, amount };

@@ -77,7 +77,7 @@ app.get("/tickers", async (req, res) => {
             base_currency: symbols[baseIndex],
             target_currency: symbols[targetIndex],
             last_price: "",
-            base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(), // TODO: remove random
+            base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(),
             target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
             pool_id: pairAddr ?? "",
             base: symbols[baseIndex],

@@ -15,10 +15,11 @@ import {
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
+  VolumeInfo,
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
-import { calculatePrefixSum, parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
+import { calculatePrefixSum, isoToTimestampNumber, parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -205,7 +206,11 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
     transactions.push(tx);
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
     const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
-    const basicTxData: BasicTxData = { timestamp: tx.timestamp, txhash: tx.hash, txheight: tx.height };
+    const basicTxData: BasicTxData = {
+      timestamp: isoToTimestampNumber(tx.timestamp),
+      txhash: tx.hash,
+      txheight: tx.height
+    };
     for (let msg of msgs) {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
@@ -216,9 +221,27 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
+  let volumeInfos: VolumeInfo[] = [];
+  swapOpsData.forEach((op) => {
+    volumeInfos.push(
+      {
+        denom: op.offerDenom,
+        timestamp: op.timestamp,
+        txheight: op.txheight,
+        volume: op.offerAmount
+      } as VolumeInfo,
+      {
+        denom: op.askDenom,
+        timestamp: op.timestamp,
+        txheight: op.txheight,
+        volume: op.returnAmount
+      } as VolumeInfo
+    );
+  });
   return {
     // transactions: txs,
     swapOpsData,
+    volumeInfos,
     accountTxs,
     provideLiquidityOpsData,
     withdrawLiquidityOpsData

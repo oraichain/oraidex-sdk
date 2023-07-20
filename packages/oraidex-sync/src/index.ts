@@ -40,7 +40,11 @@ class WriteOrders extends WriteData {
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
     // insert swap ops
-    await Promise.all([this.insertSwapOps(txs.swapOpsData), this.insertLiquidityOps(txs.provideLiquidityOpsData)]);
+    await Promise.all([
+      this.insertSwapOps(txs.swapOpsData),
+      this.insertLiquidityOps(txs.provideLiquidityOpsData),
+      this.duckDb.insertVolumeInfo(txs.volumeInfos)
+    ]);
     // has to split this out because they are sharing the same table, will clash when inserting
     await this.insertLiquidityOps(txs.withdrawLiquidityOpsData);
   }
@@ -159,7 +163,8 @@ class OraiDexSync {
         this.duckDb.createLiquidityOpsTable(),
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable(),
-        this.duckDb.createPriceInfoTable()
+        this.duckDb.createPriceInfoTable(),
+        this.duckDb.createVolumeInfo()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };

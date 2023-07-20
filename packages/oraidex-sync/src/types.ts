@@ -13,7 +13,7 @@ export type AssetData = {
 };
 
 export type BasicTxData = {
-  timestamp: string;
+  timestamp: number;
   txhash: string;
   txheight: number;
 };
@@ -49,7 +49,7 @@ export type PairInfoData = {
 
 export type PriceInfo = {
   txheight: number;
-  timestamp: string;
+  timestamp: number;
   assetInfo: string;
   price: number;
 };
@@ -77,6 +77,7 @@ export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 export type TxAnlysisResult = {
   // transactions: Tx[];
   swapOpsData: SwapOperationData[];
+  volumeInfos: VolumeInfo[];
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
@@ -151,4 +152,11 @@ export type TotalLiquidity = {
   time: string;
   liquidity: number;
   height: number;
+};
+
+export type VolumeInfo = {
+  denom: string;
+  timestamp: number;
+  txheight: number;
+  volume: number;
 };
