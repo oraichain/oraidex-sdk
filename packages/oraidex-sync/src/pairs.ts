@@ -50,7 +50,7 @@ export const pairs: PairMapping[] = [
         native_token: { denom: osmosisIbcDenom }
       }
     ],
-    symbols: ["ORAI", "OSMOSIS"]
+    symbols: ["ORAI", "OSMO"]
   },
   {
     asset_infos: [{ token: { contract_addr: milkyCw20Address } }, { token: { contract_addr: usdtCw20Address } }],
