@@ -291,4 +291,24 @@ export class DuckDb {
   async insertVolumeInfo(volumeInfos: VolumeInfo[]) {
     await this.insertBulkData(volumeInfos, "volume_info");
   }
+
+  async pivotVolumeRange(startTime: number, endTime: number) {
+    let volumeInfos = await this.conn.all(
+      `
+      pivot (select * from volume_info
+      where timestamp >= ${startTime}
+      and timestamp <= ${endTime} 
+      order by timestamp) 
+      on denom 
+      using sum(volume) 
+      group by timestamp, txheight 
+      order by timestamp`
+    );
+    for (let volInfo of volumeInfos) {
+      for (const key in volInfo) {
+        if (volInfo[key] === null) volInfo[key] = 0;
+      }
+    }
+    return volumeInfos;
+  }
 }

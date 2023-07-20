@@ -10,7 +10,9 @@ import {
   OraiDexSync,
   simulateSwapPrice,
   getPoolInfos,
-  calculatePrefixSum
+  calculatePrefixSum,
+  uniqueInfos,
+  simulateSwapPriceWithUsdt
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -67,11 +69,11 @@ app.get("/tickers", async (req, res) => {
           const baseIndex = 0;
           const targetIndex = 1;
           const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
-          const now = new Date(latestTimestamp);
-          const then = getDate24hBeforeNow(now).toISOString();
+          const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
+          console.log(latestTimestamp, then);
           const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
           const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
-          const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, now.toISOString());
+          const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
           let tickerInfo: TickerInfo = {
             ticker_id: tickerId,
             base_currency: symbols[baseIndex],
@@ -103,6 +105,64 @@ app.get("/tickers", async (req, res) => {
     console.log("error: ", error);
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
+});
+
+// TODO: refactor this and add unit tests
+app.get("/volume/v2/historical/chart", async (req, res) => {
+  const { startTime, endTime, tf } = req.query;
+  const timeFrame = parseInt(tf as string);
+  const volumeInfos = await duckDb.pivotVolumeRange(parseInt(startTime as string), parseInt(endTime as string));
+  const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
+  let finalArray = [];
+  let prices;
+  let heightCount = 0;
+  for (let i = 0; i < volumeInfos.length; i++) {
+    const volInfo = volumeInfos[i];
+    cosmwasmClient.setQueryClientWithHeight(volInfo.txheight);
+    const router = new OraiswapRouterQueryClient(
+      cosmwasmClient,
+      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+    );
+    if (heightCount % 1000 === 0) {
+      // prevent simulating too many times. TODO: calculate this using pool data from
+      prices = (await Promise.all(uniqueInfos.map((info) => simulateSwapPriceWithUsdt(info, router))))
+        .map((price) => ({ ...price, info: parseAssetInfoOnlyDenom(price.info) }))
+        .reduce((acc, cur) => {
+          acc[cur.info] = parseFloat(cur.amount);
+          return acc;
+        }, {});
+    }
+    let tempData = {};
+    for (const key in volInfo) {
+      if (key === "timestamp" || key === "txheight") continue;
+      if (Object.keys(tempData).includes("volume_price")) {
+        tempData["volume_price"] += volInfo[key] * prices[key];
+      } else {
+        tempData["timestamp"] = volInfo["timestamp"];
+        tempData["volume_price"] = 0;
+      }
+    }
+    const indexOf = finalArray.findIndex((data) => data.timestamp === tempData["timestamp"]);
+    if (indexOf === -1) finalArray.push(tempData);
+    else {
+      finalArray[indexOf] = {
+        ...finalArray[indexOf],
+        volume_price: finalArray[indexOf].volume_price + tempData["volume_price"]
+      };
+    }
+    heightCount++;
+  }
+  let finalFinalArray = [];
+  for (let data of finalArray) {
+    let time = Math.floor(data.timestamp / timeFrame);
+    let index = finalFinalArray.findIndex((data) => data.timestamp === time);
+    if (index === -1) {
+      finalFinalArray.push({ timestamp: time, volume_price: data.volume_price });
+    } else {
+      finalFinalArray[index].volume_price += data.volume_price;
+    }
+  }
+  res.status(200).send(finalFinalArray);
 });
 
 // app.get("/liquidity/v2/historical/chart", async (req, res) => {
