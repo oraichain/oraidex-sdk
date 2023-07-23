@@ -17,7 +17,8 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData,
   InitialData,
-  PairInfoData
+  PairInfoData,
+  Env
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
@@ -95,11 +96,16 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(private duckDb: DuckDb, private rpcUrl: string, private cosmwasmClient: CosmWasmClient) {}
+  protected constructor(
+    private readonly duckDb: DuckDb,
+    private readonly rpcUrl: string,
+    private cosmwasmClient: CosmWasmClient,
+    private readonly env: Env
+  ) {}
 
-  public static async create(duckDb: DuckDb, rpcUrl: string): Promise<OraiDexSync> {
+  public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-    return new OraiDexSync(duckDb, rpcUrl, cosmwasmClient);
+    return new OraiDexSync(duckDb, rpcUrl, cosmwasmClient, env);
   }
 
   private async getPoolInfos(pairs: PairInfo[], wantedHeight?: number): Promise<PoolResponse[]> {
@@ -107,7 +113,7 @@ class OraiDexSync {
     this.cosmwasmClient.setQueryClientWithHeight(wantedHeight);
     const multicall = new MulticallQueryClient(
       this.cosmwasmClient,
-      process.env.MULTICALL_CONTRACT_ADDRES || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
+      this.env.MULTICALL_CONTRACT_ADDRESS || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
     );
     const res = await getPoolInfos(pairs, multicall);
     // reset query client to latest for other functions to call
@@ -118,11 +124,11 @@ class OraiDexSync {
   private async getAllPairInfos(): Promise<PairInfo[]> {
     const firstFactoryClient = new OraiswapFactoryQueryClient(
       this.cosmwasmClient,
-      process.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
+      this.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
     );
     const secondFactoryClient = new OraiswapFactoryQueryClient(
       this.cosmwasmClient,
-      process.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
+      this.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
     );
     return getAllPairInfos(firstFactoryClient, secondFactoryClient);
   }
@@ -132,7 +138,7 @@ class OraiDexSync {
     this.cosmwasmClient.setQueryClientWithHeight(wantedHeight);
     const routerContract = new OraiswapRouterQueryClient(
       this.cosmwasmClient,
-      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+      this.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
     );
     const data = await simulateSwapPriceWithUsdt(info, routerContract);
     this.cosmwasmClient.setQueryClientWithHeight();
