@@ -1,16 +1,8 @@
 import { BlockHeader } from "@cosmjs/stargate";
 import { Log } from "@cosmjs/stargate/build/logs";
-import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { Addr, Asset, AssetInfo, Binary, Decimal, SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-
-export type AssetData = {
-  info: AssetInfo;
-  symbol: string;
-  image: string;
-  name: string;
-};
 
 export type BasicTxData = {
   timestamp: number;
@@ -19,7 +11,7 @@ export type BasicTxData = {
 };
 
 export type SwapOperationData = {
-  askDenom: string;
+  askDenom: string; // eg: orai, orai1234...
   commissionAmount: number;
   offerAmount: number;
   offerDenom: string;
@@ -63,7 +55,7 @@ export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = {
   firstTokenAmount: number;
-  firstTokenDenom: string;
+  firstTokenDenom: string; // eg: orai, orai1234...
   firstTokenLp: number;
   secondTokenAmount: number;
   secondTokenDenom: string;
@@ -159,4 +151,18 @@ export type VolumeInfo = {
   timestamp: number;
   txheight: number;
   volume: number;
+};
+
+export type Env = {
+  PORT: number;
+  RPC_URL: string;
+  FACTORY_CONTACT_ADDRESS_V1: string;
+  FACTORY_CONTACT_ADDRESS_V2: string;
+  ROUTER_CONTRACT_ADDRESS: string;
+  MULTICALL_CONTRACT_ADDRESS: string;
+  LIMIT: number;
+  MAX_THREAD_LEVEL: number;
+  DUCKDB_PROD_FILENAME: string;
+  DUCKDB_FILENAME: string;
+  INITIAL_SYNC_HEIGHT: number;
 };
