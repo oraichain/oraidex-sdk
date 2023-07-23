@@ -56,15 +56,17 @@ export type LiquidityOpType = "provide" | "withdraw";
 export type ProvideLiquidityOperationData = {
   firstTokenAmount: number;
   firstTokenDenom: string; // eg: orai, orai1234...
-  firstTokenLp: number;
+  firstTokenLp: number | bigint;
   secondTokenAmount: number;
   secondTokenDenom: string;
-  secondTokenLp: number;
+  secondTokenLp: number | bigint;
   opType: LiquidityOpType;
   txCreator: string;
 } & BasicTxData;
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
+
+export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData;
 
 export type TxAnlysisResult = {
   // transactions: Tx[];
@@ -150,6 +152,7 @@ export type VolumeInfo = {
   denom: string;
   timestamp: number;
   txheight: number;
+  price: number;
   volume: number;
 };
 

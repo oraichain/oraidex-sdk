@@ -19,7 +19,15 @@ import {
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
-import { calculatePrefixSum, isoToTimestampNumber, parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
+import {
+  calculatePrefixSum,
+  groupByTime,
+  isAssetInfoPairReverse,
+  isoToTimestampNumber,
+  parseAssetInfo,
+  parseAssetInfoOnlyDenom
+} from "./helper";
+import { pairs } from "./pairs";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -107,8 +115,13 @@ function extractMsgProvideLiquidity(
   txCreator: string
 ): ProvideLiquidityOperationData | undefined {
   if ("provide_liquidity" in msg) {
-    const firstAsset = msg.provide_liquidity.assets[0];
-    const secAsset = msg.provide_liquidity.assets[1];
+    const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
+    let firstAsset = msg.provide_liquidity.assets[0];
+    let secAsset = msg.provide_liquidity.assets[1];
+    if (isAssetInfoPairReverse(assetInfos)) {
+      firstAsset = msg.provide_liquidity.assets[1];
+      secAsset = msg.provide_liquidity.assets[0];
+    }
     return {
       firstTokenAmount: parseInt(firstAsset.amount),
       firstTokenDenom: parseAssetInfoOnlyDenom(firstAsset.info),
@@ -147,6 +160,18 @@ function extractMsgWithdrawLiquidity(
     if (!assetAttr) continue;
     const assets = parseWithdrawLiquidityAssets(assetAttr.value);
     // sanity check. only push data if can parse asset successfully
+    let firstAsset = assets[1];
+    let secAsset = assets[3];
+    if (
+      pairs.find(
+        (pair) =>
+          JSON.stringify(pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))) ===
+          JSON.stringify([secAsset, firstAsset])
+      )
+    ) {
+      firstAsset = assets[3];
+      secAsset = assets[1];
+    }
     if (assets.length !== 4) continue;
     withdrawData.push({
       firstTokenAmount: parseInt(assets[0]),
@@ -221,30 +246,13 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
-  let volumeInfos: VolumeInfo[] = [];
-  swapOpsData.forEach((op) => {
-    volumeInfos.push(
-      {
-        denom: op.offerDenom,
-        timestamp: op.timestamp,
-        txheight: op.txheight,
-        volume: op.offerAmount
-      } as VolumeInfo,
-      {
-        denom: op.askDenom,
-        timestamp: op.timestamp,
-        txheight: op.txheight,
-        volume: op.returnAmount
-      } as VolumeInfo
-    );
-  });
   return {
     // transactions: txs,
-    swapOpsData,
-    volumeInfos,
+    swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
+    volumeInfos: [],
     accountTxs,
-    provideLiquidityOpsData,
-    withdrawLiquidityOpsData
+    provideLiquidityOpsData: groupByTime(provideLiquidityOpsData) as ProvideLiquidityOperationData[],
+    withdrawLiquidityOpsData: groupByTime(provideLiquidityOpsData) as WithdrawLiquidityOperationData[]
   };
 }
 

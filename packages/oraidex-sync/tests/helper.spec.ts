@@ -7,7 +7,10 @@ import {
   calculatePriceByPool,
   toAmount,
   toDisplay,
-  toDecimal
+  toDecimal,
+  roundTime,
+  groupByTime,
+  collectAccumulateLpData
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -24,7 +27,8 @@ import {
   usdcCw20Address,
   usdtCw20Address
 } from "../src/constants";
-import { PairInfoData } from "../src/types";
+import { PairInfoData, ProvideLiquidityOperationData } from "../src/types";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 describe("test-helper", () => {
   describe("bigint", () => {
@@ -267,10 +271,203 @@ describe("test-helper", () => {
     ]);
   });
 
-  // it("test-calculatePriceByPool", () => {
-  //   const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
-  //   expect(result).toEqual(BigInt(9902432));
-  // });
+  it.each([
+    [new Date("2023-07-12T15:12:16.943634115Z").getTime(), 60, 1689174720], // 07-12-2023 22:12:00
+    [new Date("2023-07-12T15:12:24.943634115Z").getTime(), 60, 1689174720], // 07-12-2023 22:12:00
+    [new Date("2023-07-12T15:12:45.943634115Z").getTime(), 60, 1689174780] // 07-12-2023 22:13:00
+  ])("test-roundTime", (date: number, interval: number, expectedResult) => {
+    const roundedTime = roundTime(date, interval);
+    expect(roundedTime).toEqual(expectedResult);
+  });
+
+  it("test-groupByTime-should-group-the-first-two-elements-into-one", () => {
+    const data = [
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10000,
+        offerDenom: "atom",
+        returnAmount: 100,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119727,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "atom",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119740,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "atom",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "orai",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119800,
+        txhash: "foo",
+        txheight: 1
+      }
+    ];
+
+    const result = groupByTime(data);
+    expect(result).toEqual([
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10000,
+        offerDenom: "atom",
+        returnAmount: 100,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119720,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "atom",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119720,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "atom",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "orai",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119780,
+        txhash: "foo",
+        txheight: 1
+      }
+    ]);
+  });
+
+  it("test-calculatePriceByPool", () => {
+    const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
+    expect(result).toEqual(BigInt(9902432));
+  });
+
+  it("test-collectAccumulateLpData-should-aggregate-ops-with-same-pairs", () => {
+    const poolResponses: PoolResponse[] = [
+      {
+        assets: [
+          { info: { native_token: { denom: ORAI } }, amount: "1" },
+          { info: { token: { contract_addr: usdtCw20Address } }, amount: "1" }
+        ],
+        total_share: "2"
+      },
+      {
+        assets: [
+          { info: { native_token: { denom: ORAI } }, amount: "4" },
+          { info: { token: { contract_addr: atomIbcDenom } }, amount: "4" }
+        ],
+        total_share: "8"
+      }
+    ];
+    const ops: ProvideLiquidityOperationData[] = [
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "provide",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: atomIbcDenom,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      }
+    ];
+
+    collectAccumulateLpData(ops, poolResponses);
+    expect(ops).toEqual([
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 2,
+        secondTokenLp: 2,
+        opType: "provide",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: atomIbcDenom,
+        firstTokenLp: 3,
+        secondTokenLp: 3,
+        opType: "withdraw",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      }
+    ]);
+  });
 
   // it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
   //   [
