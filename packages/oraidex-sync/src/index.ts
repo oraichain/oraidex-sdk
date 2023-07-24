@@ -71,6 +71,7 @@ class WriteOrders extends WriteData {
   }
 
   private async accumulatePoolAmount(data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]) {
+    if (data.length === 0) return; // guard. If theres no data then we wont process anything
     const pairInfos = await this.duckDb.queryPairInfos();
     const poolInfos = await this.getPoolInfos(
       pairInfos.map((pair) => pair.pairAddr),
