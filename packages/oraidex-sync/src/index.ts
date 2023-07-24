@@ -126,8 +126,8 @@ class WriteOrders extends WriteData {
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
       console.log("new offset: ", newOffset);
-      await this.duckDb.insertHeightSnapshot(newOffset);
-      await this.insertParsedTxs(result);
+      // hash to be promise all because if inserting height pass and txs fail then we will have duplications
+      await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
 
       const lpOps = await this.queryLpOps();
       const swapOpsCount = await this.duckDb.querySwapOps();
