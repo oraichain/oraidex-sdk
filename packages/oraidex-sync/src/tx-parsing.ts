@@ -26,7 +26,8 @@ import {
   isAssetInfoPairReverse,
   isoToTimestampNumber,
   parseAssetInfo,
-  parseAssetInfoOnlyDenom
+  parseAssetInfoOnlyDenom,
+  removeOpsDuplication
 } from "./helper";
 import { pairs } from "./pairs";
 
@@ -278,11 +279,15 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
   }
   return {
     // transactions: txs,
-    swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
+    swapOpsData: groupByTime(removeOpsDuplication(swapOpsData)) as SwapOperationData[],
     volumeInfos: [],
     accountTxs,
-    provideLiquidityOpsData: groupByTime(provideLiquidityOpsData) as ProvideLiquidityOperationData[],
-    withdrawLiquidityOpsData: groupByTime(provideLiquidityOpsData) as WithdrawLiquidityOperationData[]
+    provideLiquidityOpsData: groupByTime(
+      removeOpsDuplication(provideLiquidityOpsData)
+    ) as ProvideLiquidityOperationData[],
+    withdrawLiquidityOpsData: groupByTime(
+      removeOpsDuplication(provideLiquidityOpsData)
+    ) as WithdrawLiquidityOperationData[]
   };
 }
 

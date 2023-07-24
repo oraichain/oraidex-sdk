@@ -11,7 +11,8 @@ import {
   roundTime,
   groupByTime,
   collectAccumulateLpData,
-  concatDataToUniqueKey
+  concatDataToUniqueKey,
+  removeOpsDuplication
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -451,6 +452,56 @@ describe("test-helper", () => {
 
     // assert
     expect(result).toEqual("100-foo-1-bar-1");
+  });
+
+  it("test-remove-ops-duplication-should-remove-duplication-keys-before-inserting", () => {
+    const ops: ProvideLiquidityOperationData[] = [
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "provide",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        uniqueKey: "2",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: atomIbcDenom,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      }
+    ];
+    const newOps = removeOpsDuplication(ops);
+    expect(newOps.length).toEqual(2);
+    expect(newOps[1].uniqueKey).toEqual("2");
   });
 
   // it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([

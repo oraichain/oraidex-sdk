@@ -6,6 +6,7 @@ import {
   PairInfoData,
   PrefixSumHandlingData,
   ProvideLiquidityOperationData,
+  SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
@@ -250,6 +251,14 @@ export function collectAccumulateLpData(
   }
 
   // convert bigint to number so we can store them into the db without error
+}
+
+export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
+  let newOps: OraiDexType[] = [];
+  for (let op of ops) {
+    if (!newOps.some((newOp) => newOp.uniqueKey === op.uniqueKey)) newOps.push(op);
+  }
+  return newOps;
 }
 
 // /**
