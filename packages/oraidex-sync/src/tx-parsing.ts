@@ -19,7 +19,17 @@ import {
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
-import { calculatePrefixSum, isoToTimestampNumber, parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
+import {
+  calculatePrefixSum,
+  concatDataToUniqueKey,
+  groupByTime,
+  isAssetInfoPairReverse,
+  isoToTimestampNumber,
+  parseAssetInfo,
+  parseAssetInfoOnlyDenom,
+  removeOpsDuplication
+} from "./helper";
+import { pairs } from "./pairs";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -85,12 +95,22 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   // faulty swap attributes, wont collect
   if (!swapAttrs.every((array) => array.length === askDenoms.length)) return [];
   for (let i = 0; i < askDenoms.length; i++) {
+    const offerAmount = parseInt(offerAmounts[i]);
+    const returnAmount = parseInt(returnAmounts[i]);
     swapData.push({
       askDenom: askDenoms[i],
       commissionAmount: parseInt(commissionAmounts[i]),
-      offerAmount: parseInt(offerAmounts[i]),
+      offerAmount,
       offerDenom: offerDenoms[i],
-      returnAmount: parseInt(returnAmounts[i]),
+      uniqueKey: concatDataToUniqueKey({
+        timestamp: txData.timestamp,
+        firstAmount: offerAmount,
+        firstDenom: offerDenoms[i],
+        secondAmount: returnAmount,
+        secondDenom: askDenoms[i]
+      }),
+
+      returnAmount,
       spreadAmount: parseInt(spreadAmounts[i]),
       taxAmount: parseInt(taxAmounts[i]),
       timestamp: txData.timestamp,
@@ -107,16 +127,33 @@ function extractMsgProvideLiquidity(
   txCreator: string
 ): ProvideLiquidityOperationData | undefined {
   if ("provide_liquidity" in msg) {
-    const firstAsset = msg.provide_liquidity.assets[0];
-    const secAsset = msg.provide_liquidity.assets[1];
+    const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
+    let firstAsset = msg.provide_liquidity.assets[0];
+    let secAsset = msg.provide_liquidity.assets[1];
+    if (isAssetInfoPairReverse(assetInfos)) {
+      firstAsset = msg.provide_liquidity.assets[1];
+      secAsset = msg.provide_liquidity.assets[0];
+    }
+    const firstDenom = parseAssetInfoOnlyDenom(firstAsset.info);
+    const secDenom = parseAssetInfoOnlyDenom(secAsset.info);
+    const firstAmount = parseInt(firstAsset.amount);
+    const secAmount = parseInt(secAsset.amount);
+
     return {
-      firstTokenAmount: parseInt(firstAsset.amount),
-      firstTokenDenom: parseAssetInfoOnlyDenom(firstAsset.info),
-      firstTokenLp: parseInt(firstAsset.amount),
+      firstTokenAmount: firstAmount,
+      firstTokenDenom: firstDenom,
+      firstTokenLp: firstAmount,
       opType: "provide",
-      secondTokenAmount: parseInt(secAsset.amount),
-      secondTokenDenom: parseAssetInfoOnlyDenom(secAsset.info),
-      secondTokenLp: parseInt(secAsset.amount),
+      uniqueKey: concatDataToUniqueKey({
+        timestamp: txData.timestamp,
+        firstAmount,
+        firstDenom,
+        secondAmount: secAmount,
+        secondDenom: secDenom
+      }),
+      secondTokenAmount: secAmount,
+      secondTokenDenom: secDenom,
+      secondTokenLp: secAmount,
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
@@ -147,12 +184,31 @@ function extractMsgWithdrawLiquidity(
     if (!assetAttr) continue;
     const assets = parseWithdrawLiquidityAssets(assetAttr.value);
     // sanity check. only push data if can parse asset successfully
+    let firstAsset = assets[1];
+    let secAsset = assets[3];
+    if (
+      pairs.find(
+        (pair) =>
+          JSON.stringify(pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))) ===
+          JSON.stringify([secAsset, firstAsset])
+      )
+    ) {
+      firstAsset = assets[3];
+      secAsset = assets[1];
+    }
     if (assets.length !== 4) continue;
     withdrawData.push({
       firstTokenAmount: parseInt(assets[0]),
       firstTokenDenom: assets[1],
       firstTokenLp: parseInt(assets[0]),
       opType: "withdraw",
+      uniqueKey: concatDataToUniqueKey({
+        timestamp: txData.timestamp,
+        firstDenom: assets[1],
+        firstAmount: parseInt(assets[0]),
+        secondDenom: assets[3],
+        secondAmount: parseInt(assets[2])
+      }),
       secondTokenAmount: parseInt(assets[2]),
       secondTokenDenom: assets[3],
       secondTokenLp: parseInt(assets[2]),
@@ -221,30 +277,17 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
-  let volumeInfos: VolumeInfo[] = [];
-  swapOpsData.forEach((op) => {
-    volumeInfos.push(
-      {
-        denom: op.offerDenom,
-        timestamp: op.timestamp,
-        txheight: op.txheight,
-        volume: op.offerAmount
-      } as VolumeInfo,
-      {
-        denom: op.askDenom,
-        timestamp: op.timestamp,
-        txheight: op.txheight,
-        volume: op.returnAmount
-      } as VolumeInfo
-    );
-  });
   return {
     // transactions: txs,
-    swapOpsData,
-    volumeInfos,
+    swapOpsData: groupByTime(removeOpsDuplication(swapOpsData)) as SwapOperationData[],
+    volumeInfos: [],
     accountTxs,
-    provideLiquidityOpsData,
-    withdrawLiquidityOpsData
+    provideLiquidityOpsData: groupByTime(
+      removeOpsDuplication(provideLiquidityOpsData)
+    ) as ProvideLiquidityOperationData[],
+    withdrawLiquidityOpsData: groupByTime(
+      removeOpsDuplication(provideLiquidityOpsData)
+    ) as WithdrawLiquidityOperationData[]
   };
 }
 

@@ -7,7 +7,12 @@ import {
   calculatePriceByPool,
   toAmount,
   toDisplay,
-  toDecimal
+  toDecimal,
+  roundTime,
+  groupByTime,
+  collectAccumulateLpData,
+  concatDataToUniqueKey,
+  removeOpsDuplication
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -24,7 +29,8 @@ import {
   usdcCw20Address,
   usdtCw20Address
 } from "../src/constants";
-import { PairInfoData } from "../src/types";
+import { PairInfoData, ProvideLiquidityOperationData } from "../src/types";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 describe("test-helper", () => {
   describe("bigint", () => {
@@ -267,10 +273,236 @@ describe("test-helper", () => {
     ]);
   });
 
-  // it("test-calculatePriceByPool", () => {
-  //   const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
-  //   expect(result).toEqual(BigInt(9902432));
-  // });
+  it.each([
+    [new Date("2023-07-12T15:12:16.943634115Z").getTime(), 60, 1689174720],
+    [new Date("2023-07-12T15:12:24.943634115Z").getTime(), 60, 1689174720],
+    [new Date("2023-07-12T15:13:01.943634115Z").getTime(), 60, 1689174780]
+  ])("test-roundTime", (date: number, interval: number, expectedResult) => {
+    const roundedTime = roundTime(date, interval);
+    expect(roundedTime).toEqual(expectedResult);
+  });
+
+  it("test-groupByTime-should-group-the-first-two-elements-into-one", () => {
+    const data = [
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10000,
+        offerDenom: "atom",
+        returnAmount: 100,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119727,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "atom",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119740,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "atom",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "orai",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119800,
+        txhash: "foo",
+        txheight: 1
+      }
+    ];
+
+    const result = groupByTime(data);
+    expect(result).toEqual([
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10000,
+        offerDenom: "atom",
+        returnAmount: 100,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119720,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "orai",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "atom",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119720,
+        txhash: "foo",
+        txheight: 1
+      },
+      {
+        askDenom: "atom",
+        commissionAmount: 0,
+        offerAmount: 10,
+        offerDenom: "orai",
+        returnAmount: 1,
+        spreadAmount: 0,
+        taxAmount: 0,
+        timestamp: 1690119780,
+        txhash: "foo",
+        txheight: 1
+      }
+    ]);
+  });
+
+  it("test-calculatePriceByPool", () => {
+    const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
+    expect(result).toEqual(BigInt(9902432));
+  });
+
+  it("test-collectAccumulateLpData-should-aggregate-ops-with-same-pairs", () => {
+    const poolResponses: PoolResponse[] = [
+      {
+        assets: [
+          { info: { native_token: { denom: ORAI } }, amount: "1" },
+          { info: { token: { contract_addr: usdtCw20Address } }, amount: "1" }
+        ],
+        total_share: "2"
+      },
+      {
+        assets: [
+          { info: { native_token: { denom: ORAI } }, amount: "4" },
+          { info: { token: { contract_addr: atomIbcDenom } }, amount: "4" }
+        ],
+        total_share: "8"
+      }
+    ];
+    const ops: ProvideLiquidityOperationData[] = [
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "provide",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        uniqueKey: "2",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: atomIbcDenom,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        uniqueKey: "3",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      }
+    ];
+
+    collectAccumulateLpData(ops, poolResponses);
+    expect(ops[0].firstTokenLp.toString()).toEqual("2");
+    expect(ops[0].secondTokenLp.toString()).toEqual("2");
+    expect(ops[1].firstTokenLp.toString()).toEqual("1");
+    expect(ops[1].secondTokenLp.toString()).toEqual("1");
+    expect(ops[2].firstTokenLp.toString()).toEqual("3");
+    expect(ops[2].secondTokenLp.toString()).toEqual("3");
+  });
+
+  it("test-concatDataToUniqueKey-should-return-unique-key-in-correct-order-from-timestamp-to-first-to-second-amount-and-denom", () => {
+    // setup
+    const firstDenom = "foo";
+    const firstAmount = 1;
+    const secondDenom = "bar";
+    const secondAmount = 1;
+    const timestamp = 100;
+
+    // act
+    const result = concatDataToUniqueKey({ firstAmount, firstDenom, secondAmount, secondDenom, timestamp });
+
+    // assert
+    expect(result).toEqual("100-foo-1-bar-1");
+  });
+
+  it("test-remove-ops-duplication-should-remove-duplication-keys-before-inserting", () => {
+    const ops: ProvideLiquidityOperationData[] = [
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "provide",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: usdtCw20Address,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        uniqueKey: "2",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      },
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: ORAI,
+        secondTokenAmount: 1,
+        secondTokenDenom: atomIbcDenom,
+        firstTokenLp: 1,
+        secondTokenLp: 1,
+        opType: "withdraw",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1
+      }
+    ];
+    const newOps = removeOpsDuplication(ops);
+    expect(newOps.length).toEqual(2);
+    expect(newOps[1].uniqueKey).toEqual("2");
+  });
 
   // it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
   //   [

@@ -10,7 +10,7 @@ import {
   WithdrawLiquidityOperationData
 } from "./types";
 import fs, { rename } from "fs";
-import { renameKey, replaceAllNonAlphaBetChar } from "./helper";
+import { isoToTimestampNumber, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
 
 export class DuckDb {
   protected constructor(public readonly conn: Connection, private db: Database) {}
@@ -32,10 +32,8 @@ export class DuckDb {
     if (data.length === 0) return;
     const tableFile = fileName ?? `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
-    await fs.promises.writeFile(tableFile, JSON.stringify(data));
-    const query = replace
-      ? `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`
-      : `INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`;
+    await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
+    const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
     await this.conn.run(query, tableFile);
     await fs.promises.unlink(tableFile);
   }
@@ -62,6 +60,7 @@ export class DuckDb {
         commissionAmount UBIGINT,
         offerAmount UBIGINT,
         offerDenom VARCHAR, 
+        uniqueKey VARCHAR UNIQUE,
         returnAmount UBIGINT, 
         spreadAmount UBIGINT, 
         taxAmount UBIGINT, 
@@ -89,6 +88,7 @@ export class DuckDb {
         firstTokenDenom VARCHAR, 
         firstTokenLp UBIGINT, 
         opType LPOPTYPE, 
+        uniqueKey VARCHAR UNIQUE,
         secondTokenAmount UBIGINT, 
         secondTokenDenom VARCHAR, 
         secondTokenLp UBIGINT,
@@ -228,7 +228,8 @@ export class DuckDb {
 
   async queryLatestTimestampSwapOps(): Promise<number> {
     const latestTimestamp = await this.conn.all("SELECT timestamp from swap_ops_data order by timestamp desc limit 1");
-    if (latestTimestamp.length === 0 || !latestTimestamp[0].timestamp) return new Date().getTime() / 1000; // fallback case
+    if (latestTimestamp.length === 0 || !latestTimestamp[0].timestamp)
+      return isoToTimestampNumber(new Date().toISOString()); // fallback case
     return latestTimestamp[0].timestamp as number;
   }
 
@@ -272,7 +273,7 @@ export class DuckDb {
     );
     // reset time to iso format after dividing in the query
     result.forEach((item) => {
-      item.time = parseInt((item.time * tf).toFixed(0));
+      item.time = item.time * tf;
     });
     return result as TotalLiquidity[];
   }
@@ -283,6 +284,7 @@ export class DuckDb {
         denom VARCHAR,
         timestamp UINTEGER,
         txheight UINTEGER,
+        price DOUBLE,
         volume UBIGINT)
         `
     );

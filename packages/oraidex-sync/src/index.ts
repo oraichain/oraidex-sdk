@@ -18,15 +18,18 @@ import {
   WithdrawLiquidityOperationData,
   InitialData,
   PairInfoData,
-  Env
+  Env,
+  VolumeInfo,
+  PrefixSumHandlingData
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
+import { calculatePrefixSum, collectAccumulateLpData, parseAssetInfoOnlyDenom } from "./helper";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
-  constructor(private duckDb: DuckDb, private initialData: InitialData) {
+  constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
     super();
     this.firstWrite = true;
   }
@@ -54,6 +57,45 @@ class WriteOrders extends WriteData {
     return this.duckDb.queryLpOps() as Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]>;
   }
 
+  private async getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
+    // adjust the query height to get data from the past
+    const cosmwasmClient = await CosmWasmClient.connect(this.rpcUrl);
+    cosmwasmClient.setQueryClientWithHeight(wantedHeight);
+    const multicall = new MulticallQueryClient(
+      cosmwasmClient,
+      this.env.MULTICALL_CONTRACT_ADDRESS || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
+    );
+    const res = await getPoolInfos(pairAddrs, multicall);
+    // reset query client to latest for other functions to call
+    return res;
+  }
+
+  private async accumulatePoolAmount(data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]) {
+    if (data.length === 0) return; // guard. If theres no data then we wont process anything
+    const pairInfos = await this.duckDb.queryPairInfos();
+    const poolInfos = await this.getPoolInfos(
+      pairInfos.map((pair) => pair.pairAddr),
+      data[0].txheight // assume data is sorted by height and timestamp
+    );
+    collectAccumulateLpData(data, poolInfos);
+  }
+
+  // private insertVolumeInfos(
+  //   ...data: { denom: string; timestamp: number; txheight: number; amount: number }[]
+  // ): VolumeInfo[] {
+  //   let volumeInfos: VolumeInfo[] = [];
+  //   data.forEach((op) => {
+  //     volumeInfos.push({
+  //       denom: op.denom,
+  //       timestamp: op.timestamp,
+  //       txheight: op.txheight,
+  //       volume: op.amount,
+  //       price: 1
+  //     });
+  //   });
+  //   return volumeInfos;
+  // }
+
   async process(chunk: any): Promise<boolean> {
     try {
       // // first time calling of the application then we query past data and be ready to store them into the db for prefix sum
@@ -75,13 +117,21 @@ class WriteOrders extends WriteData {
       //   this.firstWrite = false;
       // }
       const { txs, offset: newOffset } = chunk as Txs;
+      const currentOffset = await this.duckDb.loadHeightSnapshot();
+      // edge case. If no new block has been found, then we skip processing to prevent duplication handling
+      if (currentOffset === newOffset) return true;
       let result = parseTxs(txs);
+
+      // accumulate liquidity pool amount
+      await this.accumulatePoolAmount([...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]);
+      // process volume infos to insert price
+      // result.volumeInfos = insertVolumeInfos(result.swapOpsData);
 
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
       console.log("new offset: ", newOffset);
-      await this.duckDb.insertHeightSnapshot(newOffset);
-      await this.insertParsedTxs(result);
+      // hash to be promise all because if inserting height pass and txs fail then we will have duplications
+      await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
 
       const lpOps = await this.queryLpOps();
       const swapOpsCount = await this.duckDb.querySwapOps();
@@ -106,19 +156,6 @@ class OraiDexSync {
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
     return new OraiDexSync(duckDb, rpcUrl, cosmwasmClient, env);
-  }
-
-  private async getPoolInfos(pairs: PairInfo[], wantedHeight?: number): Promise<PoolResponse[]> {
-    // adjust the query height to get data from the past
-    this.cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-    const multicall = new MulticallQueryClient(
-      this.cosmwasmClient,
-      this.env.MULTICALL_CONTRACT_ADDRESS || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
-    );
-    const res = await getPoolInfos(pairs, multicall);
-    // reset query client to latest for other functions to call
-    this.cosmwasmClient.setQueryClientWithHeight();
-    return res;
   }
 
   private async getAllPairInfos(): Promise<PairInfo[]> {
@@ -195,7 +232,7 @@ class OraiDexSync {
         limit: parseInt(process.env.LIMIT) || 100,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 5000
-      }).pipe(new WriteOrders(this.duckDb, initialData));
+      }).pipe(new WriteOrders(this.duckDb, this.rpcUrl, this.env, initialData));
     } catch (error) {
       console.log("error in start: ", error);
     }

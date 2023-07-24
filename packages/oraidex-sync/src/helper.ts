@@ -1,7 +1,24 @@
-import { Asset, AssetInfo, OraiswapRouterReadOnlyInterface, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { pairs } from "./pairs";
-import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdcCw20Address, usdtCw20Address } from "./constants";
-import { PairInfoData, PairMapping, PrefixSumHandlingData } from "./types";
+import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
+import {
+  OraiDexType,
+  PairInfoData,
+  PrefixSumHandlingData,
+  ProvideLiquidityOperationData,
+  SwapOperationData,
+  WithdrawLiquidityOperationData
+} from "./types";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
+
+export function toObject(data: any[]) {
+  return JSON.parse(
+    JSON.stringify(
+      data,
+      (key, value) => (typeof value === "bigint" ? value.toString() : value) // return everything else unchanged
+    )
+  );
+}
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -45,8 +62,18 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
   return Number(returnAmount) / (displayDecimals === truncDecimals ? atomic : 10 ** displayDecimals);
 };
 
+export function concatDataToUniqueKey(data: {
+  firstDenom: string;
+  secondDenom: string;
+  firstAmount: number;
+  secondAmount: number;
+  timestamp: number;
+}): string {
+  return `${data.timestamp}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
+}
+
 export function isoToTimestampNumber(time: string) {
-  return new Date(time).getTime() / 1000;
+  return Math.floor(new Date(time).getTime() / 1000);
 }
 
 export function renameKey(object: Object, oldKey: string, newKey: string): any {
@@ -143,6 +170,95 @@ function findPairAddress(pairInfos: PairInfoData[], infos: [AssetInfo, AssetInfo
 
 function calculatePriceByPool(offerPool: bigint, askPool: bigint, commissionRate: number): bigint {
   return (askPool - (offerPool * askPool) / (offerPool + BigInt(tenAmountInDecimalSix))) * BigInt(1 - commissionRate);
+}
+
+export function groupByTime(data: any[], timeframe?: number): any[] {
+  let ops: { [k: number]: any[] } = {};
+  for (const op of data) {
+    const roundedTime = roundTime(op.timestamp * 1000, timeframe || 60);
+    if (!ops[roundedTime]) {
+      ops[roundedTime] = [];
+    }
+    const newData: OraiDexType = {
+      ...op,
+      timestamp: roundedTime
+    };
+    ops[roundedTime].push(newData);
+  }
+
+  return Object.values(ops).flat();
+}
+
+/**
+ * round time when dividing & getting the integral part of the value
+ * @param timeIn time to be divided in ms
+ * @param timeframe the timeframe to split the time chunk. in seconds
+ * @returns new time in seconds
+ */
+export function roundTime(timeIn: number, timeframe: number): number {
+  const roundTo = timeframe * 1000;
+
+  const dateOut = (Math.floor(timeIn / roundTo) * roundTo) / 1000; // getTime() returns data in ms
+  return dateOut;
+}
+
+export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
+  if (pairs.find((pair) => JSON.stringify(pair.asset_infos) === JSON.stringify(assetInfos.reverse()))) return true;
+  return false;
+}
+
+/**
+ * This function will accumulate the lp amount and modify the parameter
+ * @param data - lp ops. This param will be mutated.
+ * @param poolInfos - pool info data for initial lp accumulation
+ */
+export function collectAccumulateLpData(
+  data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
+  poolInfos: PoolResponse[]
+) {
+  let accumulateData = {};
+  for (let op of data) {
+    const pool = poolInfos.find(
+      (info) =>
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.firstTokenDenom) &&
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.secondTokenDenom)
+    );
+    if (!pool) continue;
+    if (op.opType === "withdraw") {
+      op.firstTokenLp = BigInt(op.firstTokenLp) - BigInt(op.firstTokenLp) * 2n;
+      op.secondTokenLp = BigInt(op.secondTokenLp) - BigInt(op.secondTokenLp) * 2n;
+    }
+    const denom = `${op.firstTokenDenom} - ${op.secondTokenDenom}`;
+    if (!accumulateData[denom]) {
+      const initialFirstTokenAmount = parseInt(
+        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.firstTokenDenom).amount
+      );
+      const initialSecondTokenAmount = parseInt(
+        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.secondTokenDenom).amount
+      );
+      accumulateData[denom] = {
+        firstTokenAmount: BigInt(initialFirstTokenAmount) + BigInt(op.firstTokenLp),
+        secondTokenAmount: BigInt(initialSecondTokenAmount) + BigInt(op.secondTokenLp)
+      };
+      op.firstTokenLp = accumulateData[denom].firstTokenAmount;
+      op.secondTokenLp = accumulateData[denom].secondTokenAmount;
+      continue;
+    }
+    accumulateData[denom].firstTokenAmount += BigInt(op.firstTokenLp);
+    accumulateData[denom].secondTokenAmount += BigInt(op.secondTokenLp);
+    op.firstTokenLp = accumulateData[denom].firstTokenAmount;
+    op.secondTokenLp = accumulateData[denom].secondTokenAmount;
+  }
+
+  // convert bigint to number so we can store them into the db without error
+}
+
+export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
+  let newOps: OraiDexType[] = [];
+  for (let op of ops) {
+    if (!newOps.some((newOp) => newOp.uniqueKey === op.uniqueKey)) newOps.push(op);
+  }
+  return newOps;
 }
 
 // /**
