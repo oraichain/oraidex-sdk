@@ -7,35 +7,15 @@ import { simulateSwapPriceWithUsdt } from "./query";
 import "dotenv/config";
 
 const start = async () => {
-  const duckdb = await DuckDb.create("oraidex-sync-data-staging");
+  const duckdb = await DuckDb.create("oraidex-sync-data-v1.2");
   const tf = 86400;
   const firstTokenResult = await duckdb.conn.all(
-    `SELECT (timestamp // ?) as time,
-        sum(firstTokenLp) as totalLp,
-        any_value(txheight) as height
-        from lp_ops_data
-        where firstTokenDenom = 'orai'
-        group by time
-        order by time`,
-    tf
+    `SELECT * 
+        from swap_ops_data
+        where timestamp >= 1690168508 and timestamp <= 1690169408 and askDenom = 'ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78'
+        order by timestamp`
   );
-  console.log("first result: ", firstTokenResult);
-  const secondTokenResult = await duckdb.conn.all(
-    `SELECT (timestamp // ?) as time,
-        sum(secondTokenLp) as totalLp,
-        any_value(txheight) as height
-        from lp_ops_data
-        where secondTokenDenom = 'orai'
-        group by time
-        order by time`,
-    tf
-  );
-  console.log("second result: ", secondTokenResult);
-  const result = [...firstTokenResult, ...secondTokenResult];
-  result.forEach((item) => {
-    item.timestamp = item.timestamp * tf;
-  });
-  console.log(result);
+  console.log(firstTokenResult);
 
   // let swapTokenMap = [];
   // const baseVolume = 1000000000;

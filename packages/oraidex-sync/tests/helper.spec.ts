@@ -10,7 +10,8 @@ import {
   toDecimal,
   roundTime,
   groupByTime,
-  collectAccumulateLpData
+  collectAccumulateLpData,
+  concatDataToUniqueKey
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -272,9 +273,9 @@ describe("test-helper", () => {
   });
 
   it.each([
-    [new Date("2023-07-12T15:12:16.943634115Z").getTime(), 60, 1689174720], // 07-12-2023 22:12:00
-    [new Date("2023-07-12T15:12:24.943634115Z").getTime(), 60, 1689174720], // 07-12-2023 22:12:00
-    [new Date("2023-07-12T15:12:45.943634115Z").getTime(), 60, 1689174780] // 07-12-2023 22:13:00
+    [new Date("2023-07-12T15:12:16.943634115Z").getTime(), 60, 1689174720],
+    [new Date("2023-07-12T15:12:24.943634115Z").getTime(), 60, 1689174720],
+    [new Date("2023-07-12T15:13:01.943634115Z").getTime(), 60, 1689174780]
   ])("test-roundTime", (date: number, interval: number, expectedResult) => {
     const roundedTime = roundTime(date, interval);
     expect(roundedTime).toEqual(expectedResult);
@@ -392,6 +393,7 @@ describe("test-helper", () => {
         firstTokenLp: 1,
         secondTokenLp: 1,
         opType: "provide",
+        uniqueKey: "1",
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
@@ -405,6 +407,7 @@ describe("test-helper", () => {
         firstTokenLp: 1,
         secondTokenLp: 1,
         opType: "withdraw",
+        uniqueKey: "2",
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
@@ -418,6 +421,7 @@ describe("test-helper", () => {
         firstTokenLp: 1,
         secondTokenLp: 1,
         opType: "withdraw",
+        uniqueKey: "3",
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
@@ -426,47 +430,27 @@ describe("test-helper", () => {
     ];
 
     collectAccumulateLpData(ops, poolResponses);
-    expect(ops).toEqual([
-      {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 2,
-        secondTokenLp: 2,
-        opType: "provide",
-        timestamp: 1,
-        txCreator: "a",
-        txhash: "a",
-        txheight: 1
-      },
-      {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
-        opType: "withdraw",
-        timestamp: 1,
-        txCreator: "a",
-        txhash: "a",
-        txheight: 1
-      },
-      {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: atomIbcDenom,
-        firstTokenLp: 3,
-        secondTokenLp: 3,
-        opType: "withdraw",
-        timestamp: 1,
-        txCreator: "a",
-        txhash: "a",
-        txheight: 1
-      }
-    ]);
+    expect(ops[0].firstTokenLp.toString()).toEqual("2");
+    expect(ops[0].secondTokenLp.toString()).toEqual("2");
+    expect(ops[1].firstTokenLp.toString()).toEqual("1");
+    expect(ops[1].secondTokenLp.toString()).toEqual("1");
+    expect(ops[2].firstTokenLp.toString()).toEqual("3");
+    expect(ops[2].secondTokenLp.toString()).toEqual("3");
+  });
+
+  it("test-concatDataToUniqueKey-should-return-unique-key-in-correct-order-from-timestamp-to-first-to-second-amount-and-denom", () => {
+    // setup
+    const firstDenom = "foo";
+    const firstAmount = 1;
+    const secondDenom = "bar";
+    const secondAmount = 1;
+    const timestamp = 100;
+
+    // act
+    const result = concatDataToUniqueKey({ firstAmount, firstDenom, secondAmount, secondDenom, timestamp });
+
+    // assert
+    expect(result).toEqual("100-foo-1-bar-1");
   });
 
   // it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([

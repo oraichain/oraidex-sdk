@@ -1,5 +1,6 @@
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
+import { ProvideLiquidityOperationData } from "../src/types";
 
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
@@ -24,6 +25,7 @@ describe("test-duckdb", () => {
           commissionAmount: 0,
           offerAmount: 10000,
           offerDenom: "atom",
+          uniqueKey: "1",
           returnAmount: 100,
           spreadAmount: 0,
           taxAmount: 0,
@@ -36,6 +38,7 @@ describe("test-duckdb", () => {
           commissionAmount: 0,
           offerAmount: 10,
           offerDenom: "atom",
+          uniqueKey: "2",
           returnAmount: 1,
           spreadAmount: 0,
           taxAmount: 0,
@@ -48,6 +51,7 @@ describe("test-duckdb", () => {
           commissionAmount: 0,
           offerAmount: 10,
           offerDenom: "orai",
+          uniqueKey: "3",
           returnAmount: 1,
           spreadAmount: 0,
           taxAmount: 0,
@@ -60,6 +64,7 @@ describe("test-duckdb", () => {
           commissionAmount: 0,
           offerAmount: 10,
           offerDenom: "orai",
+          uniqueKey: "4",
           returnAmount: 1,
           spreadAmount: 0,
           taxAmount: 0,
@@ -83,6 +88,7 @@ describe("test-duckdb", () => {
         commissionAmount: 0,
         offerAmount: 10000,
         offerDenom: "atom",
+        uniqueKey: "1",
         returnAmount: 100,
         spreadAmount: 0,
         taxAmount: 0,
@@ -95,6 +101,7 @@ describe("test-duckdb", () => {
         commissionAmount: 0,
         offerAmount: 10,
         offerDenom: "orai",
+        uniqueKey: "2",
         returnAmount: 1,
         spreadAmount: 0,
         taxAmount: 0,
@@ -107,6 +114,7 @@ describe("test-duckdb", () => {
         commissionAmount: 0,
         offerAmount: 100000,
         offerDenom: "atom",
+        uniqueKey: "3",
         returnAmount: 10000,
         spreadAmount: 0,
         taxAmount: 0,
@@ -119,6 +127,7 @@ describe("test-duckdb", () => {
         commissionAmount: 0,
         offerAmount: 1000000,
         offerDenom: "orai",
+        uniqueKey: "4",
         returnAmount: 10000,
         spreadAmount: 0,
         taxAmount: 0,
@@ -160,6 +169,7 @@ describe("test-duckdb", () => {
           firstTokenAmount: "abcd" as any,
           firstTokenLp: 0,
           firstTokenDenom: "orai",
+          uniqueKey: "1",
           secondTokenAmount: 2,
           secondTokenLp: 0,
           secondTokenDenom: "atom",
@@ -177,12 +187,13 @@ describe("test-duckdb", () => {
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
     // act & test
     const newDate = 1689610068000 / 1000;
-    await duckDb.insertLpOps([
+    const data: ProvideLiquidityOperationData[] = [
       {
         firstTokenAmount: 1,
         firstTokenDenom: "orai",
         firstTokenLp: 0,
         opType: "withdraw",
+        uniqueKey: "2",
         secondTokenAmount: 2,
         secondTokenDenom: "atom",
         secondTokenLp: 0,
@@ -191,21 +202,44 @@ describe("test-duckdb", () => {
         txhash: "foo",
         txheight: 1
       }
-    ]);
+    ];
+    await duckDb.insertLpOps(data);
     let queryResult = await duckDb.queryLpOps();
     queryResult[0].timestamp = queryResult[0].timestamp;
-    expect(queryResult[0]).toEqual({
-      txhash: "foo",
-      timestamp: newDate,
-      firstTokenAmount: 1,
-      firstTokenLp: 0,
-      firstTokenDenom: "orai",
-      secondTokenAmount: 2,
-      secondTokenLp: 0,
-      secondTokenDenom: "atom",
-      txCreator: "foobar",
-      opType: "withdraw",
-      txheight: 1
-    });
+    expect(queryResult[0]).toEqual(data[0]);
+  });
+
+  it("test-insert-same-unique-key-should-replace-data", async () => {
+    // setup
+    duckDb = await DuckDb.create(":memory:");
+    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
+    const currentTimeStamp = Math.round(new Date().getTime() / 1000);
+    const data: ProvideLiquidityOperationData[] = [
+      {
+        firstTokenAmount: 1,
+        firstTokenDenom: "orai",
+        firstTokenLp: 0,
+        opType: "withdraw",
+        uniqueKey: "2",
+        secondTokenAmount: 2,
+        secondTokenDenom: "atom",
+        secondTokenLp: 0,
+        timestamp: currentTimeStamp,
+        txCreator: "foobar",
+        txhash: "foo",
+        txheight: 1
+      }
+    ];
+    await duckDb.insertLpOps(data);
+
+    let queryResult = await duckDb.queryLpOps();
+    expect(queryResult[0]).toEqual(data[0]);
+
+    // now we insert another one. Data should be the same
+    await duckDb.insertLpOps(data);
+
+    queryResult = await duckDb.queryLpOps();
+    expect(queryResult.length).toEqual(1);
+    expect(queryResult[0]).toEqual(data[0]);
   });
 });

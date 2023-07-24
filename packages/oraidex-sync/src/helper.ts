@@ -61,8 +61,18 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
   return Number(returnAmount) / (displayDecimals === truncDecimals ? atomic : 10 ** displayDecimals);
 };
 
+export function concatDataToUniqueKey(data: {
+  firstDenom: string;
+  secondDenom: string;
+  firstAmount: number;
+  secondAmount: number;
+  timestamp: number;
+}): string {
+  return `${data.timestamp}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
+}
+
 export function isoToTimestampNumber(time: string) {
-  return new Date(time).getTime() / 1000;
+  return Math.floor(new Date(time).getTime() / 1000);
 }
 
 export function renameKey(object: Object, oldKey: string, newKey: string): any {

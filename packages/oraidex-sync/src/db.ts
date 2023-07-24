@@ -33,9 +33,7 @@ export class DuckDb {
     const tableFile = fileName ?? `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-    const query = replace
-      ? `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`
-      : `INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`;
+    const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
     await this.conn.run(query, tableFile);
     await fs.promises.unlink(tableFile);
   }
@@ -62,6 +60,7 @@ export class DuckDb {
         commissionAmount UBIGINT,
         offerAmount UBIGINT,
         offerDenom VARCHAR, 
+        uniqueKey VARCHAR UNIQUE,
         returnAmount UBIGINT, 
         spreadAmount UBIGINT, 
         taxAmount UBIGINT, 
@@ -89,6 +88,7 @@ export class DuckDb {
         firstTokenDenom VARCHAR, 
         firstTokenLp UBIGINT, 
         opType LPOPTYPE, 
+        uniqueKey VARCHAR UNIQUE,
         secondTokenAmount UBIGINT, 
         secondTokenDenom VARCHAR, 
         secondTokenLp UBIGINT,

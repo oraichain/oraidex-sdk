@@ -15,6 +15,7 @@ export type SwapOperationData = {
   commissionAmount: number;
   offerAmount: number;
   offerDenom: string;
+  uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
   returnAmount: number;
   spreadAmount: number;
   taxAmount: number;
@@ -61,6 +62,7 @@ export type ProvideLiquidityOperationData = {
   secondTokenDenom: string;
   secondTokenLp: number | bigint;
   opType: LiquidityOpType;
+  uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique
   txCreator: string;
 } & BasicTxData;
 
