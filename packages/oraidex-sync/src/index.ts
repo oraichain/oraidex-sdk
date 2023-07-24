@@ -117,6 +117,9 @@ class WriteOrders extends WriteData {
       //   this.firstWrite = false;
       // }
       const { txs, offset: newOffset } = chunk as Txs;
+      const currentOffset = await this.duckDb.loadHeightSnapshot();
+      // edge case. If no new block has been found, then we skip processing to prevent duplication handling
+      if (currentOffset === newOffset) return true;
       let result = parseTxs(txs);
 
       // accumulate liquidity pool amount
