@@ -214,7 +214,7 @@ describe("test-duckdb", () => {
     duckDb = await DuckDb.create(":memory:");
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
     const currentTimeStamp = Math.round(new Date().getTime() / 1000);
-    const data: ProvideLiquidityOperationData[] = [
+    let data: ProvideLiquidityOperationData[] = [
       {
         firstTokenAmount: 1,
         firstTokenDenom: "orai",
@@ -241,5 +241,11 @@ describe("test-duckdb", () => {
     queryResult = await duckDb.queryLpOps();
     expect(queryResult.length).toEqual(1);
     expect(queryResult[0]).toEqual(data[0]);
+
+    // when insert a different unique key, then the length increases to 2
+    data[0].uniqueKey = "3";
+    await duckDb.insertLpOps(data);
+    queryResult = await duckDb.queryLpOps();
+    expect(queryResult.length).toEqual(2);
   });
 });
