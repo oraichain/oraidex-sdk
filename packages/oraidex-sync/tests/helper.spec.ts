@@ -1,6 +1,5 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
-  calculatePrefixSum,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
   findPairAddress,
@@ -12,7 +11,11 @@ import {
   groupByTime,
   collectAccumulateLpData,
   concatDataToUniqueKey,
-  removeOpsDuplication
+  removeOpsDuplication,
+  calculateOhlcv,
+  calculatePriceFromSwapOp,
+  getSwapDirection,
+  findPairIndexFromDenoms
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -29,7 +32,7 @@ import {
   usdcCw20Address,
   usdtCw20Address
 } from "../src/constants";
-import { PairInfoData, ProvideLiquidityOperationData } from "../src/types";
+import { PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 describe("test-helper", () => {
@@ -140,27 +143,6 @@ describe("test-helper", () => {
 
     // assert
     expect(result.length).toEqual(expectedListLength);
-  });
-
-  it("test-calculatePrefixSum", () => {
-    const data = [
-      {
-        denom: "foo",
-        amount: 100
-      },
-      { denom: "foo", amount: 10 },
-      { denom: "bar", amount: 5 },
-      { denom: "bar", amount: -1 },
-      { denom: "hello", amount: 5 }
-    ];
-    const result = calculatePrefixSum(1, data);
-    expect(result).toEqual([
-      { denom: "foo", amount: 101 },
-      { denom: "foo", amount: 111 },
-      { denom: "bar", amount: 6 },
-      { denom: "bar", amount: 5 },
-      { denom: "hello", amount: 6 }
-    ]);
   });
 
   it("test-extractUniqueAndFlatten-extracting-unique-items-in-pair-mapping", () => {
@@ -532,4 +514,85 @@ describe("test-helper", () => {
   //   expect(result.target).toEqual(expectedInfo);
   //   expect(result.baseIndex).toEqual(expectedBase);
   // });
+
+  it.each([
+    [
+      [
+        {
+          timestamp: 60000,
+          pair: "orai-usdt",
+          price: 1,
+          volume: BigInt(100)
+        },
+        {
+          timestamp: 60000,
+          pair: "orai-usdt",
+          price: 2,
+          volume: BigInt(100)
+        }
+      ],
+      {
+        open: 1,
+        close: 2,
+        low: 1,
+        high: 2,
+        volume: BigInt(200),
+        timestamp: 1,
+        pair: "orai-usdt"
+      }
+    ]
+  ])("test-calculateOhlcv", (orders, expectedOhlcv) => {
+    const ohlcv = calculateOhlcv(orders);
+    expect(ohlcv).toEqual(expectedOhlcv);
+  });
+
+  it.each([
+    ["Buy" as SwapDirection, 2],
+    ["Sell" as SwapDirection, 0.5]
+  ])("test-calculatePriceFromOrder", (direction: SwapDirection, expectedPrice: number) => {
+    const swapOp = {
+      offerAmount: 1,
+      offerDenom: ORAI,
+      returnAmount: 1,
+      askDenom: usdtCw20Address,
+      direction,
+      uniqueKey: "1",
+      timestamp: 1,
+      txCreator: "a",
+      txhash: "a",
+      txheight: 1,
+      spreadAmount: 1,
+      taxAmount: 1,
+      commissionAmount: 1
+    } as SwapOperationData;
+    // first case undefined, return 0
+    expect(calculatePriceFromSwapOp(undefined as any)).toEqual(0);
+    // other cases
+    const price = calculatePriceFromSwapOp(swapOp);
+    expect(price).toEqual(expectedPrice);
+  });
+
+  it.each([
+    [usdtCw20Address, "orai", "Buy" as SwapDirection],
+    ["orai", usdtCw20Address, "Sell" as SwapDirection]
+  ])("test-getSwapDirection", (offerDenom: string, askDenom: string, expectedDirection: SwapDirection) => {
+    // execute
+    // throw error case when offer & ask not in pair
+    expect(getSwapDirection("foo", "bar")).toThrow();
+    const result = getSwapDirection(offerDenom, askDenom);
+    expect(result).toEqual(expectedDirection);
+  });
+
+  it.each([
+    ["orai", usdtCw20Address, 4],
+    [usdtCw20Address, "orai", 4],
+    ["orai", airiCw20Adress, 0],
+    ["orai", "foo", -1]
+  ])(
+    "test-findPairIndexFromDenoms-given-%s-and-%s-should-return-index-%d-from-pair-list",
+    (offerDenom: string, askDenom: string, expectedIndex: number) => {
+      const result = findPairIndexFromDenoms(offerDenom, askDenom);
+      expect(result).toEqual(expectedIndex);
+    }
+  );
 });

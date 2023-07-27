@@ -1,12 +1,12 @@
 import { Database, Connection } from "duckdb-async";
 import {
+  Ohlcv,
   PairInfoData,
   PriceInfo,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
   VolumeData,
-  VolumeInfo,
   WithdrawLiquidityOperationData
 } from "./types";
 import fs, { rename } from "fs";
@@ -54,10 +54,17 @@ export class DuckDb {
 
   // swap operation table handling
   async createSwapOpsTable() {
+    try {
+      await this.conn.all("select enum_range(NULL::directionType);");
+    } catch (error) {
+      // if error it means the enum does not exist => create new
+      await this.conn.exec("CREATE TYPE directionType AS ENUM ('Buy','Sell');");
+    }
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS swap_ops_data (
         askDenom VARCHAR, 
         commissionAmount UBIGINT,
+        direction directionType,
         offerAmount UBIGINT,
         offerDenom VARCHAR, 
         uniqueKey VARCHAR UNIQUE,
@@ -278,26 +285,29 @@ export class DuckDb {
     return result as TotalLiquidity[];
   }
 
-  async createVolumeInfo() {
+  async createSwapOhlcv() {
     await this.conn.exec(
-      `CREATE TABLE IF NOT EXISTS volume_info (
-        denom VARCHAR,
-        timestamp UINTEGER,
-        txheight UINTEGER,
-        price DOUBLE,
-        volume UBIGINT)
+      `CREATE TABLE IF NOT EXISTS swap_ohlcv (
+        timestamp uinteger,
+        pair varchar,
+        price double,
+        volume ubigint,
+        open double,
+        close double,
+        low double,
+        high double)
         `
     );
   }
 
-  async insertVolumeInfo(volumeInfos: VolumeInfo[]) {
-    await this.insertBulkData(volumeInfos, "volume_info");
+  async insertOhlcv(ohlcv: Ohlcv[]) {
+    await this.insertBulkData(ohlcv, "swap_ohlcv");
   }
 
   async pivotVolumeRange(startTime: number, endTime: number) {
     let volumeInfos = await this.conn.all(
       `
-      pivot (select * from volume_info
+      pivot (select * from swap_ohlcv
       where timestamp >= ${startTime}
       and timestamp <= ${endTime} 
       order by timestamp) 

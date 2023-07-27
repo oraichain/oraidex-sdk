@@ -4,6 +4,8 @@ import { Addr, Asset, AssetInfo, Binary, Decimal, SwapOperation, Uint128 } from 
 import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 
+export type SwapDirection = "Buy" | "Sell";
+
 export type BasicTxData = {
   timestamp: number;
   txhash: string;
@@ -13,6 +15,7 @@ export type BasicTxData = {
 export type SwapOperationData = {
   askDenom: string; // eg: orai, orai1234...
   commissionAmount: number;
+  direction: SwapDirection;
   offerAmount: number;
   offerDenom: string;
   uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
@@ -73,7 +76,7 @@ export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | Wi
 export type TxAnlysisResult = {
   // transactions: Tx[];
   swapOpsData: SwapOperationData[];
-  volumeInfos: VolumeInfo[];
+  ohlcv: Ohlcv[];
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
@@ -127,11 +130,6 @@ export type InitialData = {
   blockHeader: BlockHeader;
 };
 
-export type PrefixSumHandlingData = {
-  denom: string;
-  amount: number;
-};
-
 export type TickerInfo = {
   base_currency: string;
   target_currency: string;
@@ -150,14 +148,6 @@ export type TotalLiquidity = {
   height: number;
 };
 
-export type VolumeInfo = {
-  denom: string;
-  timestamp: number;
-  txheight: number;
-  price: number;
-  volume: number;
-};
-
 export type Env = {
   PORT: number;
   RPC_URL: string;
@@ -171,3 +161,17 @@ export type Env = {
   DUCKDB_FILENAME: string;
   INITIAL_SYNC_HEIGHT: number;
 };
+
+export interface TradeItem {
+  timestamp: number;
+  pair: string;
+  price?: number;
+  volume: bigint;
+}
+
+export interface Ohlcv extends TradeItem {
+  open: number;
+  close: number;
+  low: number;
+  high: number;
+}

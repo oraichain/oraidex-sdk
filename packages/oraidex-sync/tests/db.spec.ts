@@ -23,6 +23,7 @@ describe("test-duckdb", () => {
         {
           askDenom: "orai",
           commissionAmount: 0,
+          direction: "Buy",
           offerAmount: 10000,
           offerDenom: "atom",
           uniqueKey: "1",
@@ -36,6 +37,7 @@ describe("test-duckdb", () => {
         {
           askDenom: "orai",
           commissionAmount: 0,
+          direction: "Buy",
           offerAmount: 10,
           offerDenom: "atom",
           uniqueKey: "2",
@@ -49,6 +51,7 @@ describe("test-duckdb", () => {
         {
           askDenom: "atom",
           commissionAmount: 0,
+          direction: "Sell",
           offerAmount: 10,
           offerDenom: "orai",
           uniqueKey: "3",
@@ -62,6 +65,7 @@ describe("test-duckdb", () => {
         {
           askDenom: "atom",
           commissionAmount: 0,
+          direction: "Sell",
           offerAmount: 10,
           offerDenom: "orai",
           uniqueKey: "4",
@@ -86,6 +90,7 @@ describe("test-duckdb", () => {
       {
         askDenom: "orai",
         commissionAmount: 0,
+        direction: "Buy",
         offerAmount: 10000,
         offerDenom: "atom",
         uniqueKey: "1",
@@ -99,6 +104,7 @@ describe("test-duckdb", () => {
       {
         askDenom: "atom",
         commissionAmount: 0,
+        direction: "Sell",
         offerAmount: 10,
         offerDenom: "orai",
         uniqueKey: "2",
@@ -112,6 +118,7 @@ describe("test-duckdb", () => {
       {
         askDenom: "orai",
         commissionAmount: 0,
+        direction: "Buy",
         offerAmount: 100000,
         offerDenom: "atom",
         uniqueKey: "3",
@@ -125,6 +132,7 @@ describe("test-duckdb", () => {
       {
         askDenom: "atom",
         commissionAmount: 0,
+        direction: "Sell",
         offerAmount: 1000000,
         offerDenom: "orai",
         uniqueKey: "4",

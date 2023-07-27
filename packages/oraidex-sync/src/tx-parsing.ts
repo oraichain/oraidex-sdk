@@ -11,17 +11,16 @@ import {
   MsgType,
   OraiswapPairCw20HookMsg,
   OraiswapRouterCw20HookMsg,
-  PrefixSumHandlingData,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
-  VolumeInfo,
   WithdrawLiquidityOperationData
 } from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
 import {
-  calculatePrefixSum,
+  buildOhlcv,
   concatDataToUniqueKey,
+  getSwapDirection,
   groupByTime,
   isAssetInfoPairReverse,
   isoToTimestampNumber,
@@ -100,6 +99,7 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
     swapData.push({
       askDenom: askDenoms[i],
       commissionAmount: parseInt(commissionAmounts[i]),
+      direction: getSwapDirection(offerDenoms[i], askDenoms[i]),
       offerAmount,
       offerDenom: offerDenoms[i],
       uniqueKey: concatDataToUniqueKey({
@@ -277,10 +277,11 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
+  swapOpsData = removeOpsDuplication(swapOpsData) as SwapOperationData[];
   return {
     // transactions: txs,
-    swapOpsData: groupByTime(removeOpsDuplication(swapOpsData)) as SwapOperationData[],
-    volumeInfos: [],
+    swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
+    ohlcv: buildOhlcv(swapOpsData),
     accountTxs,
     provideLiquidityOpsData: groupByTime(
       removeOpsDuplication(provideLiquidityOpsData)

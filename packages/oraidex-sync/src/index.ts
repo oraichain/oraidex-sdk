@@ -2,30 +2,19 @@ import "dotenv/config";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import { DuckDb } from "./db";
 import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
-import { pairs } from "./pairs";
-import {
-  Asset,
-  AssetInfo,
-  CosmWasmClient,
-  OraiswapFactoryQueryClient,
-  OraiswapRouterQueryClient,
-  PairInfo
-} from "@oraichain/oraidex-contracts-sdk";
+import { CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   ProvideLiquidityOperationData,
-  SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData,
   InitialData,
   PairInfoData,
-  Env,
-  VolumeInfo,
-  PrefixSumHandlingData
+  Env
 } from "./types";
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
-import { calculatePrefixSum, collectAccumulateLpData, parseAssetInfoOnlyDenom } from "./helper";
+import { getAllPairInfos, getPoolInfos } from "./query";
+import { collectAccumulateLpData } from "./helper";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -34,27 +23,13 @@ class WriteOrders extends WriteData {
     this.firstWrite = true;
   }
 
-  private async insertSwapOps(ops: SwapOperationData[]) {
-    await this.duckDb.insertSwapOps(ops);
-  }
-
-  private async insertLiquidityOps(ops: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]) {
-    await this.duckDb.insertLpOps(ops);
-  }
-
   private async insertParsedTxs(txs: TxAnlysisResult) {
     // insert swap ops
     await Promise.all([
-      this.insertSwapOps(txs.swapOpsData),
-      this.insertLiquidityOps(txs.provideLiquidityOpsData),
-      this.duckDb.insertVolumeInfo(txs.volumeInfos)
+      this.duckDb.insertSwapOps(txs.swapOpsData),
+      this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
+      this.duckDb.insertOhlcv(txs.ohlcv)
     ]);
-    // has to split this out because they are sharing the same table, will clash when inserting
-    await this.insertLiquidityOps(txs.withdrawLiquidityOpsData);
-  }
-
-  private async queryLpOps(): Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]> {
-    return this.duckDb.queryLpOps() as Promise<ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]>;
   }
 
   private async getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
@@ -79,22 +54,6 @@ class WriteOrders extends WriteData {
     );
     collectAccumulateLpData(data, poolInfos);
   }
-
-  // private insertVolumeInfos(
-  //   ...data: { denom: string; timestamp: number; txheight: number; amount: number }[]
-  // ): VolumeInfo[] {
-  //   let volumeInfos: VolumeInfo[] = [];
-  //   data.forEach((op) => {
-  //     volumeInfos.push({
-  //       denom: op.denom,
-  //       timestamp: op.timestamp,
-  //       txheight: op.txheight,
-  //       volume: op.amount,
-  //       price: 1
-  //     });
-  //   });
-  //   return volumeInfos;
-  // }
 
   async process(chunk: any): Promise<boolean> {
     try {
@@ -133,7 +92,7 @@ class WriteOrders extends WriteData {
       // hash to be promise all because if inserting height pass and txs fail then we will have duplications
       await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
 
-      const lpOps = await this.queryLpOps();
+      const lpOps = await this.duckDb.queryLpOps();
       const swapOpsCount = await this.duckDb.querySwapOps();
       console.log("lp ops: ", lpOps.length);
       console.log("swap ops: ", swapOpsCount);
@@ -170,18 +129,6 @@ class OraiDexSync {
     return getAllPairInfos(firstFactoryClient, secondFactoryClient);
   }
 
-  private async simulateSwapPrice(info: AssetInfo, wantedHeight?: number): Promise<Asset> {
-    // adjust the query height to get data from the past
-    this.cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-    const routerContract = new OraiswapRouterQueryClient(
-      this.cosmwasmClient,
-      this.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-    );
-    const data = await simulateSwapPriceWithUsdt(info, routerContract);
-    this.cosmwasmClient.setQueryClientWithHeight();
-    return data;
-  }
-
   private async updateLatestPairInfos() {
     const pairInfos = await this.getAllPairInfos();
     await this.duckDb.insertPairInfos(
@@ -206,8 +153,8 @@ class OraiDexSync {
         this.duckDb.createLiquidityOpsTable(),
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable(),
-        this.duckDb.createPriceInfoTable(),
-        this.duckDb.createVolumeInfo()
+        // this.duckDb.createPriceInfoTable(),
+        this.duckDb.createSwapOhlcv()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
