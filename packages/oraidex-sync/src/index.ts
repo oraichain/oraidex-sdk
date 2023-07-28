@@ -27,9 +27,10 @@ class WriteOrders extends WriteData {
     // insert swap ops
     await Promise.all([
       this.duckDb.insertSwapOps(txs.swapOpsData),
-      this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
+      this.duckDb.insertLpOps(txs.provideLiquidityOpsData),
       this.duckDb.insertOhlcv(txs.ohlcv)
     ]);
+    await this.duckDb.insertLpOps(txs.withdrawLiquidityOpsData);
   }
 
   private async getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {

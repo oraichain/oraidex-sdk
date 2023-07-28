@@ -8,13 +8,12 @@ import {
   ProvideLiquidityOperationData,
   SwapDirection,
   SwapOperationData,
-  TradeItem,
   WithdrawLiquidityOperationData
 } from "./types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { minBy, maxBy } from "lodash";
 
-export function toObject(data: any[]) {
+export function toObject(data: any) {
   return JSON.parse(
     JSON.stringify(
       data,
@@ -70,9 +69,13 @@ export function concatDataToUniqueKey(data: {
   secondDenom: string;
   firstAmount: number;
   secondAmount: number;
-  timestamp: number;
+  txheight: number;
 }): string {
-  return `${data.timestamp}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
+  return `${data.txheight}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
+}
+
+export function concatOhlcvToUniqueKey(data: { timestamp: number; pair: string; volume: bigint }): string {
+  return `${data.timestamp}-${data.pair}-${data.volume.toString()}`;
 }
 
 export function isoToTimestampNumber(time: string) {
@@ -161,7 +164,7 @@ function calculatePriceByPool(offerPool: bigint, askPool: bigint, commissionRate
   return (askPool - (offerPool * askPool) / (offerPool + BigInt(tenAmountInDecimalSix))) * BigInt(1 - commissionRate);
 }
 
-export function groupByTime(data: any[], timeframe?: number): any[] {
+export function groupDataByTime(data: any[], timeframe?: number): { [key: string]: any[] } {
   let ops: { [k: number]: any[] } = {};
   for (const op of data) {
     const roundedTime = roundTime(op.timestamp * 1000, timeframe || 60); // op timestamp is sec
@@ -175,7 +178,11 @@ export function groupByTime(data: any[], timeframe?: number): any[] {
     ops[roundedTime].push(newData);
   }
 
-  return Object.values(ops).flat();
+  return ops;
+}
+
+export function groupByTime(data: any[], timeframe?: number): any[] {
+  return Object.values(groupDataByTime(data, timeframe)).flat();
 }
 
 /**
@@ -259,7 +266,8 @@ export function groupSwapOpsByPair(ops: SwapOperationData[]): { [key: string]: S
   for (const op of ops) {
     const pairIndex = findPairIndexFromDenoms(op.offerDenom, op.askDenom);
     if (pairIndex === -1) continue;
-    const pair = JSON.stringify(pairs[pairIndex].asset_infos);
+    const assetInfos = pairsOnlyDenom[pairIndex].asset_infos;
+    const pair = `${assetInfos[0]}-${assetInfos[1]}`;
     if (!opsByPair[pair]) {
       opsByPair[pair] = [];
     }
@@ -268,33 +276,36 @@ export function groupSwapOpsByPair(ops: SwapOperationData[]): { [key: string]: S
   return opsByPair;
 }
 
-export function calculateOhlcv(orders: TradeItem[]): Ohlcv {
-  const timestamp = orders[0].timestamp;
-  const pair = orders[0].pair;
-  const open = orders[0].price;
-  const close = orders[orders.length - 1].price;
-  const low = minBy(orders, "price").price;
-  const high = maxBy(orders, "price").price;
-  const volume = orders.reduce((acc, currentValue) => {
-    return acc + currentValue.volume;
-  }, BigInt(0));
+export function calculateSwapOhlcv(ops: SwapOperationData[], pair: string): Ohlcv {
+  const timestamp = ops[0].timestamp;
+  const prices = ops.map((op) => calculatePriceFromSwapOp(op));
+  const open = prices[0];
+  const close = prices[ops.length - 1];
+  const low = minBy(prices);
+  const high = maxBy(prices);
+  const volume = ops.reduce((acc, currentValue) => {
+    return acc + currentValue.direction === "Buy"
+      ? BigInt(currentValue.offerAmount)
+      : BigInt(currentValue.returnAmount);
+  }, 0n);
 
   return {
+    uniqueKey: concatOhlcvToUniqueKey({ timestamp, pair, volume }),
+    timestamp,
+    pair,
+    volume,
     open,
     close,
     low,
-    high,
-    volume,
-    timestamp,
-    pair
+    high
   };
 }
 
 export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
   let ohlcv: Ohlcv[] = [];
-  for (const [_, opsByPair] of Object.entries(groupSwapOpsByPair(ops))) {
-    const orderByTimes = groupByTime(opsByPair);
-    const ticks = Object.values(orderByTimes).map((value) => calculateOhlcv(value));
+  for (const [pair, opsByPair] of Object.entries(groupSwapOpsByPair(ops))) {
+    const opsByTime = groupDataByTime(opsByPair);
+    const ticks = Object.values(opsByTime).map((value) => calculateSwapOhlcv(value, pair));
     ohlcv.push(...ticks);
   }
   return ohlcv;
@@ -310,11 +321,11 @@ export function calculatePriceFromSwapOp(op: SwapOperationData): number {
 }
 
 export function getSwapDirection(offerDenom: string, askDenom: string): SwapDirection {
-  const pair = pairsOnlyDenom.find(
-    (pair) => pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom)
-  );
+  const pair = pairsOnlyDenom.find((pair) => {
+    return pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom);
+  });
   if (!pair) {
-    throw Error("Cannot find asset infos in list of pairs");
+    throw new Error("Cannot find asset infos in list of pairs");
   }
   const assetInfos = pair.asset_infos;
   // use quote denom as offer then its buy. Quote denom in pairs is the 2nd index in the array

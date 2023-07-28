@@ -288,9 +288,9 @@ export class DuckDb {
   async createSwapOhlcv() {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS swap_ohlcv (
+        uniqueKey varchar UNIQUE,
         timestamp uinteger,
         pair varchar,
-        price double,
         volume ubigint,
         open double,
         close double,
@@ -304,23 +304,31 @@ export class DuckDb {
     await this.insertBulkData(ohlcv, "swap_ohlcv");
   }
 
-  async pivotVolumeRange(startTime: number, endTime: number) {
-    let volumeInfos = await this.conn.all(
+  async getOhlcvCandles(pair: string, tf: number, startTime: number, endTime: number): Promise<Ohlcv[]> {
+    // tf should be in seconds
+    const result = await this.conn.all(
       `
-      pivot (select * from swap_ohlcv
-      where timestamp >= ${startTime}
-      and timestamp <= ${endTime} 
-      order by timestamp) 
-      on denom 
-      using sum(volume) 
-      group by timestamp, txheight 
-      order by timestamp`
+        SELECT timestamp // ? as time,
+                sum(volume) as volume,
+                first(open) as open,
+                last(close) as close,
+                min(low) as low,
+                max(high) as high
+        FROM swap_ohlcv
+        WHERE pair = ? AND timestamp >= ? AND timestamp <= ?
+        GROUP BY time
+        ORDER BY time
+    `,
+      +tf,
+      pair,
+      startTime,
+      endTime
     );
-    for (let volInfo of volumeInfos) {
-      for (const key in volInfo) {
-        if (volInfo[key] === null) volInfo[key] = 0;
-      }
-    }
-    return volumeInfos;
+
+    // get second
+    result.forEach((item) => {
+      item.time *= Number(tf);
+    });
+    return result as Ohlcv[];
   }
 }

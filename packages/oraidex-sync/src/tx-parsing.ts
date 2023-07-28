@@ -103,7 +103,7 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
       offerAmount,
       offerDenom: offerDenoms[i],
       uniqueKey: concatDataToUniqueKey({
-        timestamp: txData.timestamp,
+        txheight: txData.txheight,
         firstAmount: offerAmount,
         firstDenom: offerDenoms[i],
         secondAmount: returnAmount,
@@ -145,7 +145,7 @@ function extractMsgProvideLiquidity(
       firstTokenLp: firstAmount,
       opType: "provide",
       uniqueKey: concatDataToUniqueKey({
-        timestamp: txData.timestamp,
+        txheight: txData.txheight,
         firstAmount,
         firstDenom,
         secondAmount: secAmount,
@@ -203,7 +203,7 @@ function extractMsgWithdrawLiquidity(
       firstTokenLp: parseInt(assets[0]),
       opType: "withdraw",
       uniqueKey: concatDataToUniqueKey({
-        timestamp: txData.timestamp,
+        txheight: txData.txheight,
         firstDenom: assets[1],
         firstAmount: parseInt(assets[0]),
         secondDenom: assets[3],

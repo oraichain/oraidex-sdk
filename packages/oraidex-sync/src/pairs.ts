@@ -16,7 +16,6 @@ import {
   usdtCw20Address
 } from "./constants";
 import { PairMapping } from "./types";
-import { parseAssetInfoOnlyDenom } from "./helper";
 
 // the orders are important! Do not change the order of the asset_infos.
 export const pairs: PairMapping[] = [
@@ -91,7 +90,10 @@ export function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
 
 export const pairsOnlyDenom = pairs.map((pair) => ({
   ...pair,
-  asset_infos: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))
+  asset_infos: pair.asset_infos.map((info) => {
+    if ("native_token" in info) return info.native_token.denom;
+    return info.token.contract_addr;
+  })
 }));
 
 export const uniqueInfos = extractUniqueAndFlatten(pairs);

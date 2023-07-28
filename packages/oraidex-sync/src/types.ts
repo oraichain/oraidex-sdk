@@ -16,10 +16,10 @@ export type SwapOperationData = {
   askDenom: string; // eg: orai, orai1234...
   commissionAmount: number;
   direction: SwapDirection;
-  offerAmount: number;
+  offerAmount: number | bigint;
   offerDenom: string;
   uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
-  returnAmount: number;
+  returnAmount: number | bigint;
   spreadAmount: number;
   taxAmount: number;
 } & BasicTxData;
@@ -65,13 +65,13 @@ export type ProvideLiquidityOperationData = {
   secondTokenDenom: string;
   secondTokenLp: number | bigint;
   opType: LiquidityOpType;
-  uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique
+  uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;
 } & BasicTxData;
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
-export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData;
+export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData | Ohlcv;
 
 export type TxAnlysisResult = {
   // transactions: Tx[];
@@ -162,14 +162,11 @@ export type Env = {
   INITIAL_SYNC_HEIGHT: number;
 };
 
-export interface TradeItem {
+export interface Ohlcv {
+  uniqueKey: string; // concat of timestamp, pair and volume. Only use to override potential duplication when inserting
   timestamp: number;
   pair: string;
-  price?: number;
   volume: bigint;
-}
-
-export interface Ohlcv extends TradeItem {
   open: number;
   close: number;
   low: number;

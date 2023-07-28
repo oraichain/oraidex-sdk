@@ -2,18 +2,18 @@ import { CosmWasmClient, OraiswapRouterQueryClient, SwapOperation } from "@oraic
 import { DuckDb } from "./db";
 import { SwapOperationData } from "./types";
 import { pairs, uniqueInfos } from "./pairs";
-import { groupByTime, parseAssetInfoOnlyDenom } from "./helper";
+import { parseAssetInfoOnlyDenom } from "./helper";
 import { simulateSwapPriceWithUsdt } from "./query";
 import "dotenv/config";
 
 const start = async () => {
-  const duckdb = await DuckDb.create("oraidex-sync-data-v1.2");
+  const duckdb = await DuckDb.create("oraidex-sync-data-staging");
   const tf = 86400;
-  const firstTokenResult = await duckdb.conn.all(
-    `SELECT * 
-        from swap_ops_data
-        where timestamp >= 1690168508 and timestamp <= 1690169408 and askDenom = 'ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78'
-        order by timestamp`
+  const firstTokenResult = await duckdb.getOhlcvCandles(
+    "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+    60,
+    1688789160,
+    1688796360
   );
   console.log(firstTokenResult);
 
