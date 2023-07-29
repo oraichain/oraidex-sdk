@@ -172,15 +172,16 @@ describe("test-duckdb", () => {
     await expect(
       duckDb.insertLpOps([
         {
+          basePrice: 1,
           txhash: "foo",
           timestamp: new Date().getTime() / 1000,
-          firstTokenAmount: "abcd" as any,
-          firstTokenLp: 0,
-          firstTokenDenom: "orai",
+          baseTokenAmount: "abcd" as any,
+          baseTokenReserve: 0,
+          baseTokenDenom: "orai",
           uniqueKey: "1",
-          secondTokenAmount: 2,
-          secondTokenLp: 0,
-          secondTokenDenom: "atom",
+          quoteTokenAmount: 2,
+          quoteTokenReserve: 0,
+          quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
           txheight: 1
@@ -197,14 +198,15 @@ describe("test-duckdb", () => {
     const newDate = 1689610068000 / 1000;
     const data: ProvideLiquidityOperationData[] = [
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: "orai",
-        firstTokenLp: 0,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: "orai",
+        baseTokenReserve: 0,
         opType: "withdraw",
         uniqueKey: "2",
-        secondTokenAmount: 2,
-        secondTokenDenom: "atom",
-        secondTokenLp: 0,
+        quoteTokenAmount: 2,
+        quoteTokenDenom: "atom",
+        quoteTokenReserve: 0,
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
@@ -224,14 +226,15 @@ describe("test-duckdb", () => {
     const currentTimeStamp = Math.round(new Date().getTime() / 1000);
     let data: ProvideLiquidityOperationData[] = [
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: "orai",
-        firstTokenLp: 0,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: "orai",
+        baseTokenReserve: 0,
         opType: "withdraw",
         uniqueKey: "2",
-        secondTokenAmount: 2,
-        secondTokenDenom: "atom",
-        secondTokenLp: 0,
+        quoteTokenAmount: 2,
+        quoteTokenDenom: "atom",
+        quoteTokenReserve: 0,
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",

@@ -58,12 +58,13 @@ export type AccountTx = {
 export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = {
-  firstTokenAmount: number;
-  firstTokenDenom: string; // eg: orai, orai1234...
-  firstTokenLp: number | bigint;
-  secondTokenAmount: number;
-  secondTokenDenom: string;
-  secondTokenLp: number | bigint;
+  basePrice: number;
+  baseTokenAmount: number;
+  baseTokenDenom: string; // eg: orai, orai1234...
+  baseTokenReserve: number | bigint;
+  quoteTokenAmount: number;
+  quoteTokenDenom: string;
+  quoteTokenReserve: number | bigint;
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;
@@ -166,9 +167,17 @@ export interface Ohlcv {
   uniqueKey: string; // concat of timestamp, pair and volume. Only use to override potential duplication when inserting
   timestamp: number;
   pair: string;
-  volume: bigint;
+  volume: bigint; // base volume
   open: number;
-  close: number;
+  close: number; // base price
   low: number;
   high: number;
 }
+
+export type VolumeRange = {
+  time: string;
+  pair: string;
+  baseVolume: bigint;
+  quoteVolume: bigint;
+  basePrice: number;
+};

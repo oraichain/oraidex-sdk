@@ -6,15 +6,18 @@ import { parseAssetInfoOnlyDenom } from "./helper";
 import { simulateSwapPriceWithUsdt } from "./query";
 import "dotenv/config";
 
+export function getDate24hBeforeNow(time: Date) {
+  const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const date24hBeforeNow = new Date(time.getTime() - twentyFourHoursInMilliseconds);
+  return date24hBeforeNow;
+}
+
 const start = async () => {
-  const duckdb = await DuckDb.create("oraidex-sync-data-staging");
+  const duckdb = await DuckDb.create("oraidex-sync-data");
   const tf = 86400;
-  const firstTokenResult = await duckdb.getOhlcvCandles(
-    "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-    60,
-    1688789160,
-    1688796360
-  );
+  const now = new Date();
+  const then = getDate24hBeforeNow(now);
+  const firstTokenResult = await duckdb.conn.all("select * from swap_ohlcv limit 5");
   console.log(firstTokenResult);
 
   // let swapTokenMap = [];

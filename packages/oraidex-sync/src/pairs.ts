@@ -97,3 +97,7 @@ export const pairsOnlyDenom = pairs.map((pair) => ({
 }));
 
 export const uniqueInfos = extractUniqueAndFlatten(pairs);
+
+export const oraiUsdtPairOnlyDenom = pairsOnlyDenom.find(
+  (pair) => JSON.stringify(pair.asset_infos) === JSON.stringify([ORAI, usdtCw20Address])
+).asset_infos;

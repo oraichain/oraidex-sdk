@@ -346,9 +346,10 @@ describe("test-helper", () => {
     ]);
   });
 
-  it("test-calculatePriceByPool", () => {
-    const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
-    expect(result).toEqual(BigInt(9902432));
+  it("test-calculatePriceByPool-ORAI/USDT-pool-when-1ORAI=2.74USDT", () => {
+    // base denom is ORAI, quote denom is USDT => base pool is ORAI, quote pool is USDT.
+    const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), 0, 10 ** 6);
+    expect(result.toString()).toEqual("2.747144");
   });
 
   it("test-collectAccumulateLpData-should-aggregate-ops-with-same-pairs", () => {
@@ -370,12 +371,13 @@ describe("test-helper", () => {
     ];
     const ops: ProvideLiquidityOperationData[] = [
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "provide",
         uniqueKey: "1",
         timestamp: 1,
@@ -384,12 +386,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "2",
         timestamp: 1,
@@ -398,12 +401,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: atomIbcDenom,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: atomIbcDenom,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "3",
         timestamp: 1,
@@ -414,12 +418,12 @@ describe("test-helper", () => {
     ];
 
     collectAccumulateLpData(ops, poolResponses);
-    expect(ops[0].firstTokenLp.toString()).toEqual("2");
-    expect(ops[0].secondTokenLp.toString()).toEqual("2");
-    expect(ops[1].firstTokenLp.toString()).toEqual("1");
-    expect(ops[1].secondTokenLp.toString()).toEqual("1");
-    expect(ops[2].firstTokenLp.toString()).toEqual("3");
-    expect(ops[2].secondTokenLp.toString()).toEqual("3");
+    expect(ops[0].baseTokenReserve.toString()).toEqual("2");
+    expect(ops[0].quoteTokenReserve.toString()).toEqual("2");
+    expect(ops[1].baseTokenReserve.toString()).toEqual("1");
+    expect(ops[1].quoteTokenReserve.toString()).toEqual("1");
+    expect(ops[2].baseTokenReserve.toString()).toEqual("3");
+    expect(ops[2].quoteTokenReserve.toString()).toEqual("3");
   });
 
   it("test-concatDataToUniqueKey-should-return-unique-key-in-correct-order-from-timestamp-to-first-to-second-amount-and-denom", () => {
@@ -440,12 +444,13 @@ describe("test-helper", () => {
   it("test-remove-ops-duplication-should-remove-duplication-keys-before-inserting", () => {
     const ops: ProvideLiquidityOperationData[] = [
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "provide",
         uniqueKey: "1",
         timestamp: 1,
@@ -454,12 +459,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "2",
         timestamp: 1,
@@ -468,12 +474,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: atomIbcDenom,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: atomIbcDenom,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "1",
         timestamp: 1,

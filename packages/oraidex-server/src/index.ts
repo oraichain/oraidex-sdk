@@ -9,16 +9,15 @@ import {
   toDisplay,
   OraiDexSync,
   simulateSwapPrice,
-  getPoolInfos,
-  calculatePrefixSum,
-  uniqueInfos,
-  simulateSwapPriceWithUsdt
+  pairsOnlyDenom,
+  VolumeRange,
+  oraiUsdtPairOnlyDenom,
+  ORAI
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { OraiswapRouterQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
-import { getDate24hBeforeNow, parseSymbolsToTickerId } from "./helper";
-import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
+import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
 
 dotenv.config();
 
@@ -59,6 +58,8 @@ app.get("/tickers", async (req, res) => {
       process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
     );
     const pairInfos = await duckDb.queryPairInfos();
+    const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
+    const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
     const data: TickerInfo[] = (
       await Promise.allSettled(
         pairs.map(async (pair) => {
@@ -68,8 +69,6 @@ app.get("/tickers", async (req, res) => {
           // const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
           const baseIndex = 0;
           const targetIndex = 1;
-          const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
-          const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
           console.log(latestTimestamp, then);
           const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
           const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
@@ -110,59 +109,47 @@ app.get("/tickers", async (req, res) => {
 // TODO: refactor this and add unit tests
 app.get("/volume/v2/historical/chart", async (req, res) => {
   const { startTime, endTime, tf } = req.query;
-  const timeFrame = parseInt(tf as string);
-  const volumeInfos = await duckDb.pivotVolumeRange(parseInt(startTime as string), parseInt(endTime as string));
-  const cosmwasmClient = await CosmWasmClient.connect(process.env.RPC_URL);
-  let finalArray = [];
-  let prices;
-  let heightCount = 0;
-  for (let i = 0; i < volumeInfos.length; i++) {
-    const volInfo = volumeInfos[i];
-    cosmwasmClient.setQueryClientWithHeight(volInfo.txheight);
-    const router = new OraiswapRouterQueryClient(
-      cosmwasmClient,
-      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-    );
-    if (heightCount % 1000 === 0) {
-      // prevent simulating too many times. TODO: calculate this using pool data from
-      prices = (await Promise.all(uniqueInfos.map((info) => simulateSwapPriceWithUsdt(info, router))))
-        .map((price) => ({ ...price, info: parseAssetInfoOnlyDenom(price.info) }))
-        .reduce((acc, cur) => {
-          acc[cur.info] = parseFloat(cur.amount);
-          return acc;
-        }, {});
+  const timeFrame = tf ? parseInt(tf as string) : 60;
+  const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
+  const then = startTime
+    ? parseInt(startTime as string)
+    : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 259200).getTime() / 1000;
+  const volumeInfos = await Promise.all(
+    pairsOnlyDenom.map((pair) => {
+      return duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(pair.asset_infos));
+    })
+  );
+  // console.log("volume infos: ", volumeInfos);
+  let volumeRanges: { [time: string]: VolumeRange[] } = {};
+  for (let volumePair of volumeInfos) {
+    for (let volume of volumePair) {
+      if (!volumeRanges[volume.time]) volumeRanges[volume.time] = [{ ...volume }];
+      else volumeRanges[volume.time].push({ ...volume });
     }
-    let tempData = {};
-    for (const key in volInfo) {
-      if (key === "timestamp" || key === "txheight") continue;
-      if (Object.keys(tempData).includes("volume_price")) {
-        tempData["volume_price"] += volInfo[key] * prices[key];
+  }
+  let result = [];
+  for (let [time, volumeData] of Object.entries(volumeRanges)) {
+    const oraiUsdtVolumeData = volumeData.find((data) => data.pair === pairToString(oraiUsdtPairOnlyDenom));
+    if (!oraiUsdtVolumeData) {
+      res.status(500).send("Cannot find ORAI_USDT volume data in the volume list");
+    }
+    const totalVolumePrice = volumeData.reduce((acc, volData) => {
+      // console.log("base price in usdt: ", basePriceInUsdt);
+      // if base denom is orai then we calculate vol using quote vol
+      let volumePrice = 0;
+      if (volData.pair.split("-")[0] === ORAI) {
+        volumePrice = oraiUsdtVolumeData.basePrice * toDisplay(BigInt(volData.baseVolume));
+      } else if (volData.pair.split("-")[1] === ORAI) {
+        volumePrice = oraiUsdtVolumeData.basePrice * toDisplay(BigInt(volData.quoteVolume));
       } else {
-        tempData["timestamp"] = volInfo["timestamp"];
-        tempData["volume_price"] = 0;
+        return acc; // skip for now cuz dont know how to calculate price if not paired if with ORAI
       }
-    }
-    const indexOf = finalArray.findIndex((data) => data.timestamp === tempData["timestamp"]);
-    if (indexOf === -1) finalArray.push(tempData);
-    else {
-      finalArray[indexOf] = {
-        ...finalArray[indexOf],
-        volume_price: finalArray[indexOf].volume_price + tempData["volume_price"]
-      };
-    }
-    heightCount++;
+      // volume price is calculated based on the base currency & quote volume
+      return acc + volumePrice;
+    }, 0);
+    result.push({ time, value: totalVolumePrice });
   }
-  let finalFinalArray = [];
-  for (let data of finalArray) {
-    let time = Math.floor(data.timestamp / timeFrame);
-    let index = finalFinalArray.findIndex((data) => data.timestamp === time);
-    if (index === -1) {
-      finalFinalArray.push({ timestamp: time, volume_price: data.volume_price });
-    } else {
-      finalFinalArray[index].volume_price += data.volume_price;
-    }
-  }
-  res.status(200).send(finalFinalArray);
+  res.status(200).send(result);
 });
 
 // app.get("/liquidity/v2/historical/chart", async (req, res) => {

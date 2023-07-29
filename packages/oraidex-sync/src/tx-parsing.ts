@@ -19,6 +19,7 @@ import {
 import { Log } from "@cosmjs/stargate/build/logs";
 import {
   buildOhlcv,
+  calculatePriceByPool,
   concatDataToUniqueKey,
   getSwapDirection,
   groupByTime,
@@ -128,21 +129,22 @@ function extractMsgProvideLiquidity(
 ): ProvideLiquidityOperationData | undefined {
   if ("provide_liquidity" in msg) {
     const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
-    let firstAsset = msg.provide_liquidity.assets[0];
-    let secAsset = msg.provide_liquidity.assets[1];
+    let baseAsset = msg.provide_liquidity.assets[0];
+    let quoteAsset = msg.provide_liquidity.assets[1];
     if (isAssetInfoPairReverse(assetInfos)) {
-      firstAsset = msg.provide_liquidity.assets[1];
-      secAsset = msg.provide_liquidity.assets[0];
+      baseAsset = msg.provide_liquidity.assets[1];
+      quoteAsset = msg.provide_liquidity.assets[0];
     }
-    const firstDenom = parseAssetInfoOnlyDenom(firstAsset.info);
-    const secDenom = parseAssetInfoOnlyDenom(secAsset.info);
-    const firstAmount = parseInt(firstAsset.amount);
-    const secAmount = parseInt(secAsset.amount);
+    const firstDenom = parseAssetInfoOnlyDenom(baseAsset.info);
+    const secDenom = parseAssetInfoOnlyDenom(quoteAsset.info);
+    const firstAmount = parseInt(baseAsset.amount);
+    const secAmount = parseInt(quoteAsset.amount);
 
     return {
-      firstTokenAmount: firstAmount,
-      firstTokenDenom: firstDenom,
-      firstTokenLp: firstAmount,
+      basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
+      baseTokenAmount: firstAmount,
+      baseTokenDenom: firstDenom,
+      baseTokenReserve: firstAmount,
       opType: "provide",
       uniqueKey: concatDataToUniqueKey({
         txheight: txData.txheight,
@@ -151,9 +153,9 @@ function extractMsgProvideLiquidity(
         secondAmount: secAmount,
         secondDenom: secDenom
       }),
-      secondTokenAmount: secAmount,
-      secondTokenDenom: secDenom,
-      secondTokenLp: secAmount,
+      quoteTokenAmount: secAmount,
+      quoteTokenDenom: secDenom,
+      quoteTokenReserve: secAmount,
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
@@ -184,34 +186,38 @@ function extractMsgWithdrawLiquidity(
     if (!assetAttr) continue;
     const assets = parseWithdrawLiquidityAssets(assetAttr.value);
     // sanity check. only push data if can parse asset successfully
-    let firstAsset = assets[1];
-    let secAsset = assets[3];
+    let baseAssetAmount = parseInt(assets[0]);
+    let baseAsset = assets[1];
+    let quoteAsset = assets[3];
+    let quoteAssetAmount = parseInt(assets[2]);
+    // we only have one pair order. If the order is reversed then we also reverse the order
     if (
       pairs.find(
         (pair) =>
           JSON.stringify(pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))) ===
-          JSON.stringify([secAsset, firstAsset])
+          JSON.stringify([quoteAsset, baseAsset])
       )
     ) {
-      firstAsset = assets[3];
-      secAsset = assets[1];
+      baseAsset = assets[3];
+      quoteAsset = assets[1];
     }
     if (assets.length !== 4) continue;
     withdrawData.push({
-      firstTokenAmount: parseInt(assets[0]),
-      firstTokenDenom: assets[1],
-      firstTokenLp: parseInt(assets[0]),
+      basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
+      baseTokenAmount: baseAssetAmount,
+      baseTokenDenom: assets[1],
+      baseTokenReserve: baseAssetAmount,
       opType: "withdraw",
       uniqueKey: concatDataToUniqueKey({
         txheight: txData.txheight,
-        firstDenom: assets[1],
-        firstAmount: parseInt(assets[0]),
-        secondDenom: assets[3],
-        secondAmount: parseInt(assets[2])
+        firstDenom: baseAsset,
+        firstAmount: baseAssetAmount,
+        secondDenom: quoteAsset,
+        secondAmount: quoteAssetAmount
       }),
-      secondTokenAmount: parseInt(assets[2]),
-      secondTokenDenom: assets[3],
-      secondTokenLp: parseInt(assets[2]),
+      quoteTokenAmount: quoteAssetAmount,
+      quoteTokenDenom: quoteAsset,
+      quoteTokenReserve: quoteAssetAmount,
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
