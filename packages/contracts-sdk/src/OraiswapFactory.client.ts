@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, AssetInfo, PairInfo} from "./types";
+import {Addr, AssetInfo, Binary, PairInfo} from "./types";
 import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, PairsResponse} from "./OraiswapFactory.types";
 export interface OraiswapFactoryReadOnlyInterface {
   contractAddress: string;
@@ -91,6 +91,15 @@ export interface OraiswapFactoryInterface extends OraiswapFactoryReadOnlyInterfa
   }: {
     pairInfo: PairInfo;
   }, $fee?: number | StdFee | "auto", $memo?: string, $funds?: Coin[]) => Promise<ExecuteResult>;
+  migrateContract: ({
+    contractAddr,
+    msg,
+    newCodeId
+  }: {
+    contractAddr: string;
+    msg: Binary;
+    newCodeId: number;
+  }, $fee?: number | StdFee | "auto", $memo?: string, $funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapFactoryClient extends OraiswapFactoryQueryClient implements OraiswapFactoryInterface {
   client: SigningCosmWasmClient;
@@ -105,6 +114,7 @@ export class OraiswapFactoryClient extends OraiswapFactoryQueryClient implements
     this.updateConfig = this.updateConfig.bind(this);
     this.createPair = this.createPair.bind(this);
     this.addPair = this.addPair.bind(this);
+    this.migrateContract = this.migrateContract.bind(this);
   }
 
   updateConfig = async ({
@@ -146,6 +156,23 @@ export class OraiswapFactoryClient extends OraiswapFactoryQueryClient implements
     return await this.client.execute(this.sender, this.contractAddress, {
       add_pair: {
         pair_info: pairInfo
+      }
+    }, $fee, $memo, $funds);
+  };
+  migrateContract = async ({
+    contractAddr,
+    msg,
+    newCodeId
+  }: {
+    contractAddr: string;
+    msg: Binary;
+    newCodeId: number;
+  }, $fee: number | StdFee | "auto" = "auto", $memo?: string, $funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      migrate_contract: {
+        contract_addr: contractAddr,
+        msg,
+        new_code_id: newCodeId
       }
     }, $fee, $memo, $funds);
   };

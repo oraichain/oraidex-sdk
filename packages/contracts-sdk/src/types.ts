@@ -31,11 +31,11 @@ export interface PairInfo {
   liquidity_token: Addr;
   oracle_addr: Addr;
 }
-export type OrderDirection = "buy" | "sell";
 export interface Asset {
   amount: Uint128;
   info: AssetInfo;
 }
+export type OrderDirection = "buy" | "sell";
 export type OrderFilter = ("tick" | "none") | {
   bidder: string;
 } | {

@@ -1,0 +1,7 @@
+{
+    "prettier.singleQuote": false,
+    "prettier.trailingComma": "none",
+    "prettier.jsxSingleQuote": false,
+    "prettier.printWidth": 120,
+    "typescript.tsdk": "node_modules/typescript/lib"
+}

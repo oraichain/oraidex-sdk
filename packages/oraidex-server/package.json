@@ -1,0 +1,26 @@
+{
+  "name": "@oraichain/oraidex-server",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "license": "MIT",
+  "files": [
+    "build/"
+  ],
+  "scripts": {
+    "start": "npx ts-node src/index.ts"
+  },
+  "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.31.0",
+    "@cosmjs/stargate": "^0.31.0",
+    "@oraichain/common-contracts-sdk": "1.0.13",
+    "@cosmjs/tendermint-rpc": "^0.31.0",
+    "@oraichain/cosmos-rpc-sync": "^1.0.5",
+    "@oraichain/oraidex-sync": "1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17"
+  }
+}
