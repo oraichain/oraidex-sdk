@@ -6,12 +6,6 @@
         "declaration": true,
         "rootDir": "src"
     },
-    "ts-node": {
-        "esm": true,
-        "ignore": [
-            "node_modules/(?!@terran-one)"
-        ]
-    },
     "include": [
         "src/**/*.ts"
     ],

@@ -1,6 +1,6 @@
 import { coin } from '@cosmjs/amino';
 import { OraiswapLimitOrderClient, OraiswapTokenClient } from '@oraichain/oraidex-contracts-sdk';
-import { SimulateCosmWasmClient } from '@terran-one/cw-simulate';
+import { SimulateCosmWasmClient } from '@oraichain/cw-simulate';
 import 'dotenv/config';
 import { MakeOrderConfig, UserWallet, decrypt, deployOrderbook, deployToken, getCoingeckoPrice, makeOrders, setupWallet, toDecimals } from './index';
 
