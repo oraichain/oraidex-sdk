@@ -9,7 +9,6 @@
     "build": "tsc -p",
     "deploy": "yarn publish --access public --patch",
     "start:server": "yarn build packages/oraidex-sync/ && npx ts-node packages/oraidex-server/src/index.ts"
-
   },
   "workspaces": [
     "packages/*"
@@ -25,7 +24,7 @@
     "@cosmjs/stargate": "^0.31.0"
   },
   "devDependencies": {
-    "@oraichain/cw-simulate": "^2.8.33",
+    "@oraichain/cw-simulate": "^2.8.35",
     "@types/jest": "^29.5.2",
     "@types/node": "^18.15.8",
     "jest": "^29.5.0",
