@@ -32,7 +32,6 @@ const mnemonicMinLength = 12; // 12 words
     wallet,
     {
       gasPrice: GasPrice.fromString("0.002orai"),
-      prefix,
     }
   );
 

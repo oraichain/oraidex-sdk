@@ -1957,6 +1957,54 @@
   resolved "https://registry.yarnpkg.com/@oraichain/oraidex-contracts-sdk/-/oraidex-contracts-sdk-1.0.18.tgz#6dd983f4b13b6cbb83060ae3b0abc90ec4133624"
   integrity sha512-f8huSEVdormJXzltBgD2jjvBmL6PfOzP+sz9IpZ2yV8zB4dzjRMgnT+39Vfp5CYARKQlbe5Hdk/0cD2kQLxKjA==
 
+"@oraichain/cosmwasm-vm-js@^0.2.49":
+  version "0.2.49"
+  resolved "https://registry.yarnpkg.com/@oraichain/cosmwasm-vm-js/-/cosmwasm-vm-js-0.2.49.tgz#f6f0ed66b429c561d6625eeefdac9b5f2ec19749"
+  integrity sha512-xb3QrUJJukrQVRecGef5Lu4VuiUVEhTiJSYJrRtIdp3AVTtjgc5ng0QVcyvEaHe3HUDyI9ZhI9m/H+qyyPP97w==
+  dependencies:
+    "@cosmjs/amino" "^0.29.5"
+    "@cosmjs/crypto" "^0.29.5"
+    "@cosmjs/encoding" "^0.29.5"
+    "@oraichain/cosmwasm-vm-zk-nodejs" "^0.0.7"
+    "@oraichain/wasm-json-toolkit" "^1.0.24"
+    bech32 "1.1.4"
+    elliptic "^6.5.4"
+    immutable "^4.1.0"
+    process "^0.11.10"
+    secp256k1 "^4.0.3"
+    synchronized-promise "^0.3.1"
+    util "^0.12.4"
+
+"@oraichain/cosmwasm-vm-zk-nodejs@^0.0.7":
+  version "0.0.7"
+  resolved "https://registry.yarnpkg.com/@oraichain/cosmwasm-vm-zk-nodejs/-/cosmwasm-vm-zk-nodejs-0.0.7.tgz#d640c4a144c35157ac0e4292a02b92e357d90cf0"
+  integrity sha512-ZbRFSWL81a/gDrPUsHzpwOttI0SdGNrYEDcmGGcl4cN0853XAzFkYt71PM2xckWZ0Mlh21erbTpZJNTFH78FYg==
+
+"@oraichain/cw-simulate@^2.8.35":
+  version "2.8.35"
+  resolved "https://registry.yarnpkg.com/@oraichain/cw-simulate/-/cw-simulate-2.8.35.tgz#74e0a86cde64dc73e3d43aeba0ffe72fab374e44"
+  integrity sha512-ryX9t+fuN1r8i/lFOhiZFuUuHmBmRY5tcGHAxW77s6cK8fnVYrk96IxzDWr4a4uL5Ux9xjZJDgVYqbdkoWJ9WA==
+  dependencies:
+    "@cosmjs/amino" "^0.29.5"
+    "@cosmjs/cosmwasm-stargate" "^0.29.5"
+    "@cosmjs/crypto" "^0.29.5"
+    "@cosmjs/encoding" "^0.29.5"
+    "@kiruse/serde" "^0.8.0-rc.6"
+    "@oraichain/cosmwasm-vm-js" "^0.2.49"
+    eventemitter3 "^5.0.0"
+    immutable "^4.1.0"
+    lobyte "^0.0.3"
+    lodash "^4.17.21"
+    protobufjs "^7.2.3"
+    ts-pattern "^4.0.5"
+    ts-results "^3.3.0"
+    tslib "^2.4.0"
+
+"@oraichain/wasm-json-toolkit@^1.0.24":
+  version "1.0.24"
+  resolved "https://registry.yarnpkg.com/@oraichain/wasm-json-toolkit/-/wasm-json-toolkit-1.0.24.tgz#e9a431560e8e946fbb7ec257e5f13d9320ffd23a"
+  integrity sha512-j+8gN3dE3rqaiEUVVblt0dfJrE6RIsSkfqF08ISxRvHkH9Pe9exIOgxpCyd2Qn3liHj27hwth6R0ELw7y3QcLg==
+
 "@parcel/watcher@2.0.4":
   version "2.0.4"
   resolved "https://registry.yarnpkg.com/@parcel/watcher/-/watcher-2.0.4.tgz#f300fef4cc38008ff4b8c29d92588eced3ce014b"
@@ -2041,41 +2089,6 @@
   integrity sha512-V4BG07kuYSUkTCSBHG8G8TNhM+F19jXFWnQtzj+we8DrkpSBCee9Z3Ms8yiGer/dlmhe35/Xdgyo3/0rQKg7YA==
   dependencies:
     "@sinonjs/commons" "^3.0.0"
-
-"@terran-one/cosmwasm-vm-js@https://github.com/oraichain/cosmwasm-vm-js.git":
-  version "0.2.16"
-  resolved "https://github.com/oraichain/cosmwasm-vm-js.git#7436f21f0457ee8e457e2a600b954ba508c5da1a"
-  dependencies:
-    "@cosmjs/amino" "^0.29.5"
-    "@cosmjs/crypto" "^0.29.5"
-    "@cosmjs/encoding" "^0.29.5"
-    bech32 "1.1.4"
-    cosmwasm-vm-js-zk "https://github.com/oraichain/cosmwasm-vm-js-zk.git"
-    elliptic "^6.5.4"
-    immutable "^4.1.0"
-    process "^0.11.10"
-    secp256k1 "^4.0.3"
-    synchronized-promise "^0.3.1"
-    util "^0.12.4"
-
-"@terran-one/cw-simulate@https://github.com/oraichain/cw-simulate.git":
-  version "2.8.4"
-  resolved "https://github.com/oraichain/cw-simulate.git#b51bca600bc125bd454305d9d0d8a966308be820"
-  dependencies:
-    "@cosmjs/amino" "^0.29.5"
-    "@cosmjs/cosmwasm-stargate" "^0.29.5"
-    "@cosmjs/crypto" "^0.29.5"
-    "@cosmjs/encoding" "^0.29.5"
-    "@kiruse/serde" "^0.8.0-rc.6"
-    "@terran-one/cosmwasm-vm-js" "https://github.com/oraichain/cosmwasm-vm-js.git"
-    eventemitter3 "^5.0.0"
-    immutable "^4.1.0"
-    lobyte "^0.0.3"
-    lodash "^4.17.21"
-    protobufjs "^7.2.3"
-    ts-pattern "^4.0.5"
-    ts-results "^3.3.0"
-    tslib "^2.4.0"
 
 "@tootallnate/once@2":
   version "2.0.0"
@@ -3296,10 +3309,6 @@ cosmjs-types@^0.8.0:
   dependencies:
     long "^4.0.0"
     protobufjs "~6.11.2"
-
-"cosmwasm-vm-js-zk@https://github.com/oraichain/cosmwasm-vm-js-zk.git":
-  version "0.0.0"
-  resolved "https://github.com/oraichain/cosmwasm-vm-js-zk.git#92f31a12b096c87fc1e4ea8552e8b184ed0ff8c8"
 
 create-require@^1.1.0:
   version "1.1.1"

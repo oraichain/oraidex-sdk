@@ -17,3 +17,9 @@ git diff packages/contracts-sdk > patches/contracts-sdk.patch
 # rollback
 git checkout packages/contracts-sdk
 ```
+
+## Run sample with CosmwasmSimulate
+
+```bash
+NODE_ENV=test yarn --cwd packages/market-maker start
+```

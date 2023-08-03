@@ -1,7 +1,4 @@
-import {
-  ExecuteInstruction,
-  SigningCosmWasmClient,
-} from "@cosmjs/cosmwasm-stargate";
+import { ExecuteInstruction, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { stringToPath } from "@cosmjs/crypto";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { GasPrice } from "@cosmjs/stargate";
@@ -12,7 +9,7 @@ import {
   Cw20Coin,
   OraiswapLimitOrderClient,
   OraiswapLimitOrderTypes,
-  OraiswapTokenClient,
+  OraiswapTokenClient
 } from "@oraichain/oraidex-contracts-sdk";
 import crypto from "crypto";
 
@@ -20,9 +17,7 @@ export const encrypt = (password: string, val: string) => {
   const hashedPassword = crypto.createHash("sha256").update(password).digest();
   const IV = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv("aes-256-cbc", hashedPassword, IV);
-  return Buffer.concat([IV, cipher.update(val), cipher.final()]).toString(
-    "base64"
-  );
+  return Buffer.concat([IV, cipher.update(val), cipher.final()]).toString("base64");
 };
 
 export const decrypt = (password: string, val: string) => {
@@ -31,10 +26,7 @@ export const decrypt = (password: string, val: string) => {
   const IV = encryptedText.subarray(0, 16);
   const encrypted = encryptedText.subarray(16);
   const decipher = crypto.createDecipheriv("aes-256-cbc", hashedPassword, IV);
-  return Buffer.concat([
-    decipher.update(encrypted),
-    decipher.final(),
-  ]).toString();
+  return Buffer.concat([decipher.update(encrypted), decipher.final()]).toString();
 };
 
 export type UserWallet = { address: string; client: SigningCosmWasmClient };
@@ -46,18 +38,13 @@ export async function setupWallet(mnemonic: string): Promise<UserWallet> {
   }
   const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
     hdPaths: [stringToPath(process.env.HD_PATH || "m/44'/118'/0'/0/0")],
-    prefix,
+    prefix
   });
   const [firstAccount] = await wallet.getAccounts();
   const address = firstAccount.address;
-  const client = await SigningCosmWasmClient.connectWithSigner(
-    process.env.RPC_URL!,
-    wallet,
-    {
-      gasPrice: GasPrice.fromString("0.002orai"),
-      prefix,
-    }
-  );
+  const client = await SigningCosmWasmClient.connectWithSigner(process.env.RPC_URL!, wallet, {
+    gasPrice: GasPrice.fromString("0.002orai")
+  });
 
   return { address, client };
 }
@@ -66,12 +53,10 @@ export const getRandomRange = (min: number, max: number): number => {
   return ((Math.random() * (max - min + 1)) << 0) + min;
 };
 
-export const getCoingeckoPrice = async (
-  token: "oraichain-token" | "airight"
-): Promise<number> => {
-  const res = await fetch(
-    `https://price.market.orai.io/simple/price?ids=${token}&vs_currencies=usd`
-  ).then((res) => res.json());
+export const getCoingeckoPrice = async (token: "oraichain-token" | "airight"): Promise<number> => {
+  const res = await fetch(`https://price.market.orai.io/simple/price?ids=${token}&vs_currencies=usd`).then((res) =>
+    res.json()
+  );
   return res[token].usd;
 };
 
@@ -91,42 +76,25 @@ export const toDecimals = (num: number, decimals: number = 9): string => {
 // decimals always >= 6
 export const toAmount = (amount: number, decimals = 6): bigint => {
   const validatedAmount = validateNumber(amount);
-  return (
-    BigInt(Math.trunc(validatedAmount * atomic)) *
-    BigInt(10 ** (decimals - truncDecimals))
-  );
+  return BigInt(Math.trunc(validatedAmount * atomic)) * BigInt(10 ** (decimals - truncDecimals));
 };
 
-export const toDisplay = (
-  amount: string | bigint,
-  sourceDecimals = 6,
-  desDecimals = 6
-): number => {
+export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecimals = 6): number => {
   if (!amount) return 0;
-  if (typeof amount === "string" && amount.indexOf(".") !== -1)
-    amount = amount.split(".")[0];
+  if (typeof amount === "string" && amount.indexOf(".") !== -1) amount = amount.split(".")[0];
   try {
     // guarding conditions to prevent crashing
-    const validatedAmount =
-      typeof amount === "string" ? BigInt(amount || "0") : amount;
+    const validatedAmount = typeof amount === "string" ? BigInt(amount || "0") : amount;
     const displayDecimals = Math.min(truncDecimals, desDecimals);
-    const returnAmount =
-      validatedAmount / BigInt(10 ** (sourceDecimals - displayDecimals));
+    const returnAmount = validatedAmount / BigInt(10 ** (sourceDecimals - displayDecimals));
     // save calculation by using cached atomic
-    return (
-      Number(returnAmount) /
-      (displayDecimals === truncDecimals ? atomic : 10 ** displayDecimals)
-    );
+    return Number(returnAmount) / (displayDecimals === truncDecimals ? atomic : 10 ** displayDecimals);
   } catch {
     return 0;
   }
 };
 
-export const getSpreadPrice = (
-  price: number,
-  spreadDecimal: number,
-  desDecimals = 6
-) => {
+export const getSpreadPrice = (price: number, spreadDecimal: number, desDecimals = 6) => {
   return Number((price * (1 + spreadDecimal)).toFixed(desDecimals));
 };
 
@@ -145,7 +113,7 @@ export const deployToken = async (
     symbol,
     name,
     decimals = 6,
-    initial_balances = [],
+    initial_balances = []
   }: {
     symbol: string;
     name: string;
@@ -157,22 +125,13 @@ export const deployToken = async (
     client,
     senderAddress,
     (
-      await deployContract(
-        client,
-        senderAddress,
-        {
-          decimals,
-          symbol,
-          name,
-          mint: { minter: senderAddress },
-          initial_balances: [
-            { address: senderAddress, amount: "1000000000" },
-            ...initial_balances,
-          ],
-        },
-        "oraiswap_token",
-        "oraiswap_token"
-      )
+      await deployContract(client, senderAddress, {
+        decimals,
+        symbol,
+        name,
+        mint: { minter: senderAddress },
+        initial_balances: [{ address: senderAddress, amount: "1000000000" }, ...initial_balances]
+      }, "oraiswap_token")
     ).contractAddress
   );
 };
@@ -185,17 +144,11 @@ export const deployOrderbook = async (
     client,
     senderAddress,
     (
-      await deployContract(
-        client,
-        senderAddress,
-        {
-          admin: senderAddress,
-          version: "0.0.1",
-          name: "Orderbook",
-        },
-        "oraiswap_limit_order",
-        "oraiswap_limit_order"
-      )
+      await deployContract(client, senderAddress, {
+        admin: senderAddress,
+        version: "0.0.1",
+        name: "Orderbook"
+      },"oraiswap_limit_order")
     ).contractAddress
   );
 };
@@ -212,9 +165,9 @@ export const cancelOrder = async (
       order_by: 1,
       limit,
       filter: {
-        bidder: sender.address,
-      },
-    },
+        bidder: sender.address
+      }
+    }
   } as OraiswapLimitOrderTypes.QueryMsg);
 
   const multipleCancelMsg: ExecuteInstruction[] = [];
@@ -224,18 +177,14 @@ export const cancelOrder = async (
       msg: {
         cancel_order: {
           asset_infos: assetInfos,
-          order_id: order.order_id,
-        },
-      },
+          order_id: order.order_id
+        }
+      }
     };
     multipleCancelMsg.push(cancelMsg);
   }
   if (multipleCancelMsg.length > 0) {
-    const cancelResult = await sender.client.executeMultiple(
-      sender.address,
-      multipleCancelMsg,
-      "auto"
-    );
+    const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
     console.log("cancel orders - txHash:", cancelResult.transactionHash);
   }
 };
