@@ -1,3 +1,5 @@
+#!/usr/bin/env -S node --no-warnings
+
 import * as dotenv from "dotenv";
 import express, { Request } from "express";
 import {
