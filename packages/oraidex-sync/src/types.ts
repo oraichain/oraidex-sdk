@@ -181,3 +181,10 @@ export type VolumeRange = {
   quoteVolume: bigint;
   basePrice: number;
 };
+
+export type GetCandlesQuery = {
+  pair: string;
+  tf: number;
+  startTime: number;
+  endTime: number;
+};
