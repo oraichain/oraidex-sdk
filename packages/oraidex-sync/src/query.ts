@@ -66,7 +66,7 @@ async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterRe
   if (operations.length === 0) return "0"; // error case. Will be handled by the caller function
   try {
     const data = await router.simulateSwapOperations({
-      offerAmount: tenAmountInDecimalSix,
+      offerAmount: tenAmountInDecimalSix.toString(),
       operations
     });
     return toDisplay(data.amount, 7).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit

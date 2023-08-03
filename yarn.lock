@@ -1945,12 +1945,17 @@
   resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-sdk/-/common-contracts-sdk-1.0.13.tgz#5a6cd9320b995e184b5d484313e4b4e8ecd4b4bb"
   integrity sha512-XfDDaggu7WcM/vxRxIn0ipLq6+c9+5FBqK/qzWh5HRHxn4e71OvNKVAxXoLOIATscAXkrkOimv55s1CD+hZGmw==
 
-"@oraichain/cosmos-rpc-sync@^1.0.5", "@oraichain/cosmos-rpc-sync@^1.0.6":
+"@oraichain/cosmos-rpc-sync@^1.0.7":
   version "1.0.7"
   resolved "https://registry.yarnpkg.com/@oraichain/cosmos-rpc-sync/-/cosmos-rpc-sync-1.0.7.tgz#9113f2d828490080e2e8d88180428f7dcf69c0e8"
   integrity sha512-2m+2wzjX94AwSm43xv70UL7TBPJmiS2BEw7WNN9CBw+OG93oiFAP0vXjF/fG/LrsuGHoLwXA9qQEDs5YprZ4/A==
   dependencies:
     "@cosmjs/stargate" "^0.31.0"
+
+"@oraichain/oraidex-contracts-sdk@^1.0.18":
+  version "1.0.18"
+  resolved "https://registry.yarnpkg.com/@oraichain/oraidex-contracts-sdk/-/oraidex-contracts-sdk-1.0.18.tgz#6dd983f4b13b6cbb83060ae3b0abc90ec4133624"
+  integrity sha512-f8huSEVdormJXzltBgD2jjvBmL6PfOzP+sz9IpZ2yV8zB4dzjRMgnT+39Vfp5CYARKQlbe5Hdk/0cD2kQLxKjA==
 
 "@oraichain/cosmwasm-vm-js@^0.2.49":
   version "0.2.49"

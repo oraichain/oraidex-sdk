@@ -1,17 +1,19 @@
 import { AssetInfo, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
-import { pairs } from "./pairs";
+import { pairs, pairsOnlyDenom } from "./pairs";
 import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
 import {
+  Ohlcv,
   OraiDexType,
   PairInfoData,
-  PrefixSumHandlingData,
   ProvideLiquidityOperationData,
+  SwapDirection,
   SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
+import { minBy, maxBy } from "lodash";
 
-export function toObject(data: any[]) {
+export function toObject(data: any) {
   return JSON.parse(
     JSON.stringify(
       data,
@@ -67,9 +69,13 @@ export function concatDataToUniqueKey(data: {
   secondDenom: string;
   firstAmount: number;
   secondAmount: number;
-  timestamp: number;
+  txheight: number;
 }): string {
-  return `${data.timestamp}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
+  return `${data.txheight}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
+}
+
+export function concatOhlcvToUniqueKey(data: { timestamp: number; pair: string; volume: bigint }): string {
+  return `${data.timestamp}-${data.pair}-${data.volume.toString()}`;
 }
 
 export function isoToTimestampNumber(time: string) {
@@ -105,20 +111,6 @@ function parseAssetInfoOnlyDenom(info: AssetInfo): string {
 
 async function delay(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
-}
-
-function calculatePrefixSum(initialAmount: number, handlingData: PrefixSumHandlingData[]): PrefixSumHandlingData[] {
-  let prefixSumObj = {};
-  for (let data of handlingData) {
-    if (!(`temp-${data.denom}` in prefixSumObj)) {
-      prefixSumObj[`temp-${data.denom}`] = initialAmount + data.amount;
-      data.amount = prefixSumObj[`temp-${data.denom}`];
-      continue;
-    }
-    prefixSumObj[`temp-${data.denom}`] += data.amount;
-    data.amount = prefixSumObj[`temp-${data.denom}`];
-  }
-  return handlingData;
 }
 
 function findMappedTargetedAssetInfo(targetedAssetInfo: AssetInfo): AssetInfo[] {
@@ -168,14 +160,23 @@ function findPairAddress(pairInfos: PairInfoData[], infos: [AssetInfo, AssetInfo
   )?.pairAddr;
 }
 
-function calculatePriceByPool(offerPool: bigint, askPool: bigint, commissionRate: number): bigint {
-  return (askPool - (offerPool * askPool) / (offerPool + BigInt(tenAmountInDecimalSix))) * BigInt(1 - commissionRate);
+function calculatePriceByPool(
+  basePool: bigint,
+  quotePool: bigint,
+  commissionRate?: number,
+  offerAmount?: number
+): number {
+  const finalOfferAmount = offerAmount || tenAmountInDecimalSix;
+  let bigIntAmount = Number(
+    (basePool - (quotePool * basePool) / (quotePool + BigInt(finalOfferAmount))) * BigInt(1 - commissionRate || 0)
+  );
+  return bigIntAmount / finalOfferAmount;
 }
 
-export function groupByTime(data: any[], timeframe?: number): any[] {
+export function groupDataByTime(data: any[], timeframe?: number): { [key: string]: any[] } {
   let ops: { [k: number]: any[] } = {};
   for (const op of data) {
-    const roundedTime = roundTime(op.timestamp * 1000, timeframe || 60);
+    const roundedTime = roundTime(op.timestamp * 1000, timeframe || 60); // op timestamp is sec
     if (!ops[roundedTime]) {
       ops[roundedTime] = [];
     }
@@ -186,7 +187,11 @@ export function groupByTime(data: any[], timeframe?: number): any[] {
     ops[roundedTime].push(newData);
   }
 
-  return Object.values(ops).flat();
+  return ops;
+}
+
+export function groupByTime(data: any[], timeframe?: number): any[] {
+  return Object.values(groupDataByTime(data, timeframe)).flat();
 }
 
 /**
@@ -212,45 +217,50 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
  * @param data - lp ops. This param will be mutated.
  * @param poolInfos - pool info data for initial lp accumulation
  */
+// TODO: write test cases for this function
 export function collectAccumulateLpData(
   data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
   poolInfos: PoolResponse[]
 ) {
-  let accumulateData = {};
+  let accumulateData: {
+    [key: string]: {
+      baseTokenAmount: bigint;
+      quoteTokenAmount: bigint;
+    };
+  } = {};
   for (let op of data) {
     const pool = poolInfos.find(
       (info) =>
-        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.firstTokenDenom) &&
-        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.secondTokenDenom)
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.baseTokenDenom) &&
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.quoteTokenDenom)
     );
     if (!pool) continue;
     if (op.opType === "withdraw") {
-      op.firstTokenLp = BigInt(op.firstTokenLp) - BigInt(op.firstTokenLp) * 2n;
-      op.secondTokenLp = BigInt(op.secondTokenLp) - BigInt(op.secondTokenLp) * 2n;
+      // reverse sign since withdraw means lp decreases
+      op.baseTokenReserve = -BigInt(op.baseTokenReserve);
+      op.quoteTokenReserve = -BigInt(op.quoteTokenReserve);
     }
-    const denom = `${op.firstTokenDenom} - ${op.secondTokenDenom}`;
+    const denom = `${op.baseTokenDenom}-${op.quoteTokenDenom}`;
     if (!accumulateData[denom]) {
       const initialFirstTokenAmount = parseInt(
-        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.firstTokenDenom).amount
+        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.baseTokenDenom).amount
       );
       const initialSecondTokenAmount = parseInt(
-        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.secondTokenDenom).amount
+        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.quoteTokenDenom).amount
       );
       accumulateData[denom] = {
-        firstTokenAmount: BigInt(initialFirstTokenAmount) + BigInt(op.firstTokenLp),
-        secondTokenAmount: BigInt(initialSecondTokenAmount) + BigInt(op.secondTokenLp)
+        baseTokenAmount: BigInt(initialFirstTokenAmount) + BigInt(op.baseTokenReserve),
+        quoteTokenAmount: BigInt(initialSecondTokenAmount) + BigInt(op.quoteTokenReserve)
       };
-      op.firstTokenLp = accumulateData[denom].firstTokenAmount;
-      op.secondTokenLp = accumulateData[denom].secondTokenAmount;
+      op.baseTokenReserve = accumulateData[denom].baseTokenAmount;
+      op.quoteTokenReserve = accumulateData[denom].quoteTokenAmount;
       continue;
     }
-    accumulateData[denom].firstTokenAmount += BigInt(op.firstTokenLp);
-    accumulateData[denom].secondTokenAmount += BigInt(op.secondTokenLp);
-    op.firstTokenLp = accumulateData[denom].firstTokenAmount;
-    op.secondTokenLp = accumulateData[denom].secondTokenAmount;
+    accumulateData[denom].baseTokenAmount += BigInt(op.baseTokenReserve);
+    accumulateData[denom].quoteTokenAmount += BigInt(op.quoteTokenReserve);
+    op.baseTokenReserve = accumulateData[denom].baseTokenAmount;
+    op.quoteTokenReserve = accumulateData[denom].quoteTokenAmount;
   }
-
-  // convert bigint to number so we can store them into the db without error
 }
 
 export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
@@ -259,6 +269,92 @@ export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
     if (!newOps.some((newOp) => newOp.uniqueKey === op.uniqueKey)) newOps.push(op);
   }
   return newOps;
+}
+
+/**
+ *  Group swapOps have same pair.
+ * @param swapOps
+ * @returns
+ */
+export function groupSwapOpsByPair(ops: SwapOperationData[]): { [key: string]: SwapOperationData[] } {
+  let opsByPair = {};
+  for (const op of ops) {
+    const pairIndex = findPairIndexFromDenoms(op.offerDenom, op.askDenom);
+    if (pairIndex === -1) continue;
+    const assetInfos = pairsOnlyDenom[pairIndex].asset_infos;
+    const pair = `${assetInfos[0]}-${assetInfos[1]}`;
+    if (!opsByPair[pair]) {
+      opsByPair[pair] = [];
+    }
+    opsByPair[pair].push(op);
+  }
+  return opsByPair;
+}
+
+export function calculateSwapOhlcv(ops: SwapOperationData[], pair: string): Ohlcv {
+  const timestamp = ops[0].timestamp;
+  const prices = ops.map((op) => calculateBasePriceFromSwapOp(op));
+  const open = prices[0];
+  const close = prices[ops.length - 1];
+  const low = minBy(prices);
+  const high = maxBy(prices);
+  // base volume
+  const volume = ops.reduce((acc, currentValue) => {
+    const baseVolume =
+      currentValue.direction === "Buy" ? BigInt(currentValue.returnAmount) : BigInt(currentValue.offerAmount);
+    return acc + baseVolume;
+  }, 0n);
+
+  return {
+    uniqueKey: concatOhlcvToUniqueKey({ timestamp, pair, volume }),
+    timestamp,
+    pair,
+    volume,
+    open,
+    close,
+    low,
+    high
+  };
+}
+
+export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
+  let ohlcv: Ohlcv[] = [];
+  for (const [pair, opsByPair] of Object.entries(groupSwapOpsByPair(ops))) {
+    const opsByTime = groupDataByTime(opsByPair);
+    const ticks = Object.values(opsByTime).map((value) => calculateSwapOhlcv(value, pair));
+    ohlcv.push(...ticks);
+  }
+  return ohlcv;
+}
+
+export function calculateBasePriceFromSwapOp(op: SwapOperationData): number {
+  if (!op || !op.offerAmount || !op.returnAmount) {
+    return 0;
+  }
+  const offerAmount = op.offerAmount;
+  const askAmount = op.returnAmount;
+  return op.direction === "Buy" ? Number(offerAmount) / Number(askAmount) : Number(askAmount) / Number(offerAmount);
+}
+
+export function getSwapDirection(offerDenom: string, askDenom: string): SwapDirection {
+  const pair = pairsOnlyDenom.find((pair) => {
+    return pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom);
+  });
+  if (!pair) {
+    console.error("Cannot find asset infos in list of pairs");
+    return;
+    // throw new Error("Cannot find asset infos in list of pairs");
+  }
+  const assetInfos = pair.asset_infos;
+  // use quote denom as offer then its buy. Quote denom in pairs is the 2nd index in the array
+  if (assetInfos[0] === askDenom) return "Buy";
+  return "Sell";
+}
+
+export function findPairIndexFromDenoms(offerDenom: string, askDenom: string): number {
+  return pairsOnlyDenom.findIndex(
+    (pair) => pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom)
+  );
 }
 
 // /**
@@ -283,7 +379,6 @@ export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
 // }
 
 export {
-  calculatePrefixSum,
   findMappedTargetedAssetInfo,
   findAssetInfoPathToUsdt,
   generateSwapOperations,

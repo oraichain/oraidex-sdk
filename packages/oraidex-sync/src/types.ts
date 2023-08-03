@@ -4,6 +4,8 @@ import { Addr, Asset, AssetInfo, Binary, Decimal, SwapOperation, Uint128 } from 
 import { ExecuteMsg as OraiswapRouterExecuteMsg } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 
+export type SwapDirection = "Buy" | "Sell";
+
 export type BasicTxData = {
   timestamp: number;
   txhash: string;
@@ -13,10 +15,11 @@ export type BasicTxData = {
 export type SwapOperationData = {
   askDenom: string; // eg: orai, orai1234...
   commissionAmount: number;
-  offerAmount: number;
+  direction: SwapDirection;
+  offerAmount: number | bigint;
   offerDenom: string;
   uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
-  returnAmount: number;
+  returnAmount: number | bigint;
   spreadAmount: number;
   taxAmount: number;
 } & BasicTxData;
@@ -55,25 +58,26 @@ export type AccountTx = {
 export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = {
-  firstTokenAmount: number;
-  firstTokenDenom: string; // eg: orai, orai1234...
-  firstTokenLp: number | bigint;
-  secondTokenAmount: number;
-  secondTokenDenom: string;
-  secondTokenLp: number | bigint;
+  basePrice: number;
+  baseTokenAmount: number;
+  baseTokenDenom: string; // eg: orai, orai1234...
+  baseTokenReserve: number | bigint;
+  quoteTokenAmount: number;
+  quoteTokenDenom: string;
+  quoteTokenReserve: number | bigint;
   opType: LiquidityOpType;
-  uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique
+  uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;
 } & BasicTxData;
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
-export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData;
+export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData | Ohlcv;
 
 export type TxAnlysisResult = {
   // transactions: Tx[];
   swapOpsData: SwapOperationData[];
-  volumeInfos: VolumeInfo[];
+  ohlcv: Ohlcv[];
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
@@ -127,11 +131,6 @@ export type InitialData = {
   blockHeader: BlockHeader;
 };
 
-export type PrefixSumHandlingData = {
-  denom: string;
-  amount: number;
-};
-
 export type TickerInfo = {
   base_currency: string;
   target_currency: string;
@@ -150,14 +149,6 @@ export type TotalLiquidity = {
   height: number;
 };
 
-export type VolumeInfo = {
-  denom: string;
-  timestamp: number;
-  txheight: number;
-  price: number;
-  volume: number;
-};
-
 export type Env = {
   PORT: number;
   RPC_URL: string;
@@ -170,4 +161,30 @@ export type Env = {
   DUCKDB_PROD_FILENAME: string;
   DUCKDB_FILENAME: string;
   INITIAL_SYNC_HEIGHT: number;
+};
+
+export interface Ohlcv {
+  uniqueKey: string; // concat of timestamp, pair and volume. Only use to override potential duplication when inserting
+  timestamp: number;
+  pair: string;
+  volume: bigint; // base volume
+  open: number;
+  close: number; // base price
+  low: number;
+  high: number;
+}
+
+export type VolumeRange = {
+  time: string;
+  pair: string;
+  baseVolume: bigint;
+  quoteVolume: bigint;
+  basePrice: number;
+};
+
+export type GetCandlesQuery = {
+  pair: string;
+  tf: number;
+  startTime: number;
+  endTime: number;
 };

@@ -1,13 +1,15 @@
 import { Database, Connection } from "duckdb-async";
 import {
+  Ohlcv,
   PairInfoData,
   PriceInfo,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
   VolumeData,
-  VolumeInfo,
-  WithdrawLiquidityOperationData
+  VolumeRange,
+  WithdrawLiquidityOperationData,
+  GetCandlesQuery
 } from "./types";
 import fs, { rename } from "fs";
 import { isoToTimestampNumber, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
@@ -54,10 +56,17 @@ export class DuckDb {
 
   // swap operation table handling
   async createSwapOpsTable() {
+    try {
+      await this.conn.all("select enum_range(NULL::directionType);");
+    } catch (error) {
+      // if error it means the enum does not exist => create new
+      await this.conn.exec("CREATE TYPE directionType AS ENUM ('Buy','Sell');");
+    }
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS swap_ops_data (
         askDenom VARCHAR, 
         commissionAmount UBIGINT,
+        direction directionType,
         offerAmount UBIGINT,
         offerDenom VARCHAR, 
         uniqueKey VARCHAR UNIQUE,
@@ -84,14 +93,15 @@ export class DuckDb {
     }
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS lp_ops_data (
-        firstTokenAmount UBIGINT, 
-        firstTokenDenom VARCHAR, 
-        firstTokenLp UBIGINT, 
+        basePrice double,
+        baseTokenAmount UBIGINT, 
+        baseTokenDenom VARCHAR, 
+        baseTokenReserve UBIGINT, 
         opType LPOPTYPE, 
         uniqueKey VARCHAR UNIQUE,
-        secondTokenAmount UBIGINT, 
-        secondTokenDenom VARCHAR, 
-        secondTokenLp UBIGINT,
+        quoteTokenAmount UBIGINT, 
+        quoteTokenDenom VARCHAR, 
+        quoteTokenReserve UBIGINT,
         timestamp UINTEGER,
         txCreator VARCHAR, 
         txhash VARCHAR,
@@ -258,7 +268,7 @@ export class DuckDb {
       `with pivot_lp_ops as (
         pivot lp_ops_data
         on opType
-        using sum(firstTokenAmount + secondTokenAmount) as liquidity )
+        using sum(baseTokenAmount + quoteTokenAmount) as liquidity )
         SELECT (timestamp // ?) as time,
         sum(COALESCE(provide_liquidity,0) - COALESCE(withdraw_liquidity, 0)) as liquidity,
         any_value(txheight) as height
@@ -278,39 +288,78 @@ export class DuckDb {
     return result as TotalLiquidity[];
   }
 
-  async createVolumeInfo() {
+  async createSwapOhlcv() {
     await this.conn.exec(
-      `CREATE TABLE IF NOT EXISTS volume_info (
-        denom VARCHAR,
-        timestamp UINTEGER,
-        txheight UINTEGER,
-        price DOUBLE,
-        volume UBIGINT)
+      `CREATE TABLE IF NOT EXISTS swap_ohlcv (
+        uniqueKey varchar UNIQUE,
+        timestamp uinteger,
+        pair varchar,
+        volume ubigint,
+        open double,
+        close double,
+        low double,
+        high double)
         `
     );
   }
 
-  async insertVolumeInfo(volumeInfos: VolumeInfo[]) {
-    await this.insertBulkData(volumeInfos, "volume_info");
+  async insertOhlcv(ohlcv: Ohlcv[]) {
+    await this.insertBulkData(ohlcv, "swap_ohlcv");
   }
 
-  async pivotVolumeRange(startTime: number, endTime: number) {
-    let volumeInfos = await this.conn.all(
+  async getOhlcvCandles(query: GetCandlesQuery): Promise<Ohlcv[]> {
+    const { pair, tf, startTime, endTime } = query;
+
+    // tf should be in seconds
+    const result = await this.conn.all(
       `
-      pivot (select * from volume_info
-      where timestamp >= ${startTime}
-      and timestamp <= ${endTime} 
-      order by timestamp) 
-      on denom 
-      using sum(volume) 
-      group by timestamp, txheight 
-      order by timestamp`
+        SELECT timestamp // ? as time,
+                sum(volume) as volume,
+                first(open) as open,
+                last(close) as close,
+                min(low) as low,
+                max(high) as high
+        FROM swap_ohlcv
+        WHERE pair = ? AND timestamp >= ? AND timestamp <= ?
+        GROUP BY time
+        ORDER BY time
+    `,
+      +tf,
+      pair,
+      startTime,
+      endTime
     );
-    for (let volInfo of volumeInfos) {
-      for (const key in volInfo) {
-        if (volInfo[key] === null) volInfo[key] = 0;
-      }
-    }
-    return volumeInfos;
+
+    // get second
+    result.forEach((item) => {
+      item.time *= tf;
+    });
+    return result as Ohlcv[];
+  }
+
+  async getVolumeRange(tf: number, startTime: number, endTime: number, pair: string): Promise<VolumeRange[]> {
+    const result = await this.conn.all(
+      `
+      SELECT timestamp // ? as time,
+        any_value(pair) as pair,
+        sum(volume) as baseVolume,
+        cast(sum(close * volume) as UBIGINT) as quoteVolume,
+        avg(close) as basePrice,
+        FROM swap_ohlcv
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        and pair = ?
+        GROUP BY time
+        ORDER BY time
+      `,
+      tf,
+      startTime,
+      endTime,
+      pair
+    );
+    return result.map((res) => ({
+      ...res,
+      time: new Date(res.time * tf * 1000).toISOString()
+    })) as VolumeRange[];
   }
 }

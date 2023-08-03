@@ -1,6 +1,5 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
-  calculatePrefixSum,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
   findPairAddress,
@@ -12,7 +11,12 @@ import {
   groupByTime,
   collectAccumulateLpData,
   concatDataToUniqueKey,
-  removeOpsDuplication
+  removeOpsDuplication,
+  calculatePriceFromSwapOp,
+  getSwapDirection,
+  findPairIndexFromDenoms,
+  toObject,
+  calculateSwapOhlcv
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -29,7 +33,7 @@ import {
   usdcCw20Address,
   usdtCw20Address
 } from "../src/constants";
-import { PairInfoData, ProvideLiquidityOperationData } from "../src/types";
+import { PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 describe("test-helper", () => {
@@ -140,27 +144,6 @@ describe("test-helper", () => {
 
     // assert
     expect(result.length).toEqual(expectedListLength);
-  });
-
-  it("test-calculatePrefixSum", () => {
-    const data = [
-      {
-        denom: "foo",
-        amount: 100
-      },
-      { denom: "foo", amount: 10 },
-      { denom: "bar", amount: 5 },
-      { denom: "bar", amount: -1 },
-      { denom: "hello", amount: 5 }
-    ];
-    const result = calculatePrefixSum(1, data);
-    expect(result).toEqual([
-      { denom: "foo", amount: 101 },
-      { denom: "foo", amount: 111 },
-      { denom: "bar", amount: 6 },
-      { denom: "bar", amount: 5 },
-      { denom: "hello", amount: 6 }
-    ]);
   });
 
   it("test-extractUniqueAndFlatten-extracting-unique-items-in-pair-mapping", () => {
@@ -363,9 +346,10 @@ describe("test-helper", () => {
     ]);
   });
 
-  it("test-calculatePriceByPool", () => {
-    const result = calculatePriceByPool(BigInt(10305560305234), BigInt(10205020305234), 0);
-    expect(result).toEqual(BigInt(9902432));
+  it("test-calculatePriceByPool-ORAI/USDT-pool-when-1ORAI=2.74USDT", () => {
+    // base denom is ORAI, quote denom is USDT => base pool is ORAI, quote pool is USDT.
+    const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), 0, 10 ** 6);
+    expect(result.toString()).toEqual("2.747144");
   });
 
   it("test-collectAccumulateLpData-should-aggregate-ops-with-same-pairs", () => {
@@ -387,12 +371,13 @@ describe("test-helper", () => {
     ];
     const ops: ProvideLiquidityOperationData[] = [
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "provide",
         uniqueKey: "1",
         timestamp: 1,
@@ -401,12 +386,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "2",
         timestamp: 1,
@@ -415,12 +401,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: atomIbcDenom,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: atomIbcDenom,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "3",
         timestamp: 1,
@@ -431,12 +418,12 @@ describe("test-helper", () => {
     ];
 
     collectAccumulateLpData(ops, poolResponses);
-    expect(ops[0].firstTokenLp.toString()).toEqual("2");
-    expect(ops[0].secondTokenLp.toString()).toEqual("2");
-    expect(ops[1].firstTokenLp.toString()).toEqual("1");
-    expect(ops[1].secondTokenLp.toString()).toEqual("1");
-    expect(ops[2].firstTokenLp.toString()).toEqual("3");
-    expect(ops[2].secondTokenLp.toString()).toEqual("3");
+    expect(ops[0].baseTokenReserve.toString()).toEqual("2");
+    expect(ops[0].quoteTokenReserve.toString()).toEqual("2");
+    expect(ops[1].baseTokenReserve.toString()).toEqual("1");
+    expect(ops[1].quoteTokenReserve.toString()).toEqual("1");
+    expect(ops[2].baseTokenReserve.toString()).toEqual("3");
+    expect(ops[2].quoteTokenReserve.toString()).toEqual("3");
   });
 
   it("test-concatDataToUniqueKey-should-return-unique-key-in-correct-order-from-timestamp-to-first-to-second-amount-and-denom", () => {
@@ -445,10 +432,10 @@ describe("test-helper", () => {
     const firstAmount = 1;
     const secondDenom = "bar";
     const secondAmount = 1;
-    const timestamp = 100;
+    const txheight = 100;
 
     // act
-    const result = concatDataToUniqueKey({ firstAmount, firstDenom, secondAmount, secondDenom, timestamp });
+    const result = concatDataToUniqueKey({ firstAmount, firstDenom, secondAmount, secondDenom, txheight });
 
     // assert
     expect(result).toEqual("100-foo-1-bar-1");
@@ -457,12 +444,13 @@ describe("test-helper", () => {
   it("test-remove-ops-duplication-should-remove-duplication-keys-before-inserting", () => {
     const ops: ProvideLiquidityOperationData[] = [
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "provide",
         uniqueKey: "1",
         timestamp: 1,
@@ -471,12 +459,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: usdtCw20Address,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: usdtCw20Address,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "2",
         timestamp: 1,
@@ -485,12 +474,13 @@ describe("test-helper", () => {
         txheight: 1
       },
       {
-        firstTokenAmount: 1,
-        firstTokenDenom: ORAI,
-        secondTokenAmount: 1,
-        secondTokenDenom: atomIbcDenom,
-        firstTokenLp: 1,
-        secondTokenLp: 1,
+        basePrice: 1,
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: 1,
+        quoteTokenDenom: atomIbcDenom,
+        baseTokenReserve: 1,
+        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "1",
         timestamp: 1,
@@ -532,4 +522,89 @@ describe("test-helper", () => {
   //   expect(result.target).toEqual(expectedInfo);
   //   expect(result.baseIndex).toEqual(expectedBase);
   // });
+
+  // it.each([
+  //   [
+  //     [
+  //       {
+  //         timestamp: 60000,
+  //         pair: "orai-usdt",
+  //         price: 1,
+  //         volume: 100n
+  //       },
+  //       {
+  //         timestamp: 60000,
+  //         pair: "orai-usdt",
+  //         price: 2,
+  //         volume: 100n
+  //       }
+  //     ],
+  //     {
+  //       open: 1,
+  //       close: 2,
+  //       low: 1,
+  //       high: 2,
+  //       volume: 200n,
+  //       timestamp: 60000,
+  //       pair: "orai-usdt"
+  //     }
+  //   ]
+  // ])("test-calculateOhlcv", (ops, expectedOhlcv) => {
+  //   const ohlcv = calculateSwapOhlcv(ops);
+  //   expect(toObject(ohlcv)).toEqual(toObject(expectedOhlcv));
+  // });
+
+  it.each([
+    ["Buy" as SwapDirection, 2],
+    ["Sell" as SwapDirection, 0.5]
+  ])("test-calculatePriceFromOrder", (direction: SwapDirection, expectedPrice: number) => {
+    const swapOp = {
+      offerAmount: 2,
+      offerDenom: ORAI,
+      returnAmount: 1,
+      askDenom: usdtCw20Address,
+      direction,
+      uniqueKey: "1",
+      timestamp: 1,
+      txCreator: "a",
+      txhash: "a",
+      txheight: 1,
+      spreadAmount: 1,
+      taxAmount: 1,
+      commissionAmount: 1
+    } as SwapOperationData;
+    // first case undefined, return 0
+    expect(calculatePriceFromSwapOp(undefined as any)).toEqual(0);
+    // other cases
+    const price = calculatePriceFromSwapOp(swapOp);
+    expect(price).toEqual(expectedPrice);
+  });
+
+  it.each([
+    [usdtCw20Address, "orai", "Buy" as SwapDirection],
+    ["orai", usdtCw20Address, "Sell" as SwapDirection]
+  ])("test-getSwapDirection", (offerDenom: string, askDenom: string, expectedDirection: SwapDirection) => {
+    // execute
+    // throw error case when offer & ask not in pair
+    try {
+      getSwapDirection("foo", "bar");
+    } catch (error) {
+      expect(error).toEqual(new Error("Cannot find asset infos in list of pairs"));
+    }
+    const result = getSwapDirection(offerDenom, askDenom);
+    expect(result).toEqual(expectedDirection);
+  });
+
+  it.each([
+    ["orai", usdtCw20Address, 4],
+    [usdtCw20Address, "orai", 4],
+    ["orai", airiCw20Adress, 0],
+    ["orai", "foo", -1]
+  ])(
+    "test-findPairIndexFromDenoms-given-%s-and-%s-should-return-index-%d-from-pair-list",
+    (offerDenom: string, askDenom: string, expectedIndex: number) => {
+      const result = findPairIndexFromDenoms(offerDenom, askDenom);
+      expect(result).toEqual(expectedIndex);
+    }
+  );
 });
