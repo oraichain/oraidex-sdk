@@ -187,6 +187,17 @@ class OraiDexSync {
   }
 }
 
+// async function initSync() {
+//   const duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "oraidex-sync-data");
+//   const oraidexSync = await OraiDexSync.create(
+//     duckDb,
+//     process.env.RPC_URL || "https://rpc.orai.io",
+//     process.env as any
+//   );
+//   oraidexSync.sync();
+// }
+
+// initSync();
 export { OraiDexSync };
 
 export * from "./types";

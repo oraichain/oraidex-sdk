@@ -341,7 +341,9 @@ export function getSwapDirection(offerDenom: string, askDenom: string): SwapDire
     return pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom);
   });
   if (!pair) {
-    throw new Error("Cannot find asset infos in list of pairs");
+    console.error("Cannot find asset infos in list of pairs");
+    return;
+    // throw new Error("Cannot find asset infos in list of pairs");
   }
   const assetInfos = pair.asset_infos;
   // use quote denom as offer then its buy. Quote denom in pairs is the 2nd index in the array

@@ -283,6 +283,7 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
+  swapOpsData = swapOpsData.filter((i) => i.direction);
   swapOpsData = removeOpsDuplication(swapOpsData) as SwapOperationData[];
   return {
     // transactions: txs,

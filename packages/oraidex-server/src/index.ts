@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import express from "express";
+import express, { Request } from "express";
 import {
   DuckDb,
   TickerInfo,
@@ -18,6 +18,7 @@ import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
+import { GetCandlesQuery } from "@oraichain/oraidex-sync";
 
 dotenv.config();
 
@@ -208,6 +209,15 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
 //     return;
 //   }
 // });
+
+app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) => {
+  try {
+    const candles = await duckDb.getOhlcvCandles(req.query);
+    res.status(200).send(candles);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
 
 app.listen(port, hostname, async () => {
   // sync data for the service to read

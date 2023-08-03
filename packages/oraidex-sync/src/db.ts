@@ -8,7 +8,8 @@ import {
   TotalLiquidity,
   VolumeData,
   VolumeRange,
-  WithdrawLiquidityOperationData
+  WithdrawLiquidityOperationData,
+  GetCandlesQuery
 } from "./types";
 import fs, { rename } from "fs";
 import { isoToTimestampNumber, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
@@ -306,7 +307,9 @@ export class DuckDb {
     await this.insertBulkData(ohlcv, "swap_ohlcv");
   }
 
-  async getOhlcvCandles(pair: string, tf: number, startTime: number, endTime: number): Promise<Ohlcv[]> {
+  async getOhlcvCandles(query: GetCandlesQuery): Promise<Ohlcv[]> {
+    const { pair, tf, startTime, endTime } = query;
+
     // tf should be in seconds
     const result = await this.conn.all(
       `
