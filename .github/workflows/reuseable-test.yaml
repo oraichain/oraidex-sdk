@@ -23,8 +23,8 @@ jobs:
         run: |
           yarn
 
-      - name: Build dependency orderbook-sync
-        run: yarn build packages/orderbook-sync
+      - name: Build dependency oraidex-sync
+        run: yarn build packages/oraidex-sync
 
       - name: Run unit test
         run: |
