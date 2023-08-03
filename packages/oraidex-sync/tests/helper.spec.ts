@@ -12,7 +12,7 @@ import {
   collectAccumulateLpData,
   concatDataToUniqueKey,
   removeOpsDuplication,
-  calculatePriceFromSwapOp,
+  calculateBasePriceFromSwapOp,
   getSwapDirection,
   findPairIndexFromDenoms,
   toObject,
@@ -574,9 +574,9 @@ describe("test-helper", () => {
       commissionAmount: 1
     } as SwapOperationData;
     // first case undefined, return 0
-    expect(calculatePriceFromSwapOp(undefined as any)).toEqual(0);
+    expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
     // other cases
-    const price = calculatePriceFromSwapOp(swapOp);
+    const price = calculateBasePriceFromSwapOp(swapOp);
     expect(price).toEqual(expectedPrice);
   });
 
