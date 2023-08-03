@@ -60,16 +60,16 @@ jobs:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Install latest version
-        id: install
-        if: steps.publish.outcome != 'failure' 
-        continue-on-error: true
-        uses: appleboy/ssh-action@master
-        with:
-          host: ${{ secrets.DOCKER_SWARM_MANAGER_ONE }}
-          username: root
-          key: ${{ secrets.DOCKER_SWARM_MANAGER_ONE_KEY }}
-          script: docker exec ${{ secrets.DOCKER_SWARM_MANAGER_ONE_NODE_16_ID}} sh -c 'yarn global add @oraichain/oraidex-server@latest --ignore-scripts'
+      # - name: Install latest version
+      #   id: install
+      #   if: steps.publish.outcome != 'failure' 
+      #   continue-on-error: true
+      #   uses: appleboy/ssh-action@master
+      #   with:
+      #     host: ${{ secrets.DOCKER_SWARM_MANAGER_ONE }}
+      #     username: root
+      #     key: ${{ secrets.DOCKER_SWARM_MANAGER_ONE_KEY }}
+      #     script: docker exec ${{ secrets.DOCKER_SWARM_MANAGER_ONE_NODE_16_ID}} sh -c 'yarn global add @oraichain/oraidex-server@latest --ignore-scripts'
 
       - name: send result via discord
         uses: appleboy/discord-action@master
