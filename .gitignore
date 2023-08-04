@@ -28,3 +28,5 @@ typings/
 .npmrc
 build
 *oraidex-sync-data*
+
+dist
