@@ -21,6 +21,8 @@ import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
 import { GetCandlesQuery } from "@oraichain/oraidex-sync";
+import fs from "fs";
+import path from "path";
 
 dotenv.config();
 
@@ -32,6 +34,16 @@ let duckDb: DuckDb;
 const port = parseInt(process.env.PORT) || 2024;
 const hostname = process.env.HOSTNAME || "0.0.0.0";
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
+
+app.get("/version", async (req, res) => {
+  try {
+    const packageContent = fs.readFileSync(path.join(__dirname, "../package.json"), { encoding: "utf-8" });
+    const packageJson = JSON.parse(packageContent);
+    res.status(200).send(packageJson.version);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
 
 app.get("/pairs", async (req, res) => {
   try {
