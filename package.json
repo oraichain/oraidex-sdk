@@ -7,7 +7,7 @@
     "test": "jest",
     "docs": "typedoc --entryPointStrategy expand --name 'Oraidex SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
     "build": "tsc -p",
-    "deploy": "yarn publish --access public --patch",
+    "deploy": "yarn publish --access public",
     "start:server": "yarn build packages/oraidex-sync/ && npx ts-node packages/oraidex-server/src/index.ts"
   },
   "workspaces": [

@@ -1,64 +1,80 @@
-
-# This is a basic workflow to help you get started with Actions
-
 name: publish_package
 
-# Controls when the action will run. 
+# Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the master branch
+  # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [ main ]
+    branches: [main]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
-  publish_package:
-    runs-on: ubuntu-latest
+  # This workflow contains 2 jobs called "run-unit-test" "build"
+  run-unit-test:
+    uses: ./.github/workflows/reuseable-test.yaml
+
+  build:
+    needs:
+        - run-unit-test
+    runs-on: ubuntu-20.04
     strategy:
       matrix:
         node-version: [">=16.0.0"]
 
     steps:
-    - name: Cancel Previous Runs
-      uses: styfle/cancel-workflow-action@0.10.0
-      with:
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.8.0
+        with:
           access_token: ${{ github.token }}
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v2
+        with:
           node-version: ${{ matrix.node-version }}
-    - name: Configure CI Git User
-      run: |
-        git config --global user.name '@phutxorai'
-        git config --global user.email 'phu.tx@orai.io'
-        git remote set-url origin https://$GITHUB_ACTOR:$GITHUB_PAT@github.com/oraichain/oraidex-sdk
-      env:
-        GITHUB_PAT: ${{ secrets.GIT_PAT }}          
-    - name: Install Yarn
-      run: npm install -g yarn
-    - uses: actions/cache@v3
-      id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
-      with:
-          path: "**/node_modules"
-          key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
-    - name: Install Dependencies
-      if: steps.yarn-cache.outputs.cache-hit != 'true'
-      run: yarn
-    - name: Authenticate with Registry
-      run: |
-        yarn logout
-        echo "registry=http://registry.npmjs.org/" >> .npmrc
-        echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" >> .npmrc
-        npm whoami
-      env:
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-    - name: Publish package
-      run: lerna publish from-package --yes
-      env:
-        GH_TOKEN: ${{ secrets.GIT_PAT }}
-        GITHUB_TOKEN: ${{ secrets.GIT_PAT }}
-        NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Get yarn cache directory path
+        id: yarn-cache-dir-path
+        run: echo "::set-output name=dir::$(yarn cache dir)"
+      - uses: actions/cache@v2
+        id: yarn-cache
+        with:
+          path: |
+            ${{ steps.yarn-cache-dir-path.outputs.dir }}
+            ./node_modules/
+          key: ${{ runner.os }}-yarn-${{ hashFiles('./yarn.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-yarn-
+      - name: Install Dependencies
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: yarn
+      - name: Build
+        run: yarn build packages/contracts-sdk && yarn build packages/oraidex-sync && yarn --cwd packages/oraidex-server/ build
+      - name: Authenticate with private NPM package
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+      - name: Publish
+        id: publish
+        continue-on-error: true
+        run: yarn deploy packages/oraidex-server
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install latest version
+        id: install
+        if: steps.publish.outcome != 'failure' 
+        continue-on-error: true
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.DOCKER_SWARM_MANAGER_ONE }}
+          username: root
+          key: ${{ secrets.DOCKER_SWARM_MANAGER_ONE_KEY }}
+          script: docker exec ${{ secrets.DOCKER_SWARM_MANAGER_ONE_NODE_16_ID}} sh -c 'yarn global add @oraichain/oraidex-server@latest --ignore-scripts'
+
+      - name: send result via discord
+        uses: appleboy/discord-action@master
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          username: "GitBot"
+          message: "Repo oraidex-sdk has just published oraidex-server. result: ${{ steps.publish.outcome }}. install result: ${{ steps.install.outcome }}"
