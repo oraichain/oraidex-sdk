@@ -1,5 +1,5 @@
-import { Env, OraiDexSync } from "@oraichain/oraidex-sync/src";
-import { DuckDb } from "@oraichain/oraidex-sync/src/db";
+import { Env, OraiDexSync } from "@oraichain/oraidex-sync";
+import { DuckDb } from "@oraichain/oraidex-sync";
 import "dotenv/config";
 
 const start = async () => {

@@ -1,5 +1,5 @@
-export function parseSymbolsToTickerId(symbols: [string, string]) {
-  return `${symbols[0]}_${symbols[1]}`;
+export function parseSymbolsToTickerId([base, quote]: [string, string]) {
+  return `${base}_${quote}`;
 }
 
 export function getDate24hBeforeNow(time: Date) {
@@ -24,6 +24,6 @@ export function calculateBasePriceFromTickerVolume(baseVolume: string, targetVol
   return parseFloat(targetVolume) / parseFloat(baseVolume);
 }
 
-export function pairToString(pair: string[]): string {
-  return `${pair[0]}-${pair[1]}`;
+export function pairToString([base, quote]: string[]): string {
+  return `${base}-${quote}`;
 }

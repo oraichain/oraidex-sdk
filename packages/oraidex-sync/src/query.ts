@@ -38,11 +38,10 @@ async function getAllPairInfos(
       ...pairs.map((pair) => factoryV2.pair({ assetInfos: pair.asset_infos }))
     ])
   )
-    .filter((res) => {
-      if (res.status === "fulfilled") return true;
-      return false;
+    .map((res) => {
+      if (res.status === "fulfilled") return res.value;
     })
-    .map((data) => (data as any).value as PairInfo);
+    .filter(Boolean);
   return liquidityResults;
 }
 

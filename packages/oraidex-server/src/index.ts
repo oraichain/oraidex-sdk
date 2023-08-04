@@ -1,4 +1,4 @@
-import * as dotenv from "dotenv";
+import "dotenv/config";
 import express, { Request } from "express";
 import {
   DuckDb,
@@ -19,8 +19,6 @@ import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
 import { GetCandlesQuery } from "@oraichain/oraidex-sync";
-
-dotenv.config();
 
 const app = express();
 app.use(cors());

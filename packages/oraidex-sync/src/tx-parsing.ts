@@ -1,6 +1,6 @@
 import { Attribute, Event } from "@cosmjs/stargate";
+import { isEqual } from "lodash";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import {
@@ -70,23 +70,17 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
     for (let attr of attrs) {
       if (attr.key === "offer_asset") {
         offerDenoms.push(attr.value);
-      }
-      if (attr.key === "ask_asset") {
+      } else if (attr.key === "ask_asset") {
         askDenoms.push(attr.value);
-      }
-      if (attr.key === "offer_amount") {
+      } else if (attr.key === "offer_amount") {
         offerAmounts.push(attr.value);
-      }
-      if (attr.key === "return_amount") {
+      } else if (attr.key === "return_amount") {
         returnAmounts.push(attr.value);
-      }
-      if (attr.key === "tax_amount") {
+      } else if (attr.key === "tax_amount") {
         taxAmounts.push(attr.value);
-      }
-      if (attr.key === "commission_amount") {
+      } else if (attr.key === "commission_amount") {
         commissionAmounts.push(attr.value);
-      }
-      if (attr.key === "spread_amount") {
+      } else if (attr.key === "spread_amount") {
         spreadAmounts.push(attr.value);
       }
     }
@@ -192,10 +186,11 @@ function extractMsgWithdrawLiquidity(
     let quoteAssetAmount = parseInt(assets[2]);
     // we only have one pair order. If the order is reversed then we also reverse the order
     if (
-      pairs.find(
-        (pair) =>
-          JSON.stringify(pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))) ===
-          JSON.stringify([quoteAsset, baseAsset])
+      pairs.find((pair) =>
+        isEqual(
+          pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+          [quoteAsset, baseAsset]
+        )
       )
     ) {
       baseAsset = assets[3];

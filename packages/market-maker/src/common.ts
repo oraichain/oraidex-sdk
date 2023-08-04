@@ -125,13 +125,13 @@ export const deployToken = async (
     client,
     senderAddress,
     (
-      await deployContract(client, senderAddress, {
+      await deployContract(client, senderAddress, "oraiswap_token", {
         decimals,
         symbol,
         name,
         mint: { minter: senderAddress },
         initial_balances: [{ address: senderAddress, amount: "1000000000" }, ...initial_balances]
-      }, "oraiswap_token")
+      })
     ).contractAddress
   );
 };
@@ -144,11 +144,11 @@ export const deployOrderbook = async (
     client,
     senderAddress,
     (
-      await deployContract(client, senderAddress, {
+      await deployContract(client, senderAddress, "oraiswap_limit_order", {
         admin: senderAddress,
         version: "0.0.1",
         name: "Orderbook"
-      },"oraiswap_limit_order")
+      })
     ).contractAddress
   );
 };
