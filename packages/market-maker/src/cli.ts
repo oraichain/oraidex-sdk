@@ -16,27 +16,28 @@ import {
 } from "./index";
 
 const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% cancel
-const [volumeMin, volumeMax] = process.env.VOLUME_RANGE
-  ? process.env.VOLUME_RANGE.split(",").map(Number)
-  : [100000, 150000];
+
+const marketDepth = Number(process.env.MARKET_DEPTH);
 const buyPercentage = Number(process.env.BUY_PERCENTAGE || 0.55);
 const [spreadMin, spreadMax] = process.env.SPREAD_RANGE
   ? process.env.SPREAD_RANGE.split(",").map(Number)
   : [0.003, 0.006];
 
+const spread_cancel_percentage = Number(process.env.SPREAD_CANCEL_PERCENTAGE);
+const maxRepeat = 5;
+const totalOrders = 10;
+
 const orderConfig: MakeOrderConfig = {
   cancelPercentage,
-  volumeMin,
-  volumeMax,
   buyPercentage,
   spreadMax,
-  spreadMin
+  spreadMin,
+  marketDepth,
+  totalOrders
 };
 const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
   ? process.env.ORDER_INTERVAL_RANGE.split(",").map(Number)
   : [50, 100];
-const maxRepeat = 5;
-const totalOrders = 10;
 
 (async () => {
   let buyer: UserWallet, seller: UserWallet, usdtToken: OraiswapTokenClient, orderBook: OraiswapLimitOrderClient;
@@ -82,6 +83,7 @@ const totalOrders = 10;
       orderBook.contractAddress,
       oraiPrice,
       totalOrders,
+      spread_cancel_percentage,
       orderConfig
     );
 

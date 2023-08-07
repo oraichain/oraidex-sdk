@@ -1,5 +1,5 @@
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
-import { Addr, OraiswapLimitOrderTypes, OraiswapTokenTypes, OrderDirection } from '@oraichain/oraidex-contracts-sdk';
+import { Addr, AssetInfo, OraiswapLimitOrderTypes, OraiswapTokenTypes, OrderDirection } from '@oraichain/oraidex-contracts-sdk';
 import { matchingOrders } from '@oraichain/orderbook-matching-relayer';
 import { UserWallet, atomic, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice } from './common';
 import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
@@ -10,8 +10,8 @@ export type MakeOrderConfig = {
   spreadMax: number;
   buyPercentage: number;
   cancelPercentage: number;
-  volumeMin: number;
-  volumeMax: number;
+  marketDepth: number;
+  totalOrders: number;
 };
 
 const oraiThreshold = process.env.ORAI_THRESHOLD;
@@ -21,15 +21,19 @@ const getRandomSpread = (min: number, max: number) => {
   return getRandomRange(min * atomic, max * atomic) / atomic;
 };
 
-const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, volumeMin, volumeMax, makeProfit }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
+const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, totalOrders, marketDepth, makeProfit }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
   const spread = getRandomSpread(spreadMin, spreadMax);
   // buy percentage is 55%
   const direction: OrderDirection = getRandomPercentage() < buyPercentage * 100 ? 'buy' : 'sell';
   // if make profit then buy lower, sell higher than market
   const oraiPriceEntry = getSpreadPrice(oraiPrice, spread * (direction === 'buy' ? 1 : -1) * (makeProfit ? -1 : 1));
+  const volumeMax = marketDepth / totalOrders;
+  const volumeMin = (marketDepth / totalOrders)*0.7;
 
   const oraiVolume = getRandomRange(volumeMin, volumeMax); // between 0.1 and 0.15 orai
+  console.log({oraiVolume})
   const usdtVolume = (oraiPriceEntry * oraiVolume).toFixed(0);
+  console.log({usdtVolume})
 
   return {
     submit_order: {
@@ -52,7 +56,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
   };
 };
 
-export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtTokenAddress: Addr, orderBookAddress: Addr, oraiPrice: number, totalOrders: number, config: MakeOrderConfig, limit = 30, denom = 'orai') {
+export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtTokenAddress: Addr, orderBookAddress: Addr, oraiPrice: number, totalOrders: number, spread_percentage: number, config: MakeOrderConfig, limit = 10, denom = 'orai') {
   const assetInfos = [{ native_token: { denom } }, { token: { contract_addr: usdtTokenAddress } }];
   const multipleBuyMsg: ExecuteInstruction[] = [];
   const multipleSellMsg: ExecuteInstruction[] = [];
@@ -143,7 +147,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
 
   try {
-    await cancelOrder(orderBookAddress, sellerWallet, assetInfos, cancelLimit);
+    await cancelOrder(orderBookAddress, sellerWallet, assetInfos, "sell", spread_percentage, oraiPrice, cancelLimit);
   } catch (error) {
     console.error(error);
   }
@@ -151,7 +155,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
 
   try {
-    await cancelOrder(orderBookAddress, buyerWallet, assetInfos, cancelLimit);
+    await cancelOrder(orderBookAddress, buyerWallet, assetInfos, "buy", spread_percentage, oraiPrice, cancelLimit);
   } catch (error) {
     console.error(error);
   }
