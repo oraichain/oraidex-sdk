@@ -30,7 +30,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
   const volumeMax = marketDepth / totalOrders;
   const volumeMin = (marketDepth / totalOrders)*0.7;
 
-  const oraiVolume = getRandomRange(volumeMin, volumeMax); // between 0.1 and 0.15 orai
+  const oraiVolume = getRandomRange(volumeMin, volumeMax);
   console.log({oraiVolume})
   const usdtVolume = (oraiPriceEntry * oraiVolume).toFixed(0);
   console.log({usdtVolume})
@@ -56,7 +56,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
   };
 };
 
-export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtTokenAddress: Addr, orderBookAddress: Addr, oraiPrice: number, totalOrders: number, spread_percentage: number, config: MakeOrderConfig, limit = 10, denom = 'orai') {
+export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtTokenAddress: Addr, orderBookAddress: Addr, oraiPrice: number, totalOrders: number, config: MakeOrderConfig, limit = 10, denom = 'orai') {
   const assetInfos = [{ native_token: { denom } }, { token: { contract_addr: usdtTokenAddress } }];
   const multipleBuyMsg: ExecuteInstruction[] = [];
   const multipleSellMsg: ExecuteInstruction[] = [];
@@ -147,7 +147,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
 
   try {
-    await cancelOrder(orderBookAddress, sellerWallet, assetInfos, "sell", spread_percentage, oraiPrice, cancelLimit);
+    await cancelOrder(orderBookAddress, sellerWallet, assetInfos, cancelLimit);
   } catch (error) {
     console.error(error);
   }
@@ -155,7 +155,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   // console.log(orderBookAddress, await client.getBalance(orderBookAddress, 'orai'));
 
   try {
-    await cancelOrder(orderBookAddress, buyerWallet, assetInfos, "buy", spread_percentage, oraiPrice, cancelLimit);
+    await cancelOrder(orderBookAddress, buyerWallet, assetInfos, cancelLimit);
   } catch (error) {
     console.error(error);
   }

@@ -23,7 +23,6 @@ const [spreadMin, spreadMax] = process.env.SPREAD_RANGE
   ? process.env.SPREAD_RANGE.split(",").map(Number)
   : [0.003, 0.006];
 
-const spread_cancel_percentage = Number(process.env.SPREAD_CANCEL_PERCENTAGE);
 const maxRepeat = 5;
 const totalOrders = 10;
 
@@ -83,7 +82,6 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
       orderBook.contractAddress,
       oraiPrice,
       totalOrders,
-      spread_cancel_percentage,
       orderConfig
     );
 
