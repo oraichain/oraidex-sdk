@@ -304,7 +304,8 @@ export class DuckDb {
   }
 
   async insertOhlcv(ohlcv: Ohlcv[]) {
-    await this.insertBulkData(ohlcv, "swap_ohlcv");
+    const filtedOhlcv = ohlcv.filter((item) => item.open != 0 && item.close != 0 && item.low != 0 && item.high != 0);
+    await this.insertBulkData(filtedOhlcv, "swap_ohlcv");
   }
 
   async getOhlcvCandles(query: GetCandlesQuery): Promise<Ohlcv[]> {
