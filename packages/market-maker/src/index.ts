@@ -10,7 +10,8 @@ export type MakeOrderConfig = {
   spreadMax: number;
   buyPercentage: number;
   cancelPercentage: number;
-  marketDepth: number;
+  sellDepth: number;
+  buyDepth: number;
   totalOrders: number;
 };
 
@@ -21,19 +22,20 @@ const getRandomSpread = (min: number, max: number) => {
   return getRandomRange(min * atomic, max * atomic) / atomic;
 };
 
-const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, totalOrders, marketDepth, makeProfit }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
+const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, totalOrders, sellDepth, buyDepth, makeProfit }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
   const spread = getRandomSpread(spreadMin, spreadMax);
   // buy percentage is 55%
   const direction: OrderDirection = getRandomPercentage() < buyPercentage * 100 ? 'buy' : 'sell';
   // if make profit then buy lower, sell higher than market
   const oraiPriceEntry = getSpreadPrice(oraiPrice, spread * (direction === 'buy' ? 1 : -1) * (makeProfit ? -1 : 1));
-  const volumeMax = marketDepth / totalOrders;
-  const volumeMin = (marketDepth / totalOrders)*0.7;
 
-  const oraiVolume = getRandomRange(volumeMin, volumeMax);
-  console.log({oraiVolume})
-  const usdtVolume = (oraiPriceEntry * oraiVolume).toFixed(0);
+  const totalUsdtVolume = sellDepth + buyDepth;
+  console.log({totalVolume: totalUsdtVolume});
+  
+  const usdtVolume = Math.round(totalUsdtVolume / totalOrders);
   console.log({usdtVolume})
+  const oraiVolume = Math.round(usdtVolume / oraiPriceEntry);
+  console.log({oraiVolume})
 
   return {
     submit_order: {
@@ -48,7 +50,7 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
           info: {
             token: { contract_addr: usdtContractAddress }
           },
-          amount: usdtVolume
+          amount: usdtVolume.toString()
         }
       ],
       direction

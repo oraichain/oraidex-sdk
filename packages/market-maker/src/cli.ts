@@ -17,21 +17,23 @@ import {
 
 const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% cancel
 
-const marketDepth = Number(process.env.MARKET_DEPTH);
+const sellDepth = Number(process.env.SELL_DEPTH);
+const buyDepth = Number(process.env.BUY_DEPTH);
 const buyPercentage = Number(process.env.BUY_PERCENTAGE || 0.55);
 const [spreadMin, spreadMax] = process.env.SPREAD_RANGE
   ? process.env.SPREAD_RANGE.split(",").map(Number)
-  : [0.003, 0.006];
+  : [0.001, 0.004];
 
 const maxRepeat = 5;
-const totalOrders = 10;
+const totalOrders = 5;
 
 const orderConfig: MakeOrderConfig = {
   cancelPercentage,
   buyPercentage,
   spreadMax,
   spreadMin,
-  marketDepth,
+  sellDepth,
+  buyDepth,
   totalOrders
 };
 const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
@@ -48,8 +50,8 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
     });
     buyer = { client, address: "orai1hz4kkphvt0smw4wd9uusuxjwkp604u7m4akyzv" };
     seller = { client, address: "orai18cgmaec32hgmd8ls8w44hjn25qzjwhannd9kpj" };
-    client.app.bank.setBalance(buyer.address, [coin(toDecimals(1000), "orai")]);
-    client.app.bank.setBalance(seller.address, [coin(toDecimals(1000), "orai")]);
+    client.app.bank.setBalance(buyer.address, [coin(toDecimals(100000), "orai")]);
+    client.app.bank.setBalance(seller.address, [coin(toDecimals(100000), "orai")]);
     usdtToken = await deployToken(buyer.client, buyer.address, {
       symbol: "USDT",
       name: "USDT token"

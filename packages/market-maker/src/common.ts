@@ -130,7 +130,7 @@ export const deployToken = async (
         symbol,
         name,
         mint: { minter: senderAddress },
-        initial_balances: [{ address: senderAddress, amount: "1000000000" }, ...initial_balances]
+        initial_balances: [{ address: senderAddress, amount: "100000000000" }, ...initial_balances]
       }, "oraiswap_token", "oraiswap_token")
     ).contractAddress
   );
