@@ -261,8 +261,6 @@ export const cancelAllOrder = async (
   assetInfos: AssetInfo[],
 ) => {
   for (let i = 0; i < 10; i++) {
-    console.log("cancelAll orders - i:", i);
-    
     const lastOrder = await sender.client.queryContractSmart(orderbookAddress, {
       orders: {
         asset_infos: assetInfos,
@@ -277,7 +275,6 @@ export const cancelAllOrder = async (
     for (const last_order of lastOrder.orders) {
       last_order_id = last_order.order_id
       console.log({last_order})
-      console.log(last_order_id)  
     }
 
     if (last_order_id === 0) {
@@ -299,9 +296,6 @@ export const cancelAllOrder = async (
       } as OraiswapLimitOrderTypes.QueryMsg);
   
       for (const order of queryAll.orders) {
-        console.log("4444");
-        console.log({order});
-        
         const cancelMsg: ExecuteInstruction = {
           contractAddress: orderbookAddress,
           msg: {
@@ -311,8 +305,6 @@ export const cancelAllOrder = async (
             }
           }
         };
-        console.log("11111")
-        console.log({cancelMsg})
         multipleCancelMsg.push(cancelMsg);
       }
       if (multipleCancelMsg.length > 0) {

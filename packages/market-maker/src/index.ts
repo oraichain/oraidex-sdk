@@ -30,12 +30,8 @@ const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spread
   const oraiPriceEntry = getSpreadPrice(oraiPrice, spread * (direction === 'buy' ? 1 : -1) * (makeProfit ? -1 : 1));
 
   const totalUsdtVolume = sellDepth + buyDepth;
-  console.log({totalVolume: totalUsdtVolume});
-  
   const usdtVolume = Math.round(totalUsdtVolume / totalOrders);
-  console.log({usdtVolume})
   const oraiVolume = Math.round(usdtVolume / oraiPriceEntry);
-  console.log({oraiVolume})
 
   return {
     submit_order: {
