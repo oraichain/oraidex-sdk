@@ -1,7 +1,7 @@
 import { toBinary } from '@cosmjs/cosmwasm-stargate';
 import { Addr, AssetInfo, OraiswapLimitOrderTypes, OraiswapTokenTypes, OrderDirection } from '@oraichain/oraidex-contracts-sdk';
 import { matchingOrders } from '@oraichain/orderbook-matching-relayer';
-import { UserWallet, atomic, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice } from './common';
+import { UserWallet, atomic, cancelAllOrder, cancelOrder, getRandomPercentage, getRandomRange, getSpreadPrice } from './common';
 import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 
 export type MakeOrderConfig = {

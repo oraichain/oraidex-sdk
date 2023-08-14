@@ -153,6 +153,72 @@ export const deployOrderbook = async (
   );
 };
 
+export const cancelOutofSpreadOrder = async (
+  orderbookAddress: Addr,
+  sender: UserWallet,
+  assetInfos: AssetInfo[],
+  direction: string,
+  spread_percentage: number,
+  oraiPrice: number,
+  limit: number,
+) => {
+  const upperPriceLimit = oraiPrice * (1 + spread_percentage);
+  const lowerPriceLimit = oraiPrice * (1 - spread_percentage);
+  console.log({upperPriceLimit});
+  console.log({lowerPriceLimit});
+  let queryTicks = await sender.client.queryContractSmart(orderbookAddress, {
+    ticks: {
+      asset_infos: assetInfos,
+      order_by: direction === "buy" ? 2 : 1,
+      direction,
+      limit,
+    }
+  } as OraiswapLimitOrderTypes.QueryMsg);
+
+  for (const ticks of Object.values(queryTicks)) {
+    for (const tick of ticks as any[]) {
+      let tick_price = Number(tick.price);
+      if (tick_price >= upperPriceLimit || tick_price <= lowerPriceLimit) {
+        console.log("cancel all orders with price", tick_price);
+        console.log({sender_addr: sender.address});
+        const queryorderswithPrice = await sender.client.queryContractSmart(orderbookAddress, {
+          orders: {
+            asset_infos: assetInfos,
+            order_by: 1,
+            limit,
+            filter: {
+              price: tick_price.toString()
+            }
+          }
+        } as OraiswapLimitOrderTypes.QueryMsg);
+        console.log({queryorderswithPrice: queryorderswithPrice});
+
+        const multipleCancelMsg: ExecuteInstruction[] = [];
+        for (const order of queryorderswithPrice.orders) {
+          const cancelMsg: ExecuteInstruction = {
+            contractAddress: orderbookAddress,
+            msg: {
+              cancel_order: {
+                asset_infos: assetInfos,
+                order_id: order.order_id
+              }
+            }
+          };
+          console.log({bidder_addr: order.bidder_addr});
+          // console.log({sender_addr: sender.address});
+          if (order.bidder_addr === sender.address) {
+            multipleCancelMsg.push(cancelMsg);
+          }
+        }
+        if (multipleCancelMsg.length > 0) {
+          const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
+          console.log("cancel orders - txHash:", cancelResult.transactionHash);
+        }
+      }
+    }
+  }
+};
+
 export const cancelOrder = async (
   orderbookAddress: Addr,
   sender: UserWallet,
@@ -186,5 +252,73 @@ export const cancelOrder = async (
   if (multipleCancelMsg.length > 0) {
     const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
     console.log("cancel orders - txHash:", cancelResult.transactionHash);
+  }
+};
+
+export const cancelAllOrder = async (
+  orderbookAddress: Addr,
+  sender: UserWallet,
+  assetInfos: AssetInfo[],
+) => {
+  for (let i = 0; i < 10; i++) {
+    console.log("cancelAll orders - i:", i);
+    
+    const lastOrder = await sender.client.queryContractSmart(orderbookAddress, {
+      orders: {
+        asset_infos: assetInfos,
+        order_by: 2,
+        limit: 1,
+        filter: {
+          bidder: sender.address
+        }
+      }
+    } as OraiswapLimitOrderTypes.QueryMsg);
+    let last_order_id = 0;
+    for (const last_order of lastOrder.orders) {
+      last_order_id = last_order.order_id
+      console.log({last_order})
+      console.log(last_order_id)  
+    }
+
+    if (last_order_id === 0) {
+      break;
+    }
+    
+    const multipleCancelMsg: ExecuteInstruction[] = [];
+    if (last_order_id !== 0) {
+      const queryAll = await sender.client.queryContractSmart(orderbookAddress, {
+        orders: {
+          asset_infos: assetInfos,
+          order_by: 1,
+          limit: 100,
+          start_after: last_order_id,
+          filter: {
+            bidder: sender.address
+          }
+        }
+      } as OraiswapLimitOrderTypes.QueryMsg);
+  
+      for (const order of queryAll.orders) {
+        console.log("4444");
+        console.log({order});
+        
+        const cancelMsg: ExecuteInstruction = {
+          contractAddress: orderbookAddress,
+          msg: {
+            cancel_order: {
+              asset_infos: assetInfos,
+              order_id: order.order_id
+            }
+          }
+        };
+        console.log("11111")
+        console.log({cancelMsg})
+        multipleCancelMsg.push(cancelMsg);
+      }
+      if (multipleCancelMsg.length > 0) {
+        const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
+        console.log("cancel orders - txHash:", cancelResult.transactionHash);
+      }
+    }
   }
 };
