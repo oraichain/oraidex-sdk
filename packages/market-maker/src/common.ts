@@ -273,44 +273,40 @@ export const cancelAllOrder = async (
     } as OraiswapLimitOrderTypes.QueryMsg);
     let last_order_id = 0;
     for (const last_order of lastOrder.orders) {
-      last_order_id = last_order.order_id
-      console.log({last_order})
+      last_order_id = last_order.order_id;
     }
 
     if (last_order_id === 0) {
-      break;
+      return;
     }
-    
+
     const multipleCancelMsg: ExecuteInstruction[] = [];
-    if (last_order_id !== 0) {
-      const queryAll = await sender.client.queryContractSmart(orderbookAddress, {
-        orders: {
-          asset_infos: assetInfos,
-          order_by: 1,
-          limit: 100,
-          start_after: last_order_id,
-          filter: {
-            bidder: sender.address
+    const queryAll = await sender.client.queryContractSmart(orderbookAddress, {
+      orders: {
+        asset_infos: assetInfos,
+        order_by: 1,
+        limit: 100,
+        filter: {
+          bidder: sender.address
+        }
+      }
+    } as OraiswapLimitOrderTypes.QueryMsg);
+
+    for (const order of queryAll.orders) {
+      const cancelMsg: ExecuteInstruction = {
+        contractAddress: orderbookAddress,
+        msg: {
+          cancel_order: {
+            asset_infos: assetInfos,
+            order_id: order.order_id
           }
         }
-      } as OraiswapLimitOrderTypes.QueryMsg);
-  
-      for (const order of queryAll.orders) {
-        const cancelMsg: ExecuteInstruction = {
-          contractAddress: orderbookAddress,
-          msg: {
-            cancel_order: {
-              asset_infos: assetInfos,
-              order_id: order.order_id
-            }
-          }
-        };
-        multipleCancelMsg.push(cancelMsg);
-      }
-      if (multipleCancelMsg.length > 0) {
-        const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
-        console.log("cancel orders - txHash:", cancelResult.transactionHash);
-      }
+      };
+      multipleCancelMsg.push(cancelMsg);
     }
-  }
+    if (multipleCancelMsg.length > 0) {
+      const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
+      console.log("cancel orders - txHash:", cancelResult.transactionHash);
+    }
+}
 };
