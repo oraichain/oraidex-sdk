@@ -20,6 +20,7 @@ const getRandomSpread = (min: number, max: number) => {
   return getRandomRange(min * atomic, max * atomic) / atomic;
 };
 
+const mm_address_2 = "orai1gqew39xtnshrrt8nmk0qy4gqkup5yhmnaryfp7";
 const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr, orderbookAddress: Addr, sender: UserWallet, spread: number, assetInfos: AssetInfo[], direction: OrderDirection, limit: 10, { buyPercentage, sellDepth, buyDepth }: MakeOrderConfig): Promise<OraiswapLimitOrderTypes.ExecuteMsg[]> => {
   const upperPriceLimit = oraiPrice * (1 + spread);
   const lowerPriceLimit = oraiPrice * (1 - spread);
@@ -56,12 +57,12 @@ const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr,
       
       
       for (const order of ordersbyPrice.orders) {
-        console.log({order});
-        if (order.bidder_addr === sender.address) {
+        if (order.bidder_addr === sender.address || order.bidder_addr === mm_address_2) {
           continue;
         }
+
         const lef_offer_amount = Number(order.offer_asset.amount) - Number(order.filled_offer_amount);
-        console.log({trader_lef_amount: lef_offer_amount});
+        console.log({order}, {trader_lef_amount: lef_offer_amount});
         mmAskVolumebyPrice += lef_offer_amount;
       }
 
