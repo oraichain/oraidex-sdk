@@ -10,6 +10,7 @@ import {
   deployOrderbook,
   deployToken,
   getCoingeckoPrice,
+  getOraclePrice,
   makeOrders,
   setupWallet,
   toDecimals
@@ -24,6 +25,12 @@ const [spreadMin, spreadMax] = process.env.SPREAD_RANGE
   ? process.env.SPREAD_RANGE.split(",").map(Number)
   : [0.001, 0.004];
 
+const oraiThreshold = Number(process.env.ORAI_THRESHOLD);
+const usdtThreshold = Number(process.env.USDT_THRESHOLD);
+
+const spreadMatch = Number(process.env.SPREAD_MATCH);
+const spreadCancel = Number(process.env.SPREAD_CANCEL);
+
 const maxRepeat = 5;
 const totalOrders = 5;
 
@@ -34,6 +41,10 @@ const orderConfig: MakeOrderConfig = {
   spreadMin,
   sellDepth,
   buyDepth,
+  oraiThreshold,
+  usdtThreshold,
+  spreadMatch,
+  spreadCancel,
   totalOrders
 };
 const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
@@ -73,7 +84,10 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
   console.log("buyer address: ", buyer.address, "seller address: ", seller.address);
 
   // get price from coingecko
-  const oraiPrice = await getCoingeckoPrice("oraichain-token");
+  const oraiCoinGeckoPrice = await getCoingeckoPrice("oraichain-token");
+  const oraiOraclePrice = await getOraclePrice("orai");
+
+  const oraiPrice = (oraiCoinGeckoPrice + oraiOraclePrice)/2;
 
   let processInd = 0;
   while (processInd < maxRepeat) {

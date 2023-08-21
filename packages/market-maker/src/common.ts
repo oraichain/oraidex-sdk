@@ -60,6 +60,13 @@ export const getCoingeckoPrice = async (token: "oraichain-token" | "airight"): P
   return res[token].usd;
 };
 
+export const getOraclePrice = async (token: string): Promise<number> => {
+  const res = await fetch(`https://api.orchai.io/lending/mainnet/token/${token}`).then((res) =>
+    res.json()
+  );
+  return res.current_price;
+};
+
 const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
 
@@ -158,43 +165,46 @@ export const cancelOutofSpreadOrder = async (
   sender: UserWallet,
   assetInfos: AssetInfo[],
   direction: string,
-  spread_percentage: number,
   oraiPrice: number,
-  limit: number,
+  spread_percentage: number,
 ) => {
   const upperPriceLimit = oraiPrice * (1 + spread_percentage);
   const lowerPriceLimit = oraiPrice * (1 - spread_percentage);
-  console.log({upperPriceLimit});
-  console.log({lowerPriceLimit});
+
   let queryTicks = await sender.client.queryContractSmart(orderbookAddress, {
     ticks: {
       asset_infos: assetInfos,
       order_by: direction === "buy" ? 2 : 1,
       direction,
-      limit,
+      limit: 100,
     }
   } as OraiswapLimitOrderTypes.QueryMsg);
 
-  for (const ticks of Object.values(queryTicks)) {
-    for (const tick of ticks as any[]) {
-      let tick_price = Number(tick.price);
-      if (tick_price >= upperPriceLimit || tick_price <= lowerPriceLimit) {
-        console.log("cancel all orders with price", tick_price);
-        console.log({sender_addr: sender.address});
-        const queryorderswithPrice = await sender.client.queryContractSmart(orderbookAddress, {
-          orders: {
-            asset_infos: assetInfos,
-            order_by: 1,
-            limit,
-            filter: {
-              price: tick_price.toString()
-            }
-          }
-        } as OraiswapLimitOrderTypes.QueryMsg);
-        console.log({queryorderswithPrice: queryorderswithPrice});
+  interface tick {
+    price: string
+    total_orders: number
+  }
+  
+  const multipleCancelMsg: ExecuteInstruction[] = [];
 
-        const multipleCancelMsg: ExecuteInstruction[] = [];
-        for (const order of queryorderswithPrice.orders) {
+  queryTicks.ticks.forEach(async (tick: tick) => {
+    let tick_price = parseFloat(tick.price);
+    console.log({tick_price});
+    if (tick_price > upperPriceLimit || tick_price < lowerPriceLimit) {
+      console.log("cancel all orders with price", tick_price);
+      const ordersbyPrice = await sender.client.queryContractSmart(orderbookAddress, {
+        orders: {
+          asset_infos: assetInfos,
+          order_by: 1,
+          limit: tick.total_orders,
+          filter: {
+            price: tick.price
+          }
+        }
+      } as OraiswapLimitOrderTypes.QueryMsg);
+
+      for (const order of ordersbyPrice.orders) {
+        if (order.bidder_addr === sender.address) {
           const cancelMsg: ExecuteInstruction = {
             contractAddress: orderbookAddress,
             msg: {
@@ -204,19 +214,19 @@ export const cancelOutofSpreadOrder = async (
               }
             }
           };
-          console.log({bidder_addr: order.bidder_addr});
-          // console.log({sender_addr: sender.address});
-          if (order.bidder_addr === sender.address) {
-            multipleCancelMsg.push(cancelMsg);
-          }
-        }
-        if (multipleCancelMsg.length > 0) {
-          const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
-          console.log("cancel orders - txHash:", cancelResult.transactionHash);
+          multipleCancelMsg.push(cancelMsg);
         }
       }
     }
-  }
+    if (multipleCancelMsg.length > 0) {
+      try {
+        const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
+        console.log("spread cancel orders - txHash:", cancelResult.transactionHash);
+      } catch (error) {
+        console.log({error});          
+      }
+    }
+  })
 };
 
 export const cancelOrder = async (
