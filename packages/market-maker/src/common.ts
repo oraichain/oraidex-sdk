@@ -191,7 +191,6 @@ export const cancelOutofSpreadOrder = async (
     let tick_price = parseFloat(tick.price);
     console.log({tick_price});
     if (tick_price > upperPriceLimit || tick_price < lowerPriceLimit) {
-      console.log("cancel all orders with price", tick_price);
       const ordersbyPrice = await sender.client.queryContractSmart(orderbookAddress, {
         orders: {
           asset_infos: assetInfos,
@@ -205,6 +204,7 @@ export const cancelOutofSpreadOrder = async (
 
       for (const order of ordersbyPrice.orders) {
         if (order.bidder_addr === sender.address) {
+          console.log("cancel all orders with price", tick_price);
           const cancelMsg: ExecuteInstruction = {
             contractAddress: orderbookAddress,
             msg: {

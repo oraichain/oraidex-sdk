@@ -23,8 +23,6 @@ const getRandomSpread = (min: number, max: number) => {
 const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr, orderbookAddress: Addr, sender: UserWallet, spread: number, assetInfos: AssetInfo[], direction: OrderDirection, limit: 10, { buyPercentage, sellDepth, buyDepth }: MakeOrderConfig): Promise<OraiswapLimitOrderTypes.ExecuteMsg[]> => {
   const upperPriceLimit = oraiPrice * (1 + spread);
   const lowerPriceLimit = oraiPrice * (1 - spread);
-  console.log({upperPriceLimit});
-  console.log({lowerPriceLimit});
 
   let queryTicks = await sender.client.queryContractSmart(orderbookAddress, {
     ticks: {
@@ -67,13 +65,13 @@ const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr,
       if (mmAskVolumebyPrice > 0) {
         if (direction === "buy") {
           if (mmAskVolumebyPrice >= buyPercentage * buyDepth/tick_price) {
-            mmAskVolumebyPrice = buyPercentage * buyDepth/tick_price;
+            mmAskVolumebyPrice = Math.round(buyPercentage * buyDepth/tick_price);
           }
           mmVolumebyPrice = Math.round(mmAskVolumebyPrice * tick_price);
         }
         else if (direction === "sell") {
           if (mmAskVolumebyPrice >= (buyPercentage * sellDepth)) {
-            mmAskVolumebyPrice = buyPercentage * sellDepth
+            mmAskVolumebyPrice = Math.round(buyPercentage * sellDepth);
           }
           mmVolumebyPrice = Math.round(mmAskVolumebyPrice / tick_price);
         }
@@ -135,8 +133,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       if ('submit_order' in msg) {
         const submitOrderMsg = msg.submit_order;
         const [base] = submitOrderMsg.assets;
-        console.log({base});
-        
+
         if (submitOrderMsg.direction === 'sell') {
           if (sellerOraiBalance < BigInt(base.amount)) {
             continue;
@@ -170,8 +167,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       if ('submit_order' in msg) {
         const submitOrderMsg = msg.submit_order;
         const [, quote] = submitOrderMsg.assets;
-        console.log({quote});
-        
+
         if (submitOrderMsg.direction === 'buy') {
           if (buyerUsdtBalance < BigInt(quote.amount)) {
             continue;
