@@ -37,15 +37,12 @@ const totalOrders = 5;
 const orderConfig: MakeOrderConfig = {
   cancelPercentage,
   buyPercentage,
-  spreadMax,
-  spreadMin,
   sellDepth,
   buyDepth,
   oraiThreshold,
   usdtThreshold,
   spreadMatch,
-  spreadCancel,
-  totalOrders
+  spreadCancel
 };
 const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
   ? process.env.ORDER_INTERVAL_RANGE.split(",").map(Number)

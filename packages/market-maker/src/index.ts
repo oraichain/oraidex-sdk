@@ -6,8 +6,6 @@ import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 
 export type MakeOrderConfig = {
   makeProfit?: boolean;
-  spreadMin: number;
-  spreadMax: number;
   buyPercentage: number;
   cancelPercentage: number;
   sellDepth: number;
@@ -15,44 +13,11 @@ export type MakeOrderConfig = {
   oraiThreshold: number;
   usdtThreshold: number;
   spreadMatch: number;
-  spreadCancel: number,
-  totalOrders: number;
+  spreadCancel: number;
 };
 
 const getRandomSpread = (min: number, max: number) => {
   return getRandomRange(min * atomic, max * atomic) / atomic;
-};
-
-const generateOrderMsg = (oraiPrice: number, usdtContractAddress: Addr, { spreadMin, spreadMax, buyPercentage, totalOrders, sellDepth, buyDepth, makeProfit }: MakeOrderConfig): OraiswapLimitOrderTypes.ExecuteMsg => {
-  const spread = getRandomSpread(spreadMin, spreadMax);
-  // buy percentage is 55%
-  const direction: OrderDirection = getRandomPercentage() < buyPercentage * 100 ? 'buy' : 'sell';
-  // if make profit then buy lower, sell higher than market
-  const oraiPriceEntry = getSpreadPrice(oraiPrice, spread * (direction === 'buy' ? 1 : -1) * (makeProfit ? -1 : 1));
-
-  const totalUsdtVolume = sellDepth + buyDepth;
-  const usdtVolume = Math.round(totalUsdtVolume / totalOrders);
-  const oraiVolume = Math.round(usdtVolume / oraiPriceEntry);
-
-  return {
-    submit_order: {
-      assets: [
-        {
-          info: {
-            native_token: { denom: 'orai' }
-          },
-          amount: oraiVolume.toString()
-        },
-        {
-          info: {
-            token: { contract_addr: usdtContractAddress }
-          },
-          amount: usdtVolume.toString()
-        }
-      ],
-      direction
-    }
-  };
 };
 
 const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr, orderbookAddress: Addr, sender: UserWallet, spread: number, assetInfos: AssetInfo[], direction: OrderDirection, limit: 10, { buyPercentage, sellDepth, buyDepth }: MakeOrderConfig): Promise<OraiswapLimitOrderTypes.ExecuteMsg[]> => {
