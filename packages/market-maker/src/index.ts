@@ -57,6 +57,9 @@ const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr,
       
       for (const order of ordersbyPrice.orders) {
         console.log({order});
+        if (order.bidder_addr === sender.address) {
+          continue;
+        }
         const lef_offer_amount = Number(order.offer_asset.amount) - Number(order.filled_offer_amount);
         console.log({trader_lef_amount: lef_offer_amount});
         mmAskVolumebyPrice += lef_offer_amount;
