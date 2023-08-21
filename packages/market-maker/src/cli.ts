@@ -29,7 +29,7 @@ const usdtThreshold = Number(process.env.USDT_THRESHOLD);
 const spreadMatch = Number(process.env.SPREAD_MATCH);
 const spreadCancel = Number(process.env.SPREAD_CANCEL);
 
-const maxRepeat = 20;
+const maxRepeat = 10;
 const totalOrders = 2;
 
 const mmConfig: MakeOrderConfig = {
@@ -88,8 +88,6 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
 
   let processInd = 0;
   while (processInd < maxRepeat) {
-    console.log({processInd});
-    
     await makeOrders(
       buyer,
       seller,

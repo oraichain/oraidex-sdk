@@ -6,7 +6,7 @@ import { ExecuteInstruction } from '@cosmjs/cosmwasm-stargate';
 
 export type MakeOrderConfig = {
   makeProfit?: boolean;
-  createChart?: boolean;
+  createDepth?: boolean;
   buyPercentage: number;
   spreadMin: number;
   spreadMax: number;
@@ -271,10 +271,10 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       throw new Error(`Seller(${sellerOraiBalance}) or Buyer(${buyerUsdtBalance}) have not enough funds to run trading bot`);
     }
   }
-  mmConfig.createChart = true;
+  mmConfig.createDepth = true;
   mmConfig.makeProfit = true;
 
-  if (mmConfig.createChart) {
+  if (mmConfig.createDepth) {
     try {
       multiple_sell = await generateOrders(oraiPrice, usdtTokenAddress, orderBookAddress, seller, assetInfos, "sell", mmConfig);
     } catch (error) {
@@ -299,11 +299,6 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       console.log({error});
     }
   }
-
-  // console.log("multiple_sell");
-  // console.dir(multiple_sell, { depth: 4 });
-  // console.log("multiple_buy");
-  // console.dir(multiple_buy, { depth: 4 });
 
   if (multiple_sell.length > 0) {
     for (const msg of multiple_sell) {
@@ -369,11 +364,11 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   }
 
   // process matching, use buyer to get orai faster to switch
-  // try {
-  //   await matchingOrders(buyerWallet.client, buyerWallet.address, orderBookAddress, limit, denom);
-  // } catch (error) {
-  //   console.error(error);
-  // }
+  try {
+    await matchingOrders(buyerWallet.client, buyerWallet.address, orderBookAddress, limit, denom);
+  } catch (error) {
+    console.error(error);
+  }
 
   try {
     await cancelOutofSpreadOrder(orderBookAddress, sellerWallet, assetInfos, "sell", oraiPrice, mmConfig.spreadCancel);
