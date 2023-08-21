@@ -197,7 +197,7 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
       throw new Error('Balance of seller/buyer must be greater than 1 ORAI');
     }
 
-    const multiple_buy = await generateMatchOrders(oraiPrice, usdtTokenAddress, orderBookAddress, buyer, 0.01, assetInfos, "buy", 10, config);
+    const multiple_buy = await generateMatchOrders(oraiPrice, usdtTokenAddress, orderBookAddress, buyer, config.spreadMatch, assetInfos, "buy", 10, config);
     for (const msg of multiple_buy) {
       if ('submit_order' in msg) {
         const submitOrderMsg = msg.submit_order;
