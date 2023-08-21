@@ -16,8 +16,6 @@ import {
   toDecimals
 } from "./index";
 
-const cancelPercentage = Number(process.env.CANCEL_PERCENTAGE || 1); // 100% cancel
-
 const sellDepth = Number(process.env.SELL_DEPTH);
 const buyDepth = Number(process.env.BUY_DEPTH);
 const buyPercentage = Number(process.env.BUY_PERCENTAGE || 0.55);
@@ -31,18 +29,20 @@ const usdtThreshold = Number(process.env.USDT_THRESHOLD);
 const spreadMatch = Number(process.env.SPREAD_MATCH);
 const spreadCancel = Number(process.env.SPREAD_CANCEL);
 
-const maxRepeat = 5;
-const totalOrders = 5;
+const maxRepeat = 20;
+const totalOrders = 2;
 
-const orderConfig: MakeOrderConfig = {
-  cancelPercentage,
+const mmConfig: MakeOrderConfig = {
   buyPercentage,
+  spreadMax,
+  spreadMin,
   sellDepth,
   buyDepth,
   oraiThreshold,
   usdtThreshold,
   spreadMatch,
-  spreadCancel
+  spreadCancel,
+  totalOrders
 };
 const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
   ? process.env.ORDER_INTERVAL_RANGE.split(",").map(Number)
@@ -88,14 +88,15 @@ const [orderIntervalMin, orderIntervalMax] = process.env.ORDER_INTERVAL_RANGE
 
   let processInd = 0;
   while (processInd < maxRepeat) {
+    console.log({processInd});
+    
     await makeOrders(
       buyer,
       seller,
       usdtToken.contractAddress,
       orderBook.contractAddress,
       oraiPrice,
-      totalOrders,
-      orderConfig
+      mmConfig
     );
 
     console.log("Balance after matching:");
