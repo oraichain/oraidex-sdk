@@ -189,7 +189,6 @@ export const cancelOutofSpreadOrder = async (
 
   queryTicks.ticks.forEach(async (tick: tick) => {
     let tick_price = parseFloat(tick.price);
-    console.log({tick_price});
     if (tick_price > upperPriceLimit || tick_price < lowerPriceLimit) {
       const ordersbyPrice = await sender.client.queryContractSmart(orderbookAddress, {
         orders: {

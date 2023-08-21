@@ -77,8 +77,8 @@ const generateMatchOrders = async (oraiPrice: number, usdtContractAddress: Addr,
         }
         mmVolumebyPrice += 1;
 
-        console.log("trader price: ", tick.price);
         console.log({mmVolumebyPrice}, {mmAskVolumebyPrice});
+        console.log("trader price: ", tick.price);
         console.log("mm price:", direction === "buy" ? Number(mmVolumebyPrice/mmAskVolumebyPrice) : Number(mmAskVolumebyPrice/mmVolumebyPrice));
 
         const submitMsg: OraiswapLimitOrderTypes.ExecuteMsg = {
