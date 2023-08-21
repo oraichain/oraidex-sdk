@@ -117,6 +117,9 @@ export async function makeOrders(buyer: UserWallet, seller: UserWallet, usdtToke
   let sellerWallet: UserWallet = seller;
   
   console.log({oraiPrice});
+  if (oraiPrice == 0) {
+    throw new Error(`Orai's price (${oraiPrice}) = 0`);
+  }
   
   try {
     const sellerOraiBalance = await sellerWallet.client.getBalance(sellerWallet.address, 'orai').then((b) => BigInt(b.amount));
