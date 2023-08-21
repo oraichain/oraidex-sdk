@@ -58,24 +58,6 @@ class WriteOrders extends WriteData {
 
   async process(chunk: any): Promise<boolean> {
     try {
-      // // first time calling of the application then we query past data and be ready to store them into the db for prefix sum
-      // // this helps the flow go smoothly and remove dependency between different streams
-      // if (this.firstWrite) {
-      //   console.log("initial data: ", this.initialData);
-      //   const { height, time } = this.initialData.blockHeader;
-      //   await this.duckDb.insertPriceInfos(
-      //     this.initialData.tokenPrices.map(
-      //       (tokenPrice) =>
-      //         ({
-      //           txheight: height,
-      //           timestamp: time,
-      //           assetInfo: parseAssetInfo(tokenPrice.info),
-      //           price: parseInt(tokenPrice.amount)
-      //         } as PriceInfo)
-      //     )
-      //   );
-      //   this.firstWrite = false;
-      // }
       const { txs, offset: newOffset } = chunk as Txs;
       const currentOffset = await this.duckDb.loadHeightSnapshot();
       // edge case. If no new block has been found, then we skip processing to prevent duplication handling
@@ -84,8 +66,6 @@ class WriteOrders extends WriteData {
 
       // accumulate liquidity pool amount
       await this.accumulatePoolAmount([...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]);
-      // process volume infos to insert price
-      // result.volumeInfos = insertVolumeInfos(result.swapOpsData);
 
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
@@ -105,6 +85,7 @@ class WriteOrders extends WriteData {
   }
 }
 
+// we need to create a new table with name PoolInfo, whenever order table
 class OraiDexSync {
   protected constructor(
     private readonly duckDb: DuckDb,
@@ -154,24 +135,16 @@ class OraiDexSync {
         this.duckDb.createLiquidityOpsTable(),
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable(),
-        // this.duckDb.createPriceInfoTable(),
         this.duckDb.createSwapOhlcv()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
-      // // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
+      // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
       if (currentInd <= initialSyncHeight) {
         currentInd = initialSyncHeight;
       }
       console.log("current ind: ", currentInd);
-
-      // const tokenPrices = await Promise.all(
-      //   extractUniqueAndFlatten(pairs).map((info) => this.simulateSwapPrice(info, currentInd))
-      // );
-      // const initialBlockHeader = (await this.cosmwasmClient.getBlock(currentInd)).header;
-      // initialData.tokenPrices = tokenPrices;
-      // initialData.blockHeader = initialBlockHeader;
       await this.updateLatestPairInfos();
       new SyncData({
         offset: currentInd,
@@ -187,17 +160,13 @@ class OraiDexSync {
   }
 }
 
-// async function initSync() {
-//   const duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "oraidex-sync-data");
-//   const oraidexSync = await OraiDexSync.create(
-//     duckDb,
-//     process.env.RPC_URL || "https://rpc.orai.io",
-//     process.env as any
-//   );
-//   oraidexSync.sync();
-// }
+async function initSync() {
+  const duckDb = await DuckDb.create("oraidex-only-sync-data");
+  const oraidexSync = await OraiDexSync.create(duckDb, "http://35.237.59.125:26657", process.env as any);
+  oraidexSync.sync();
+}
 
-// initSync();
+initSync();
 export { OraiDexSync };
 
 export * from "./types";
