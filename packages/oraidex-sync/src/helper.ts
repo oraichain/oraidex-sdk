@@ -378,6 +378,14 @@ export function findPairIndexFromDenoms(offerDenom: string, askDenom: string): n
 //   return { baseIndex: 1, targetIndex: 0, target: infos[0] }; // default we calculate the first info in the asset info list
 // }
 
+function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
+  const findedPair = pairs.find((p) => JSON.stringify(p.asset_infos) === JSON.stringify(asset_infos));
+  if (!findedPair) {
+    throw new Error(`cannot found pair with asset_infos: ${asset_infos}`);
+  }
+  return findedPair.symbols.join("/");
+}
+
 export {
   findMappedTargetedAssetInfo,
   findAssetInfoPathToUsdt,
@@ -386,5 +394,6 @@ export {
   parseAssetInfoOnlyDenom,
   delay,
   findPairAddress,
-  calculatePriceByPool
+  calculatePriceByPool,
+  getSymbolFromAsset
 };

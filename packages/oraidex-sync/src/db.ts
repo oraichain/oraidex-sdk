@@ -123,22 +123,19 @@ export class DuckDb {
         pairAddr VARCHAR, 
         liquidityAddr VARCHAR, 
         oracleAddr VARCHAR,
+        symbols VARCHAR,
+        fromIconUrl VARCHAR,
+        toIconUrl VARCHAR,
+        volume24Hour UBIGINT,
+        apr DOUBLE,
+        totalLiquidity UBIGINT,
+        fee7Days UBIGINT,
         PRIMARY KEY (pairAddr) )`
     );
   }
 
   async insertPairInfos(ops: PairInfoData[]) {
     await this.insertBulkData(ops, "pair_infos", true);
-  }
-
-  async createPriceInfoTable() {
-    await this.conn.exec(
-      `CREATE TABLE IF NOT EXISTS price_infos (
-        txheight UINTEGER, 
-        timestamp UINTEGER, 
-        assetInfo VARCHAR, 
-        price UINTEGER)`
-    );
   }
 
   async insertPriceInfos(ops: PriceInfo[]) {
@@ -362,5 +359,9 @@ export class DuckDb {
       ...res,
       time: new Date(res.time * tf * 1000).toISOString()
     })) as VolumeRange[];
+  }
+
+  async getPools(): Promise<PairInfoData[]> {
+    return (await this.conn.all("SELECT * from pair_infos")).map((data) => data as PairInfoData);
   }
 }

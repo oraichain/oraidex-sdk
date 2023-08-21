@@ -2,7 +2,7 @@ import "dotenv/config";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import { DuckDb } from "./db";
 import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
-import { CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   ProvideLiquidityOperationData,
   TxAnlysisResult,
@@ -14,7 +14,7 @@ import {
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { getAllPairInfos, getPoolInfos } from "./query";
-import { collectAccumulateLpData } from "./helper";
+import { collectAccumulateLpData, getSymbolFromAsset } from "./helper";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -114,6 +114,30 @@ class OraiDexSync {
   private async updateLatestPairInfos() {
     const pairInfos = await this.getAllPairInfos();
     await this.duckDb.insertPairInfos(
+      pairInfos.map((pair) => {
+        const symbols = getSymbolFromAsset(pair.asset_infos);
+        return {
+          firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
+          secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+          commissionRate: pair.commission_rate,
+          pairAddr: pair.contract_addr,
+          liquidityAddr: pair.liquidity_token,
+          oracleAddr: pair.oracle_addr,
+          symbols,
+          fromIconUrl: "url1",
+          toIconUrl: "url2",
+          volume24Hour: 1n,
+          apr: 2,
+          totalLiquidity: 1n,
+          fee7Days: 1n
+        } as PairInfoData;
+      })
+    );
+  }
+
+  private async initPairInfos() {
+    const pairInfos = await this.getAllPairInfos();
+    await this.duckDb.insertPairInfos(
       pairInfos.map(
         (pair) =>
           ({
@@ -122,7 +146,14 @@ class OraiDexSync {
             commissionRate: pair.commission_rate,
             pairAddr: pair.contract_addr,
             liquidityAddr: pair.liquidity_token,
-            oracleAddr: pair.oracle_addr
+            oracleAddr: pair.oracle_addr,
+            symbols: "orai",
+            fromIconUrl: "url1",
+            toIconUrl: "url2",
+            volume24Hour: 1n,
+            apr: 2,
+            totalLiquidity: 1n,
+            fee7Days: 1n
           } as PairInfoData)
       )
     );

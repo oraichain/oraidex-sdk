@@ -41,6 +41,13 @@ export type PairInfoData = {
   pairAddr: string;
   liquidityAddr: string;
   oracleAddr: string;
+  symbols: string;
+  fromIconUrl: string;
+  toIconUrl: string;
+  volume24Hour: bigint;
+  apr: number;
+  totalLiquidity: bigint;
+  fee7Days: bigint;
 };
 
 export type PriceInfo = {

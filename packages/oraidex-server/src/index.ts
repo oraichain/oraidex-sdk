@@ -231,6 +231,15 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
   }
 });
 
+app.get("/v1/pools/", async (req, res) => {
+  try {
+    const pools = await duckDb.getPools();
+    res.status(200).send(pools);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
 app.listen(port, hostname, async () => {
   // sync data for the service to read
   // console.dir(pairInfos, { depth: null });
