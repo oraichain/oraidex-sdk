@@ -9,7 +9,8 @@ import {
   Cw20Coin,
   OraiswapLimitOrderClient,
   OraiswapLimitOrderTypes,
-  OraiswapTokenClient
+  OraiswapTokenClient,
+  OrderDirection
 } from "@oraichain/oraidex-contracts-sdk";
 import crypto from "crypto";
 
@@ -295,6 +296,65 @@ export const cancelAllOrder = async (
         asset_infos: assetInfos,
         order_by: 1,
         limit: 100,
+        filter: {
+          bidder: sender.address
+        }
+      }
+    } as OraiswapLimitOrderTypes.QueryMsg);
+
+    for (const order of queryAll.orders) {
+      const cancelMsg: ExecuteInstruction = {
+        contractAddress: orderbookAddress,
+        msg: {
+          cancel_order: {
+            asset_infos: assetInfos,
+            order_id: order.order_id
+          }
+        }
+      };
+      multipleCancelMsg.push(cancelMsg);
+    }
+    if (multipleCancelMsg.length > 0) {
+      const cancelResult = await sender.client.executeMultiple(sender.address, multipleCancelMsg, "auto");
+      console.log("cancel orders - txHash:", cancelResult.transactionHash);
+    }
+}
+};
+
+export const cancelAllOrderbyDirection = async (
+  orderbookAddress: Addr,
+  sender: UserWallet,
+  assetInfos: AssetInfo[],
+  direction: OrderDirection
+) => {
+  for (let i = 0; i < 10; i++) {
+    const lastOrder = await sender.client.queryContractSmart(orderbookAddress, {
+      orders: {
+        asset_infos: assetInfos,
+        order_by: 2,
+        limit: 1,
+        direction,
+        filter: {
+          bidder: sender.address
+        }
+      }
+    } as OraiswapLimitOrderTypes.QueryMsg);
+    let last_order_id = 0;
+    for (const last_order of lastOrder.orders) {
+      last_order_id = last_order.order_id;
+    }
+
+    if (last_order_id === 0) {
+      return;
+    }
+
+    const multipleCancelMsg: ExecuteInstruction[] = [];
+    const queryAll = await sender.client.queryContractSmart(orderbookAddress, {
+      orders: {
+        asset_infos: assetInfos,
+        order_by: 1,
+        limit: 100,
+        direction,
         filter: {
           bidder: sender.address
         }
