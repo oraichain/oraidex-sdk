@@ -189,7 +189,14 @@ describe("test-helper", () => {
         commissionRate: "",
         pairAddr: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
         liquidityAddr: "",
-        oracleAddr: ""
+        oracleAddr: "",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1",
+        volume24Hour: 1n,
+        apr: 1,
+        totalLiquidity: 1,
+        fee7Days: 1n
       }
     ];
     let assetInfos: [AssetInfo, AssetInfo] = [{ native_token: { denom: ORAI } }, assetInfo];
@@ -346,11 +353,17 @@ describe("test-helper", () => {
     ]);
   });
 
-  it("test-calculatePriceByPool-ORAI/USDT-pool-when-1ORAI=2.74USDT", () => {
-    // base denom is ORAI, quote denom is USDT => base pool is ORAI, quote pool is USDT.
-    const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), 0, 10 ** 6);
-    expect(result.toString()).toEqual("2.747144");
-  });
+  it.each([
+    [0, "2.747144"],
+    [0.003, "2.738902568"]
+  ])(
+    "test-calculatePriceByPool-ORAI/USDT-pool-with-commision-rate=%s-should-return-price-%s-USDT",
+    (commisionRate, expectedPrice) => {
+      // base denom is ORAI, quote denom is USDT => base pool is ORAI, quote pool is USDT.
+      const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), commisionRate, 10 ** 6);
+      expect(result.toString()).toEqual(expectedPrice);
+    }
+  );
 
   it("test-collectAccumulateLpData-should-aggregate-ops-with-same-pairs", () => {
     const poolResponses: PoolResponse[] = [

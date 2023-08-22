@@ -128,7 +128,7 @@ export class DuckDb {
         toIconUrl VARCHAR,
         volume24Hour UBIGINT,
         apr DOUBLE,
-        totalLiquidity UBIGINT,
+        totalLiquidity UINT64,
         fee7Days UBIGINT,
         PRIMARY KEY (pairAddr) )`
     );

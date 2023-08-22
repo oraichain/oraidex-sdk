@@ -1,4 +1,11 @@
-import { AssetInfo, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
+import {
+  AssetInfo,
+  CosmWasmClient,
+  OraiswapPairQueryClient,
+  OraiswapPairTypes,
+  OraiswapRouterQueryClient,
+  SwapOperation
+} from "@oraichain/oraidex-contracts-sdk";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
 import {
@@ -11,7 +18,8 @@ import {
   WithdrawLiquidityOperationData
 } from "./types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { minBy, maxBy } from "lodash";
+import { minBy, maxBy, isEqual } from "lodash";
+import { getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
 
 export function toObject(data: any) {
   return JSON.parse(
@@ -161,15 +169,15 @@ function findPairAddress(pairInfos: PairInfoData[], infos: [AssetInfo, AssetInfo
 }
 
 function calculatePriceByPool(
-  basePool: bigint,
-  quotePool: bigint,
+  offerPool: bigint,
+  askPool: bigint,
   commissionRate?: number,
   offerAmount?: number
 ): number {
   const finalOfferAmount = offerAmount || tenAmountInDecimalSix;
-  let bigIntAmount = Number(
-    (basePool - (quotePool * basePool) / (quotePool + BigInt(finalOfferAmount))) * BigInt(1 - commissionRate || 0)
-  );
+  let bigIntAmount =
+    Number(offerPool - (askPool * offerPool) / (askPool + BigInt(finalOfferAmount))) * (1 - commissionRate || 0);
+
   return bigIntAmount / finalOfferAmount;
 }
 
@@ -379,11 +387,49 @@ export function findPairIndexFromDenoms(offerDenom: string, askDenom: string): n
 // }
 
 function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
-  const findedPair = pairs.find((p) => JSON.stringify(p.asset_infos) === JSON.stringify(asset_infos));
+  const findedPair = pairs.find(
+    (p) =>
+      JSON.stringify(p.asset_infos) === JSON.stringify(asset_infos) ||
+      JSON.stringify(p.asset_infos) === JSON.stringify(asset_infos.reverse())
+  );
   if (!findedPair) {
-    throw new Error(`cannot found pair with asset_infos: ${asset_infos}`);
+    throw new Error(`cannot found pair with asset_infos: ${JSON.stringify(asset_infos)}`);
   }
   return findedPair.symbols.join("/");
+}
+
+async function getCosmwasmClient(): Promise<CosmWasmClient> {
+  const rpcUrl = process.env.RPC_URL || "http://35.237.59.125:26657";
+  const client = await CosmWasmClient.connect(rpcUrl);
+  return client;
+}
+
+function parsePoolAmount(poolInfo: OraiswapPairTypes.PoolResponse, trueAsset: AssetInfo): bigint {
+  return BigInt(poolInfo.assets.find((asset) => isEqual(asset.info, trueAsset))?.amount || "0");
+}
+
+type PoolInfo = {
+  offerPoolAmount: bigint;
+  askPoolAmount: bigint;
+};
+async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairAddr: string): Promise<PoolInfo> {
+  const client = await getCosmwasmClient();
+  const pairContract = new OraiswapPairQueryClient(client, pairAddr);
+  const poolInfo = await pairContract.pool();
+  const offerPoolAmount = parsePoolAmount(poolInfo, fromInfo);
+  const askPoolAmount = parsePoolAmount(poolInfo, toInfo);
+  return { offerPoolAmount, askPoolAmount };
+}
+
+async function getPairLiquidity([fromInfo, toInfo]: [AssetInfo, AssetInfo], pairAddr: string): Promise<number> {
+  const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(fromInfo, toInfo, pairAddr);
+  const routerContract = new OraiswapRouterQueryClient(
+    await getCosmwasmClient(),
+    process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+  );
+  const { amount } = await simulateSwapPriceWithUsdt(fromInfo, routerContract);
+  const totalLiquid = Number(amount) * Number(offerPoolAmount) * 2;
+  return totalLiquid;
 }
 
 export {
@@ -395,5 +441,8 @@ export {
   delay,
   findPairAddress,
   calculatePriceByPool,
-  getSymbolFromAsset
+  getSymbolFromAsset,
+  getPoolInfos,
+  fetchPoolInfoAmount,
+  getPairLiquidity
 };

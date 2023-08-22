@@ -14,7 +14,7 @@ import {
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { getAllPairInfos, getPoolInfos } from "./query";
-import { collectAccumulateLpData, getSymbolFromAsset } from "./helper";
+import { collectAccumulateLpData, getPairLiquidity, getSymbolFromAsset } from "./helper";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -113,8 +113,15 @@ class OraiDexSync {
 
   private async updateLatestPairInfos() {
     const pairInfos = await this.getAllPairInfos();
-    await this.duckDb.insertPairInfos(
+    console.time("timer");
+    const allLiquidities = await Promise.all(
       pairInfos.map((pair) => {
+        return getPairLiquidity(pair.asset_infos, pair.contract_addr);
+      })
+    );
+    console.timeEnd("timer");
+    await this.duckDb.insertPairInfos(
+      pairInfos.map((pair, index) => {
         const symbols = getSymbolFromAsset(pair.asset_infos);
         return {
           firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
@@ -128,34 +135,10 @@ class OraiDexSync {
           toIconUrl: "url2",
           volume24Hour: 1n,
           apr: 2,
-          totalLiquidity: 1n,
+          totalLiquidity: allLiquidities[index],
           fee7Days: 1n
         } as PairInfoData;
       })
-    );
-  }
-
-  private async initPairInfos() {
-    const pairInfos = await this.getAllPairInfos();
-    await this.duckDb.insertPairInfos(
-      pairInfos.map(
-        (pair) =>
-          ({
-            firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
-            secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
-            commissionRate: pair.commission_rate,
-            pairAddr: pair.contract_addr,
-            liquidityAddr: pair.liquidity_token,
-            oracleAddr: pair.oracle_addr,
-            symbols: "orai",
-            fromIconUrl: "url1",
-            toIconUrl: "url2",
-            volume24Hour: 1n,
-            apr: 2,
-            totalLiquidity: 1n,
-            fee7Days: 1n
-          } as PairInfoData)
-      )
     );
   }
 

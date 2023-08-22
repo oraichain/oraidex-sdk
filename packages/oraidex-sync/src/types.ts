@@ -46,7 +46,7 @@ export type PairInfoData = {
   toIconUrl: string;
   volume24Hour: bigint;
   apr: number;
-  totalLiquidity: bigint;
+  totalLiquidity: number;
   fee7Days: bigint;
 };
 

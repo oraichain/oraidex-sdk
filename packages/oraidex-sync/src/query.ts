@@ -57,7 +57,7 @@ async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouter
  * Simulate price for pair[0]/pair[pair.length - 1] where the amount of pair[0] is 10^7. This is a multihop simulate swap function. The asset infos in between of the array are for hopping
  * @param pairPath - the path starting from the offer asset info to the ask asset info
  * @param router - router contract
- * @returns - pricea fter simulating
+ * @returns - price after simulating
  */
 async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterReadOnlyInterface): Promise<string> {
   // usdt case, price is always 1
