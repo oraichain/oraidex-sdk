@@ -32,7 +32,7 @@ const generateOrders = async (
   direction: OrderDirection,
   { spreadMin, spreadMax, totalOrders, sellDepth, buyDepth, makeProfit }: MakeOrderConfig
 ): Promise<OraiswapLimitOrderTypes.ExecuteMsg[]> => {
-  const minAssetAmount = 10000;
+  const minAssetAmount = 100000;
   const spread = getRandomSpread(spreadMin, spreadMax);
   
   // if make profit then buy lower, sell higher than market
@@ -103,17 +103,17 @@ const generateOrders = async (
     console.log({lef_usdt_volume});
     if (lef_usdt_volume > 0) {
       const volumeMax = lef_usdt_volume/totalOrders;
-      const volumeMin = lef_usdt_volume*0.995/totalOrders;
+      const volumeMin = lef_usdt_volume*0.9999999999/totalOrders;
 
       const usdtVolume = Math.round(getRandomRange(volumeMin, volumeMax));
       const oraiVolume = Math.round(usdtVolume / oraiPriceEntry);
 
-      console.log({oraiVolume}, {usdtVolume});
-
       if (oraiVolume <= minAssetAmount || usdtVolume <= minAssetAmount) {
         continue;
       }
-      
+
+      console.log({oraiVolume}, {usdtVolume});
+
       const submitMsg: OraiswapLimitOrderTypes.ExecuteMsg = {
         submit_order: {
           assets: [
