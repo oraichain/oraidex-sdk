@@ -432,6 +432,22 @@ async function getPairLiquidity([fromInfo, toInfo]: [AssetInfo, AssetInfo], pair
   return totalLiquid;
 }
 
+/**
+ *
+ * @param time
+ * @param tf in seconds
+ * @returns
+ */
+function getSpecificDateBeforeNow(time: Date, tf: number) {
+  const timeInMs = tf * 1000;
+  const dateBeforeNow = new Date(time.getTime() - timeInMs);
+  return dateBeforeNow;
+}
+
+function convertDateToSecond(date: Date): number {
+  return Math.round(date.valueOf() / 1000);
+}
+
 export {
   findMappedTargetedAssetInfo,
   findAssetInfoPathToUsdt,
@@ -444,5 +460,7 @@ export {
   getSymbolFromAsset,
   getPoolInfos,
   fetchPoolInfoAmount,
-  getPairLiquidity
+  getPairLiquidity,
+  getSpecificDateBeforeNow,
+  convertDateToSecond
 };

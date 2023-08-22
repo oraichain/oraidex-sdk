@@ -195,3 +195,10 @@ export type GetCandlesQuery = {
   startTime: number;
   endTime: number;
 };
+
+export type GetFeeSwap = {
+  offerDenom: string;
+  askDenom: string;
+  startTime: number;
+  endTime: number;
+};

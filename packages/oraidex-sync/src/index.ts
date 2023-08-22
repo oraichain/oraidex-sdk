@@ -14,7 +14,14 @@ import {
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { getAllPairInfos, getPoolInfos } from "./query";
-import { collectAccumulateLpData, getPairLiquidity, getSymbolFromAsset } from "./helper";
+import {
+  collectAccumulateLpData,
+  convertDateToSecond,
+  getPairLiquidity,
+  getSpecificDateBeforeNow,
+  getSymbolFromAsset,
+  parseAssetInfoOnlyDenom
+} from "./helper";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -111,6 +118,11 @@ class OraiDexSync {
     return getAllPairInfos(firstFactoryClient, secondFactoryClient);
   }
 
+  // fromIconUrl, toIconUrl: upload to other server
+  // volume24Hour: volume ohlcv + volume liquidity (?)
+  // apr: oraidex
+  // totalLiquidity: get liquidity in lp_ops_data with last block of pair
+  // fee7Days: sum of fee in swap_ops ( taxAmount + commissionAmount ) + & lp_ops fee of scatom/atom
   private async updateLatestPairInfos() {
     const pairInfos = await this.getAllPairInfos();
     console.time("timer");
@@ -120,6 +132,22 @@ class OraiDexSync {
       })
     );
     console.timeEnd("timer");
+
+    const tf = 7 * 24 * 60 * 60; // second of 7 days
+    const currentDate = new Date();
+    const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const allPairFees = await Promise.all(
+      pairInfos.map((pair) => {
+        return this.duckDb.getFeeSwap({
+          offerDenom: parseAssetInfoOnlyDenom(pair.asset_infos[0]),
+          askDenom: parseAssetInfoOnlyDenom(pair.asset_infos[1]),
+          startTime: convertDateToSecond(oneWeekBeforeNow),
+          endTime: convertDateToSecond(currentDate)
+        });
+      })
+    );
+    console.table(allPairFees);
+
     await this.duckDb.insertPairInfos(
       pairInfos.map((pair, index) => {
         const symbols = getSymbolFromAsset(pair.asset_infos);

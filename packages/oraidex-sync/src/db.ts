@@ -9,7 +9,8 @@ import {
   VolumeData,
   VolumeRange,
   WithdrawLiquidityOperationData,
-  GetCandlesQuery
+  GetCandlesQuery,
+  GetFeeSwap
 } from "./types";
 import fs, { rename } from "fs";
 import { isoToTimestampNumber, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
@@ -363,5 +364,27 @@ export class DuckDb {
 
   async getPools(): Promise<PairInfoData[]> {
     return (await this.conn.all("SELECT * from pair_infos")).map((data) => data as PairInfoData);
+  }
+
+  async getFeeSwap(payload: GetFeeSwap): Promise<bigint> {
+    const { offerDenom, askDenom, startTime, endTime } = payload;
+    console.log({ payload });
+    const result = await this.conn.all(
+      `
+      SELECT 
+        sum(commissionAmount + taxAmount) as totalFee,
+        FROM swap_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND offerDenom = ?
+        AND askDenom = ?
+      `,
+      startTime,
+      endTime,
+      offerDenom,
+      askDenom
+    );
+    console.log({ result });
+    return 1n;
   }
 }
