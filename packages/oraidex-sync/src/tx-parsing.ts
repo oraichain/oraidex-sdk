@@ -156,7 +156,8 @@ function extractMsgProvideLiquidity(
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
-      txheight: txData.txheight
+      txheight: txData.txheight,
+      taxRate: 1n
     };
   }
   return undefined;
@@ -237,7 +238,8 @@ async function extractMsgWithdrawLiquidity(
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
-      txheight: txData.txheight
+      txheight: txData.txheight,
+      taxRate: fee
     });
   }
   return withdrawData;

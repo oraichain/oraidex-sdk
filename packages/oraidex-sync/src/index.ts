@@ -139,36 +139,40 @@ class OraiDexSync {
   // totalLiquidity: get liquidity in lp_ops_data with last block of pair
   // fee7Days: sum of fee in swap_ops ( taxAmount + commissionAmount ) + & lp_ops fee of scatom/atom
   private async updateLatestPairInfos() {
-    console.time("timer");
-    const pairInfos = await this.getAllPairInfos();
-    const allLiquidities = await Promise.all(
-      pairInfos.map((pair) => {
-        return getPairLiquidity(pair.asset_infos, pair.contract_addr);
-      })
-    );
-    const allFee7Days = await this.getAllFees(pairInfos);
+    try {
+      console.time("timer-updateLatestPairInfos");
+      const pairInfos = await this.getAllPairInfos();
+      const allLiquidities = await Promise.all(
+        pairInfos.map((pair) => {
+          return getPairLiquidity(pair.asset_infos, pair.contract_addr);
+        })
+      );
+      const allFee7Days = await this.getAllFees(pairInfos);
 
-    await this.duckDb.insertPairInfos(
-      pairInfos.map((pair, index) => {
-        const symbols = getSymbolFromAsset(pair.asset_infos);
-        return {
-          firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
-          secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
-          commissionRate: pair.commission_rate,
-          pairAddr: pair.contract_addr,
-          liquidityAddr: pair.liquidity_token,
-          oracleAddr: pair.oracle_addr,
-          symbols,
-          fromIconUrl: "url1",
-          toIconUrl: "url2",
-          volume24Hour: 1n,
-          apr: 2,
-          totalLiquidity: allLiquidities[index],
-          fee7Days: allFee7Days[index]
-        } as PairInfoData;
-      })
-    );
-    console.timeEnd("timer");
+      await this.duckDb.insertPairInfos(
+        pairInfos.map((pair, index) => {
+          const symbols = getSymbolFromAsset(pair.asset_infos);
+          return {
+            firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
+            secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+            commissionRate: pair.commission_rate,
+            pairAddr: pair.contract_addr,
+            liquidityAddr: pair.liquidity_token,
+            oracleAddr: pair.oracle_addr,
+            symbols,
+            fromIconUrl: "url1",
+            toIconUrl: "url2",
+            volume24Hour: 1n,
+            apr: 2,
+            totalLiquidity: allLiquidities[index],
+            fee7Days: allFee7Days[index]
+          } as PairInfoData;
+        })
+      );
+      console.timeEnd("timer-updateLatestPairInfos");
+    } catch (error) {
+      console.log("error in updateLatestPairInfos: ", error);
+    }
   }
 
   public async sync() {

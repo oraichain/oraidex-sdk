@@ -107,7 +107,8 @@ export class DuckDb {
         timestamp UINTEGER,
         txCreator VARCHAR, 
         txhash VARCHAR,
-        txheight UINTEGER)`
+        txheight UINTEGER,
+        taxRate UBIGINT)`
     );
   }
 

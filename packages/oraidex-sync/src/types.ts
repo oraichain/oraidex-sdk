@@ -75,6 +75,7 @@ export type ProvideLiquidityOperationData = {
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;
+  taxRate: bigint;
 } & BasicTxData;
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;

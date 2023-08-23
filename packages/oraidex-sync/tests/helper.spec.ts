@@ -396,7 +396,8 @@ describe("test-helper", () => {
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       },
       {
         basePrice: 1,
@@ -411,7 +412,8 @@ describe("test-helper", () => {
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       },
       {
         basePrice: 1,
@@ -426,7 +428,8 @@ describe("test-helper", () => {
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       }
     ];
 
@@ -469,7 +472,8 @@ describe("test-helper", () => {
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       },
       {
         basePrice: 1,
@@ -484,7 +488,8 @@ describe("test-helper", () => {
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       },
       {
         basePrice: 1,
@@ -499,7 +504,8 @@ describe("test-helper", () => {
         timestamp: 1,
         txCreator: "a",
         txhash: "a",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       }
     ];
     const newOps = removeOpsDuplication(ops);
