@@ -6,6 +6,7 @@ import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import {
   AccountTx,
   BasicTxData,
+  LiquidityOpType,
   ModifiedMsgExecuteContract,
   MsgExecuteContractWithLogs,
   MsgType,
@@ -119,47 +120,99 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   return swapData;
 }
 
-function extractMsgProvideLiquidity(
+async function getFeeLiquidity(
+  [baseDenom, quoteDenom]: [string, string],
+  opType: LiquidityOpType,
+  attrs: readonly Attribute[],
+  txheight: number,
+  duckDb: DuckDb
+): Promise<bigint> {
+  // we only have one pair order. If the order is reversed then we also reverse the order
+  let findedPair = pairs.find((pair) =>
+    isEqual(
+      pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+      [quoteDenom, baseDenom]
+    )
+  );
+  if (findedPair) {
+    [baseDenom, quoteDenom] = [quoteDenom, baseDenom];
+  } else {
+    // otherwise find in reverse order
+    findedPair = pairs.find((pair) =>
+      isEqual(
+        pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+        [baseDenom, quoteDenom]
+      )
+    );
+  }
+  let fee = 0n;
+  const isHasFee = isPoolHasFee(findedPair.asset_infos);
+  if (isHasFee) {
+    let lpShare =
+      opType === "provide"
+        ? attrs.find((attr) => attr.key === "share").value
+        : attrs.find((attr) => attr.key === "withdrawn_share").value;
+    const pair = await duckDb.getPoolByAssetInfos(findedPair.asset_infos);
+    fee = await calculateLiquidityFee(pair, txheight, +lpShare);
+    console.log(`fee ${opType} liquidity: $${fee}`);
+  }
+  return fee;
+}
+
+async function extractMsgProvideLiquidity(
   txData: BasicTxData,
   msg: MsgType,
-  txCreator: string
-): ProvideLiquidityOperationData | undefined {
+  txCreator: string,
+  wasmAttributes: (readonly Attribute[])[],
+  duckDb: DuckDb
+): Promise<ProvideLiquidityOperationData | undefined> {
   if ("provide_liquidity" in msg) {
-    const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
-    let baseAsset = msg.provide_liquidity.assets[0];
-    let quoteAsset = msg.provide_liquidity.assets[1];
-    if (isAssetInfoPairReverse(assetInfos)) {
-      baseAsset = msg.provide_liquidity.assets[1];
-      quoteAsset = msg.provide_liquidity.assets[0];
-    }
-    const firstDenom = parseAssetInfoOnlyDenom(baseAsset.info);
-    const secDenom = parseAssetInfoOnlyDenom(quoteAsset.info);
-    const firstAmount = parseInt(baseAsset.amount);
-    const secAmount = parseInt(quoteAsset.amount);
+    for (let attrs of wasmAttributes) {
+      const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
 
-    return {
-      basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
-      baseTokenAmount: firstAmount,
-      baseTokenDenom: firstDenom,
-      baseTokenReserve: firstAmount,
-      opType: "provide",
-      uniqueKey: concatDataToUniqueKey({
+      let baseAsset = msg.provide_liquidity.assets[0];
+      let quoteAsset = msg.provide_liquidity.assets[1];
+      if (isAssetInfoPairReverse(assetInfos)) {
+        baseAsset = msg.provide_liquidity.assets[1];
+        quoteAsset = msg.provide_liquidity.assets[0];
+      }
+      const firstDenom = parseAssetInfoOnlyDenom(baseAsset.info);
+      const secDenom = parseAssetInfoOnlyDenom(quoteAsset.info);
+      const firstAmount = parseInt(baseAsset.amount);
+      const secAmount = parseInt(quoteAsset.amount);
+
+      const fee = await getFeeLiquidity(
+        [parseAssetInfoOnlyDenom(baseAsset.info), parseAssetInfoOnlyDenom(quoteAsset.info)],
+        "provide",
+        attrs,
+        txData.txheight,
+        duckDb
+      );
+      return {
+        basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
+        baseTokenAmount: firstAmount,
+        baseTokenDenom: firstDenom,
+        baseTokenReserve: firstAmount,
+        opType: "provide",
+        uniqueKey: concatDataToUniqueKey({
+          txheight: txData.txheight,
+          firstAmount,
+          firstDenom,
+          secondAmount: secAmount,
+          secondDenom: secDenom
+        }),
+        quoteTokenAmount: secAmount,
+        quoteTokenDenom: secDenom,
+        quoteTokenReserve: secAmount,
+        timestamp: txData.timestamp,
+        txCreator,
+        txhash: txData.txhash,
         txheight: txData.txheight,
-        firstAmount,
-        firstDenom,
-        secondAmount: secAmount,
-        secondDenom: secDenom
-      }),
-      quoteTokenAmount: secAmount,
-      quoteTokenDenom: secDenom,
-      quoteTokenReserve: secAmount,
-      timestamp: txData.timestamp,
-      txCreator,
-      txhash: txData.txhash,
-      txheight: txData.txheight,
-      taxRate: 1n
-    };
+        taxRate: fee
+      };
+    }
   }
+
   return undefined;
 }
 
@@ -199,25 +252,10 @@ async function extractMsgWithdrawLiquidity(
     if (findedPair) {
       baseAsset = assets[3];
       quoteAsset = assets[1];
-    } else {
-      // otherwise find in reverse order
-      findedPair = pairs.find((pair) =>
-        isEqual(
-          pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
-          [baseAsset, quoteAsset]
-        )
-      );
     }
     if (assets.length !== 4) continue;
 
-    let fee = 0n;
-    const isHasFee = isPoolHasFee(findedPair.asset_infos);
-    console.log({ isHasFee });
-    if (isHasFee) {
-      const withdrawnShare = attrs.find((attr) => attr.key === "withdrawn_share").value;
-      const pair = await duckDb.getPoolByAssetInfos(findedPair.asset_infos);
-      fee = await calculateLiquidityFee(pair, txData.txheight, +withdrawnShare);
-    }
+    const fee = await getFeeLiquidity([baseAsset, quoteAsset], "withdraw", attrs, txData.txheight, duckDb);
 
     withdrawData.push({
       basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
@@ -296,7 +334,13 @@ async function parseTxs(txs: Tx[], duckDb: DuckDb): Promise<TxAnlysisResult> {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
-      const provideLiquidityData = extractMsgProvideLiquidity(basicTxData, msg.msg, sender);
+      const provideLiquidityData = await extractMsgProvideLiquidity(
+        basicTxData,
+        msg.msg,
+        sender,
+        wasmAttributes,
+        duckDb
+      );
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
       withdrawLiquidityOpsData.push(
         ...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender, duckDb))

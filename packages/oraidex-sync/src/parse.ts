@@ -5,7 +5,6 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { parseAssetInfoOnlyDenom } from "./helper";
 import { pairs } from "./pairs";
-import { ORAI } from "./constants";
 
 function parseDenomToAssetLiquidity([fromDenom, toDenom]: [string, string]): [AssetInfo, AssetInfo] {
   const findedPair = pairs.find((pair) => {

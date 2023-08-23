@@ -126,7 +126,7 @@ async function getPriceByAsset(
 
 /**
  * First, calculate fee by offer asset & askAsset
- * then, calculate fee by those asset to ORAI
+ * then, calculate fee of those asset to ORAI
  * finally, convert this fee in ORAI to USDT.
  * @param pair
  * @param txHeight
