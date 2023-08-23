@@ -30,6 +30,9 @@ import {
   removeOpsDuplication
 } from "./helper";
 import { pairs } from "./pairs";
+import { isPoolHasFee } from "./parse";
+import { DuckDb } from "./db";
+import { calculateLiquidityFee } from "./poolHelper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -167,11 +170,12 @@ function parseWithdrawLiquidityAssets(assets: string): string[] {
   return matches.slice(1, 5);
 }
 
-function extractMsgWithdrawLiquidity(
+async function extractMsgWithdrawLiquidity(
   txData: BasicTxData,
   wasmAttributes: (readonly Attribute[])[],
-  txCreator: string
-): WithdrawLiquidityOperationData[] {
+  txCreator: string,
+  duckDb: DuckDb
+): Promise<WithdrawLiquidityOperationData[]> {
   const withdrawData: WithdrawLiquidityOperationData[] = [];
 
   for (let attrs of wasmAttributes) {
@@ -185,18 +189,35 @@ function extractMsgWithdrawLiquidity(
     let quoteAsset = assets[3];
     let quoteAssetAmount = parseInt(assets[2]);
     // we only have one pair order. If the order is reversed then we also reverse the order
-    if (
-      pairs.find((pair) =>
-        isEqual(
-          pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
-          [quoteAsset, baseAsset]
-        )
+    let findedPair = pairs.find((pair) =>
+      isEqual(
+        pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+        [quoteAsset, baseAsset]
       )
-    ) {
+    );
+    if (findedPair) {
       baseAsset = assets[3];
       quoteAsset = assets[1];
+    } else {
+      // otherwise find in reverse order
+      findedPair = pairs.find((pair) =>
+        isEqual(
+          pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+          [baseAsset, quoteAsset]
+        )
+      );
     }
     if (assets.length !== 4) continue;
+
+    let fee = 0n;
+    const isHasFee = isPoolHasFee(findedPair.asset_infos);
+    console.log({ isHasFee });
+    if (isHasFee) {
+      const withdrawnShare = attrs.find((attr) => attr.key === "withdrawn_share").value;
+      const pair = await duckDb.getPoolByAssetInfos(findedPair.asset_infos);
+      fee = await calculateLiquidityFee(pair, txData.txheight, +withdrawnShare);
+    }
+
     withdrawData.push({
       basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
       baseTokenAmount: baseAssetAmount,
@@ -253,7 +274,7 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
   return objs;
 }
 
-function parseTxs(txs: Tx[]): TxAnlysisResult {
+async function parseTxs(txs: Tx[], duckDb: DuckDb): Promise<TxAnlysisResult> {
   let transactions: Tx[] = [];
   let swapOpsData: SwapOperationData[] = [];
   let accountTxs: AccountTx[] = [];
@@ -268,20 +289,22 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       txhash: tx.hash,
       txheight: tx.height
     };
+
     for (let msg of msgs) {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
       const provideLiquidityData = extractMsgProvideLiquidity(basicTxData, msg.msg, sender);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
-      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender));
+      withdrawLiquidityOpsData.push(
+        ...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender, duckDb))
+      );
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
   swapOpsData = swapOpsData.filter((i) => i.direction);
   swapOpsData = removeOpsDuplication(swapOpsData) as SwapOperationData[];
   return {
-    // transactions: txs,
     swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
     ohlcv: buildOhlcv(swapOpsData),
     accountTxs,
@@ -289,9 +312,16 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       removeOpsDuplication(provideLiquidityOpsData)
     ) as ProvideLiquidityOperationData[],
     withdrawLiquidityOpsData: groupByTime(
-      removeOpsDuplication(provideLiquidityOpsData)
+      removeOpsDuplication(withdrawLiquidityOpsData)
     ) as WithdrawLiquidityOperationData[]
   };
 }
 
-export { parseAssetInfo, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets, parseTxToMsgExecuteContractMsgs };
+export {
+  parseAssetInfo,
+  parseWasmEvents,
+  parseTxs,
+  parseWithdrawLiquidityAssets,
+  parseTxToMsgExecuteContractMsgs,
+  calculateLiquidityFee
+};

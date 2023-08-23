@@ -1,19 +1,7 @@
-import "dotenv/config";
-import { parseAssetInfo, parseTxs } from "./tx-parsing";
-import { DuckDb } from "./db";
-import { WriteData, SyncData, Txs } from "@oraichain/cosmos-rpc-sync";
+import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import { AssetInfo, CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
-import {
-  ProvideLiquidityOperationData,
-  TxAnlysisResult,
-  WithdrawLiquidityOperationData,
-  InitialData,
-  PairInfoData,
-  Env
-} from "./types";
-import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
-import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { getAllPairInfos, getPoolInfos } from "./query";
+import "dotenv/config";
+import { DuckDb } from "./db";
 import {
   collectAccumulateLpData,
   convertDateToSecond,
@@ -22,6 +10,17 @@ import {
   getSymbolFromAsset,
   parseAssetInfoOnlyDenom
 } from "./helper";
+import { getPoolInfos } from "./poolHelper";
+import { getAllPairInfos } from "./query";
+import { parseAssetInfo, parseTxs } from "./tx-parsing";
+import {
+  Env,
+  InitialData,
+  PairInfoData,
+  ProvideLiquidityOperationData,
+  TxAnlysisResult,
+  WithdrawLiquidityOperationData
+} from "./types";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -40,23 +39,10 @@ class WriteOrders extends WriteData {
     await this.duckDb.insertLpOps(txs.withdrawLiquidityOpsData);
   }
 
-  private async getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
-    // adjust the query height to get data from the past
-    const cosmwasmClient = await CosmWasmClient.connect(this.rpcUrl);
-    cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-    const multicall = new MulticallQueryClient(
-      cosmwasmClient,
-      this.env.MULTICALL_CONTRACT_ADDRESS || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
-    );
-    const res = await getPoolInfos(pairAddrs, multicall);
-    // reset query client to latest for other functions to call
-    return res;
-  }
-
   private async accumulatePoolAmount(data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]) {
     if (data.length === 0) return; // guard. If theres no data then we wont process anything
     const pairInfos = await this.duckDb.queryPairInfos();
-    const poolInfos = await this.getPoolInfos(
+    const poolInfos = await getPoolInfos(
       pairInfos.map((pair) => pair.pairAddr),
       data[0].txheight // assume data is sorted by height and timestamp
     );
@@ -69,7 +55,7 @@ class WriteOrders extends WriteData {
       const currentOffset = await this.duckDb.loadHeightSnapshot();
       // edge case. If no new block has been found, then we skip processing to prevent duplication handling
       if (currentOffset === newOffset) return true;
-      let result = parseTxs(txs);
+      let result = await parseTxs(txs, this.duckDb);
 
       // accumulate liquidity pool amount
       await this.accumulatePoolAmount([...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]);
@@ -92,7 +78,6 @@ class WriteOrders extends WriteData {
   }
 }
 
-// we need to create a new table with name PoolInfo, whenever order table
 class OraiDexSync {
   protected constructor(
     private readonly duckDb: DuckDb,
@@ -118,35 +103,50 @@ class OraiDexSync {
     return getAllPairInfos(firstFactoryClient, secondFactoryClient);
   }
 
+  async getSwapFeePair(asset_infos: [AssetInfo, AssetInfo], startTime: Date, endTime: Date): Promise<bigint> {
+    const [swapFee, swapFeeReverse] = await Promise.all([
+      this.duckDb.getFeeSwap({
+        offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
+        askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
+        startTime: convertDateToSecond(startTime),
+        endTime: convertDateToSecond(endTime)
+      }),
+      this.duckDb.getFeeSwap({
+        offerDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
+        askDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
+        startTime: convertDateToSecond(startTime),
+        endTime: convertDateToSecond(endTime)
+      })
+    ]);
+    return swapFee + swapFeeReverse;
+  }
+
+  async getAllFees(pairInfos: PairInfo[]): Promise<bigint[]> {
+    const tf = 7 * 24 * 60 * 60; // second of 7 days
+    const currentDate = new Date();
+    const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const swapFees = await Promise.all(
+      pairInfos.map((pair) => this.getSwapFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate))
+    );
+
+    // const lpFees =
+    return swapFees;
+  }
+
   // fromIconUrl, toIconUrl: upload to other server
   // volume24Hour: volume ohlcv + volume liquidity (?)
   // apr: oraidex
   // totalLiquidity: get liquidity in lp_ops_data with last block of pair
   // fee7Days: sum of fee in swap_ops ( taxAmount + commissionAmount ) + & lp_ops fee of scatom/atom
   private async updateLatestPairInfos() {
-    const pairInfos = await this.getAllPairInfos();
     console.time("timer");
+    const pairInfos = await this.getAllPairInfos();
     const allLiquidities = await Promise.all(
       pairInfos.map((pair) => {
         return getPairLiquidity(pair.asset_infos, pair.contract_addr);
       })
     );
-    console.timeEnd("timer");
-
-    const tf = 7 * 24 * 60 * 60; // second of 7 days
-    const currentDate = new Date();
-    const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-    const allPairFees = await Promise.all(
-      pairInfos.map((pair) => {
-        return this.duckDb.getFeeSwap({
-          offerDenom: parseAssetInfoOnlyDenom(pair.asset_infos[0]),
-          askDenom: parseAssetInfoOnlyDenom(pair.asset_infos[1]),
-          startTime: convertDateToSecond(oneWeekBeforeNow),
-          endTime: convertDateToSecond(currentDate)
-        });
-      })
-    );
-    console.table(allPairFees);
+    const allFee7Days = await this.getAllFees(pairInfos);
 
     await this.duckDb.insertPairInfos(
       pairInfos.map((pair, index) => {
@@ -164,10 +164,11 @@ class OraiDexSync {
           volume24Hour: 1n,
           apr: 2,
           totalLiquidity: allLiquidities[index],
-          fee7Days: 1n
+          fee7Days: allFee7Days[index]
         } as PairInfoData;
       })
     );
+    console.timeEnd("timer");
   }
 
   public async sync() {
@@ -211,9 +212,10 @@ async function initSync() {
 initSync();
 export { OraiDexSync };
 
-export * from "./types";
-export * from "./query";
-export * from "./helper";
-export * from "./db";
-export * from "./pairs";
 export * from "./constants";
+export * from "./db";
+export * from "./helper";
+export * from "./pairs";
+export * from "./parse";
+export * from "./query";
+export * from "./types";

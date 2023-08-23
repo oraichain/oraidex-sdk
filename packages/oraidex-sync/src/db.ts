@@ -13,7 +13,8 @@ import {
   GetFeeSwap
 } from "./types";
 import fs, { rename } from "fs";
-import { isoToTimestampNumber, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
+import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export class DuckDb {
   protected constructor(public readonly conn: Connection, private db: Database) {}
@@ -366,9 +367,20 @@ export class DuckDb {
     return (await this.conn.all("SELECT * from pair_infos")).map((data) => data as PairInfoData);
   }
 
+  async getPoolByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PairInfoData> {
+    const firstAssetInfo = parseAssetInfo(assetInfos[0]);
+    const secondAssetInfo = parseAssetInfo(assetInfos[1]);
+    return (
+      await this.conn.all(
+        `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+        firstAssetInfo,
+        secondAssetInfo
+      )
+    ).map((data) => data as PairInfoData)[0];
+  }
+
   async getFeeSwap(payload: GetFeeSwap): Promise<bigint> {
     const { offerDenom, askDenom, startTime, endTime } = payload;
-    console.log({ payload });
     const result = await this.conn.all(
       `
       SELECT 
@@ -384,7 +396,6 @@ export class DuckDb {
       offerDenom,
       askDenom
     );
-    console.log({ result });
-    return 1n;
+    return BigInt(result[0].totalFee ?? 0);
   }
 }

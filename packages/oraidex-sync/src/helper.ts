@@ -6,8 +6,11 @@ import {
   OraiswapRouterQueryClient,
   SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
-import { pairs, pairsOnlyDenom } from "./pairs";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
+import { isEqual, maxBy, minBy } from "lodash";
 import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
+import { pairs, pairsOnlyDenom } from "./pairs";
+import { simulateSwapPriceWithUsdt } from "./query";
 import {
   Ohlcv,
   OraiDexType,
@@ -17,9 +20,6 @@ import {
   SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
-import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { minBy, maxBy, isEqual } from "lodash";
-import { getPoolInfos, simulateSwapPriceWithUsdt } from "./query";
 
 export function toObject(data: any) {
   return JSON.parse(
@@ -423,6 +423,7 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
 
 async function getPairLiquidity([fromInfo, toInfo]: [AssetInfo, AssetInfo], pairAddr: string): Promise<number> {
   const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(fromInfo, toInfo, pairAddr);
+
   const routerContract = new OraiswapRouterQueryClient(
     await getCosmwasmClient(),
     process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
@@ -449,18 +450,18 @@ function convertDateToSecond(date: Date): number {
 }
 
 export {
-  findMappedTargetedAssetInfo,
-  findAssetInfoPathToUsdt,
-  generateSwapOperations,
-  parseAssetInfo,
-  parseAssetInfoOnlyDenom,
-  delay,
-  findPairAddress,
   calculatePriceByPool,
-  getSymbolFromAsset,
-  getPoolInfos,
+  convertDateToSecond,
+  delay,
   fetchPoolInfoAmount,
+  findAssetInfoPathToUsdt,
+  findMappedTargetedAssetInfo,
+  findPairAddress,
+  generateSwapOperations,
+  getCosmwasmClient,
   getPairLiquidity,
   getSpecificDateBeforeNow,
-  convertDateToSecond
+  getSymbolFromAsset,
+  parseAssetInfo,
+  parseAssetInfoOnlyDenom
 };
