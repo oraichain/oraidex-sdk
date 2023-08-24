@@ -1,26 +1,39 @@
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
+import { Asset, AssetInfo, OraiswapPairQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { getAllPairInfos as queryAllPairInfos, getPoolInfos as queryPoolInfos } from "./query";
+import { ORAI, oraiInfo, usdtCw20Address } from "./constants";
 import {
   calculatePriceByPool,
   fetchPoolInfoAmount,
   getCosmwasmClient,
-  parseAssetInfo,
+  getPairInfoFromAssets,
   parseAssetInfoOnlyDenom
 } from "./helper";
-import {
-  Asset,
-  AssetInfo,
-  OraiswapFactoryQueryClient,
-  OraiswapPairQueryClient,
-  PairInfo
-} from "@oraichain/oraidex-contracts-sdk";
-import { ORAI, usdtCw20Address } from "./constants";
-import { PairInfoData, PairMapping } from "./types";
 import { pairs } from "./pairs";
+import { queryPoolInfos } from "./query";
+import { PairInfoData, PairMapping } from "./types";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
+
+/**
+ * Check pool if has native token is not ORAI -> has fee
+ * @returns boolean
+ */
+function isPoolHasFee(assetInfos: [AssetInfo, AssetInfo]): boolean {
+  let hasNative = false;
+  for (const asset of assetInfos) {
+    if ("native_token" in asset) {
+      hasNative = true;
+      if (asset.native_token.denom === "orai") {
+        return false;
+      }
+    }
+  }
+  if (hasNative) return true;
+  return false;
+}
+
 async function getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
   const cosmwasmClient = await getCosmwasmClient();
@@ -30,31 +43,43 @@ async function getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise
     process.env.MULTICALL_CONTRACT_ADDRESS || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
   );
   const res = await queryPoolInfos(pairAddrs, multicall);
-  // reset query client to latest for other functions to call
   return res;
 }
 
-function calculateFeeByAsset(asset: Asset, shareRatio: number): Asset {
-  const TAX_CAP = 10 ** 6;
-  const TAX_RATE = 0.3;
-  // just native_token not ORAI has fee
-  if (!("native_token" in asset.info)) return null;
-  const amount = +asset.amount;
-  const refundAmount = amount * shareRatio;
-  const fee = Math.min(refundAmount - (refundAmount * 1) / (TAX_RATE + 1), TAX_CAP);
-  return {
-    amount: fee.toString(),
-    info: asset.info
-  };
+function getPairByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): PairMapping {
+  return pairs.find((pair) => {
+    const [baseAsset, quoteAsset] = pair.asset_infos;
+    const denoms = [parseAssetInfoOnlyDenom(baseAsset), parseAssetInfoOnlyDenom(quoteAsset)];
+    return (
+      denoms.includes(parseAssetInfoOnlyDenom(assetInfos[0])) && denoms.includes(parseAssetInfoOnlyDenom(assetInfos[1]))
+    );
+  });
+}
+
+// get price ORAI in USDT base on ORAI/USDT pool.
+async function getOraiPrice(): Promise<number> {
+  const usdtInfo = { token: { contract_addr: usdtCw20Address } };
+  const oraiUsdtPair = getPairByAssetInfos([oraiInfo, usdtInfo]);
+  const ratioDirection: RatioDirection =
+    parseAssetInfoOnlyDenom(oraiUsdtPair.asset_infos[0]) === ORAI ? "base_in_quote" : "quote_in_base";
+  return getPriceByAsset([oraiInfo, usdtInfo], ratioDirection);
+}
+
+// get pair of assets then query info from contract to calculate price asset.
+async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirection: RatioDirection): Promise<number> {
+  const pairInfo = await getPairInfoFromAssets(assetInfos);
+  // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
+  // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
+  const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(...assetInfos, pairInfo.contract_addr);
+  const assetPrice = calculatePriceByPool(askPoolAmount, offerPoolAmount, +pairInfo.commission_rate);
+
+  return ratioDirection === "base_in_quote" ? assetPrice : 1 / assetPrice;
 }
 
 // find pool match this asset with orai => calculate price this asset token in ORAI.
 // then, calculate price of this asset token in USDT based on price ORAI in USDT.
 async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
-  const foundPair = pairs.find((pair) => {
-    const denoms = [parseAssetInfoOnlyDenom(pair.asset_infos[0]), parseAssetInfoOnlyDenom(pair.asset_infos[1])];
-    return denoms.includes(parseAssetInfoOnlyDenom(asset)) && denoms.includes(ORAI);
-  });
+  const foundPair = getPairByAssetInfos([asset, oraiInfo]);
   if (!foundPair) return 0;
 
   const ratioDirection: RatioDirection =
@@ -71,57 +96,18 @@ async function calculateFeeByUsdt(fee: Asset): Promise<number> {
   return priceInUsdt * +fee.amount;
 }
 
-async function getPairInfos(): Promise<PairInfo[]> {
-  const cosmwasmClient = await getCosmwasmClient();
-  const firstFactoryClient = new OraiswapFactoryQueryClient(
-    cosmwasmClient,
-    "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
-  );
-  const secondFactoryClient = new OraiswapFactoryQueryClient(
-    cosmwasmClient,
-    "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
-  );
-  return queryAllPairInfos(firstFactoryClient, secondFactoryClient);
-}
-
-function getPairByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): PairMapping {
-  return pairs.find((pair) => {
-    const [baseAsset, quoteAsset] = pair.asset_infos;
-    const denoms = [parseAssetInfoOnlyDenom(baseAsset), parseAssetInfoOnlyDenom(quoteAsset)];
-    return (
-      denoms.includes(parseAssetInfoOnlyDenom(assetInfos[0])) && denoms.includes(parseAssetInfoOnlyDenom(assetInfos[1]))
-    );
-  });
-}
-
-// get price ORAI in USDT base on ORAI/USDT pool.
-async function getOraiPrice(): Promise<number> {
-  const usdtInfo = { token: { contract_addr: usdtCw20Address } };
-  const oraiInfo = { native_token: { denom: ORAI } };
-  const oraiUsdtPair = getPairByAssetInfos([oraiInfo, usdtInfo]);
-  const ratioDirection: RatioDirection =
-    parseAssetInfoOnlyDenom(oraiUsdtPair.asset_infos[0]) === ORAI ? "base_in_quote" : "quote_in_base";
-  return getPriceByAsset([oraiInfo, usdtInfo], ratioDirection);
-}
-
-async function getPriceByAsset(
-  [baseAsset, quoteAsset]: [AssetInfo, AssetInfo],
-  ratioDirection: RatioDirection
-): Promise<number> {
-  // TODO: currently we get all pairinfo then find orai/usdt pair, but it slow, so need to refactor this ops
-  const allPairInfos = await getPairInfos();
-  const pool = allPairInfos.find(
-    (pair) =>
-      parseAssetInfo(pair.asset_infos[0]) === parseAssetInfo(baseAsset) &&
-      parseAssetInfo(pair.asset_infos[1]) === parseAssetInfo(quoteAsset)
-  );
-  if (!pool) return 0;
-  // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
-  // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
-  const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(baseAsset, quoteAsset, pool.contract_addr);
-  const assetPrice = calculatePriceByPool(askPoolAmount, offerPoolAmount, +pool.commission_rate);
-
-  return ratioDirection === "base_in_quote" ? assetPrice : 1 / assetPrice;
+function calculateFeeByAsset(asset: Asset, shareRatio: number): Asset {
+  const TAX_CAP = 10 ** 6;
+  const TAX_RATE = 0.3;
+  // just native_token not ORAI has fee
+  if (!("native_token" in asset.info)) return null;
+  const amount = +asset.amount;
+  const refundAmount = amount * shareRatio;
+  const fee = Math.min(refundAmount - (refundAmount * 1) / (TAX_RATE + 1), TAX_CAP);
+  return {
+    amount: fee.toString(),
+    info: asset.info
+  };
 }
 
 /**
@@ -131,7 +117,7 @@ async function getPriceByAsset(
  * @param pair
  * @param txHeight
  * @param withdrawnShare
- * @returns
+ * @returns fee in USDT
  */
 async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withdrawnShare: number): Promise<bigint> {
   const cosmwasmClient = await getCosmwasmClient();
@@ -151,4 +137,13 @@ async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withd
   return BigInt(Math.round(feeByUsdt));
 }
 
-export { getPoolInfos, calculateLiquidityFee, getOraiPrice };
+export {
+  calculateFeeByAsset,
+  calculateLiquidityFee,
+  getOraiPrice,
+  getPairByAssetInfos,
+  getPoolInfos,
+  getPriceAssetByUsdt,
+  getPriceByAsset,
+  isPoolHasFee
+};

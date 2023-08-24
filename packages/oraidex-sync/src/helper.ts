@@ -1,9 +1,11 @@
 import {
   AssetInfo,
   CosmWasmClient,
+  OraiswapFactoryQueryClient,
   OraiswapPairQueryClient,
   OraiswapPairTypes,
   OraiswapRouterQueryClient,
+  PairInfo,
   SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
@@ -20,6 +22,7 @@ import {
   SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
+import { getPairByAssetInfos } from "./poolHelper";
 
 export function toObject(data: any) {
   return JSON.parse(
@@ -449,6 +452,21 @@ function convertDateToSecond(date: Date): number {
   return Math.round(date.valueOf() / 1000);
 }
 
+async function getPairInfoFromAssets(
+  assetInfos: [AssetInfo, AssetInfo]
+): Promise<Pick<PairInfo, "contract_addr" | "commission_rate">> {
+  const pair = getPairByAssetInfos(assetInfos);
+  const factoryClient = new OraiswapFactoryQueryClient(
+    await getCosmwasmClient(),
+    pair.factoryV1 ? process.env.FACTORY_CONTACT_ADDRESS_V1 : process.env.FACTORY_CONTACT_ADDRESS_V2
+  );
+  const pairInfo = await factoryClient.pair({ assetInfos });
+  return {
+    contract_addr: pairInfo.contract_addr,
+    commission_rate: pairInfo.contract_addr
+  };
+}
+
 export {
   calculatePriceByPool,
   convertDateToSecond,
@@ -463,5 +481,6 @@ export {
   getSpecificDateBeforeNow,
   getSymbolFromAsset,
   parseAssetInfo,
-  parseAssetInfoOnlyDenom
+  parseAssetInfoOnlyDenom,
+  getPairInfoFromAssets
 };

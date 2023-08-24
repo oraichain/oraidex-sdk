@@ -13,3 +13,4 @@ export const osmosisIbcDenom = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E429269
 export const tenAmountInDecimalSix = 10000000;
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
+export const oraiInfo = { native_token: { denom: ORAI } };

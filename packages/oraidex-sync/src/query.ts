@@ -11,7 +11,7 @@ import { pairs } from "./pairs";
 import { findAssetInfoPathToUsdt, generateSwapOperations, parseAssetInfoOnlyDenom, toDisplay } from "./helper";
 import { tenAmountInDecimalSix, usdtCw20Address } from "./constants";
 
-async function getPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
+async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
   const res = await multicall.tryAggregate({
     queries: pairAddrs.map((pair) => {
@@ -75,4 +75,4 @@ async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterRe
   }
 }
 
-export { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt, simulateSwapPrice };
+export { getAllPairInfos, queryPoolInfos, simulateSwapPriceWithUsdt, simulateSwapPrice };

@@ -31,9 +31,8 @@ import {
   removeOpsDuplication
 } from "./helper";
 import { pairs } from "./pairs";
-import { isPoolHasFee } from "./parse";
 import { DuckDb } from "./db";
-import { calculateLiquidityFee } from "./poolHelper";
+import { calculateLiquidityFee, isPoolHasFee } from "./poolHelper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
