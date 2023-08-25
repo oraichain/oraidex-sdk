@@ -10,7 +10,7 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual, maxBy, minBy } from "lodash";
-import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
+import { ORAI, atomic, network, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { simulateSwapPriceWithUsdt } from "./query";
 import {
@@ -424,10 +424,7 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
 async function getPairLiquidity([fromInfo, toInfo]: [AssetInfo, AssetInfo], pairAddr: string): Promise<number> {
   const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(fromInfo, toInfo, pairAddr);
 
-  const routerContract = new OraiswapRouterQueryClient(
-    await getCosmwasmClient(),
-    process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-  );
+  const routerContract = new OraiswapRouterQueryClient(await getCosmwasmClient(), network.router);
   const { amount } = await simulateSwapPriceWithUsdt(fromInfo, routerContract);
   const totalLiquid = Number(amount) * Number(offerPoolAmount) * 2;
   return totalLiquid;
@@ -455,7 +452,7 @@ async function getPairInfoFromAssets(
   const pair = getPairByAssetInfos(assetInfos);
   const factoryClient = new OraiswapFactoryQueryClient(
     await getCosmwasmClient(),
-    pair.factoryV1 ? process.env.FACTORY_CONTACT_ADDRESS_V1 : process.env.FACTORY_CONTACT_ADDRESS_V2
+    pair.factoryV1 ? network.factory : network.factory_v2
   );
   const pairInfo = await factoryClient.pair({ assetInfos });
   return {

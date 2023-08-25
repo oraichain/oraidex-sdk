@@ -49,10 +49,7 @@ async function getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise
   // adjust the query height to get data from the past
   const cosmwasmClient = await getCosmwasmClient();
   cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-  const multicall = new MulticallQueryClient(
-    cosmwasmClient,
-    process.env.MULTICALL_CONTRACT_ADDRESS || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
-  );
+  const multicall = new MulticallQueryClient(cosmwasmClient, network.multicall);
   const res = await queryPoolInfos(pairAddrs, multicall);
   return res;
 }
