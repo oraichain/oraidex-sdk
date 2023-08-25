@@ -15,3 +15,17 @@ export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
 export const oraiInfo = { native_token: { denom: ORAI } };
 export const usdtInfo = { token: { contract_addr: usdcCw20Address } };
+export const ORAIXOCH_INFO = {
+  token: {
+    contract_addr: "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt"
+  }
+};
+
+export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
+export const network = {
+  factory: process.env.FACTORY_CONTACT_ADDRESS_V1,
+  factory_v2: process.env.FACTORY_CONTACT_ADDRESS_V2,
+  router: process.env.ROUTER_CONTRACT_ADDRESS,
+  staking: process.env.STAKING_CONTRACT,
+  multicall: process.env.MULTICALL_CONTRACT_ADDRESS
+};

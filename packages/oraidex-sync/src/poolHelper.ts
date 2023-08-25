@@ -1,17 +1,28 @@
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
-import { Asset, AssetInfo, OraiswapPairQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import {
+  Asset,
+  AssetInfo,
+  OraiswapPairQueryClient,
+  OraiswapStakingTypes,
+  OraiswapTokenTypes,
+  PairInfo
+} from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { ORAI, oraiInfo, usdtCw20Address, usdtInfo } from "./constants";
+import { ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
 import {
   calculatePriceByPool,
   fetchPoolInfoAmount,
   getCosmwasmClient,
   getPairInfoFromAssets,
-  parseAssetInfoOnlyDenom
+  parseAssetInfoOnlyDenom,
+  validateNumber
 } from "./helper";
 import { pairs } from "./pairs";
 import { queryPoolInfos } from "./query";
-import { PairInfoData, PairMapping } from "./types";
+import { PairInfoData, PairMapping, PoolInfo } from "./types";
+import { isEqual } from "lodash";
+import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
@@ -141,6 +152,120 @@ async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withd
   return BigInt(Math.round(feeByUsdt));
 }
 
+//  ==== calculate APR ====
+export const calculateAprResult = async (
+  pairs: PairInfo[],
+  allLiquidities: number[],
+  allTokenInfo: TokenInfoResponse[],
+  allLpTokenAsset: OraiswapStakingTypes.PoolInfoResponse[],
+  allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[]
+): Promise<number[]> => {
+  let aprResult = [];
+  let ind = 0;
+  for (const pair of pairs) {
+    console.time(`apr/${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`);
+    const liquidityAmount = allLiquidities[ind] * Math.pow(10, -6);
+    const lpToken = allLpTokenAsset[ind];
+    const tokenSupply = allTokenInfo[ind];
+    const rewardsPerSecData = allRewardPerSec[ind];
+    if (!lpToken || !tokenSupply || !rewardsPerSecData) continue;
+
+    const bondValue =
+      (validateNumber(lpToken.total_bond_amount) * liquidityAmount) / validateNumber(tokenSupply.total_supply);
+
+    let rewardsPerYearValue = 0;
+    for (const { amount, info } of rewardsPerSecData.assets) {
+      // NOTE: current hardcode price token xOCH: $0.4
+      const priceAssetInUsdt = isEqual(info, ORAIXOCH_INFO) ? 0.4 : await getPriceAssetByUsdt(info);
+      rewardsPerYearValue += (SEC_PER_YEAR * validateNumber(amount) * priceAssetInUsdt) / atomic;
+    }
+    aprResult[ind] = (100 * rewardsPerYearValue) / bondValue || 0;
+    ind++;
+    console.timeEnd(
+      `apr/${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`
+    );
+  }
+  return aprResult;
+};
+
+async function fetchTokenInfos(pairInfos: PairInfo[]): Promise<TokenInfoResponse[]> {
+  const queries = pairInfos.map((pair) => ({
+    address: pair.liquidity_token,
+    data: toBinary({
+      token_info: {}
+    } as OraiswapTokenTypes.QueryMsg)
+  }));
+  const client = await getCosmwasmClient();
+  const multicall = new MulticallQueryClient(client, network.multicall);
+  const res = await multicall.aggregate({
+    queries
+  });
+  return pairInfos.map((item, ind) => {
+    const info: TokenInfoResponse = fromBinary(res.return_data[ind++].data);
+    return info;
+  });
+}
+
+async function fetchAllTokenAssetPools(assetInfos: AssetInfo[]): Promise<OraiswapStakingTypes.PoolInfoResponse[]> {
+  const queries = assetInfos.map((assetInfo) => {
+    return {
+      address: network.staking,
+      data: toBinary({
+        pool_info: {
+          asset_info: assetInfo
+        }
+      } as OraiswapStakingTypes.QueryMsg)
+    };
+  });
+
+  const client = await getCosmwasmClient();
+  const multicall = new MulticallQueryClient(client, network.multicall);
+  const res = await multicall.tryAggregate({
+    queries
+  });
+  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+}
+
+async function fetchAllRewardPerSecInfos(
+  assetInfos: AssetInfo[]
+): Promise<OraiswapStakingTypes.RewardsPerSecResponse[]> {
+  const queries = assetInfos.map((assetInfo) => {
+    return {
+      address: network.staking,
+      data: toBinary({
+        rewards_per_sec: {
+          asset_info: assetInfo
+        }
+      } as OraiswapStakingTypes.QueryMsg)
+    };
+  });
+  const client = await getCosmwasmClient();
+  const multicall = new MulticallQueryClient(client, network.multicall);
+  const res = await multicall.tryAggregate({
+    queries
+  });
+  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+}
+
+function getStakingAssetInfo(assetInfos: AssetInfo[]): AssetInfo {
+  return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
+}
+
+// Fetch APR
+const fetchAprResult = async (pairInfos: PairInfo[], allLiquidities: number[]): Promise<number[]> => {
+  const assetTokens = pairs.map((pair) => getStakingAssetInfo(pair.asset_infos));
+  try {
+    const [allTokenInfo, allLpTokenAsset, allRewardPerSec] = await Promise.all([
+      fetchTokenInfos(pairInfos),
+      fetchAllTokenAssetPools(assetTokens),
+      fetchAllRewardPerSecInfos(assetTokens)
+    ]);
+    return calculateAprResult(pairInfos, allLiquidities, allTokenInfo, allLpTokenAsset, allRewardPerSec);
+  } catch (error) {
+    console.log({ errorFetchAprResult: error });
+  }
+};
+
 export {
   calculateFeeByAsset,
   calculateLiquidityFee,
@@ -149,5 +274,6 @@ export {
   getPoolInfos,
   getPriceAssetByUsdt,
   getPriceByAsset,
-  isPoolHasFee
+  isPoolHasFee,
+  fetchAprResult
 };

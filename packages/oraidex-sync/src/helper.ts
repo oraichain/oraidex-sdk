@@ -17,6 +17,7 @@ import {
   Ohlcv,
   OraiDexType,
   PairInfoData,
+  PoolInfo,
   ProvideLiquidityOperationData,
   SwapDirection,
   SwapOperationData,
@@ -411,10 +412,6 @@ function parsePoolAmount(poolInfo: OraiswapPairTypes.PoolResponse, trueAsset: As
   return BigInt(poolInfo.assets.find((asset) => isEqual(asset.info, trueAsset))?.amount || "0");
 }
 
-type PoolInfo = {
-  offerPoolAmount: bigint;
-  askPoolAmount: bigint;
-};
 async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairAddr: string): Promise<PoolInfo> {
   const client = await getCosmwasmClient();
   const pairContract = new OraiswapPairQueryClient(client, pairAddr);

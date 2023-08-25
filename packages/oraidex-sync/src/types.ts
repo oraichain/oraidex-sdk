@@ -206,3 +206,8 @@ export type GetFeeSwap = {
 };
 
 export type GetVolumeQuery = Omit<GetCandlesQuery, "tf">;
+
+export type PoolInfo = {
+  offerPoolAmount: bigint;
+  askPoolAmount: bigint;
+};
