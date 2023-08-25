@@ -204,3 +204,5 @@ export type GetFeeSwap = {
   startTime: number;
   endTime: number;
 };
+
+export type GetVolumeQuery = Omit<GetCandlesQuery, "tf">;

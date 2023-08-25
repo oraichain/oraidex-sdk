@@ -463,7 +463,7 @@ async function getPairInfoFromAssets(
   const pairInfo = await factoryClient.pair({ assetInfos });
   return {
     contract_addr: pairInfo.contract_addr,
-    commission_rate: pairInfo.contract_addr
+    commission_rate: pairInfo.commission_rate
   };
 }
 

@@ -213,11 +213,13 @@ describe("test-helper", () => {
     expect(pairs).toEqual([
       {
         asset_infos: [{ token: { contract_addr: airiCw20Adress } }, { native_token: { denom: ORAI } }],
-        symbols: ["AIRI", "ORAI"]
+        symbols: ["AIRI", "ORAI"],
+        factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: oraixCw20Address } }, { native_token: { denom: ORAI } }],
-        symbols: ["ORAIX", "ORAI"]
+        symbols: ["ORAIX", "ORAI"],
+        factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
@@ -225,15 +227,18 @@ describe("test-helper", () => {
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
-        symbols: ["ORAI", "ATOM"]
+        symbols: ["ORAI", "ATOM"],
+        factoryV1: true
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
-        symbols: ["ORAI", "USDT"]
+        symbols: ["ORAI", "USDT"],
+        factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: kwtCw20Address } }, { native_token: { denom: ORAI } }],
-        symbols: ["KWT", "ORAI"]
+        symbols: ["KWT", "ORAI"],
+        factoryV1: true
       },
       {
         asset_infos: [
@@ -242,11 +247,13 @@ describe("test-helper", () => {
             native_token: { denom: osmosisIbcDenom }
           }
         ],
-        symbols: ["ORAI", "OSMO"]
+        symbols: ["ORAI", "OSMO"],
+        factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: milkyCw20Address } }, { token: { contract_addr: usdtCw20Address } }],
-        symbols: ["MILKY", "USDT"]
+        symbols: ["MILKY", "USDT"],
+        factoryV1: true
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
@@ -360,7 +367,9 @@ describe("test-helper", () => {
     "test-calculatePriceByPool-ORAI/USDT-pool-with-commision-rate=%s-should-return-price-%s-USDT",
     (commisionRate, expectedPrice) => {
       // base denom is ORAI, quote denom is USDT => base pool is ORAI, quote pool is USDT.
-      const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), commisionRate, 10 ** 6);
+      // const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), commisionRate, 10 ** 6);
+      const result = calculatePriceByPool(BigInt(397832351391), BigInt(193971155696), commisionRate);
+      console.log({ result });
       expect(result.toString()).toEqual(expectedPrice);
     }
   );

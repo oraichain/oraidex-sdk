@@ -1,7 +1,7 @@
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { Asset, AssetInfo, OraiswapPairQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { ORAI, oraiInfo, usdtCw20Address } from "./constants";
+import { ORAI, oraiInfo, usdtCw20Address, usdtInfo } from "./constants";
 import {
   calculatePriceByPool,
   fetchPoolInfoAmount,
@@ -58,7 +58,6 @@ function getPairByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): PairMapping {
 
 // get price ORAI in USDT base on ORAI/USDT pool.
 async function getOraiPrice(): Promise<number> {
-  const usdtInfo = { token: { contract_addr: usdtCw20Address } };
   const oraiUsdtPair = getPairByAssetInfos([oraiInfo, usdtInfo]);
   const ratioDirection: RatioDirection =
     parseAssetInfoOnlyDenom(oraiUsdtPair.asset_infos[0]) === ORAI ? "base_in_quote" : "quote_in_base";
@@ -72,21 +71,26 @@ async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirectio
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
   const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(...assetInfos, pairInfo.contract_addr);
   const assetPrice = calculatePriceByPool(askPoolAmount, offerPoolAmount, +pairInfo.commission_rate);
-
   return ratioDirection === "base_in_quote" ? assetPrice : 1 / assetPrice;
 }
 
 // find pool match this asset with orai => calculate price this asset token in ORAI.
 // then, calculate price of this asset token in USDT based on price ORAI in USDT.
 async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
-  const foundPair = getPairByAssetInfos([asset, oraiInfo]);
-  if (!foundPair) return 0;
+  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(usdtInfo)) return 1;
 
-  const ratioDirection: RatioDirection =
-    parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
-  const priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
+  let priceInOrai = 1;
+  if (parseAssetInfoOnlyDenom(asset) !== parseAssetInfoOnlyDenom(oraiInfo)) {
+    const foundPair = getPairByAssetInfos([asset, oraiInfo]);
+    if (!foundPair) return 0;
+
+    const ratioDirection: RatioDirection =
+      parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
+    priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
+  }
+
   const priceOraiInUsdt = await getOraiPrice();
-  console.log({ asset, priceInOrai, priceOraiInUsdt });
+
   return priceInOrai * priceOraiInUsdt;
 }
 

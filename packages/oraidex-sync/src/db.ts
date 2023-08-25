@@ -10,7 +10,8 @@ import {
   VolumeRange,
   WithdrawLiquidityOperationData,
   GetCandlesQuery,
-  GetFeeSwap
+  GetFeeSwap,
+  GetVolumeQuery
 } from "./types";
 import fs, { rename } from "fs";
 import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
@@ -382,8 +383,9 @@ export class DuckDb {
 
   async getFeeSwap(payload: GetFeeSwap): Promise<bigint> {
     const { offerDenom, askDenom, startTime, endTime } = payload;
-    const result = await this.conn.all(
-      `
+    const [feeRightDirection, feeReverseDirection] = await Promise.all([
+      this.conn.all(
+        `
       SELECT 
         sum(commissionAmount + taxAmount) as totalFee,
         FROM swap_ops_data
@@ -392,11 +394,85 @@ export class DuckDb {
         AND offerDenom = ?
         AND askDenom = ?
       `,
+        startTime,
+        endTime,
+        offerDenom,
+        askDenom
+      ),
+      this.conn.all(
+        `
+      SELECT 
+        sum(commissionAmount + taxAmount) as totalFee,
+        FROM swap_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND offerDenom = ?
+        AND askDenom = ?
+      `,
+        startTime,
+        endTime,
+        askDenom,
+        offerDenom
+      )
+    ]);
+    return BigInt(feeRightDirection[0].totalFee ?? 0 + feeReverseDirection[0].totalFee ?? 0);
+  }
+
+  async getFeeLiquidity(payload: GetFeeSwap): Promise<bigint> {
+    const { offerDenom, askDenom, startTime, endTime } = payload;
+    const result = await this.conn.all(
+      `
+      SELECT 
+        sum(taxRate) as totalFee,
+        FROM lp_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND baseTokenDenom = ?
+        AND quoteTokenDenom = ?
+      `,
       startTime,
       endTime,
       offerDenom,
       askDenom
     );
     return BigInt(result[0].totalFee ?? 0);
+  }
+
+  async getVolumeSwap(payload: GetVolumeQuery): Promise<bigint> {
+    const { pair, startTime, endTime } = payload;
+    const result = await this.conn.all(
+      `
+      SELECT 
+        cast(sum(volume) as UBIGINT) as totalVolume,
+        FROM swap_ohlcv
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND pair = ?
+      `,
+      startTime,
+      endTime,
+      pair
+    );
+    return result[0]?.totalVolume ?? 0;
+  }
+
+  async getVolumeLiquidity(payload: GetFeeSwap): Promise<bigint> {
+    const { offerDenom, askDenom, startTime, endTime } = payload;
+    const result = await this.conn.all(
+      `
+      SELECT 
+        sum(baseTokenAmount) as totalVolume,
+        FROM lp_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND baseTokenDenom = ?
+        AND quoteTokenDenom = ?
+      `,
+      startTime,
+      endTime,
+      offerDenom,
+      askDenom
+    );
+    return BigInt(result[0].totalVolume ?? 0);
   }
 }
