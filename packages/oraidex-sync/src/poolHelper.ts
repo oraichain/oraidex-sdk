@@ -2,6 +2,7 @@ import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import {
   Asset,
   AssetInfo,
+  OraiswapFactoryQueryClient,
   OraiswapPairQueryClient,
   OraiswapStakingTypes,
   PairInfo
@@ -15,11 +16,18 @@ import {
   fetchPoolInfoAmount,
   getCosmwasmClient,
   getPairInfoFromAssets,
+  isAssetInfoPairReverse,
   parseAssetInfoOnlyDenom,
   validateNumber
 } from "./helper";
 import { pairs } from "./pairs";
-import { fetchAllRewardPerSecInfos, fetchAllTokenAssetPools, fetchTokenInfos, queryPoolInfos } from "./query";
+import {
+  fetchAllRewardPerSecInfos,
+  fetchAllTokenAssetPools,
+  fetchTokenInfos,
+  queryAllPairInfos,
+  queryPoolInfos
+} from "./query";
 import { PairInfoData, PairMapping } from "./types";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
@@ -93,7 +101,6 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
     parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
   const priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
   const priceOraiInUsdt = await getOraiPrice();
-
   return priceInOrai * priceOraiInUsdt;
 }
 
@@ -172,7 +179,20 @@ export const calculateAprResult = async (
       rewardsPerYearValue += (SEC_PER_YEAR * validateNumber(amount) * priceAssetInUsdt) / atomic;
     }
     aprResult[ind] = (100 * rewardsPerYearValue) / bondValue || 0;
-    ind++;
+    ind += 1;
+    console.dir(
+      {
+        aprResult,
+        bondValue,
+        rewardsPerYearValue,
+        rewardsPerSecData,
+        lpToken,
+        tokenSupply,
+        liquidityAmount,
+        pair: `${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`
+      },
+      { depth: null }
+    );
     console.timeEnd(
       `apr/${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`
     );
@@ -181,12 +201,15 @@ export const calculateAprResult = async (
 };
 
 function getStakingAssetInfo(assetInfos: AssetInfo[]): AssetInfo {
+  if (isAssetInfoPairReverse(assetInfos)) {
+    assetInfos = assetInfos.reverse();
+  }
   return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
 }
 
 // Fetch APR
 const fetchAprResult = async (pairInfos: PairInfo[], allLiquidities: number[]): Promise<number[]> => {
-  const assetTokens = pairs.map((pair) => getStakingAssetInfo(pair.asset_infos));
+  const assetTokens = pairInfos.map((pair) => getStakingAssetInfo(JSON.parse(JSON.stringify(pair.asset_infos))));
   try {
     const [allTokenInfo, allLpTokenAsset, allRewardPerSec] = await Promise.all([
       fetchTokenInfos(pairInfos),
@@ -199,14 +222,23 @@ const fetchAprResult = async (pairInfos: PairInfo[], allLiquidities: number[]): 
   }
 };
 
+async function getAllPairInfos(): Promise<PairInfo[]> {
+  const cosmwasmClient = await getCosmwasmClient();
+  const firstFactoryClient = new OraiswapFactoryQueryClient(cosmwasmClient, network.factory);
+  const secondFactoryClient = new OraiswapFactoryQueryClient(cosmwasmClient, network.factory_v2);
+  return queryAllPairInfos(firstFactoryClient, secondFactoryClient);
+}
+
 export {
   calculateFeeByAsset,
   calculateLiquidityFee,
   fetchAprResult,
+  getAllPairInfos,
   getOraiPrice,
   getPairByAssetInfos,
   getPoolInfos,
   getPriceAssetByUsdt,
   getPriceByAsset,
-  isPoolHasFee
+  isPoolHasFee,
+  getStakingAssetInfo
 };

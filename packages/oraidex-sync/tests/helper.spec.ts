@@ -1,4 +1,4 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
@@ -16,7 +16,8 @@ import {
   getSwapDirection,
   findPairIndexFromDenoms,
   toObject,
-  calculateSwapOhlcv
+  calculateSwapOhlcv,
+  isAssetInfoPairReverse
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import {
@@ -25,13 +26,15 @@ import {
   atomIbcDenom,
   kwtCw20Address,
   milkyCw20Address,
+  oraiInfo,
   oraixCw20Address,
   osmosisIbcDenom,
   scAtomCw20Address,
   scOraiCw20Address,
   tronCw20Address,
   usdcCw20Address,
-  usdtCw20Address
+  usdtCw20Address,
+  usdtInfo
 } from "../src/constants";
 import { PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
@@ -633,6 +636,17 @@ describe("test-helper", () => {
     (offerDenom: string, askDenom: string, expectedIndex: number) => {
       const result = findPairIndexFromDenoms(offerDenom, askDenom);
       expect(result).toEqual(expectedIndex);
+    }
+  );
+
+  it.each([
+    ["case-asset-info-pairs-is-NOT-reversed", [oraiInfo, usdtInfo], false],
+    ["case-asset-info-pairs-is-reversed", [usdtInfo, oraiInfo], true]
+  ])(
+    "test-isAssetInfoPairReverse-should-return-correctly",
+    (_caseName: string, assetInfos: AssetInfo[], expectedResult: boolean) => {
+      const result = isAssetInfoPairReverse(assetInfos);
+      expect(result).toBe(expectedResult);
     }
   );
 });

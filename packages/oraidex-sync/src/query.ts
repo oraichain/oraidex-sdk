@@ -36,7 +36,7 @@ async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyI
   return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)).filter((data) => data); // remove undefined items
 }
 
-async function getAllPairInfos(
+async function queryAllPairInfos(
   factoryV1: OraiswapFactoryReadOnlyInterface,
   factoryV2: OraiswapFactoryReadOnlyInterface
 ): Promise<PairInfo[]> {
@@ -133,7 +133,7 @@ async function fetchAllRewardPerSecInfos(
 }
 
 export {
-  getAllPairInfos,
+  queryAllPairInfos,
   queryPoolInfos,
   simulateSwapPriceWithUsdt,
   simulateSwapPrice,

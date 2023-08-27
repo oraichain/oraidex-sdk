@@ -221,8 +221,8 @@ export function roundTime(timeIn: number, timeframe: number): number {
 }
 
 export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
-  if (pairs.find((pair) => JSON.stringify(pair.asset_infos) === JSON.stringify(assetInfos.reverse()))) return true;
-  return false;
+  if (pairs.find((pair) => JSON.stringify(pair.asset_infos) === JSON.stringify(assetInfos))) return false;
+  return true;
 }
 
 /**

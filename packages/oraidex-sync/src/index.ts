@@ -1,10 +1,9 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
-import { CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
+import { CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { collectAccumulateLpData, getAllFees, getAllVolume24h, getPairLiquidity, getSymbolFromAsset } from "./helper";
-import { fetchAprResult, getPoolInfos } from "./poolHelper";
-import { getAllPairInfos } from "./query";
+import { collectAccumulateLpData, getSymbolFromAsset } from "./helper";
+import { getAllPairInfos, getPoolInfos } from "./poolHelper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
   Env,
@@ -84,30 +83,10 @@ class OraiDexSync {
     return new OraiDexSync(duckDb, rpcUrl, cosmwasmClient, env);
   }
 
-  private async getAllPairInfos(): Promise<PairInfo[]> {
-    const firstFactoryClient = new OraiswapFactoryQueryClient(
-      this.cosmwasmClient,
-      this.env.FACTORY_CONTACT_ADDRESS_V1 || "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8"
-    );
-    const secondFactoryClient = new OraiswapFactoryQueryClient(
-      this.cosmwasmClient,
-      this.env.FACTORY_CONTACT_ADDRESS_V2 || "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst"
-    );
-    return getAllPairInfos(firstFactoryClient, secondFactoryClient);
-  }
-
   private async updateLatestPairInfos() {
     try {
       console.time("timer-updateLatestPairInfos");
-      const pairInfos = await this.getAllPairInfos();
-      const allLiquidities = await Promise.all(
-        pairInfos.map((pair) => {
-          return getPairLiquidity(pair.asset_infos, pair.contract_addr);
-        })
-      );
-      const allFee7Days = await getAllFees(this.duckDb);
-      const allVolume24h = await getAllVolume24h(this.duckDb);
-      const allAPr = await fetchAprResult(pairInfos, allLiquidities);
+      const pairInfos = await getAllPairInfos();
 
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair, index) => {
@@ -122,10 +101,10 @@ class OraiDexSync {
             symbols,
             fromIconUrl: "url1",
             toIconUrl: "url2",
-            volume24Hour: allVolume24h[index],
-            apr: allAPr[index],
-            totalLiquidity: allLiquidities[index],
-            fee7Days: allFee7Days[index]
+            volume24Hour: 0n,
+            apr: 0,
+            totalLiquidity: 0,
+            fee7Days: 0n
           } as PairInfoData;
         })
       );
@@ -173,7 +152,7 @@ async function initSync() {
   oraidexSync.sync();
 }
 
-// initSync();
+initSync();
 export { OraiDexSync };
 
 export * from "./constants";

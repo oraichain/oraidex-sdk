@@ -15,7 +15,11 @@ import {
   VolumeRange,
   oraiUsdtPairOnlyDenom,
   ORAI,
-  getAllVolume24h
+  getAllVolume24h,
+  getAllFees,
+  getAllPairInfos,
+  getPairLiquidity,
+  fetchAprResult
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -234,13 +238,27 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (req, res) => {
   try {
-    const volumes = await getAllVolume24h(duckDb);
+    const [volumes, allFee7Days, pairInfos] = await Promise.all([
+      getAllVolume24h(duckDb),
+      getAllFees(duckDb),
+      getAllPairInfos()
+    ]);
+
+    const allLiquidities = await Promise.all(
+      pairInfos.map((pair) => {
+        return getPairLiquidity(pair.asset_infos, pair.contract_addr);
+      })
+    );
+    const allApr = await fetchAprResult(pairInfos, allLiquidities);
+
     const pools = await duckDb.getPools();
     res.status(200).send(
       pools.map((pool, index) => {
         return {
           ...pool,
-          volume24Hour: volumes[index].toString()
+          volume24Hour: volumes[index].toString(),
+          fee7Days: allFee7Days[index].toString(),
+          apr: allApr[index]
         };
       })
     );

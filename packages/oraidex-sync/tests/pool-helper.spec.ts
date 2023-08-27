@@ -191,4 +191,55 @@ describe("test-pool-helper", () => {
       }
     );
   });
+
+  it.each<[string, AssetInfo[], AssetInfo]>([
+    [
+      "case-asset-info-pairs-is-NOT-reversed-and-base-asset-NOT-ORAI",
+      [
+        {
+          token: {
+            contract_addr: scAtomCw20Address
+          }
+        },
+        {
+          native_token: {
+            denom: atomIbcDenom
+          }
+        }
+      ],
+      {
+        token: {
+          contract_addr: scAtomCw20Address
+        }
+      }
+    ],
+    ["case-asset-info-pairs-is-NOT-reversed-and-base-asset-is-ORAI", [oraiInfo, usdtInfo], usdtInfo],
+    [
+      "case-asset-info-pairs-is-reversed-and-base-asset-NOT-ORAI",
+      [
+        {
+          native_token: {
+            denom: atomIbcDenom
+          }
+        },
+        {
+          token: {
+            contract_addr: scAtomCw20Address
+          }
+        }
+      ],
+      {
+        token: {
+          contract_addr: scAtomCw20Address
+        }
+      }
+    ],
+    ["case-asset-info-pairs-is-reversed-and-base-asset-is-ORAI", [usdtInfo, oraiInfo], usdtInfo]
+  ])(
+    "test-getStakingAssetInfo-with-%p-should-return-correctly-staking-asset-info",
+    (_caseName: string, assetInfos: AssetInfo[], expectedStakingAssetInfo: AssetInfo) => {
+      const result = poolHelper.getStakingAssetInfo(assetInfos);
+      expect(result).toStrictEqual(expectedStakingAssetInfo);
+    }
+  );
 });
