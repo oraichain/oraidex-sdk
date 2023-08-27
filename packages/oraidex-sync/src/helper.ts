@@ -11,7 +11,9 @@ import {
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual, maxBy, minBy } from "lodash";
 import { ORAI, atomic, network, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
+import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
+import { getPairByAssetInfos, getPriceAssetByUsdt, getPriceByAsset } from "./poolHelper";
 import { simulateSwapPriceWithUsdt } from "./query";
 import {
   Ohlcv,
@@ -23,7 +25,6 @@ import {
   SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
-import { getPairByAssetInfos } from "./poolHelper";
 
 export function toObject(data: any) {
   return JSON.parse(
@@ -465,6 +466,121 @@ async function getPairInfoFromAssets(
   };
 }
 
+// ====== get volume pairs ======
+async function getVolumeSwap(
+  [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
+  startTime: Date,
+  endTime: Date,
+  duckDb: DuckDb
+): Promise<bigint> {
+  const pair = `${parseAssetInfoOnlyDenom(baseAssetInfo)}-${parseAssetInfoOnlyDenom(quoteAssetInfo)}`;
+  const volumePairInBaseAsset = await duckDb.getVolumeSwap({
+    pair,
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
+  let priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
+
+  // it means this asset not pair with ORAI
+  // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
+  if (priceBaseAssetInUsdt === 0) {
+    const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(quoteAssetInfo);
+    const priceBaseInQuote = await getPriceByAsset([baseAssetInfo, quoteAssetInfo], "base_in_quote");
+    priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
+  }
+
+  const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
+  return BigInt(Math.round(volumeInUsdt));
+}
+
+async function getVolumeLiquidity(
+  [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
+  startTime: Date,
+  endTime: Date,
+  duckDb: DuckDb
+): Promise<bigint> {
+  const volumePairInBaseAsset = await duckDb.getVolumeLiquidity({
+    offerDenom: parseAssetInfoOnlyDenom(baseAssetInfo),
+    askDenom: parseAssetInfoOnlyDenom(quoteAssetInfo),
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
+  let priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
+
+  // it means this asset not pair with ORAI
+  // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
+  if (priceBaseAssetInUsdt === 0) {
+    const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(quoteAssetInfo);
+    const priceBaseInQuote = await getPriceByAsset([baseAssetInfo, quoteAssetInfo], "base_in_quote");
+    priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
+  }
+  const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
+  console.log({
+    volumeInUsdt,
+    priceBaseAssetInUsdt,
+    volumePairInBaseAsset,
+    pair: `${parseAssetInfoOnlyDenom(baseAssetInfo)}-${parseAssetInfoOnlyDenom(quoteAssetInfo)}`
+  });
+  return BigInt(Math.round(volumeInUsdt));
+}
+
+async function getVolumePair(
+  [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
+  startTime: Date,
+  endTime: Date,
+  duckDb: DuckDb
+): Promise<bigint> {
+  const [volumeSwap, volumeLiquidity] = await Promise.all([
+    getVolumeSwap([baseAssetInfo, quoteAssetInfo], startTime, endTime, duckDb),
+    getVolumeLiquidity([baseAssetInfo, quoteAssetInfo], startTime, endTime, duckDb)
+  ]);
+  return volumeSwap + volumeLiquidity;
+}
+
+async function getAllVolume24h(duckDb: DuckDb): Promise<bigint[]> {
+  const tf = 100 * 24 * 60 * 60; // second of 24h * 100
+  const currentDate = new Date();
+  const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+  const allVolumes = await Promise.all(
+    pairs.map((pair) => getVolumePair(pair.asset_infos, oneDayBeforeNow, currentDate, duckDb))
+  );
+  return allVolumes;
+}
+
+//  ==== get fee pair ====
+async function getFeePair(
+  asset_infos: [AssetInfo, AssetInfo],
+  startTime: Date,
+  endTime: Date,
+  duckDb: DuckDb
+): Promise<bigint> {
+  const [swapFee, liquidityFee] = await Promise.all([
+    duckDb.getFeeSwap({
+      offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
+      askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
+      startTime: convertDateToSecond(startTime),
+      endTime: convertDateToSecond(endTime)
+    }),
+    duckDb.getFeeLiquidity({
+      offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
+      askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
+      startTime: convertDateToSecond(startTime),
+      endTime: convertDateToSecond(endTime)
+    })
+  ]);
+  return swapFee + liquidityFee;
+}
+
+async function getAllFees(duckDb: DuckDb): Promise<bigint[]> {
+  const tf = 7 * 24 * 60 * 60; // second of 7 days
+  const currentDate = new Date();
+  const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+  const allFees = await Promise.all(
+    pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate, duckDb))
+  );
+  return allFees;
+}
+
 export {
   calculatePriceByPool,
   convertDateToSecond,
@@ -474,11 +590,17 @@ export {
   findMappedTargetedAssetInfo,
   findPairAddress,
   generateSwapOperations,
+  getAllFees,
+  getAllVolume24h,
   getCosmwasmClient,
+  getFeePair,
+  getPairInfoFromAssets,
   getPairLiquidity,
   getSpecificDateBeforeNow,
   getSymbolFromAsset,
+  getVolumeLiquidity,
+  getVolumePair,
+  getVolumeSwap,
   parseAssetInfo,
-  parseAssetInfoOnlyDenom,
-  getPairInfoFromAssets
+  parseAssetInfoOnlyDenom
 };

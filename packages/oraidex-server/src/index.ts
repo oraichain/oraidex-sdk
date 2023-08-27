@@ -14,7 +14,8 @@ import {
   pairsOnlyDenom,
   VolumeRange,
   oraiUsdtPairOnlyDenom,
-  ORAI
+  ORAI,
+  getAllVolume24h
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
@@ -215,7 +216,7 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
 //     console.log("prefix sum: ", prefixSum);
 //     res.status(200).send("hello world");
 //   } catch (error) {
-//     console.log("server error /liquidity/v2/historical/chart: ", error);
+//     console.log("server error /liquidity/v2/historical/chart: ",  error);
 //     res.status(500).send(JSON.stringify(error));
 //   } finally {
 //     return;
@@ -233,8 +234,16 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (req, res) => {
   try {
+    const volumes = await getAllVolume24h(duckDb);
     const pools = await duckDb.getPools();
-    res.status(200).send(pools);
+    res.status(200).send(
+      pools.map((pool, index) => {
+        return {
+          ...pool,
+          volume24Hour: volumes[index].toString()
+        };
+      })
+    );
   } catch (error) {
     res.status(500).send(error.message);
   }

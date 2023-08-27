@@ -1,16 +1,9 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
-import { AssetInfo, CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
+import { CosmWasmClient, OraiswapFactoryQueryClient, PairInfo } from "@oraichain/oraidex-contracts-sdk";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import {
-  collectAccumulateLpData,
-  convertDateToSecond,
-  getPairLiquidity,
-  getSpecificDateBeforeNow,
-  getSymbolFromAsset,
-  parseAssetInfoOnlyDenom
-} from "./helper";
-import { fetchAprResult, getPoolInfos, getPriceAssetByUsdt, getPriceByAsset } from "./poolHelper";
+import { collectAccumulateLpData, getAllFees, getAllVolume24h, getPairLiquidity, getSymbolFromAsset } from "./helper";
+import { fetchAprResult, getPoolInfos } from "./poolHelper";
 import { getAllPairInfos } from "./query";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
@@ -21,7 +14,6 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
-import { pairs } from "./pairs";
 
 class WriteOrders extends WriteData {
   private firstWrite: boolean;
@@ -104,110 +96,6 @@ class OraiDexSync {
     return getAllPairInfos(firstFactoryClient, secondFactoryClient);
   }
 
-  async getFeePair(asset_infos: [AssetInfo, AssetInfo], startTime: Date, endTime: Date): Promise<bigint> {
-    const [swapFee, liquidityFee] = await Promise.all([
-      this.duckDb.getFeeSwap({
-        offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
-        askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
-        startTime: convertDateToSecond(startTime),
-        endTime: convertDateToSecond(endTime)
-      }),
-      this.duckDb.getFeeLiquidity({
-        offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
-        askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
-        startTime: convertDateToSecond(startTime),
-        endTime: convertDateToSecond(endTime)
-      })
-    ]);
-    return swapFee + liquidityFee;
-  }
-
-  async getVolumeSwap(
-    [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
-    startTime: Date,
-    endTime: Date
-  ): Promise<bigint> {
-    const pair = `${parseAssetInfoOnlyDenom(baseAssetInfo)}-${parseAssetInfoOnlyDenom(quoteAssetInfo)}`;
-    const volumePairInBaseAsset = await this.duckDb.getVolumeSwap({
-      pair,
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    });
-    let priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-
-    // it means this asset not pair with ORAI
-    // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
-    if (priceBaseAssetInUsdt === 0) {
-      const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(quoteAssetInfo);
-      const priceBaseInQuote = await getPriceByAsset([baseAssetInfo, quoteAssetInfo], "base_in_quote");
-      priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
-    }
-    const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
-    return BigInt(Math.round(volumeInUsdt));
-  }
-
-  async getVolumeLiquidity(
-    [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
-    startTime: Date,
-    endTime: Date
-  ): Promise<bigint> {
-    const volumePairInBaseAsset = await this.duckDb.getVolumeLiquidity({
-      offerDenom: parseAssetInfoOnlyDenom(baseAssetInfo),
-      askDenom: parseAssetInfoOnlyDenom(quoteAssetInfo),
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    });
-    let priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-
-    // it means this asset not pair with ORAI
-    // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
-    if (priceBaseAssetInUsdt === 0) {
-      const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(quoteAssetInfo);
-      const priceBaseInQuote = await getPriceByAsset([baseAssetInfo, quoteAssetInfo], "base_in_quote");
-      priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
-    }
-    const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
-    console.log({
-      volumeInUsdt,
-      priceBaseAssetInUsdt,
-      volumePairInBaseAsset,
-      pair: `${parseAssetInfoOnlyDenom(baseAssetInfo)}-${parseAssetInfoOnlyDenom(quoteAssetInfo)}`
-    });
-    return BigInt(Math.round(volumeInUsdt));
-  }
-
-  async getVolumePair(
-    [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
-    startTime: Date,
-    endTime: Date
-  ): Promise<bigint> {
-    const [volumeSwap, volumeLiquidity] = await Promise.all([
-      this.getVolumeSwap([baseAssetInfo, quoteAssetInfo], startTime, endTime),
-      this.getVolumeLiquidity([baseAssetInfo, quoteAssetInfo], startTime, endTime)
-    ]);
-    return volumeSwap + volumeLiquidity;
-  }
-
-  async getAllFees(): Promise<bigint[]> {
-    const tf = 7 * 24 * 60 * 60; // second of 7 days
-    const currentDate = new Date();
-    const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-    const allFees = await Promise.all(
-      pairs.map((pair) => this.getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate))
-    );
-    return allFees;
-  }
-
-  async getAllVolume24h(): Promise<bigint[]> {
-    const tf = 100 * 24 * 60 * 60; // second of 24h * 100
-    const currentDate = new Date();
-    const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-    const allVolumes = await Promise.all(
-      pairs.map((pair) => this.getVolumePair(pair.asset_infos, oneDayBeforeNow, currentDate))
-    );
-    return allVolumes;
-  }
-
   private async updateLatestPairInfos() {
     try {
       console.time("timer-updateLatestPairInfos");
@@ -217,8 +105,8 @@ class OraiDexSync {
           return getPairLiquidity(pair.asset_infos, pair.contract_addr);
         })
       );
-      const allFee7Days = await this.getAllFees();
-      const allVolume24h = await this.getAllVolume24h();
+      const allFee7Days = await getAllFees(this.duckDb);
+      const allVolume24h = await getAllVolume24h(this.duckDb);
       const allAPr = await fetchAprResult(pairInfos, allLiquidities);
 
       await this.duckDb.insertPairInfos(
@@ -285,13 +173,13 @@ async function initSync() {
   oraidexSync.sync();
 }
 
-initSync();
+// initSync();
 export { OraiDexSync };
 
 export * from "./constants";
 export * from "./db";
 export * from "./helper";
 export * from "./pairs";
+export * from "./poolHelper";
 export * from "./query";
 export * from "./types";
-export * from "./poolHelper";
