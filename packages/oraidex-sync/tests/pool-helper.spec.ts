@@ -1,22 +1,22 @@
-import { Asset, AssetInfo, PairInfo } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,
   airiCw20Adress,
   atomIbcDenom,
   milkyCw20Address,
+  oraiInfo,
   scAtomCw20Address,
-  usdtCw20Address
+  usdtCw20Address,
+  usdtInfo
 } from "../src/constants";
 
 import { PairMapping } from "../src/types";
 import * as helper from "../src/helper";
 import * as poolHelper from "../src/poolHelper";
-import { mock } from "node:test";
+
 describe("test-pool-helper", () => {
   afterEach(() => {
     jest.clearAllMocks();
-    // jest.resetAllMocks();
-    // jest.restoreAllMocks();
   });
 
   it.each<[string, [AssetInfo, AssetInfo], boolean]>([
@@ -101,20 +101,9 @@ describe("test-pool-helper", () => {
   it.each<[string, [AssetInfo, AssetInfo], PairMapping | undefined]>([
     [
       "assetInfos-valid-in-list-pairs",
-      [
-        {
-          token: {
-            contract_addr: usdtCw20Address
-          }
-        },
-        {
-          native_token: {
-            denom: ORAI
-          }
-        }
-      ],
+      [usdtInfo, oraiInfo],
       {
-        asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
+        asset_infos: [oraiInfo, usdtInfo],
         symbols: ["ORAI", "USDT"],
         factoryV1: true
       }
@@ -143,72 +132,11 @@ describe("test-pool-helper", () => {
     }
   );
 
-  // it.each<[[AssetInfo, AssetInfo], Pick<PairInfo, "contract_addr" | "commission_rate">]>([
-  //   [
-  //     [
-  //       {
-  //         native_token: {
-  //           denom: ORAI
-  //         }
-  //       },
-  //       {
-  //         token: {
-  //           contract_addr: usdtCw20Address
-  //         }
-  //       }
-  //     ],
-  //     {
-  //       contract_addr: "orai123",
-  //       commission_rate: "0.003"
-  //     }
-  //   ]
-  // ])("test-getPairInfoFromAssets-should-return-correctly-pair-info", async (assetInfos, expectedPairInfo) => {
-  //   const getPairInfoFromAssetsSpy = jest.spyOn(helper, "getPairInfoFromAssets");
-  //   const mockPairInfoFromAssets = {
-  //     commission_rate: "0.003",
-  //     contract_addr: "orai1234"
-  //   };
-  //   getPairInfoFromAssetsSpy.mockResolvedValue(mockPairInfoFromAssets);
-  //   const result = await helper.getPairInfoFromAssets(assetInfos);
-  //   console.log({ result });
-  //   // expect(result).toStrictEqual(expectedPairInfo);
-  // });
-
   describe("test-calculate-price-group-funcs", () => {
     afterEach(jest.clearAllMocks);
     it.each<[[AssetInfo, AssetInfo], poolHelper.RatioDirection, number]>([
-      [
-        [
-          {
-            native_token: {
-              denom: ORAI
-            }
-          },
-          {
-            token: {
-              contract_addr: usdtCw20Address
-            }
-          }
-        ],
-        "base_in_quote",
-        0.5
-      ],
-      [
-        [
-          {
-            native_token: {
-              denom: ORAI
-            }
-          },
-          {
-            token: {
-              contract_addr: usdtCw20Address
-            }
-          }
-        ],
-        "quote_in_base",
-        2
-      ]
+      [[oraiInfo, usdtInfo], "base_in_quote", 0.5],
+      [[oraiInfo, usdtInfo], "quote_in_base", 2]
     ])("test-getPriceByAsset-should-return-correctly-price", async (assetInfos, ratioDirection, expectedPrice) => {
       // Mock the return values for fetchPoolInfoAmount and calculatePriceByPool
       const mockAskPoolAmount = 1000n;
@@ -238,15 +166,10 @@ describe("test-pool-helper", () => {
     });
 
     it.each([
+      ["asset-is-cw20-USDT", usdtInfo, 1],
+      ["asset-is-ORAI", oraiInfo, 2],
       [
-        {
-          native_token: {
-            denom: "not-pair-with-orai"
-          }
-        },
-        0
-      ],
-      [
+        "asset-is-not-pair-with-ORAI",
         {
           native_token: {
             denom: atomIbcDenom
@@ -255,16 +178,13 @@ describe("test-pool-helper", () => {
         1
       ]
     ])(
-      "test-getPriceAssetByUsdt-should-return-price-of-asset-in-USDT",
-      async (assetInfo: AssetInfo, expectedPrice: number) => {
+      "test-getPriceAssetByUsdt-with-%p-should-return-price-of-asset-in-USDT",
+      async (_caseName: string, assetInfo: AssetInfo, expectedPrice: number) => {
         const mockPriceByAssetValue = 4;
+        jest.spyOn(poolHelper, "getPriceByAsset").mockResolvedValue(mockPriceByAssetValue);
+
         const mockOraiPrice = 2;
-
-        const getPriceByAssetSpy = jest.spyOn(poolHelper, "getPriceByAsset");
-        getPriceByAssetSpy.mockResolvedValue(mockPriceByAssetValue);
-
-        const getOraiPriceSpy = jest.spyOn(poolHelper, "getOraiPrice");
-        getOraiPriceSpy.mockResolvedValue(mockOraiPrice);
+        jest.spyOn(poolHelper, "getOraiPrice").mockResolvedValue(mockOraiPrice);
 
         const result = await poolHelper.getPriceAssetByUsdt(assetInfo);
         expect(result).toEqual(expectedPrice);

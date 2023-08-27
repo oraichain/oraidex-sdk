@@ -247,29 +247,33 @@ export function collectAccumulateLpData(
         info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.quoteTokenDenom)
     );
     if (!pool) continue;
+
+    let baseAmount = BigInt(op.baseTokenAmount);
+    let quoteAmount = BigInt(op.quoteTokenAmount);
     if (op.opType === "withdraw") {
       // reverse sign since withdraw means lp decreases
-      op.baseTokenReserve = -BigInt(op.baseTokenReserve);
-      op.quoteTokenReserve = -BigInt(op.quoteTokenReserve);
+      baseAmount = -BigInt(op.baseTokenAmount);
+      quoteAmount = -BigInt(op.quoteTokenAmount);
+      console.log({ op });
     }
     const denom = `${op.baseTokenDenom}-${op.quoteTokenDenom}`;
     if (!accumulateData[denom]) {
       const initialFirstTokenAmount = parseInt(
-        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.baseTokenDenom).amount
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.baseTokenDenom).amount
       );
       const initialSecondTokenAmount = parseInt(
-        pool.assets.find((info) => parseAssetInfoOnlyDenom(info.info) === op.quoteTokenDenom).amount
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.quoteTokenDenom).amount
       );
       accumulateData[denom] = {
-        baseTokenAmount: BigInt(initialFirstTokenAmount) + BigInt(op.baseTokenReserve),
-        quoteTokenAmount: BigInt(initialSecondTokenAmount) + BigInt(op.quoteTokenReserve)
+        baseTokenAmount: BigInt(initialFirstTokenAmount) + baseAmount,
+        quoteTokenAmount: BigInt(initialSecondTokenAmount) + quoteAmount
       };
       op.baseTokenReserve = accumulateData[denom].baseTokenAmount;
       op.quoteTokenReserve = accumulateData[denom].quoteTokenAmount;
       continue;
     }
-    accumulateData[denom].baseTokenAmount += BigInt(op.baseTokenReserve);
-    accumulateData[denom].quoteTokenAmount += BigInt(op.quoteTokenReserve);
+    accumulateData[denom].baseTokenAmount += baseAmount;
+    accumulateData[denom].quoteTokenAmount += quoteAmount;
     op.baseTokenReserve = accumulateData[denom].baseTokenAmount;
     op.quoteTokenReserve = accumulateData[denom].quoteTokenAmount;
   }

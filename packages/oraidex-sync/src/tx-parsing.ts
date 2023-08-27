@@ -249,8 +249,8 @@ async function extractMsgWithdrawLiquidity(
       )
     );
     if (findedPair) {
-      baseAsset = assets[3];
-      quoteAsset = assets[1];
+      [baseAsset, quoteAsset] = [quoteAsset, baseAsset];
+      [baseAssetAmount, quoteAssetAmount] = [quoteAssetAmount, baseAssetAmount];
     }
     if (assets.length !== 4) continue;
 
@@ -259,7 +259,7 @@ async function extractMsgWithdrawLiquidity(
     withdrawData.push({
       basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
       baseTokenAmount: baseAssetAmount,
-      baseTokenDenom: assets[1],
+      baseTokenDenom: baseAsset,
       baseTokenReserve: baseAssetAmount,
       opType: "withdraw",
       uniqueKey: concatDataToUniqueKey({

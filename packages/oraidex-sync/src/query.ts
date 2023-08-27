@@ -1,15 +1,24 @@
 import {
   OraiswapFactoryReadOnlyInterface,
   OraiswapRouterReadOnlyInterface,
+  OraiswapStakingTypes,
+  OraiswapTokenTypes,
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
+import { Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { pairs } from "./pairs";
-import { findAssetInfoPathToUsdt, generateSwapOperations, parseAssetInfoOnlyDenom, toDisplay } from "./helper";
-import { tenAmountInDecimalSix, usdtCw20Address } from "./constants";
+import {
+  findAssetInfoPathToUsdt,
+  generateSwapOperations,
+  getCosmwasmClient,
+  parseAssetInfoOnlyDenom,
+  toDisplay
+} from "./helper";
+import { network, tenAmountInDecimalSix, usdtCw20Address } from "./constants";
+import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -75,4 +84,61 @@ async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterRe
   }
 }
 
-export { getAllPairInfos, queryPoolInfos, simulateSwapPriceWithUsdt, simulateSwapPrice };
+async function aggregateMulticall(queries: Call[]) {
+  const client = await getCosmwasmClient();
+  const multicall = new MulticallQueryClient(client, network.multicall);
+  const res = await multicall.aggregate({ queries });
+  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+}
+
+async function fetchTokenInfos(pairInfos: PairInfo[]): Promise<TokenInfoResponse[]> {
+  const queries = pairInfos.map((pair) => ({
+    address: pair.liquidity_token,
+    data: toBinary({
+      token_info: {}
+    } as OraiswapTokenTypes.QueryMsg)
+  }));
+  return await aggregateMulticall(queries);
+}
+
+async function fetchAllTokenAssetPools(assetInfos: AssetInfo[]): Promise<OraiswapStakingTypes.PoolInfoResponse[]> {
+  const queries = assetInfos.map((assetInfo) => {
+    return {
+      address: network.staking,
+      data: toBinary({
+        pool_info: {
+          asset_info: assetInfo
+        }
+      } as OraiswapStakingTypes.QueryMsg)
+    };
+  });
+
+  return await aggregateMulticall(queries);
+}
+
+async function fetchAllRewardPerSecInfos(
+  assetInfos: AssetInfo[]
+): Promise<OraiswapStakingTypes.RewardsPerSecResponse[]> {
+  const queries = assetInfos.map((assetInfo) => {
+    return {
+      address: network.staking,
+      data: toBinary({
+        rewards_per_sec: {
+          asset_info: assetInfo
+        }
+      } as OraiswapStakingTypes.QueryMsg)
+    };
+  });
+  return await aggregateMulticall(queries);
+}
+
+export {
+  getAllPairInfos,
+  queryPoolInfos,
+  simulateSwapPriceWithUsdt,
+  simulateSwapPrice,
+  aggregateMulticall,
+  fetchTokenInfos,
+  fetchAllTokenAssetPools,
+  fetchAllRewardPerSecInfos
+};

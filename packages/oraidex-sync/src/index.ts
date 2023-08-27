@@ -208,11 +208,6 @@ class OraiDexSync {
     return allVolumes;
   }
 
-  async getAllApr(pairInfos: PairInfo[], allLiquidities: number[]): Promise<any> {
-    const allApr = await fetchAprResult(pairInfos, allLiquidities);
-    return allApr;
-  }
-
   private async updateLatestPairInfos() {
     try {
       console.time("timer-updateLatestPairInfos");
@@ -224,7 +219,7 @@ class OraiDexSync {
       );
       const allFee7Days = await this.getAllFees();
       const allVolume24h = await this.getAllVolume24h();
-      const allAPr = await this.getAllApr(pairInfos, allLiquidities);
+      const allAPr = await fetchAprResult(pairInfos, allLiquidities);
 
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair, index) => {

@@ -4,10 +4,11 @@ import {
   AssetInfo,
   OraiswapPairQueryClient,
   OraiswapStakingTypes,
-  OraiswapTokenTypes,
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
+import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
+import { isEqual } from "lodash";
 import { ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
 import {
   calculatePriceByPool,
@@ -18,11 +19,8 @@ import {
   validateNumber
 } from "./helper";
 import { pairs } from "./pairs";
-import { queryPoolInfos } from "./query";
-import { PairInfoData, PairMapping, PoolInfo } from "./types";
-import { isEqual } from "lodash";
-import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
+import { fetchAllRewardPerSecInfos, fetchAllTokenAssetPools, fetchTokenInfos, queryPoolInfos } from "./query";
+import { PairInfoData, PairMapping } from "./types";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
@@ -86,17 +84,14 @@ async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirectio
 // then, calculate price of this asset token in USDT based on price ORAI in USDT.
 async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
   if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(usdtInfo)) return 1;
+  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(oraiInfo)) return await getOraiPrice();
 
-  let priceInOrai = 1;
-  if (parseAssetInfoOnlyDenom(asset) !== parseAssetInfoOnlyDenom(oraiInfo)) {
-    const foundPair = getPairByAssetInfos([asset, oraiInfo]);
-    if (!foundPair) return 0;
+  const foundPair = getPairByAssetInfos([asset, oraiInfo]);
+  if (!foundPair) return 0;
 
-    const ratioDirection: RatioDirection =
-      parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
-    priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
-  }
-
+  const ratioDirection: RatioDirection =
+    parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
+  const priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
   const priceOraiInUsdt = await getOraiPrice();
 
   return priceInOrai * priceOraiInUsdt;
@@ -185,65 +180,6 @@ export const calculateAprResult = async (
   return aprResult;
 };
 
-async function fetchTokenInfos(pairInfos: PairInfo[]): Promise<TokenInfoResponse[]> {
-  const queries = pairInfos.map((pair) => ({
-    address: pair.liquidity_token,
-    data: toBinary({
-      token_info: {}
-    } as OraiswapTokenTypes.QueryMsg)
-  }));
-  const client = await getCosmwasmClient();
-  const multicall = new MulticallQueryClient(client, network.multicall);
-  const res = await multicall.aggregate({
-    queries
-  });
-  return pairInfos.map((item, ind) => {
-    const info: TokenInfoResponse = fromBinary(res.return_data[ind++].data);
-    return info;
-  });
-}
-
-async function fetchAllTokenAssetPools(assetInfos: AssetInfo[]): Promise<OraiswapStakingTypes.PoolInfoResponse[]> {
-  const queries = assetInfos.map((assetInfo) => {
-    return {
-      address: network.staking,
-      data: toBinary({
-        pool_info: {
-          asset_info: assetInfo
-        }
-      } as OraiswapStakingTypes.QueryMsg)
-    };
-  });
-
-  const client = await getCosmwasmClient();
-  const multicall = new MulticallQueryClient(client, network.multicall);
-  const res = await multicall.tryAggregate({
-    queries
-  });
-  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
-}
-
-async function fetchAllRewardPerSecInfos(
-  assetInfos: AssetInfo[]
-): Promise<OraiswapStakingTypes.RewardsPerSecResponse[]> {
-  const queries = assetInfos.map((assetInfo) => {
-    return {
-      address: network.staking,
-      data: toBinary({
-        rewards_per_sec: {
-          asset_info: assetInfo
-        }
-      } as OraiswapStakingTypes.QueryMsg)
-    };
-  });
-  const client = await getCosmwasmClient();
-  const multicall = new MulticallQueryClient(client, network.multicall);
-  const res = await multicall.tryAggregate({
-    queries
-  });
-  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
-}
-
 function getStakingAssetInfo(assetInfos: AssetInfo[]): AssetInfo {
   return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
 }
@@ -266,11 +202,11 @@ const fetchAprResult = async (pairInfos: PairInfo[], allLiquidities: number[]): 
 export {
   calculateFeeByAsset,
   calculateLiquidityFee,
+  fetchAprResult,
   getOraiPrice,
   getPairByAssetInfos,
   getPoolInfos,
   getPriceAssetByUsdt,
   getPriceByAsset,
-  isPoolHasFee,
-  fetchAprResult
+  isPoolHasFee
 };
