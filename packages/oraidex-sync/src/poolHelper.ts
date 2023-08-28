@@ -169,7 +169,7 @@ async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withd
 
 //  ==== calculate APR ====
 export const calculateAprResult = async (
-  pairs: PairInfo[],
+  pairs: PairMapping[],
   allLiquidities: number[],
   allTokenInfo: TokenInfoResponse[],
   allLpTokenAsset: OraiswapStakingTypes.PoolInfoResponse[],
@@ -207,15 +207,15 @@ function getStakingAssetInfo(assetInfos: AssetInfo[]): AssetInfo {
 }
 
 // Fetch APR
-const fetchAprResult = async (pairInfos: PairInfo[], allLiquidities: number[]): Promise<number[]> => {
-  const assetTokens = pairInfos.map((pair) => getStakingAssetInfo(JSON.parse(JSON.stringify(pair.asset_infos))));
+const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]): Promise<number[]> => {
+  const assetTokens = pairs.map((pair) => getStakingAssetInfo(JSON.parse(JSON.stringify(pair.asset_infos))));
   try {
     const [allTokenInfo, allLpTokenAsset, allRewardPerSec] = await Promise.all([
       fetchTokenInfos(pairInfos),
       fetchAllTokenAssetPools(assetTokens),
       fetchAllRewardPerSecInfos(assetTokens)
     ]);
-    return calculateAprResult(pairInfos, allLiquidities, allTokenInfo, allLpTokenAsset, allRewardPerSec);
+    return calculateAprResult(pairs, allLiquidities, allTokenInfo, allLpTokenAsset, allRewardPerSec);
   } catch (error) {
     console.log({ errorFetchAprResult: error });
   }

@@ -19,6 +19,7 @@ import {
 } from "./helper";
 import { network, tenAmountInDecimalSix, usdtCw20Address } from "./constants";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
+import { PairInfoData } from "./types";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -91,9 +92,9 @@ async function aggregateMulticall(queries: Call[]) {
   return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
 }
 
-async function fetchTokenInfos(pairInfos: PairInfo[]): Promise<TokenInfoResponse[]> {
+async function fetchTokenInfos(pairInfos: PairInfoData[]): Promise<TokenInfoResponse[]> {
   const queries = pairInfos.map((pair) => ({
-    address: pair.liquidity_token,
+    address: pair.liquidityAddr,
     data: toBinary({
       token_info: {}
     } as OraiswapTokenTypes.QueryMsg)
