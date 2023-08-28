@@ -29,6 +29,7 @@ import {
   queryPoolInfos
 } from "./query";
 import { PairInfoData, PairMapping } from "./types";
+import { OraiDexSync, DuckDb } from "./index";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
@@ -78,14 +79,25 @@ async function getOraiPrice(): Promise<number> {
   return getPriceByAsset([oraiInfo, usdtInfo], ratioDirection);
 }
 
-// get pair of assets then query info from contract to calculate price asset.
 async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirection: RatioDirection): Promise<number> {
-  const pairInfo = await getPairInfoFromAssets(assetInfos);
+  const duckDb: DuckDb = OraiDexSync.getDuckDbInstance();
+  const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+  if (!poolInfo) throw new Error(`Cannot found pool info: ${JSON.stringify(assetInfos)}`);
+
+  // get info of last tx in lp_ops_data, if not have data => get info from contract
+  let poolAmounts =
+    (await duckDb.getPoolAmountFromAssetInfos(assetInfos)) ??
+    (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
+  if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
+
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
-  const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(...assetInfos, pairInfo.contract_addr);
-  const assetPrice = calculatePriceByPool(askPoolAmount, offerPoolAmount, +pairInfo.commission_rate);
-  return ratioDirection === "base_in_quote" ? assetPrice : 1 / assetPrice;
+  const basePrice = calculatePriceByPool(
+    BigInt(poolAmounts.askPoolAmount),
+    BigInt(poolAmounts.offerPoolAmount),
+    +poolInfo.commissionRate
+  );
+  return ratioDirection === "base_in_quote" ? basePrice : 1 / basePrice;
 }
 
 // find pool match this asset with orai => calculate price this asset token in ORAI.
@@ -101,6 +113,10 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
     parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
   const priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
   const priceOraiInUsdt = await getOraiPrice();
+  // console.dir(
+  //   { price: priceInOrai * priceOraiInUsdt, priceOraiInUsdt, asset: parseAssetInfoOnlyDenom(asset) },
+  //   { depth: null }
+  // );
   return priceInOrai * priceOraiInUsdt;
 }
 
@@ -162,7 +178,6 @@ export const calculateAprResult = async (
   let aprResult = [];
   let ind = 0;
   for (const pair of pairs) {
-    console.time(`apr/${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`);
     const liquidityAmount = allLiquidities[ind] * Math.pow(10, -6);
     const lpToken = allLpTokenAsset[ind];
     const tokenSupply = allTokenInfo[ind];
@@ -180,22 +195,6 @@ export const calculateAprResult = async (
     }
     aprResult[ind] = (100 * rewardsPerYearValue) / bondValue || 0;
     ind += 1;
-    console.dir(
-      {
-        aprResult,
-        bondValue,
-        rewardsPerYearValue,
-        rewardsPerSecData,
-        lpToken,
-        tokenSupply,
-        liquidityAmount,
-        pair: `${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`
-      },
-      { depth: null }
-    );
-    console.timeEnd(
-      `apr/${parseAssetInfoOnlyDenom(pair.asset_infos[0])}-${parseAssetInfoOnlyDenom(pair.asset_infos[1])}`
-    );
   }
   return aprResult;
 };

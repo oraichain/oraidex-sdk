@@ -238,27 +238,35 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (req, res) => {
   try {
+    console.time("get util");
     const [volumes, allFee7Days, pairInfos] = await Promise.all([
       getAllVolume24h(duckDb),
       getAllFees(duckDb),
       getAllPairInfos()
     ]);
 
+    console.timeEnd("get util");
+
+    console.time("allLiquidities");
     const allLiquidities = await Promise.all(
       pairInfos.map((pair) => {
-        return getPairLiquidity(pair.asset_infos, pair.contract_addr);
+        return getPairLiquidity(pair.asset_infos, duckDb);
       })
     );
-    const allApr = await fetchAprResult(pairInfos, allLiquidities);
+    console.timeEnd("allLiquidities");
 
+    console.time("getApr");
+    const allApr = await fetchAprResult(pairInfos, allLiquidities);
+    console.timeEnd("getApr");
     const pools = await duckDb.getPools();
     res.status(200).send(
       pools.map((pool, index) => {
         return {
           ...pool,
-          volume24Hour: volumes[index].toString(),
-          fee7Days: allFee7Days[index].toString(),
-          apr: allApr[index]
+          volume24Hour: volumes[index]?.toString() ?? "0",
+          fee7Days: allFee7Days[index]?.toString() ?? "0",
+          apr: allApr[index],
+          totalLiquidity: allLiquidities[index]
         };
       })
     );
@@ -269,7 +277,6 @@ app.get("/v1/pools/", async (req, res) => {
 
 app.listen(port, hostname, async () => {
   // sync data for the service to read
-  // console.dir(pairInfos, { depth: null });
   duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "oraidex-sync-data");
   const oraidexSync = await OraiDexSync.create(
     duckDb,

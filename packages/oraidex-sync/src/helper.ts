@@ -4,7 +4,6 @@ import {
   OraiswapFactoryQueryClient,
   OraiswapPairQueryClient,
   OraiswapPairTypes,
-  OraiswapRouterQueryClient,
   PairInfo,
   SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
@@ -14,7 +13,6 @@ import { ORAI, atomic, network, tenAmountInDecimalSix, truncDecimals, usdtCw20Ad
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { getPairByAssetInfos, getPriceAssetByUsdt, getPriceByAsset } from "./poolHelper";
-import { simulateSwapPriceWithUsdt } from "./query";
 import {
   Ohlcv,
   OraiDexType,
@@ -255,7 +253,6 @@ export function collectAccumulateLpData(
       // reverse sign since withdraw means lp decreases
       baseAmount = -BigInt(op.baseTokenAmount);
       quoteAmount = -BigInt(op.quoteTokenAmount);
-      console.log({ op });
     }
     const denom = `${op.baseTokenDenom}-${op.quoteTokenDenom}`;
     if (!accumulateData[denom]) {
@@ -426,13 +423,22 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
   return { offerPoolAmount, askPoolAmount };
 }
 
-async function getPairLiquidity([fromInfo, toInfo]: [AssetInfo, AssetInfo], pairAddr: string): Promise<number> {
-  const { offerPoolAmount, askPoolAmount } = await fetchPoolInfoAmount(fromInfo, toInfo, pairAddr);
+async function getPairLiquidity(rawAssetInfos: [AssetInfo, AssetInfo], duckDb: DuckDb): Promise<number> {
+  let assetInfos: [AssetInfo, AssetInfo] = JSON.parse(JSON.stringify(rawAssetInfos));
+  if (isAssetInfoPairReverse(assetInfos)) {
+    assetInfos = assetInfos.reverse() as [AssetInfo, AssetInfo];
+  }
+  const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+  if (!poolInfo) throw new Error(`Cannot found pool info when get pair liquidity: ${JSON.stringify(assetInfos)}`);
 
-  const routerContract = new OraiswapRouterQueryClient(await getCosmwasmClient(), network.router);
-  const { amount } = await simulateSwapPriceWithUsdt(fromInfo, routerContract);
-  const totalLiquid = Number(amount) * Number(offerPoolAmount) * 2;
-  return totalLiquid;
+  // get info of last tx in lp_ops_data, if not have data => get info from contract
+  let poolAmounts =
+    (await duckDb.getPoolAmountFromAssetInfos(assetInfos)) ??
+    (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
+  if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
+
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(assetInfos[0]);
+  return priceBaseAssetInUsdt * Number(poolAmounts.offerPoolAmount) * 2;
 }
 
 /**
@@ -515,12 +521,6 @@ async function getVolumeLiquidity(
     priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
   }
   const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
-  console.log({
-    volumeInUsdt,
-    priceBaseAssetInUsdt,
-    volumePairInBaseAsset,
-    pair: `${parseAssetInfoOnlyDenom(baseAssetInfo)}-${parseAssetInfoOnlyDenom(quoteAssetInfo)}`
-  });
   return BigInt(Math.round(volumeInUsdt));
 }
 

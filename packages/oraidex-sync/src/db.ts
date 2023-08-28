@@ -11,10 +11,18 @@ import {
   WithdrawLiquidityOperationData,
   GetCandlesQuery,
   GetFeeSwap,
-  GetVolumeQuery
+  GetVolumeQuery,
+  PoolInfo
 } from "./types";
 import fs, { rename } from "fs";
-import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
+import {
+  isoToTimestampNumber,
+  parseAssetInfo,
+  parseAssetInfoOnlyDenom,
+  renameKey,
+  replaceAllNonAlphaBetChar,
+  toObject
+} from "./helper";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export class DuckDb {
@@ -415,7 +423,7 @@ export class DuckDb {
         offerDenom
       )
     ]);
-    return BigInt(feeRightDirection[0].totalFee ?? 0 + feeReverseDirection[0].totalFee ?? 0);
+    return BigInt(feeRightDirection[0]?.totalFee ?? 0 + feeReverseDirection[0]?.totalFee ?? 0);
   }
 
   async getFeeLiquidity(payload: GetFeeSwap): Promise<bigint> {
@@ -435,7 +443,7 @@ export class DuckDb {
       offerDenom,
       askDenom
     );
-    return BigInt(result[0].totalFee ?? 0);
+    return BigInt(result[0]?.totalFee ?? 0);
   }
 
   async getVolumeSwap(payload: GetVolumeQuery): Promise<bigint> {
@@ -473,6 +481,26 @@ export class DuckDb {
       offerDenom,
       askDenom
     );
-    return BigInt(result[0].totalVolume ?? 0);
+    return BigInt(result[0]?.totalVolume ?? 0);
+  }
+
+  async getPoolAmountFromAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PoolInfo> {
+    const baseTokenDenom = parseAssetInfoOnlyDenom(assetInfos[0]);
+    const quoteTokenDenom = parseAssetInfoOnlyDenom(assetInfos[1]);
+    const result = await this.conn.all(
+      `SELECT * from lp_ops_data WHERE baseTokenDenom = ? AND quoteTokenDenom = ? ORDER BY txheight LIMIT 1`,
+      baseTokenDenom,
+      quoteTokenDenom
+    );
+
+    if (result.length === 0) {
+      console.dir({ nullForPair: assetInfos }, { depth: null });
+      return null;
+    }
+
+    return {
+      offerPoolAmount: BigInt(result[0].baseTokenReserve),
+      askPoolAmount: BigInt(result[0].quoteTokenReserve)
+    };
   }
 }
