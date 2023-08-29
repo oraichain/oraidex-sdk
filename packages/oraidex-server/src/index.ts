@@ -17,7 +17,6 @@ import {
   ORAI,
   getAllVolume24h,
   getAllFees,
-  getAllPairInfos,
   getPairLiquidity,
   fetchAprResult
 } from "@oraichain/oraidex-sync";
@@ -243,15 +242,14 @@ app.get("/v1/pools/", async (req, res) => {
 
     console.timeEnd("get util");
 
+    const pools = await duckDb.getPools();
     console.time("allLiquidities");
     const allLiquidities = await Promise.all(
-      pairs.map((pair) => {
-        return getPairLiquidity(pair.asset_infos, duckDb);
+      pools.map((pair) => {
+        return getPairLiquidity([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)], duckDb);
       })
     );
     console.timeEnd("allLiquidities");
-
-    const pools = await duckDb.getPools();
     console.time("getApr");
     const allApr = await fetchAprResult(pools, allLiquidities);
     console.timeEnd("getApr");

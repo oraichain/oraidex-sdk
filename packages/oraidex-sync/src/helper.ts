@@ -423,11 +423,7 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
   return { offerPoolAmount, askPoolAmount };
 }
 
-async function getPairLiquidity(rawAssetInfos: [AssetInfo, AssetInfo], duckDb: DuckDb): Promise<number> {
-  let assetInfos: [AssetInfo, AssetInfo] = JSON.parse(JSON.stringify(rawAssetInfos));
-  if (isAssetInfoPairReverse(assetInfos)) {
-    assetInfos = assetInfos.reverse() as [AssetInfo, AssetInfo];
-  }
+async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo], duckDb: DuckDb): Promise<number> {
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
   if (!poolInfo) throw new Error(`Cannot found pool info when get pair liquidity: ${JSON.stringify(assetInfos)}`);
 
@@ -437,7 +433,15 @@ async function getPairLiquidity(rawAssetInfos: [AssetInfo, AssetInfo], duckDb: D
     (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
   if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
 
-  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(assetInfos[0]);
+  let priceBaseAssetInUsdt = await getPriceAssetByUsdt(assetInfos[0]);
+  // it means this asset not pair with ORAI
+  // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
+  if (priceBaseAssetInUsdt === 0) {
+    const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(assetInfos[1]);
+    const priceBaseInQuote = await getPriceByAsset(assetInfos, "base_in_quote");
+    priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
+  }
+
   return priceBaseAssetInUsdt * Number(poolAmounts.offerPoolAmount) * 2;
 }
 
@@ -455,21 +459,6 @@ function getSpecificDateBeforeNow(time: Date, tf: number) {
 
 function convertDateToSecond(date: Date): number {
   return Math.round(date.valueOf() / 1000);
-}
-
-async function getPairInfoFromAssets(
-  assetInfos: [AssetInfo, AssetInfo]
-): Promise<Pick<PairInfo, "contract_addr" | "commission_rate">> {
-  const pair = getPairByAssetInfos(assetInfos);
-  const factoryClient = new OraiswapFactoryQueryClient(
-    await getCosmwasmClient(),
-    pair.factoryV1 ? network.factory : network.factory_v2
-  );
-  const pairInfo = await factoryClient.pair({ assetInfos });
-  return {
-    contract_addr: pairInfo.contract_addr,
-    commission_rate: pairInfo.commission_rate
-  };
 }
 
 // ====== get volume pairs ======
@@ -508,14 +497,12 @@ async function getVolumePair(
 }
 
 async function getAllVolume24h(duckDb: DuckDb): Promise<bigint[]> {
-  console.time("getAllVolume24h");
   const tf = 24 * 60 * 60; // second of 24h
   const currentDate = new Date();
   const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allVolumes = await Promise.all(
     pairs.map((pair) => getVolumePair(pair.asset_infos, oneDayBeforeNow, currentDate, duckDb))
   );
-  console.timeEnd("getAllVolume24h");
   return allVolumes;
 }
 
@@ -544,14 +531,12 @@ async function getFeePair(
 }
 
 async function getAllFees(duckDb: DuckDb): Promise<bigint[]> {
-  console.time("getAllFee");
   const tf = 7 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allFees = await Promise.all(
     pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate, duckDb))
   );
-  console.timeEnd("getAllFee");
   return allFees;
 }
 
@@ -568,7 +553,6 @@ export {
   getAllVolume24h,
   getCosmwasmClient,
   getFeePair,
-  getPairInfoFromAssets,
   getPairLiquidity,
   getSpecificDateBeforeNow,
   getSymbolFromAsset,

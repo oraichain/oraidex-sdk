@@ -15,7 +15,6 @@ import {
   calculatePriceByPool,
   fetchPoolInfoAmount,
   getCosmwasmClient,
-  getPairInfoFromAssets,
   isAssetInfoPairReverse,
   parseAssetInfoOnlyDenom,
   validateNumber
@@ -113,10 +112,6 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
     parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
   const priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
   const priceOraiInUsdt = await getOraiPrice();
-  // console.dir(
-  //   { price: priceInOrai * priceOraiInUsdt, priceOraiInUsdt, asset: parseAssetInfoOnlyDenom(asset) },
-  //   { depth: null }
-  // );
   return priceInOrai * priceOraiInUsdt;
 }
 
@@ -177,7 +172,7 @@ export const calculateAprResult = async (
 ): Promise<number[]> => {
   let aprResult = [];
   let ind = 0;
-  for (const pair of pairs) {
+  for (const _pair of pairs) {
     const liquidityAmount = allLiquidities[ind] * Math.pow(10, -6);
     const lpToken = allLpTokenAsset[ind];
     const tokenSupply = allTokenInfo[ind];
@@ -200,15 +195,15 @@ export const calculateAprResult = async (
 };
 
 function getStakingAssetInfo(assetInfos: AssetInfo[]): AssetInfo {
-  if (isAssetInfoPairReverse(assetInfos)) {
-    assetInfos = assetInfos.reverse();
-  }
+  if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
   return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
 }
 
 // Fetch APR
 const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]): Promise<number[]> => {
-  const assetTokens = pairs.map((pair) => getStakingAssetInfo(JSON.parse(JSON.stringify(pair.asset_infos))));
+  const assetTokens = pairInfos.map((pair) =>
+    getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
+  );
   try {
     const [allTokenInfo, allLpTokenAsset, allRewardPerSec] = await Promise.all([
       fetchTokenInfos(pairInfos),
