@@ -271,7 +271,7 @@ app.get("/v1/pools/", async (req, res) => {
 
 app.listen(port, hostname, async () => {
   // sync data for the service to read
-  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "oraidex-sync-data");
+  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
   const oraidexSync = await OraiDexSync.create(
     duckDb,
     process.env.RPC_URL || "https://rpc.orai.io",

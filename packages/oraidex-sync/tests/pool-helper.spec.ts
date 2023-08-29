@@ -1,3 +1,4 @@
+import fs from "fs";
 import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,
@@ -13,8 +14,16 @@ import {
 import { PairMapping } from "../src/types";
 import * as helper from "../src/helper";
 import * as poolHelper from "../src/poolHelper";
+import { DuckDb } from "../src/index";
 
 describe("test-pool-helper", () => {
+  let duckDb: DuckDb;
+  beforeAll(async () => {
+    duckDb = await DuckDb.create(":memory:");
+  });
+  afterAll(() => {
+    fs.unlink(":memory:", () => {});
+  });
   afterEach(() => {
     jest.clearAllMocks();
   });
@@ -142,23 +151,14 @@ describe("test-pool-helper", () => {
       const mockAskPoolAmount = 1000n;
       const mockOfferPoolAmount = 2000n;
       const mockAssetPrice = 0.5;
-      const mockPairInfoFromAssets = {
-        commission_rate: "0.003",
-        contract_addr: "orai1234"
-      };
-
-      const getPairInfoFromAssetsSpy = jest.spyOn(helper, "getPairInfoFromAssets");
-      getPairInfoFromAssetsSpy.mockResolvedValue(mockPairInfoFromAssets);
 
       const fetchPoolInfoAmountSpy = jest.spyOn(helper, "fetchPoolInfoAmount");
       const calculatePriceByPoolSpy = jest.spyOn(helper, "calculatePriceByPool");
-      // Mock the fetchPoolInfoAmount function
       fetchPoolInfoAmountSpy.mockResolvedValue({
         askPoolAmount: mockAskPoolAmount,
         offerPoolAmount: mockOfferPoolAmount
       });
 
-      // Mock the calculatePriceByPool function
       calculatePriceByPoolSpy.mockReturnValue(mockAssetPrice);
 
       const result = await poolHelper.getPriceByAsset(assetInfos, ratioDirection);

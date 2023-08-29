@@ -28,7 +28,7 @@ import {
   queryPoolInfos
 } from "./query";
 import { PairInfoData, PairMapping } from "./types";
-import { OraiDexSync, DuckDb } from "./index";
+import { DuckDb } from "./index";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
@@ -79,7 +79,7 @@ async function getOraiPrice(): Promise<number> {
 }
 
 async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirection: RatioDirection): Promise<number> {
-  const duckDb: DuckDb = OraiDexSync.getDuckDbInstance();
+  const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
   if (!poolInfo) throw new Error(`Cannot found pool info: ${JSON.stringify(assetInfos)}`);
 

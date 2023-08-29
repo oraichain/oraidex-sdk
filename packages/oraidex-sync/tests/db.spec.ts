@@ -184,7 +184,8 @@ describe("test-duckdb", () => {
           quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
-          txheight: 1
+          txheight: 1,
+          taxRate: 1n
         }
       ])
     ).rejects.toThrow();
@@ -210,7 +211,8 @@ describe("test-duckdb", () => {
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       }
     ];
     await duckDb.insertLpOps(data);
@@ -238,7 +240,8 @@ describe("test-duckdb", () => {
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
-        txheight: 1
+        txheight: 1,
+        taxRate: 1n
       }
     ];
     await duckDb.insertLpOps(data);

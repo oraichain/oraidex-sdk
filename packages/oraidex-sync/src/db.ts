@@ -26,14 +26,26 @@ import {
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export class DuckDb {
+  static instances: DuckDb;
   protected constructor(public readonly conn: Connection, private db: Database) {}
 
-  static async create(fileName?: string): Promise<DuckDb> {
-    let db = await Database.create(fileName ?? "data");
-    await db.close(); // close to flush WAL file
-    db = await Database.create(fileName ?? "data");
-    const conn = await db.connect();
-    return new DuckDb(conn, db);
+  static async create(fileName: string): Promise<DuckDb> {
+    if (!fileName) throw new Error("Filename is not provided!");
+    // let db = await Database.create(fileName);
+    // await db.close(); // close to flush WAL file
+    // db = await Database.create(fileName);
+    // const conn = await db.connect();
+    // return new DuckDb(conn, db);
+
+    if (!DuckDb.instances) {
+      let db = await Database.create(fileName);
+      await db.close(); // close to flush WAL file
+      db = await Database.create(fileName);
+      const conn = await db.connect();
+      DuckDb.instances = new DuckDb(conn, db);
+    }
+
+    return DuckDb.instances;
   }
 
   async closeDb() {

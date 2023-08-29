@@ -71,7 +71,6 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  public static duckDbInstance: DuckDb | null = null;
   protected constructor(
     private readonly duckDb: DuckDb,
     private readonly rpcUrl: string,
@@ -81,12 +80,7 @@ class OraiDexSync {
 
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-    OraiDexSync.duckDbInstance = duckDb; // Store the provided duckDb instance
     return new OraiDexSync(duckDb, rpcUrl, cosmwasmClient, env);
-  }
-
-  public static getDuckDbInstance() {
-    return OraiDexSync.duckDbInstance;
   }
 
   private async updateLatestPairInfos() {
@@ -158,7 +152,7 @@ async function initSync() {
   oraidexSync.sync();
 }
 
-initSync();
+// initSync();
 
 export { OraiDexSync };
 
