@@ -83,7 +83,6 @@ app.get("/tickers", async (req, res) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
           const tickerId = parseSymbolsToTickerId(symbols);
-          // const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
           const baseIndex = 0;
           const targetIndex = 1;
           console.log(latestTimestamp, then);

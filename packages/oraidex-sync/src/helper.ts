@@ -357,7 +357,6 @@ export function getSwapDirection(offerDenom: string, askDenom: string): SwapDire
   if (!pair) {
     console.error("Cannot find asset infos in list of pairs");
     return;
-    // throw new Error("Cannot find asset infos in list of pairs");
   }
   const assetInfos = pair.asset_infos;
   // use quote denom as offer then its buy. Quote denom in pairs is the 2nd index in the array
@@ -370,27 +369,6 @@ export function findPairIndexFromDenoms(offerDenom: string, askDenom: string): n
     (pair) => pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom)
   );
 }
-
-// /**
-//  *
-//  * @param infos
-//  * @returns
-//  */
-// function findUsdOraiInPair(infos: [AssetInfo, AssetInfo]): {
-//   baseIndex: number;
-//   targetIndex: number;
-//   target: AssetInfo;
-// } {
-//   const firstInfo = parseAssetInfoOnlyDenom(infos[0]);
-//   const secondInfo = parseAssetInfoOnlyDenom(infos[1]);
-//   if (firstInfo === usdtCw20Address || firstInfo === usdcCw20Address)
-//     return { baseIndex: 0, targetIndex: 1, target: infos[1] };
-//   if (secondInfo === usdtCw20Address || secondInfo === usdcCw20Address)
-//     return { baseIndex: 1, targetIndex: 0, target: infos[0] };
-//   if (firstInfo === ORAI) return { baseIndex: 0, targetIndex: 1, target: infos[1] };
-//   if (secondInfo === ORAI) return { baseIndex: 1, targetIndex: 0, target: infos[0] };
-//   return { baseIndex: 1, targetIndex: 0, target: infos[0] }; // default we calculate the first info in the asset info list
-// }
 
 function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
   const findedPair = pairs.find(

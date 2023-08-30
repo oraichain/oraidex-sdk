@@ -1,25 +1,5 @@
-import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import {
-  findAssetInfoPathToUsdt,
-  findMappedTargetedAssetInfo,
-  findPairAddress,
-  calculatePriceByPool,
-  toAmount,
-  toDisplay,
-  toDecimal,
-  roundTime,
-  groupByTime,
-  collectAccumulateLpData,
-  concatDataToUniqueKey,
-  removeOpsDuplication,
-  calculateBasePriceFromSwapOp,
-  getSwapDirection,
-  findPairIndexFromDenoms,
-  toObject,
-  calculateSwapOhlcv,
-  isAssetInfoPairReverse
-} from "../src/helper";
-import { extractUniqueAndFlatten, pairs } from "../src/pairs";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
   ORAI,
   airiCw20Adress,
@@ -36,8 +16,26 @@ import {
   usdtCw20Address,
   usdtInfo
 } from "../src/constants";
+import {
+  calculateBasePriceFromSwapOp,
+  calculatePriceByPool,
+  collectAccumulateLpData,
+  concatDataToUniqueKey,
+  findAssetInfoPathToUsdt,
+  findMappedTargetedAssetInfo,
+  findPairAddress,
+  findPairIndexFromDenoms,
+  getSwapDirection,
+  groupByTime,
+  isAssetInfoPairReverse,
+  removeOpsDuplication,
+  roundTime,
+  toAmount,
+  toDecimal,
+  toDisplay
+} from "../src/helper";
+import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import { PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
-import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 describe("test-helper", () => {
   describe("bigint", () => {
@@ -522,66 +520,6 @@ describe("test-helper", () => {
     expect(newOps.length).toEqual(2);
     expect(newOps[1].uniqueKey).toEqual("2");
   });
-
-  // it.each<[[AssetInfo, AssetInfo], AssetInfo, number]>([
-  //   [
-  //     [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
-  //     { native_token: { denom: atomIbcDenom } },
-  //     0
-  //   ],
-  //   [
-  //     [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
-  //     { native_token: { denom: ORAI } },
-  //     1
-  //   ],
-  //   [
-  //     [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
-  //     { native_token: { denom: ORAI } },
-  //     1
-  //   ],
-  //   [
-  //     [{ token: { contract_addr: tronCw20Address } }, { native_token: { denom: atomIbcDenom } }],
-  //     { token: { contract_addr: tronCw20Address } },
-  //     1
-  //   ]
-  // ])("test-findUsdOraiInPair", (infos, expectedInfo, expectedBase) => {
-  //   // act
-  //   const result = findUsdOraiInPair(infos);
-  //   // assert
-  //   expect(result.target).toEqual(expectedInfo);
-  //   expect(result.baseIndex).toEqual(expectedBase);
-  // });
-
-  // it.each([
-  //   [
-  //     [
-  //       {
-  //         timestamp: 60000,
-  //         pair: "orai-usdt",
-  //         price: 1,
-  //         volume: 100n
-  //       },
-  //       {
-  //         timestamp: 60000,
-  //         pair: "orai-usdt",
-  //         price: 2,
-  //         volume: 100n
-  //       }
-  //     ],
-  //     {
-  //       open: 1,
-  //       close: 2,
-  //       low: 1,
-  //       high: 2,
-  //       volume: 200n,
-  //       timestamp: 60000,
-  //       pair: "orai-usdt"
-  //     }
-  //   ]
-  // ])("test-calculateOhlcv", (ops, expectedOhlcv) => {
-  //   const ohlcv = calculateSwapOhlcv(ops);
-  //   expect(toObject(ohlcv)).toEqual(toObject(expectedOhlcv));
-  // });
 
   it.each([
     ["Buy" as SwapDirection, 2],
