@@ -31,12 +31,6 @@ export class DuckDb {
 
   static async create(fileName: string): Promise<DuckDb> {
     if (!fileName) throw new Error("Filename is not provided!");
-    // let db = await Database.create(fileName);
-    // await db.close(); // close to flush WAL file
-    // db = await Database.create(fileName);
-    // const conn = await db.connect();
-    // return new DuckDb(conn, db);
-
     if (!DuckDb.instances) {
       let db = await Database.create(fileName);
       await db.close(); // close to flush WAL file

@@ -362,11 +362,4 @@ async function parseTxs(txs: Tx[], duckDb: DuckDb): Promise<TxAnlysisResult> {
   };
 }
 
-export {
-  parseAssetInfo,
-  parseWasmEvents,
-  parseTxs,
-  parseWithdrawLiquidityAssets,
-  parseTxToMsgExecuteContractMsgs,
-  calculateLiquidityFee
-};
+export { parseAssetInfo, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets, parseTxToMsgExecuteContractMsgs };
