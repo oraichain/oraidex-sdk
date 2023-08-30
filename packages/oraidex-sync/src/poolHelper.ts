@@ -115,7 +115,7 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
   return priceInOrai * priceOraiInUsdt;
 }
 
-async function calculateFeeByUsdt(fee: Asset): Promise<number> {
+async function calculateFeeByUsdt(fee: Asset | null): Promise<number> {
   if (!fee) return 0;
   const priceInUsdt = await getPriceAssetByUsdt(fee.info);
   return priceInUsdt * +fee.amount;
@@ -234,5 +234,6 @@ export {
   getPriceAssetByUsdt,
   getPriceByAsset,
   isPoolHasFee,
-  getStakingAssetInfo
+  getStakingAssetInfo,
+  calculateFeeByUsdt
 };

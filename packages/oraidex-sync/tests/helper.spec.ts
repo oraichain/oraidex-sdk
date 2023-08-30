@@ -370,9 +370,7 @@ describe("test-helper", () => {
     "test-calculatePriceByPool-ORAI/USDT-pool-with-commision-rate=%s-should-return-price-%s-USDT",
     (commisionRate, expectedPrice) => {
       // base denom is ORAI, quote denom is USDT => base pool is ORAI, quote pool is USDT.
-      // const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), commisionRate, 10 ** 6);
-      const result = calculatePriceByPool(BigInt(397832351391), BigInt(193971155696), commisionRate);
-      console.log({ result });
+      const result = calculatePriceByPool(BigInt(639997269712), BigInt(232967274783), commisionRate, 10 ** 6);
       expect(result.toString()).toEqual(expectedPrice);
     }
   );

@@ -1,9 +1,13 @@
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
 import { ProvideLiquidityOperationData } from "../src/types";
-
+import fs from "fs";
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
+
+  afterEach(() => {
+    fs.unlink(":memory:", () => {});
+  });
 
   it.each<[string[], number[]]>([
     [
@@ -194,7 +198,7 @@ describe("test-duckdb", () => {
   it("test-duckdb-insert-bulk-should-pass-and-can-query", async () => {
     //setup
     duckDb = await DuckDb.create(":memory:");
-    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
+    await Promise.all([duckDb.createLiquidityOpsTable()]);
     // act & test
     const newDate = 1689610068000 / 1000;
     const data: ProvideLiquidityOperationData[] = [
@@ -212,9 +216,10 @@ describe("test-duckdb", () => {
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1n
+        taxRate: 1
       }
     ];
+
     await duckDb.insertLpOps(data);
     let queryResult = await duckDb.queryLpOps();
     queryResult[0].timestamp = queryResult[0].timestamp;
@@ -241,7 +246,7 @@ describe("test-duckdb", () => {
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1n
+        taxRate: 1
       }
     ];
     await duckDb.insertLpOps(data);
