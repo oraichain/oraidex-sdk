@@ -106,6 +106,7 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
   if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(oraiInfo)) return await getOraiPrice();
 
   const foundPair = getPairByAssetInfos([asset, oraiInfo]);
+  // TODO: should refactor this to find asset that matched pair with input asset instead return 0
   if (!foundPair) return 0;
 
   const ratioDirection: RatioDirection =

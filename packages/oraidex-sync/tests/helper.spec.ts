@@ -36,8 +36,11 @@ import {
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
 import { PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
+import { DuckDb, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 
 describe("test-helper", () => {
+  let duckDb: DuckDb;
+
   describe("bigint", () => {
     describe("toAmount", () => {
       it("toAmount-percent", () => {
@@ -585,4 +588,35 @@ describe("test-helper", () => {
       expect(result).toBe(expectedResult);
     }
   );
+
+  describe("test-get-volume-pairs", () => {
+    it("test-getVolumePairByAsset-should-return-correctly-sum-volume-swap-&-liquidity", async () => {
+      //setup mock
+      duckDb = await DuckDb.create(":memory:");
+      jest.spyOn(duckDb, "getVolumeSwap").mockResolvedValue(1n);
+      jest.spyOn(duckDb, "getVolumeLiquidity").mockResolvedValue(1n);
+
+      // act
+      const result = await getVolumePairByAsset(["orai", "usdt"], new Date(1693394183), new Date(1693394183));
+
+      // assert
+      expect(result).toEqual(2n);
+    });
+
+    // it("test-getVolumePairByUsdt-should-return-correctly-volume-pair-in-USDT", async () => {
+    //   //setup
+    //   duckDb = await DuckDb.create(":memory:");
+    //   const [baseAssetInfo, quoteAssetInfo] = [oraiInfo, usdtInfo];
+
+    //   // act
+    //   const result = await getVolumePairByUsdt(
+    //     [baseAssetInfo, quoteAssetInfo],
+    //     new Date(1693394183),
+    //     new Date(1693394183)
+    //   );
+
+    //   // assert
+    //   expect(result).toEqual(2n);
+    // });
+  });
 });
