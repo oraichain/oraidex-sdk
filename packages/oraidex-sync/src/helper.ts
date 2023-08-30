@@ -423,7 +423,8 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
   return { offerPoolAmount, askPoolAmount };
 }
 
-async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo], duckDb: DuckDb): Promise<number> {
+async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<number> {
+  const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
   if (!poolInfo) throw new Error(`Cannot found pool info when get pair liquidity: ${JSON.stringify(assetInfos)}`);
 
@@ -465,9 +466,9 @@ function convertDateToSecond(date: Date): number {
 async function getVolumePair(
   [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
   startTime: Date,
-  endTime: Date,
-  duckDb: DuckDb
+  endTime: Date
 ): Promise<bigint> {
+  const duckDb = DuckDb.instances;
   const pair = `${parseAssetInfoOnlyDenom(baseAssetInfo)}-${parseAssetInfoOnlyDenom(quoteAssetInfo)}`;
   const [volumeSwapPairInBaseAsset, volumeLiquidityPairInBaseAsset] = await Promise.all([
     duckDb.getVolumeSwap({
@@ -496,23 +497,19 @@ async function getVolumePair(
   return BigInt(Math.round(volumeInUsdt));
 }
 
-async function getAllVolume24h(duckDb: DuckDb): Promise<bigint[]> {
+async function getAllVolume24h(): Promise<bigint[]> {
   const tf = 24 * 60 * 60; // second of 24h
   const currentDate = new Date();
   const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allVolumes = await Promise.all(
-    pairs.map((pair) => getVolumePair(pair.asset_infos, oneDayBeforeNow, currentDate, duckDb))
+    pairs.map((pair) => getVolumePair(pair.asset_infos, oneDayBeforeNow, currentDate))
   );
   return allVolumes;
 }
 
 //  ==== get fee pair ====
-async function getFeePair(
-  asset_infos: [AssetInfo, AssetInfo],
-  startTime: Date,
-  endTime: Date,
-  duckDb: DuckDb
-): Promise<bigint> {
+async function getFeePair(asset_infos: [AssetInfo, AssetInfo], startTime: Date, endTime: Date): Promise<bigint> {
+  const duckDb = DuckDb.instances;
   const [swapFee, liquidityFee] = await Promise.all([
     duckDb.getFeeSwap({
       offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
@@ -530,13 +527,11 @@ async function getFeePair(
   return swapFee + liquidityFee;
 }
 
-async function getAllFees(duckDb: DuckDb): Promise<bigint[]> {
+async function getAllFees(): Promise<bigint[]> {
   const tf = 7 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-  const allFees = await Promise.all(
-    pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate, duckDb))
-  );
+  const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));
   return allFees;
 }
 

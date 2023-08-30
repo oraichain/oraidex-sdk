@@ -1,5 +1,4 @@
 import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import fs from "fs";
 import {
   ORAI,
   airiCw20Adress,
@@ -35,7 +34,7 @@ describe("test-pool-helper", () => {
   it.each<[string, [AssetInfo, AssetInfo], boolean]>([
     [
       "has-both-native-token-that-contain-ORAI-should-return: false",
-      [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
+      [oraiInfo, { native_token: { denom: atomIbcDenom } }],
       false
     ],
     // [
@@ -64,11 +63,7 @@ describe("test-pool-helper", () => {
             contract_addr: milkyCw20Address
           }
         },
-        {
-          token: {
-            contract_addr: usdtCw20Address
-          }
-        }
+        usdtInfo
       ],
       false
     ]
@@ -184,6 +179,7 @@ describe("test-pool-helper", () => {
       });
       jest.spyOn(helper, "calculatePriceByPool").mockReturnValue(0.5);
 
+      // assert
       const result = await poolHelper.getPriceByAsset(assetInfos, ratioDirection);
       expect(result).toEqual(expectedPrice);
     });
@@ -274,7 +270,6 @@ describe("test-pool-helper", () => {
       info: usdtInfo,
       amount: "1"
     };
-
     const shareRatio = 0.5;
 
     it.each([
@@ -318,6 +313,7 @@ describe("test-pool-helper", () => {
       expect(result).toEqual(expectedResult);
     });
   });
+
   it.each<[string, AssetInfo[], AssetInfo]>([
     [
       "case-asset-info-pairs-is-NOT-reversed-and-base-asset-NOT-ORAI",
