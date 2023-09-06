@@ -116,7 +116,7 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
   return priceInOrai * priceOraiInUsdt;
 }
 
-async function calculateFeeByUsdt(fee: Asset | null): Promise<number> {
+async function convertFeeAssetToUsdt(fee: Asset | null): Promise<number> {
   if (!fee) return 0;
   const priceInUsdt = await getPriceAssetByUsdt(fee.info);
   return priceInUsdt * +fee.amount;
@@ -159,7 +159,7 @@ async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withd
     calculateFeeByAsset(poolInfo.assets[1], shareRatio)
   ];
 
-  const feeByUsdt = (await calculateFeeByUsdt(feeByAssetFrom)) + (await calculateFeeByUsdt(feeByAssetTo));
+  const feeByUsdt = (await convertFeeAssetToUsdt(feeByAssetFrom)) + (await convertFeeAssetToUsdt(feeByAssetTo));
   return BigInt(Math.round(feeByUsdt));
 }
 
@@ -236,5 +236,5 @@ export {
   getPriceByAsset,
   isPoolHasFee,
   getStakingAssetInfo,
-  calculateFeeByUsdt
+  convertFeeAssetToUsdt
 };

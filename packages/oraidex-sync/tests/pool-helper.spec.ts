@@ -233,7 +233,7 @@ describe("test-pool-helper", () => {
           }
         ];
         await duckDb.insertPairInfos(pairInfoData);
-        const data: ProvideLiquidityOperationData[] = [
+        const lpOpsData: ProvideLiquidityOperationData[] = [
           {
             basePrice: 1,
             baseTokenAmount: 1,
@@ -251,7 +251,7 @@ describe("test-pool-helper", () => {
             taxRate: 1n
           }
         ];
-        await duckDb.insertLpOps(data);
+        await duckDb.insertLpOps(lpOpsData);
         jest.spyOn(poolHelper, "getPriceByAsset").mockResolvedValue(4);
         jest.spyOn(poolHelper, "getOraiPrice").mockResolvedValue(2);
 
@@ -266,10 +266,6 @@ describe("test-pool-helper", () => {
 
   describe("test-calculate-fee-of-pools", () => {
     // setup
-    const usdtFeeInfo = {
-      info: usdtInfo,
-      amount: "1"
-    };
     const shareRatio = 0.5;
 
     it.each([
@@ -293,9 +289,9 @@ describe("test-pool-helper", () => {
     });
 
     it.each([
-      ["test-calculateFeeByUsdt-with-asset-NULL-should-return-fee-is-0", null, 0],
+      ["test-convertFeeAssetToUsdt-with-asset-NULL-should-return-fee-is-0", null, 0],
       [
-        "test-calculateFeeByUsdt-with-asset-native-should-return-correctly-fee",
+        "test-convertFeeAssetToUsdt-with-asset-native-should-return-correctly-fee",
         {
           info: oraiInfo,
           amount: "1"
@@ -307,7 +303,7 @@ describe("test-pool-helper", () => {
       jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValueOnce(2);
 
       // act
-      const result = await poolHelper.calculateFeeByUsdt(assetFee);
+      const result = await poolHelper.convertFeeAssetToUsdt(assetFee);
 
       // assert
       expect(result).toEqual(expectedResult);
