@@ -457,7 +457,7 @@ export class DuckDb {
     const result = await this.conn.all(
       `
       SELECT 
-        cast(sum(volume) as UBIGINT) as totalVolume,
+        sum(volume) as totalVolume,
         FROM swap_ohlcv
         WHERE timestamp >= ? 
         AND timestamp <= ?
@@ -467,7 +467,7 @@ export class DuckDb {
       endTime,
       pair
     );
-    return result[0]?.totalVolume ?? 0;
+    return BigInt(result[0]?.totalVolume ?? 0);
   }
 
   async getVolumeLiquidity(payload: GetFeeSwap): Promise<bigint> {

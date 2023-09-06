@@ -236,22 +236,15 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (_req, res) => {
   try {
-    console.time("get util");
     const [volumes, allFee7Days] = await Promise.all([getAllVolume24h(), getAllFees()]);
 
-    console.timeEnd("get util");
-
     const pools = await duckDb.getPools();
-    console.time("allLiquidities");
     const allLiquidities = await Promise.all(
       pools.map((pair) => {
         return getPairLiquidity([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)]);
       })
     );
-    console.timeEnd("allLiquidities");
-    console.time("getApr");
     const allApr = await fetchAprResult(pools, allLiquidities);
-    console.timeEnd("getApr");
     res.status(200).send(
       pools.map((pool, index) => {
         return {
