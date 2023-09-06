@@ -1,18 +1,16 @@
 import {
   AssetInfo,
   CosmWasmClient,
-  OraiswapFactoryQueryClient,
   OraiswapPairQueryClient,
   OraiswapPairTypes,
-  PairInfo,
   SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual, maxBy, minBy } from "lodash";
-import { ORAI, atomic, network, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
+import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
-import { getPairByAssetInfos, getPriceAssetByUsdt, getPriceByAsset } from "./poolHelper";
+import { getPriceAssetByUsdt, getPriceByAsset } from "./pool-helper";
 import {
   Ohlcv,
   OraiDexType,
@@ -412,15 +410,7 @@ async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<num
     (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
   if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
 
-  let priceBaseAssetInUsdt = await getPriceAssetByUsdt(assetInfos[0]);
-  // it means this asset not pair with ORAI
-  // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
-  if (priceBaseAssetInUsdt === 0) {
-    const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(assetInfos[1]);
-    const priceBaseInQuote = await getPriceByAsset(assetInfos, "base_in_quote");
-    priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
-  }
-
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(assetInfos[0]);
   return priceBaseAssetInUsdt * Number(poolAmounts.offerPoolAmount) * 2;
 }
 
@@ -471,16 +461,7 @@ async function getVolumePairByUsdt(
 ): Promise<bigint> {
   const [baseDenom, quoteDenom] = [parseAssetInfoOnlyDenom(baseAssetInfo), parseAssetInfoOnlyDenom(quoteAssetInfo)];
   const volumePairInBaseAsset = await getVolumePairByAsset([baseDenom, quoteDenom], startTime, endTime);
-  let priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-
-  // it means this asset not pair with ORAI
-  // in our pairs, if base asset not pair with ORAI, surely quote asset will pair with ORAI
-  // TODO: should refactor this, not need to check 0 in this case, update later.
-  if (priceBaseAssetInUsdt === 0) {
-    const priceQuoteAssetInUsdt = await getPriceAssetByUsdt(quoteAssetInfo);
-    const priceBaseInQuote = await getPriceByAsset([baseAssetInfo, quoteAssetInfo], "base_in_quote");
-    priceBaseAssetInUsdt = priceBaseInQuote * priceQuoteAssetInUsdt;
-  }
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
   const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
   return BigInt(Math.round(volumeInUsdt));
 }
@@ -539,8 +520,8 @@ export {
   getPairLiquidity,
   getSpecificDateBeforeNow,
   getSymbolFromAsset,
+  getVolumePairByAsset,
   getVolumePairByUsdt,
   parseAssetInfo,
-  parseAssetInfoOnlyDenom,
-  getVolumePairByAsset
+  parseAssetInfoOnlyDenom
 };

@@ -3,7 +3,7 @@ import { CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
 import "dotenv/config";
 import { DuckDb } from "./db";
 import { collectAccumulateLpData, getSymbolFromAsset } from "./helper";
-import { getAllPairInfos, getPoolInfos } from "./poolHelper";
+import { getAllPairInfos, getPoolInfos } from "./pool-helper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
   Env,
@@ -160,6 +160,6 @@ export * from "./constants";
 export * from "./db";
 export * from "./helper";
 export * from "./pairs";
-export * from "./poolHelper";
+export * from "./pool-helper";
 export * from "./query";
 export * from "./types";

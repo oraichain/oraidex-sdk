@@ -32,7 +32,7 @@ import {
 } from "./helper";
 import { pairs } from "./pairs";
 import { DuckDb } from "./db";
-import { calculateLiquidityFee, isPoolHasFee } from "./poolHelper";
+import { calculateLiquidityFee, isPoolHasFee } from "./pool-helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
