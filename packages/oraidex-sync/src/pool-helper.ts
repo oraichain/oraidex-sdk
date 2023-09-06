@@ -1,4 +1,4 @@
-import { MulticallQueryClient, Ratio } from "@oraichain/common-contracts-sdk";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import {
   Asset,
   AssetInfo,
@@ -37,7 +37,7 @@ export type RatioDirection = "base_in_quote" | "quote_in_base";
  * Check pool if has native token is not ORAI -> has fee
  * @returns boolean
  */
-function isPoolHasFee(assetInfos: [AssetInfo, AssetInfo]): boolean {
+export const isPoolHasFee = (assetInfos: [AssetInfo, AssetInfo]): boolean => {
   let hasNative = false;
   for (const asset of assetInfos) {
     if ("native_token" in asset) {
@@ -49,18 +49,18 @@ function isPoolHasFee(assetInfos: [AssetInfo, AssetInfo]): boolean {
   }
   if (hasNative) return true;
   return false;
-}
+};
 
-async function getPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
+export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> => {
   // adjust the query height to get data from the past
   const cosmwasmClient = await getCosmwasmClient();
   cosmwasmClient.setQueryClientWithHeight(wantedHeight);
   const multicall = new MulticallQueryClient(cosmwasmClient, network.multicall);
   const res = await queryPoolInfos(pairAddrs, multicall);
   return res;
-}
+};
 
-function getPairByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): PairMapping {
+export const getPairByAssetInfos = (assetInfos: [AssetInfo, AssetInfo]): PairMapping => {
   return pairs.find((pair) => {
     const [baseAsset, quoteAsset] = pair.asset_infos;
     const denoms = [parseAssetInfoOnlyDenom(baseAsset), parseAssetInfoOnlyDenom(quoteAsset)];
@@ -68,17 +68,21 @@ function getPairByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): PairMapping {
       denoms.includes(parseAssetInfoOnlyDenom(assetInfos[0])) && denoms.includes(parseAssetInfoOnlyDenom(assetInfos[1]))
     );
   });
-}
+};
 
 // get price ORAI in USDT base on ORAI/USDT pool.
-async function getOraiPrice(): Promise<number> {
+// async function getOraiPrice(): Promise<number> {
+export const getOraiPrice = async (): Promise<number> => {
   const oraiUsdtPair = getPairByAssetInfos([oraiInfo, usdtInfo]);
   const ratioDirection: RatioDirection =
     parseAssetInfoOnlyDenom(oraiUsdtPair.asset_infos[0]) === ORAI ? "base_in_quote" : "quote_in_base";
   return getPriceByAsset([oraiInfo, usdtInfo], ratioDirection);
-}
+};
 
-async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirection: RatioDirection): Promise<number> {
+export const getPriceByAsset = async (
+  assetInfos: [AssetInfo, AssetInfo],
+  ratioDirection: RatioDirection
+): Promise<number> => {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
   if (!poolInfo) throw new Error(`Cannot found pool info: ${JSON.stringify(assetInfos)}`);
@@ -97,7 +101,7 @@ async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirectio
     +poolInfo.commissionRate
   );
   return ratioDirection === "base_in_quote" ? basePrice : 1 / basePrice;
-}
+};
 
 /**
  * @param asset
@@ -111,7 +115,7 @@ async function getPriceByAsset(assetInfos: [AssetInfo, AssetInfo], ratioDirectio
  *    5.2, usdt: this case does not occurs.
  * @returns price asset by USDT
  */
-async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
+export const getPriceAssetByUsdt = async (asset: AssetInfo): Promise<number> => {
   if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(usdtInfo)) return 1;
   if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(oraiInfo)) return await getOraiPrice();
   let foundPair: PairMapping;
@@ -135,7 +139,6 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
     const pairWithAsset = pairs.find((pair) =>
       pair.asset_infos.some((info) => parseAssetInfoOnlyDenom(info) === parseAssetInfoOnlyDenom(asset))
     );
-    if (!pairWithAsset) throw new Error("Something wrong with whitelist pair in oraiDEX.");
     const otherAssetIndex = pairWithAsset.asset_infos.findIndex(
       (item) => parseAssetInfoOnlyDenom(item) !== parseAssetInfoOnlyDenom(asset)
     );
@@ -151,15 +154,15 @@ async function getPriceAssetByUsdt(asset: AssetInfo): Promise<number> {
 
   const priceOraiInUsdt = await getOraiPrice();
   return priceInOrai * priceOraiInUsdt;
-}
+};
 
-async function convertFeeAssetToUsdt(fee: Asset | null): Promise<number> {
+export const convertFeeAssetToUsdt = async (fee: Asset | null): Promise<number> => {
   if (!fee) return 0;
   const priceInUsdt = await getPriceAssetByUsdt(fee.info);
   return priceInUsdt * +fee.amount;
-}
+};
 
-function calculateFeeByAsset(asset: Asset, shareRatio: number): Asset {
+export const calculateFeeByAsset = (asset: Asset, shareRatio: number): Asset => {
   const TAX_CAP = 10 ** 6;
   const TAX_RATE = 0.3;
   // just native_token not ORAI has fee
@@ -171,10 +174,10 @@ function calculateFeeByAsset(asset: Asset, shareRatio: number): Asset {
     amount: fee.toString(),
     info: asset.info
   };
-}
+};
 
 /**
- * First, calculate fee by offer asset & askAsset
+ * First, calculate fee by offer asset & ask asset
  * then, calculate fee of those asset to ORAI
  * finally, convert this fee in ORAI to USDT.
  * @param pair
@@ -182,7 +185,11 @@ function calculateFeeByAsset(asset: Asset, shareRatio: number): Asset {
  * @param withdrawnShare
  * @returns fee in USDT
  */
-async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withdrawnShare: number): Promise<bigint> {
+export const calculateLiquidityFee = async (
+  pair: PairInfoData,
+  txHeight: number,
+  withdrawnShare: number
+): Promise<bigint> => {
   const cosmwasmClient = await getCosmwasmClient();
   cosmwasmClient.setQueryClientWithHeight(txHeight);
 
@@ -198,11 +205,10 @@ async function calculateLiquidityFee(pair: PairInfoData, txHeight: number, withd
 
   const feeByUsdt = (await convertFeeAssetToUsdt(feeByAssetFrom)) + (await convertFeeAssetToUsdt(feeByAssetTo));
   return BigInt(Math.round(feeByUsdt));
-}
+};
 
 //  <==== calculate APR ====
 export const calculateAprResult = async (
-  pairs: PairMapping[],
   allLiquidities: number[],
   allTokenInfo: TokenInfoResponse[],
   allLpTokenAsset: OraiswapStakingTypes.PoolInfoResponse[],
@@ -232,12 +238,12 @@ export const calculateAprResult = async (
   return aprResult;
 };
 
-function getStakingAssetInfo(assetInfos: AssetInfo[]): AssetInfo {
+export const getStakingAssetInfo = (assetInfos: AssetInfo[]): AssetInfo => {
   if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
   return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
-}
+};
 
-const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]): Promise<number[]> => {
+export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]): Promise<number[]> => {
   const assetTokens = pairInfos.map((pair) =>
     getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
   );
@@ -247,31 +253,16 @@ const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[
       fetchAllTokenAssetPools(assetTokens),
       fetchAllRewardPerSecInfos(assetTokens)
     ]);
-    return calculateAprResult(pairs, allLiquidities, allTokenInfo, allLpTokenAsset, allRewardPerSec);
+    return calculateAprResult(allLiquidities, allTokenInfo, allLpTokenAsset, allRewardPerSec);
   } catch (error) {
     console.log({ errorFetchAprResult: error });
   }
 };
 //  ==== end of calculate APR ====>
 
-async function getAllPairInfos(): Promise<PairInfo[]> {
+export const getAllPairInfos = async (): Promise<PairInfo[]> => {
   const cosmwasmClient = await getCosmwasmClient();
   const firstFactoryClient = new OraiswapFactoryQueryClient(cosmwasmClient, network.factory);
   const secondFactoryClient = new OraiswapFactoryQueryClient(cosmwasmClient, network.factory_v2);
   return queryAllPairInfos(firstFactoryClient, secondFactoryClient);
-}
-
-export {
-  calculateFeeByAsset,
-  calculateLiquidityFee,
-  fetchAprResult,
-  getAllPairInfos,
-  getOraiPrice,
-  getPairByAssetInfos,
-  getPoolInfos,
-  getPriceAssetByUsdt,
-  getPriceByAsset,
-  isPoolHasFee,
-  getStakingAssetInfo,
-  convertFeeAssetToUsdt
 };

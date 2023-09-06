@@ -1,5 +1,4 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
-import { CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
 import "dotenv/config";
 import { DuckDb } from "./db";
 import { collectAccumulateLpData, getSymbolFromAsset } from "./helper";
@@ -15,10 +14,8 @@ import {
 } from "./types";
 
 class WriteOrders extends WriteData {
-  private firstWrite: boolean;
   constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
     super();
-    this.firstWrite = true;
   }
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
@@ -71,16 +68,10 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(
-    private readonly duckDb: DuckDb,
-    private readonly rpcUrl: string,
-    private cosmwasmClient: CosmWasmClient,
-    private readonly env: Env
-  ) {}
+  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) {}
 
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
-    const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-    return new OraiDexSync(duckDb, rpcUrl, cosmwasmClient, env);
+    return new OraiDexSync(duckDb, rpcUrl, env);
   }
 
   private async updateLatestPairInfos() {
@@ -89,7 +80,7 @@ class OraiDexSync {
       const pairInfos = await getAllPairInfos();
 
       await this.duckDb.insertPairInfos(
-        pairInfos.map((pair, index) => {
+        pairInfos.map((pair) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
           return {
             firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),

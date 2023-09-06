@@ -10,7 +10,7 @@ import { isEqual, maxBy, minBy } from "lodash";
 import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
-import { getPriceAssetByUsdt, getPriceByAsset } from "./pool-helper";
+import { getPriceAssetByUsdt } from "./pool-helper";
 import {
   Ohlcv,
   OraiDexType,
@@ -399,6 +399,7 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
   return { offerPoolAmount, askPoolAmount };
 }
 
+// get liquidity of pair from assetInfos
 async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<number> {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
@@ -410,7 +411,8 @@ async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<num
     (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
   if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
 
-  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(assetInfos[0]);
+  const baseAssetInfo = assetInfos[0];
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
   return priceBaseAssetInUsdt * Number(poolAmounts.offerPoolAmount) * 2;
 }
 
@@ -430,7 +432,7 @@ function convertDateToSecond(date: Date): number {
   return Math.round(date.valueOf() / 1000);
 }
 
-// ====== get volume pairs ======
+// <===== start get volume pairs =====
 async function getVolumePairByAsset(
   [baseDenom, quoteDenom]: [string, string],
   startTime: Date,
@@ -475,8 +477,9 @@ async function getAllVolume24h(): Promise<bigint[]> {
   );
   return allVolumes;
 }
+// ===== end get volume pairs =====>
 
-//  ==== get fee pair ====
+//  <==== start get fee pair ====
 async function getFeePair(asset_infos: [AssetInfo, AssetInfo], startTime: Date, endTime: Date): Promise<bigint> {
   const duckDb = DuckDb.instances;
   const [swapFee, liquidityFee] = await Promise.all([
@@ -503,6 +506,7 @@ async function getAllFees(): Promise<bigint[]> {
   const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));
   return allFees;
 }
+//  ==== end get fee pair ====>
 
 export {
   calculatePriceByPool,

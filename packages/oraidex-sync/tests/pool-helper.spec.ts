@@ -12,7 +12,7 @@ import {
 
 import * as helper from "../src/helper";
 import { DuckDb } from "../src/index";
-import * as poolHelper from "../src/poolHelper";
+import * as poolHelper from "../src/pool-helper";
 import { PairInfoData, PairMapping, ProvideLiquidityOperationData } from "../src/types";
 
 describe("test-pool-helper", () => {
@@ -29,6 +29,7 @@ describe("test-pool-helper", () => {
   });
   afterEach(() => {
     jest.clearAllMocks();
+    jest.restoreAllMocks();
   });
 
   it.each<[string, [AssetInfo, AssetInfo], boolean]>([
@@ -72,40 +73,6 @@ describe("test-pool-helper", () => {
     expect(result).toBe(expectIsHasFee);
   });
 
-  it.each([
-    [
-      "test-calculateFeeByAsset-with-case-asset-is-cw20-token-should-return-null",
-      {
-        info: {
-          token: {
-            contract_addr: airiCw20Adress
-          }
-        },
-        amount: "100"
-      },
-      null
-    ],
-    [
-      "test-calculateFeeByAsset-with-case-asset-is-native-token-should-return-correctly-fee",
-      {
-        info: {
-          native_token: {
-            denom: atomIbcDenom
-          }
-        },
-        amount: "100"
-      },
-      {
-        amount: "1000000",
-        info: { native_token: { denom: atomIbcDenom } }
-      }
-    ]
-  ])("%s", (_caseName: string, inputAsset: Asset, expectedFee: Asset | null) => {
-    const shareRatio = 100000;
-    const result = poolHelper.calculateFeeByAsset(inputAsset, shareRatio);
-    expect(result).toStrictEqual(expectedFee);
-  });
-
   it.each<[string, [AssetInfo, AssetInfo], PairMapping | undefined]>([
     [
       "assetInfos-valid-in-list-pairs",
@@ -142,8 +109,6 @@ describe("test-pool-helper", () => {
 
   describe("test-calculate-price-group-funcs", () => {
     // use orai/usdt in this test suite
-    afterEach(jest.clearAllMocks);
-
     it("test-getPriceByAsset-when-duckdb-empty-should-throw-error", async () => {
       await expect(poolHelper.getPriceByAsset([oraiInfo, usdtInfo], "base_in_quote")).rejects.toBeInstanceOf(Error);
     });
@@ -186,21 +151,39 @@ describe("test-pool-helper", () => {
 
     it.each([
       ["asset-is-cw20-USDT", usdtInfo, 1],
-      ["asset-is-ORAI", oraiInfo, 0.5],
       [
-        "asset-is-not-pair-with-ORAI",
+        "asset-is-MILKY-that-mapped-with-USDT",
+        {
+          token: {
+            contract_addr: milkyCw20Address
+          }
+        },
+        0.5
+      ],
+      ["asset-is-ORAI", oraiInfo, 2],
+      [
+        "asset-is-pair-with-ORAI",
         {
           native_token: {
             denom: atomIbcDenom
           }
         },
         1
+      ],
+      [
+        "asset-is-NOT-pair-with-ORAI",
+        {
+          token: {
+            contract_addr: scAtomCw20Address
+          }
+        },
+        0.5
       ]
     ])(
-      "test-getPriceAssetByUsdt-with-%p-should-return-price-of-asset-in-USDT",
+      "test-getPriceAssetByUsdt-with-%p-should-return-correctly-price-of-asset-in-USDT",
       async (_caseName: string, assetInfo: AssetInfo, expectedPrice: number) => {
-        // setup
-        let pairInfoData: PairInfoData[] = [
+        // setup & mock
+        const pairInfoData: PairInfoData[] = [
           {
             firstAssetInfo: JSON.stringify(oraiInfo as AssetInfo),
             secondAssetInfo: JSON.stringify(usdtInfo as AssetInfo),
@@ -252,8 +235,8 @@ describe("test-pool-helper", () => {
           }
         ];
         await duckDb.insertLpOps(lpOpsData);
-        jest.spyOn(poolHelper, "getPriceByAsset").mockResolvedValue(4);
         jest.spyOn(poolHelper, "getOraiPrice").mockResolvedValue(2);
+        jest.spyOn(poolHelper, "getPriceByAsset").mockResolvedValue(0.5);
 
         // act
         const result = await poolHelper.getPriceAssetByUsdt(assetInfo);
@@ -265,27 +248,67 @@ describe("test-pool-helper", () => {
   });
 
   describe("test-calculate-fee-of-pools", () => {
-    // setup
-    const shareRatio = 0.5;
-
     it.each([
-      ["test-calculateFeeByAsset-with-asset-info-is-NOT-native-token-should-return-null", usdtInfo, null],
       [
-        "test-calculateFeeByAsset-with-asset-info-is-native-token-should-return-correctly-fee",
-        oraiInfo,
-        { amount: "0.11538461538461542", info: { native_token: { denom: "orai" } } }
-      ]
-    ])("%s", (_caseName: string, assetInfo: AssetInfo, expectedResult: Asset | null) => {
-      // act
-      const result = poolHelper.calculateFeeByAsset(
+        "with-case-asset-is-cw20-token-should-return-null",
         {
-          info: assetInfo,
-          amount: "1"
+          info: {
+            token: {
+              contract_addr: airiCw20Adress
+            }
+          },
+          amount: "100"
         },
-        shareRatio
+        null
+      ],
+      [
+        "with-case-asset-is-native-token-should-return-correctly-fee",
+        {
+          info: {
+            native_token: {
+              denom: atomIbcDenom
+            }
+          },
+          amount: "100"
+        },
+        {
+          amount: "11.53846153846154",
+          info: { native_token: { denom: atomIbcDenom } }
+        }
+      ]
+    ])("test-calculateFeeByAsset-%s", (_caseName: string, inputAsset: Asset, expectedFee: Asset | null) => {
+      const shareRatio = 0.5;
+      const result = poolHelper.calculateFeeByAsset(inputAsset, shareRatio);
+      expect(result).toStrictEqual(expectedFee);
+    });
+
+    it("test-calculateLiquidityFee-should-return-correctly-fee-in-USDT", async () => {
+      // mock
+      jest.spyOn(poolHelper, "convertFeeAssetToUsdt").mockResolvedValue(1e6);
+
+      // act
+      const liquidityFee = await poolHelper.calculateLiquidityFee(
+        {
+          firstAssetInfo: "1",
+          secondAssetInfo: "1",
+          commissionRate: "1",
+          pairAddr: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
+          liquidityAddr: "1",
+          oracleAddr: "1",
+          symbols: "1",
+          fromIconUrl: "1",
+          toIconUrl: "1",
+          volume24Hour: 1n,
+          apr: 1,
+          totalLiquidity: 1,
+          fee7Days: 1n
+        },
+        13344890,
+        1
       );
-      // assert
-      expect(result).toEqual(expectedResult);
+
+      // assertion
+      expect(liquidityFee).toEqual(2000000n);
     });
 
     it.each([
@@ -296,7 +319,7 @@ describe("test-pool-helper", () => {
           info: oraiInfo,
           amount: "1"
         },
-        0.5
+        2
       ]
     ])("%s", async (_caseName: string, assetFee: Asset | null, expectedResult: number) => {
       // mock
@@ -310,54 +333,56 @@ describe("test-pool-helper", () => {
     });
   });
 
-  it.each<[string, AssetInfo[], AssetInfo]>([
-    [
-      "case-asset-info-pairs-is-NOT-reversed-and-base-asset-NOT-ORAI",
+  describe("test-calculate-APR-pool", () => {
+    it.each<[string, AssetInfo[], AssetInfo]>([
       [
-        {
-          token: {
-            contract_addr: scAtomCw20Address
+        "case-asset-info-pairs-is-NOT-reversed-and-base-asset-NOT-ORAI",
+        [
+          {
+            token: {
+              contract_addr: scAtomCw20Address
+            }
+          },
+          {
+            native_token: {
+              denom: atomIbcDenom
+            }
           }
-        },
-        {
-          native_token: {
-            denom: atomIbcDenom
-          }
-        }
-      ],
-      {
-        token: {
-          contract_addr: scAtomCw20Address
-        }
-      }
-    ],
-    ["case-asset-info-pairs-is-NOT-reversed-and-base-asset-is-ORAI", [oraiInfo, usdtInfo], usdtInfo],
-    [
-      "case-asset-info-pairs-is-reversed-and-base-asset-NOT-ORAI",
-      [
-        {
-          native_token: {
-            denom: atomIbcDenom
-          }
-        },
+        ],
         {
           token: {
             contract_addr: scAtomCw20Address
           }
         }
       ],
-      {
-        token: {
-          contract_addr: scAtomCw20Address
+      ["case-asset-info-pairs-is-NOT-reversed-and-base-asset-is-ORAI", [oraiInfo, usdtInfo], usdtInfo],
+      [
+        "case-asset-info-pairs-is-reversed-and-base-asset-NOT-ORAI",
+        [
+          {
+            native_token: {
+              denom: atomIbcDenom
+            }
+          },
+          {
+            token: {
+              contract_addr: scAtomCw20Address
+            }
+          }
+        ],
+        {
+          token: {
+            contract_addr: scAtomCw20Address
+          }
         }
+      ],
+      ["case-asset-info-pairs-is-reversed-and-base-asset-is-ORAI", [usdtInfo, oraiInfo], usdtInfo]
+    ])(
+      "test-getStakingAssetInfo-with-%p-should-return-correctly-staking-asset-info",
+      (_caseName: string, assetInfos: AssetInfo[], expectedStakingAssetInfo: AssetInfo) => {
+        const result = poolHelper.getStakingAssetInfo(assetInfos);
+        expect(result).toStrictEqual(expectedStakingAssetInfo);
       }
-    ],
-    ["case-asset-info-pairs-is-reversed-and-base-asset-is-ORAI", [usdtInfo, oraiInfo], usdtInfo]
-  ])(
-    "test-getStakingAssetInfo-with-%p-should-return-correctly-staking-asset-info",
-    (_caseName: string, assetInfos: AssetInfo[], expectedStakingAssetInfo: AssetInfo) => {
-      const result = poolHelper.getStakingAssetInfo(assetInfos);
-      expect(result).toStrictEqual(expectedStakingAssetInfo);
-    }
-  );
+    );
+  });
 });

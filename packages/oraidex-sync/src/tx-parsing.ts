@@ -123,8 +123,7 @@ async function getFeeLiquidity(
   [baseDenom, quoteDenom]: [string, string],
   opType: LiquidityOpType,
   attrs: readonly Attribute[],
-  txheight: number,
-  duckDb: DuckDb
+  txheight: number
 ): Promise<bigint> {
   // we only have one pair order. If the order is reversed then we also reverse the order
   let findedPair = pairs.find((pair) =>
@@ -151,6 +150,7 @@ async function getFeeLiquidity(
       opType === "provide"
         ? attrs.find((attr) => attr.key === "share").value
         : attrs.find((attr) => attr.key === "withdrawn_share").value;
+    const duckDb = DuckDb.instances;
     const pair = await duckDb.getPoolByAssetInfos(findedPair.asset_infos);
     fee = await calculateLiquidityFee(pair, txheight, +lpShare);
     console.log(`fee ${opType} liquidity: $${fee}`);
@@ -184,8 +184,7 @@ async function extractMsgProvideLiquidity(
         [parseAssetInfoOnlyDenom(baseAsset.info), parseAssetInfoOnlyDenom(quoteAsset.info)],
         "provide",
         attrs,
-        txData.txheight,
-        duckDb
+        txData.txheight
       );
       return {
         basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
@@ -254,7 +253,7 @@ async function extractMsgWithdrawLiquidity(
     }
     if (assets.length !== 4) continue;
 
-    const fee = await getFeeLiquidity([baseAsset, quoteAsset], "withdraw", attrs, txData.txheight, duckDb);
+    const fee = await getFeeLiquidity([baseAsset, quoteAsset], "withdraw", attrs, txData.txheight);
 
     withdrawData.push({
       basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
