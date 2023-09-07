@@ -85,19 +85,12 @@ export const getPriceByAsset = async (
 ): Promise<number> => {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
-  if (!poolInfo) throw new Error(`Cannot found pool info: ${JSON.stringify(assetInfos)}`);
-
-  // get info of latest tx in lp_ops_data table, if lp_ops_data not have data yet => get info from contract
-  let poolAmounts =
-    (await duckDb.getPoolAmountFromAssetInfos(assetInfos)) ??
-    (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
-  if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
-
+  if (!poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
   const basePrice = calculatePriceByPool(
-    BigInt(poolAmounts.askPoolAmount),
-    BigInt(poolAmounts.offerPoolAmount),
+    BigInt(poolInfo.askPoolAmount),
+    BigInt(poolInfo.offerPoolAmount),
     +poolInfo.commissionRate
   );
   return ratioDirection === "base_in_quote" ? basePrice : 1 / basePrice;

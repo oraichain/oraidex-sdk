@@ -148,12 +148,27 @@ export class DuckDb {
         apr DOUBLE,
         totalLiquidity UINT64,
         fee7Days UBIGINT,
+        offerPoolAmount UBIGINT,
+        askPoolAmount UBIGINT,
         PRIMARY KEY (pairAddr) )`
     );
   }
 
   async insertPairInfos(ops: PairInfoData[]) {
     await this.insertBulkData(ops, "pair_infos", true);
+  }
+
+  async updatePairInfoAmount(offerPoolAmount: bigint, askPoolAmount: bigint, pairAddr: string) {
+    console.log({ offerPoolAmount, askPoolAmount, pairAddr });
+    await this.conn.all(
+      `UPDATE pair_infos
+      SET offerPoolAmount = ?, askPoolAmount = ?
+      WHERE pairAddr = ?
+      `,
+      Number(offerPoolAmount),
+      Number(askPoolAmount),
+      pairAddr
+    );
   }
 
   async insertPriceInfos(ops: PriceInfo[]) {
@@ -503,6 +518,7 @@ export class DuckDb {
       console.dir({ nullForPair: assetInfos }, { depth: null });
       return null;
     }
+    console.dir({ result }, { depth: null });
 
     return {
       offerPoolAmount: BigInt(result[0].baseTokenReserve),

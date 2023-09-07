@@ -257,6 +257,7 @@ app.get("/v1/pools/", async (_req, res) => {
       })
     );
   } catch (error) {
+    console.log({ error });
     res.status(500).send(error.message);
   }
 });

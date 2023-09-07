@@ -1,7 +1,7 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { collectAccumulateLpData, getSymbolFromAsset } from "./helper";
+import { collectAccumulateLpData, collectAccumulateSwapData, getSymbolFromAsset } from "./helper";
 import { getAllPairInfos, getPoolInfos } from "./pool-helper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
@@ -9,6 +9,7 @@ import {
   InitialData,
   PairInfoData,
   ProvideLiquidityOperationData,
+  SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
@@ -28,14 +29,25 @@ class WriteOrders extends WriteData {
     await this.duckDb.insertLpOps(txs.withdrawLiquidityOpsData);
   }
 
-  private async accumulatePoolAmount(data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[]) {
-    if (data.length === 0) return; // guard. If theres no data then we wont process anything
+  private async accumulatePoolAmount(
+    data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
+    swapData: SwapOperationData[]
+  ) {
     const pairInfos = await this.duckDb.queryPairInfos();
-    const poolInfos = await getPoolInfos(
-      pairInfos.map((pair) => pair.pairAddr),
-      data[0].txheight // assume data is sorted by height and timestamp
-    );
-    collectAccumulateLpData(data, poolInfos);
+    if (data.length > 0) {
+      const poolInfos = await getPoolInfos(
+        pairInfos.map((pair) => pair.pairAddr),
+        data[0].txheight // assume data is sorted by height and timestamp
+      );
+      await collectAccumulateLpData(data, poolInfos, pairInfos);
+    }
+    if (swapData.length > 0) {
+      const poolInfos = await getPoolInfos(
+        pairInfos.map((pair) => pair.pairAddr),
+        swapData[0].txheight // assume data is sorted by height and timestamp
+      );
+      await collectAccumulateSwapData(swapData, poolInfos, pairInfos);
+    }
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -46,8 +58,11 @@ class WriteOrders extends WriteData {
       if (currentOffset === newOffset) return true;
       let result = await parseTxs(txs);
 
-      // accumulate liquidity pool amount
-      await this.accumulatePoolAmount([...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]);
+      // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
+      await this.accumulatePoolAmount(
+        [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData],
+        [...result.swapOpsData]
+      );
 
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
@@ -79,6 +94,8 @@ class OraiDexSync {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
 
+      const allPools = await this.duckDb.getPools();
+      if (allPools.length > 0) return;
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
@@ -95,10 +112,13 @@ class OraiDexSync {
             volume24Hour: 0n,
             apr: 0,
             totalLiquidity: 0,
-            fee7Days: 0n
+            fee7Days: 0n,
+            offerPoolAmount: 0n,
+            askPoolAmount: 0n
           } as PairInfoData;
         })
       );
+
       console.timeEnd("timer-updateLatestPairInfos");
     } catch (error) {
       console.log("error in updateLatestPairInfos: ", error);

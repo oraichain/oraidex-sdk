@@ -47,6 +47,8 @@ export type PairInfoData = {
   volume24Hour: bigint;
   apr: number;
   totalLiquidity: number;
+  offerPoolAmount: bigint;
+  askPoolAmount: bigint;
   fee7Days: bigint;
 };
 

@@ -227,9 +227,10 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
  * @param poolInfos - pool info data for initial lp accumulation
  */
 // TODO: write test cases for this function
-export function collectAccumulateLpData(
+export async function collectAccumulateLpData(
   data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
-  poolInfos: PoolResponse[]
+  poolInfos: PoolResponse[],
+  pairInfos: PairInfoData[]
 ) {
   let accumulateData: {
     [key: string]: {
@@ -237,6 +238,7 @@ export function collectAccumulateLpData(
       quoteTokenAmount: bigint;
     };
   } = {};
+  const duckDb = DuckDb.instances;
   for (let op of data) {
     const pool = poolInfos.find(
       (info) =>
@@ -252,27 +254,119 @@ export function collectAccumulateLpData(
       baseAmount = -BigInt(op.baseTokenAmount);
       quoteAmount = -BigInt(op.quoteTokenAmount);
     }
-    const denom = `${op.baseTokenDenom}-${op.quoteTokenDenom}`;
-    if (!accumulateData[denom]) {
+
+    let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
+    if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
+    const pairInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+    const { pairAddr } = pairInfo;
+    if (!accumulateData[pairAddr]) {
       const initialFirstTokenAmount = parseInt(
         pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.baseTokenDenom).amount
       );
       const initialSecondTokenAmount = parseInt(
         pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.quoteTokenDenom).amount
       );
-      accumulateData[denom] = {
+      accumulateData[pairAddr] = {
         baseTokenAmount: BigInt(initialFirstTokenAmount) + baseAmount,
         quoteTokenAmount: BigInt(initialSecondTokenAmount) + quoteAmount
       };
-      op.baseTokenReserve = accumulateData[denom].baseTokenAmount;
-      op.quoteTokenReserve = accumulateData[denom].quoteTokenAmount;
-      continue;
+      op.baseTokenReserve = accumulateData[pairAddr].baseTokenAmount;
+      op.quoteTokenReserve = accumulateData[pairAddr].quoteTokenAmount;
+    } else {
+      accumulateData[pairAddr].baseTokenAmount += baseAmount;
+      accumulateData[pairAddr].quoteTokenAmount += quoteAmount;
+      op.baseTokenReserve = accumulateData[pairAddr].baseTokenAmount;
+      op.quoteTokenReserve = accumulateData[pairAddr].quoteTokenAmount;
     }
-    accumulateData[denom].baseTokenAmount += baseAmount;
-    accumulateData[denom].quoteTokenAmount += quoteAmount;
-    op.baseTokenReserve = accumulateData[denom].baseTokenAmount;
-    op.quoteTokenReserve = accumulateData[denom].quoteTokenAmount;
   }
+
+  // update new offer, ask pool amount to pair_infos
+  await Promise.all(
+    pairInfos
+      .map(({ pairAddr }) => {
+        if (accumulateData[pairAddr]) {
+          return duckDb.updatePairInfoAmount(
+            accumulateData[pairAddr].baseTokenAmount,
+            accumulateData[pairAddr].quoteTokenAmount,
+            pairAddr
+          );
+        }
+      })
+      .filter(Boolean)
+  );
+}
+
+/**
+ * This function will accumulate the lp amount and modify the parameter
+ * @param data - swap ops. This param will be mutated.
+ * @param poolInfos - pool info data for initial lp accumulation
+ */
+export async function collectAccumulateSwapData(
+  data: SwapOperationData[],
+  poolInfos: PoolResponse[],
+  pairInfos: PairInfoData[]
+) {
+  let accumulateData: {
+    [key: string]: {
+      baseTokenAmount: bigint;
+      quoteTokenAmount: bigint;
+    };
+  } = {};
+  const duckDb = DuckDb.instances;
+
+  for (let op of data) {
+    const pool = poolInfos.find(
+      (info) =>
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.offerDenom) &&
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.askDenom)
+    );
+    if (!pool) continue;
+
+    let baseAmount = BigInt(op.offerAmount);
+    let quoteAmount = -BigInt(op.returnAmount);
+    if (op.direction === "Sell") {
+      // reverse sign since sell means lp base decrease, quote increase
+      baseAmount = -BigInt(op.offerAmount);
+      quoteAmount = BigInt(op.returnAmount);
+    }
+
+    let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
+    if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
+    const pairInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+    const { pairAddr } = pairInfo;
+    if (!accumulateData[pairAddr]) {
+      let initialFirstTokenAmount = parseInt(
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.offerDenom).amount
+      );
+      let initialSecondTokenAmount = parseInt(
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.askDenom).amount
+      );
+      if (op.direction === "Buy") {
+        [initialFirstTokenAmount, initialSecondTokenAmount] = [initialSecondTokenAmount, initialFirstTokenAmount];
+      }
+      accumulateData[pairAddr] = {
+        baseTokenAmount: BigInt(initialFirstTokenAmount) + baseAmount,
+        quoteTokenAmount: BigInt(initialSecondTokenAmount) + quoteAmount
+      };
+    } else {
+      accumulateData[pairAddr].baseTokenAmount += baseAmount;
+      accumulateData[pairAddr].quoteTokenAmount += quoteAmount;
+    }
+  }
+  // update new offer, ask pool amount to pair_infos
+  await Promise.all(
+    pairInfos
+      .map(({ pairAddr }) => {
+        if (accumulateData[pairAddr]) {
+          return duckDb.updatePairInfoAmount(
+            accumulateData[pairAddr].baseTokenAmount,
+            accumulateData[pairAddr].quoteTokenAmount,
+            pairAddr
+          );
+        }
+      })
+      .filter(Boolean)
+  );
 }
 
 export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
@@ -402,18 +496,12 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
 // get liquidity of pair from assetInfos
 async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<number> {
   const duckDb = DuckDb.instances;
+  // get info of pool in pair_infos, ask & offer are accumulated in sync process (via swap ops and lp ops).
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
-  if (!poolInfo) throw new Error(`Cannot found pool info when get pair liquidity: ${JSON.stringify(assetInfos)}`);
-
-  // get info of last tx in lp_ops_data, if not have data => get info from contract
-  let poolAmounts =
-    (await duckDb.getPoolAmountFromAssetInfos(assetInfos)) ??
-    (await fetchPoolInfoAmount(...assetInfos, poolInfo.pairAddr));
-  if (!poolAmounts) throw new Error(` Cannot found pool amount: ${JSON.stringify(assetInfos)}`);
-
+  if (!poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
   const baseAssetInfo = assetInfos[0];
   const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-  return priceBaseAssetInUsdt * Number(poolAmounts.offerPoolAmount) * 2;
+  return priceBaseAssetInUsdt * Number(poolInfo.offerPoolAmount) * 2;
 }
 
 /**
