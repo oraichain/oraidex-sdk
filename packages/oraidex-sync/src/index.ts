@@ -1,12 +1,18 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { collectAccumulateLpData, collectAccumulateSwapData, getSymbolFromAsset } from "./helper";
+import {
+  collectAccumulateLpAndSwapData,
+  collectAccumulateLpData,
+  collectAccumulateSwapData,
+  getSymbolFromAsset
+} from "./helper";
 import { getAllPairInfos, getPoolInfos } from "./pool-helper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
   Env,
   InitialData,
+  LpOpsData,
   PairInfoData,
   ProvideLiquidityOperationData,
   SwapOperationData,
@@ -34,19 +40,44 @@ class WriteOrders extends WriteData {
     swapData: SwapOperationData[]
   ) {
     const pairInfos = await this.duckDb.queryPairInfos();
-    if (data.length > 0) {
-      const poolInfos = await getPoolInfos(
-        pairInfos.map((pair) => pair.pairAddr),
-        data[0].txheight // assume data is sorted by height and timestamp
-      );
-      await collectAccumulateLpData(data, poolInfos, pairInfos);
-    }
-    if (swapData.length > 0) {
-      const poolInfos = await getPoolInfos(
-        pairInfos.map((pair) => pair.pairAddr),
-        swapData[0].txheight // assume data is sorted by height and timestamp
-      );
-      await collectAccumulateSwapData(swapData, poolInfos, pairInfos);
+    // if (data.length > 0) {
+    //   const poolInfos = await getPoolInfos(
+    //     pairInfos.map((pair) => pair.pairAddr),
+    //     data[0].txheight // assume data is sorted by height and timestamp
+    //   );
+    //   await collectAccumulateLpData(data, poolInfos, pairInfos);
+    // }
+    // if (swapData.length > 0) {
+    //   const poolInfos = await getPoolInfos(
+    //     pairInfos.map((pair) => pair.pairAddr),
+    //     swapData[0].txheight // assume data is sorted by height and timestamp
+    //   );
+    //   await collectAccumulateSwapData(swapData, poolInfos, pairInfos);
+    // }
+    if (data.length > 0 || swapData.length > 0) {
+      const lpOpsData: LpOpsData[] = [
+        ...data.map((item) => {
+          return {
+            baseTokenAmount: item.baseTokenAmount,
+            baseTokenDenom: item.baseTokenDenom,
+            quoteTokenAmount: item.quoteTokenAmount,
+            quoteTokenDenom: item.quoteTokenDenom,
+            opType: item.opType,
+            direction: null
+          } as LpOpsData;
+        }),
+        ...swapData.map((item) => {
+          return {
+            baseTokenAmount: item.offerAmount,
+            baseTokenDenom: item.offerDenom,
+            quoteTokenAmount: -item.returnAmount,
+            quoteTokenDenom: item.askDenom,
+            opType: null,
+            direction: item.direction
+          } as LpOpsData;
+        })
+      ];
+      await collectAccumulateLpAndSwapData(lpOpsData, pairInfos);
     }
   }
 
@@ -89,15 +120,19 @@ class OraiDexSync {
     return new OraiDexSync(duckDb, rpcUrl, env);
   }
 
-  private async updateLatestPairInfos() {
+  private async updateLatestPairInfos(currentHeight: number) {
     try {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
 
       const allPools = await this.duckDb.getPools();
       if (allPools.length > 0) return;
+      const poolInfos = await getPoolInfos(
+        pairInfos.map((pair) => pair.contract_addr),
+        currentHeight
+      );
       await this.duckDb.insertPairInfos(
-        pairInfos.map((pair) => {
+        pairInfos.map((pair, index) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
           return {
             firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
@@ -113,8 +148,8 @@ class OraiDexSync {
             apr: 0,
             totalLiquidity: 0,
             fee7Days: 0n,
-            offerPoolAmount: 0n,
-            askPoolAmount: 0n
+            offerPoolAmount: BigInt(poolInfos[index].assets[0].amount),
+            askPoolAmount: BigInt(poolInfos[index].assets[1].amount)
           } as PairInfoData;
         })
       );
@@ -142,7 +177,7 @@ class OraiDexSync {
         currentInd = initialSyncHeight;
       }
       console.log("current ind: ", currentInd);
-      await this.updateLatestPairInfos();
+      await this.updateLatestPairInfos(currentInd);
       new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,

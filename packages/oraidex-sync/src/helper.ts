@@ -12,6 +12,7 @@ import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { getPriceAssetByUsdt } from "./pool-helper";
 import {
+  LpOpsData,
   Ohlcv,
   OraiDexType,
   PairInfoData,
@@ -108,8 +109,6 @@ export function replaceAllNonAlphaBetChar(columnName: string): string {
 }
 
 function parseAssetInfo(info: AssetInfo): string {
-  // if ("native_token" in info) return info.native_token.denom;
-  // return info.token.contract_addr;
   return JSON.stringify(info);
 }
 
@@ -251,8 +250,8 @@ export async function collectAccumulateLpData(
     let quoteAmount = BigInt(op.quoteTokenAmount);
     if (op.opType === "withdraw") {
       // reverse sign since withdraw means lp decreases
-      baseAmount = -BigInt(op.baseTokenAmount);
-      quoteAmount = -BigInt(op.quoteTokenAmount);
+      baseAmount = -baseAmount;
+      quoteAmount = -quoteAmount;
     }
 
     let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
@@ -270,16 +269,89 @@ export async function collectAccumulateLpData(
         baseTokenAmount: BigInt(initialFirstTokenAmount) + baseAmount,
         quoteTokenAmount: BigInt(initialSecondTokenAmount) + quoteAmount
       };
-      op.baseTokenReserve = accumulateData[pairAddr].baseTokenAmount;
-      op.quoteTokenReserve = accumulateData[pairAddr].quoteTokenAmount;
     } else {
       accumulateData[pairAddr].baseTokenAmount += baseAmount;
       accumulateData[pairAddr].quoteTokenAmount += quoteAmount;
-      op.baseTokenReserve = accumulateData[pairAddr].baseTokenAmount;
-      op.quoteTokenReserve = accumulateData[pairAddr].quoteTokenAmount;
     }
   }
+  // update new offer, ask pool amount to pair_infos
+  await Promise.all(
+    pairInfos
+      .map(({ pairAddr }) => {
+        if (accumulateData[pairAddr]) {
+          return duckDb.updatePairInfoAmount(
+            accumulateData[pairAddr].baseTokenAmount,
+            accumulateData[pairAddr].quoteTokenAmount,
+            pairAddr
+          );
+        }
+      })
+      .filter(Boolean)
+  );
+}
 
+/**
+ * This function will accumulate the lp amount and modify the parameter
+ * @param data - lp ops & swap ops.
+ * @param poolInfos - pool info data for initial lp accumulation
+ * @param pairInfos - pool info data from db
+ */
+// TODO: write test cases for this function
+export async function collectAccumulateLpAndSwapData(data: LpOpsData[], pairInfos: PairInfoData[]) {
+  let accumulateData: {
+    [key: string]: {
+      baseTokenAmount: bigint;
+      quoteTokenAmount: bigint;
+    };
+  } = {};
+  const duckDb = DuckDb.instances;
+  for (let op of data) {
+    let baseAmount = BigInt(op.baseTokenAmount);
+    let quoteAmount = BigInt(op.quoteTokenAmount);
+    if (op.opType === "withdraw" || op.direction === "Sell") {
+      // reverse sign since withdraw means lp decreases
+      baseAmount = -baseAmount;
+      quoteAmount = -quoteAmount;
+    }
+
+    const pairMapping = pairs.find(
+      (pair) =>
+        pair.asset_infos.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === op.baseTokenDenom) &&
+        pair.asset_infos.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === op.quoteTokenDenom)
+    );
+    const pairInfo = await duckDb.getPoolByAssetInfos(pairMapping.asset_infos);
+    if (!pairInfo) continue;
+
+    const { pairAddr } = pairInfo;
+    if (!accumulateData[pairAddr]) {
+      // let initialFirstTokenAmount = BigInt(pairInfo.offerPoolAmount);
+      // let initialSecondTokenAmount = BigInt(pairInfo.askPoolAmount);
+      // if (op.direction === "Buy") {
+      //   [initialFirstTokenAmount, initialSecondTokenAmount] = [initialSecondTokenAmount, initialFirstTokenAmount];
+      // }
+
+      // accumulateData[pairAddr] = {
+      //   baseTokenAmount: initialFirstTokenAmount + baseAmount,
+      //   quoteTokenAmount: initialSecondTokenAmount + quoteAmount
+      // };
+      let initialFirstTokenAmount = parseInt(
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.offerDenom).amount
+      );
+      let initialSecondTokenAmount = parseInt(
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === op.askDenom).amount
+      );
+      if (op.direction === "Buy") {
+        [initialFirstTokenAmount, initialSecondTokenAmount] = [initialSecondTokenAmount, initialFirstTokenAmount];
+      }
+      accumulateData[pairAddr] = {
+        baseTokenAmount: BigInt(initialFirstTokenAmount) + baseAmount,
+        quoteTokenAmount: BigInt(initialSecondTokenAmount) + quoteAmount
+      };
+    } else {
+      accumulateData[pairAddr].baseTokenAmount += baseAmount;
+      accumulateData[pairAddr].quoteTokenAmount += quoteAmount;
+    }
+  }
   // update new offer, ask pool amount to pair_infos
   await Promise.all(
     pairInfos
@@ -313,7 +385,6 @@ export async function collectAccumulateSwapData(
     };
   } = {};
   const duckDb = DuckDb.instances;
-
   for (let op of data) {
     const pool = poolInfos.find(
       (info) =>
@@ -326,8 +397,8 @@ export async function collectAccumulateSwapData(
     let quoteAmount = -BigInt(op.returnAmount);
     if (op.direction === "Sell") {
       // reverse sign since sell means lp base decrease, quote increase
-      baseAmount = -BigInt(op.offerAmount);
-      quoteAmount = BigInt(op.returnAmount);
+      baseAmount = -baseAmount;
+      quoteAmount = -quoteAmount;
     }
 
     let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];

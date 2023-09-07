@@ -84,6 +84,15 @@ export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
 export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData | Ohlcv;
 
+export type LpOpsData = {
+  baseTokenAmount: number;
+  baseTokenDenom: string; // eg: orai, orai1234...
+  quoteTokenAmount: number;
+  quoteTokenDenom: string;
+  opType?: LiquidityOpType;
+  direction?: SwapDirection;
+};
+
 export type TxAnlysisResult = {
   // transactions: Tx[];
   swapOpsData: SwapOperationData[];
