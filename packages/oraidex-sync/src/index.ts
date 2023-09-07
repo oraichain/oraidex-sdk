@@ -44,7 +44,7 @@ class WriteOrders extends WriteData {
       const currentOffset = await this.duckDb.loadHeightSnapshot();
       // edge case. If no new block has been found, then we skip processing to prevent duplication handling
       if (currentOffset === newOffset) return true;
-      let result = await parseTxs(txs, this.duckDb);
+      let result = await parseTxs(txs);
 
       // accumulate liquidity pool amount
       await this.accumulatePoolAmount([...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]);

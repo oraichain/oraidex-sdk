@@ -162,8 +162,7 @@ async function extractMsgProvideLiquidity(
   txData: BasicTxData,
   msg: MsgType,
   txCreator: string,
-  wasmAttributes: (readonly Attribute[])[],
-  duckDb: DuckDb
+  wasmAttributes: (readonly Attribute[])[]
 ): Promise<ProvideLiquidityOperationData | undefined> {
   if ("provide_liquidity" in msg) {
     for (let attrs of wasmAttributes) {
@@ -225,8 +224,7 @@ function parseWithdrawLiquidityAssets(assets: string): string[] {
 async function extractMsgWithdrawLiquidity(
   txData: BasicTxData,
   wasmAttributes: (readonly Attribute[])[],
-  txCreator: string,
-  duckDb: DuckDb
+  txCreator: string
 ): Promise<WithdrawLiquidityOperationData[]> {
   const withdrawData: WithdrawLiquidityOperationData[] = [];
 
@@ -312,7 +310,7 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
   return objs;
 }
 
-async function parseTxs(txs: Tx[], duckDb: DuckDb): Promise<TxAnlysisResult> {
+async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   let transactions: Tx[] = [];
   let swapOpsData: SwapOperationData[] = [];
   let accountTxs: AccountTx[] = [];
@@ -332,17 +330,9 @@ async function parseTxs(txs: Tx[], duckDb: DuckDb): Promise<TxAnlysisResult> {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
-      const provideLiquidityData = await extractMsgProvideLiquidity(
-        basicTxData,
-        msg.msg,
-        sender,
-        wasmAttributes,
-        duckDb
-      );
+      const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
-      withdrawLiquidityOpsData.push(
-        ...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender, duckDb))
-      );
+      withdrawLiquidityOpsData.push(...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender)));
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
