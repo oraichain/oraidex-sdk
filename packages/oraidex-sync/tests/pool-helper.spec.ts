@@ -1,4 +1,4 @@
-import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, AssetInfo, OraiswapStakingTypes } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,
   airiCw20Adress,
@@ -11,7 +11,7 @@ import {
 } from "../src/constants";
 
 import * as helper from "../src/helper";
-import { DuckDb } from "../src/index";
+import { DuckDb, pairs } from "../src/index";
 import * as poolHelper from "../src/pool-helper";
 import { PairInfoData, PairMapping, ProvideLiquidityOperationData } from "../src/types";
 
@@ -392,5 +392,38 @@ describe("test-pool-helper", () => {
         expect(result).toStrictEqual(expectedStakingAssetInfo);
       }
     );
+  });
+
+  it("test-calculateAprResult-should-return-correctly-APR", async () => {
+    // setup
+    const allLiquidities = Array(pairs.length).fill(1e6);
+    const allTotalSupplies = Array(pairs.length).fill("100000");
+    const allBondAmounts = Array(pairs.length).fill("1");
+    const allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[] = Array(pairs.length).fill({
+      assets: [
+        {
+          amount: "1",
+          info: oraiInfo
+        }
+      ]
+    });
+    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValueOnce(1);
+
+    // act
+    const result = await poolHelper.calculateAprResult(
+      allLiquidities,
+      allTotalSupplies,
+      allBondAmounts,
+      allRewardPerSec
+    );
+    console.dir({ result }, { depth: null });
+
+    // assertion
+    expect(result.length).toEqual(pairs.length);
+    expect(result).toStrictEqual([
+      31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998,
+      31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998,
+      31.535999999999998
+    ]);
   });
 });

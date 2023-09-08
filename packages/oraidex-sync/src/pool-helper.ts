@@ -8,17 +8,16 @@ import {
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { isEqual } from "lodash";
 import { ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
 import {
   calculatePriceByPool,
-  fetchPoolInfoAmount,
   getCosmwasmClient,
   isAssetInfoPairReverse,
   parseAssetInfoOnlyDenom,
   validateNumber
 } from "./helper";
+import { DuckDb } from "./index";
 import { pairs } from "./pairs";
 import {
   fetchAllRewardPerSecInfos,
@@ -28,7 +27,6 @@ import {
   queryPoolInfos
 } from "./query";
 import { PairInfoData, PairMapping } from "./types";
-import { DuckDb } from "./index";
 
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
@@ -203,21 +201,20 @@ export const calculateLiquidityFee = async (
 //  <==== calculate APR ====
 export const calculateAprResult = async (
   allLiquidities: number[],
-  allTokenInfo: TokenInfoResponse[],
-  allLpTokenAsset: OraiswapStakingTypes.PoolInfoResponse[],
+  allTotalSupplies: string[],
+  allBondAmounts: string[],
   allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[]
 ): Promise<number[]> => {
   let aprResult = [];
   let ind = 0;
   for (const _pair of pairs) {
     const liquidityAmount = allLiquidities[ind] * Math.pow(10, -6);
-    const lpToken = allLpTokenAsset[ind];
-    const tokenSupply = allTokenInfo[ind];
+    const totalBondAmount = allBondAmounts[ind];
+    const tokenSupply = allTotalSupplies[ind];
     const rewardsPerSecData = allRewardPerSec[ind];
-    if (!lpToken || !tokenSupply || !rewardsPerSecData) continue;
+    if (!totalBondAmount || !tokenSupply || !rewardsPerSecData) continue;
 
-    const bondValue =
-      (validateNumber(lpToken.total_bond_amount) * liquidityAmount) / validateNumber(tokenSupply.total_supply);
+    const bondValue = (validateNumber(totalBondAmount) * liquidityAmount) / validateNumber(tokenSupply);
 
     let rewardsPerYearValue = 0;
     for (const { amount, info } of rewardsPerSecData.assets) {
@@ -246,7 +243,9 @@ export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: 
       fetchAllTokenAssetPools(assetTokens),
       fetchAllRewardPerSecInfos(assetTokens)
     ]);
-    return calculateAprResult(allLiquidities, allTokenInfo, allLpTokenAsset, allRewardPerSec);
+    const allTotalSupplies = allTokenInfo.map((info) => info.total_supply);
+    const allBondAmounts = allLpTokenAsset.map((info) => info.total_bond_amount);
+    return calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
   } catch (error) {
     console.log({ errorFetchAprResult: error });
   }
