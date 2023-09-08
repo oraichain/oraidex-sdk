@@ -11,17 +11,7 @@ import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } f
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import {
-  LpOpsData,
-  Ohlcv,
-  OraiDexType,
-  PairInfoData,
-  PoolInfo,
-  ProvideLiquidityOperationData,
-  SwapDirection,
-  SwapOperationData,
-  WithdrawLiquidityOperationData
-} from "./types";
+import { LpOpsData, Ohlcv, OraiDexType, PairInfoData, PoolInfo, SwapDirection, SwapOperationData } from "./types";
 
 export function toObject(data: any) {
   return JSON.parse(
@@ -84,9 +74,9 @@ export function concatDataToUniqueKey(data: {
   return `${data.txheight}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
 }
 
-export function concatOhlcvToUniqueKey(data: { timestamp: number; pair: string; volume: bigint }): string {
+export const concatOhlcvToUniqueKey = (data: { timestamp: number; pair: string; volume: bigint }): string => {
   return `${data.timestamp}-${data.pair}-${data.volume.toString()}`;
-}
+};
 
 export function isoToTimestampNumber(time: string) {
   return Math.floor(new Date(time).getTime() / 1000);
@@ -227,11 +217,7 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
  * @param pairInfos - pool info data from db
  */
 // TODO: write test cases for this function
-export async function collectAccumulateLpAndSwapData(
-  data: LpOpsData[],
-  poolInfos: PoolResponse[],
-  pairInfos: PairInfoData[]
-) {
+export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfos: PoolResponse[]) => {
   let accumulateData: {
     [key: string]: {
       baseTokenAmount: bigint;
@@ -279,21 +265,9 @@ export async function collectAccumulateLpAndSwapData(
       accumulateData[pairAddr].quoteTokenAmount += quoteAmount;
     }
   }
-  // update new offer, ask pool amount to pair_infos
-  await Promise.all(
-    pairInfos
-      .map(({ pairAddr }) => {
-        if (accumulateData[pairAddr]) {
-          return duckDb.updatePairInfoAmount(
-            accumulateData[pairAddr].baseTokenAmount,
-            accumulateData[pairAddr].quoteTokenAmount,
-            pairAddr
-          );
-        }
-      })
-      .filter(Boolean)
-  );
-}
+
+  return accumulateData;
+};
 
 export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
   let newOps: OraiDexType[] = [];
@@ -308,7 +282,7 @@ export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
  * @param swapOps
  * @returns
  */
-export function groupSwapOpsByPair(ops: SwapOperationData[]): { [key: string]: SwapOperationData[] } {
+export const groupSwapOpsByPair = (ops: SwapOperationData[]): { [key: string]: SwapOperationData[] } => {
   let opsByPair = {};
   for (const op of ops) {
     const pairIndex = findPairIndexFromDenoms(op.offerDenom, op.askDenom);
@@ -321,9 +295,9 @@ export function groupSwapOpsByPair(ops: SwapOperationData[]): { [key: string]: S
     opsByPair[pair].push(op);
   }
   return opsByPair;
-}
+};
 
-export function calculateSwapOhlcv(ops: SwapOperationData[], pair: string): Ohlcv {
+export const calculateSwapOhlcv = (ops: SwapOperationData[], pair: string): Ohlcv => {
   const timestamp = ops[0].timestamp;
   const prices = ops.map((op) => calculateBasePriceFromSwapOp(op));
   const open = prices[0];
@@ -347,7 +321,7 @@ export function calculateSwapOhlcv(ops: SwapOperationData[], pair: string): Ohlc
     low,
     high
   };
-}
+};
 
 export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
   let ohlcv: Ohlcv[] = [];
@@ -359,14 +333,14 @@ export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
   return ohlcv;
 }
 
-export function calculateBasePriceFromSwapOp(op: SwapOperationData): number {
+export const calculateBasePriceFromSwapOp = (op: SwapOperationData): number => {
   if (!op || !op.offerAmount || !op.returnAmount) {
     return 0;
   }
   const offerAmount = op.offerAmount;
   const askAmount = op.returnAmount;
   return op.direction === "Buy" ? Number(offerAmount) / Number(askAmount) : Number(askAmount) / Number(offerAmount);
-}
+};
 
 export function getSwapDirection(offerDenom: string, askDenom: string): SwapDirection {
   const pair = pairsOnlyDenom.find((pair) => {
@@ -391,8 +365,10 @@ export function findPairIndexFromDenoms(offerDenom: string, askDenom: string): n
 function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
   const findedPair = pairs.find(
     (p) =>
-      JSON.stringify(p.asset_infos) === JSON.stringify(asset_infos) ||
-      JSON.stringify(p.asset_infos) === JSON.stringify(asset_infos.reverse())
+      p.asset_infos.some(
+        (assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === parseAssetInfoOnlyDenom(asset_infos[0])
+      ) &&
+      p.asset_infos.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === parseAssetInfoOnlyDenom(asset_infos[1]))
   );
   if (!findedPair) {
     throw new Error(`cannot found pair with asset_infos: ${JSON.stringify(asset_infos)}`);
@@ -406,9 +382,9 @@ async function getCosmwasmClient(): Promise<CosmWasmClient> {
   return client;
 }
 
-function parsePoolAmount(poolInfo: OraiswapPairTypes.PoolResponse, trueAsset: AssetInfo): bigint {
+export const parsePoolAmount = (poolInfo: OraiswapPairTypes.PoolResponse, trueAsset: AssetInfo): bigint => {
   return BigInt(poolInfo.assets.find((asset) => isEqual(asset.info, trueAsset))?.amount || "0");
-}
+};
 
 async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairAddr: string): Promise<PoolInfo> {
   const client = await getCosmwasmClient();
@@ -420,7 +396,7 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
 }
 
 // get liquidity of pair from assetInfos
-async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<number> {
+export const getPairLiquidity = async (assetInfos: [AssetInfo, AssetInfo]): Promise<number> => {
   const duckDb = DuckDb.instances;
   // get info of pool in pair_infos, ask & offer are accumulated in sync process (via swap ops and lp ops).
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
@@ -428,7 +404,7 @@ async function getPairLiquidity(assetInfos: [AssetInfo, AssetInfo]): Promise<num
   const baseAssetInfo = assetInfos[0];
   const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
   return priceBaseAssetInUsdt * Number(poolInfo.offerPoolAmount) * 2;
-}
+};
 
 /**
  *
@@ -447,11 +423,11 @@ function convertDateToSecond(date: Date): number {
 }
 
 // <===== start get volume pairs =====
-async function getVolumePairByAsset(
+export const getVolumePairByAsset = async (
   [baseDenom, quoteDenom]: [string, string],
   startTime: Date,
   endTime: Date
-): Promise<bigint> {
+): Promise<bigint> => {
   const duckDb = DuckDb.instances;
   const pair = `${baseDenom}-${quoteDenom}`;
   const [volumeSwapPairInBaseAsset, volumeLiquidityPairInBaseAsset] = await Promise.all([
@@ -468,19 +444,19 @@ async function getVolumePairByAsset(
     })
   ]);
   return volumeSwapPairInBaseAsset + volumeLiquidityPairInBaseAsset;
-}
+};
 
-async function getVolumePairByUsdt(
+export const getVolumePairByUsdt = async (
   [baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo],
   startTime: Date,
   endTime: Date
-): Promise<bigint> {
+): Promise<bigint> => {
   const [baseDenom, quoteDenom] = [parseAssetInfoOnlyDenom(baseAssetInfo), parseAssetInfoOnlyDenom(quoteAssetInfo)];
   const volumePairInBaseAsset = await getVolumePairByAsset([baseDenom, quoteDenom], startTime, endTime);
   const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
   const volumeInUsdt = priceBaseAssetInUsdt * Number(volumePairInBaseAsset);
   return BigInt(Math.round(volumeInUsdt));
-}
+};
 
 async function getAllVolume24h(): Promise<bigint[]> {
   const tf = 24 * 60 * 60; // second of 24h
@@ -494,7 +470,11 @@ async function getAllVolume24h(): Promise<bigint[]> {
 // ===== end get volume pairs =====>
 
 //  <==== start get fee pair ====
-async function getFeePair(asset_infos: [AssetInfo, AssetInfo], startTime: Date, endTime: Date): Promise<bigint> {
+export const getFeePair = async (
+  asset_infos: [AssetInfo, AssetInfo],
+  startTime: Date,
+  endTime: Date
+): Promise<bigint> => {
   const duckDb = DuckDb.instances;
   const [swapFee, liquidityFee] = await Promise.all([
     duckDb.getFeeSwap({
@@ -511,7 +491,7 @@ async function getFeePair(asset_infos: [AssetInfo, AssetInfo], startTime: Date, 
     })
   ]);
   return swapFee + liquidityFee;
-}
+};
 
 async function getAllFees(): Promise<bigint[]> {
   const tf = 7 * 24 * 60 * 60; // second of 7 days
@@ -534,12 +514,8 @@ export {
   getAllFees,
   getAllVolume24h,
   getCosmwasmClient,
-  getFeePair,
-  getPairLiquidity,
   getSpecificDateBeforeNow,
   getSymbolFromAsset,
-  getVolumePairByAsset,
-  getVolumePairByUsdt,
   parseAssetInfo,
   parseAssetInfoOnlyDenom
 };

@@ -1,4 +1,5 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import fs from "fs";
+import { AssetInfo, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
   ORAI,
@@ -19,7 +20,6 @@ import {
 import {
   calculateBasePriceFromSwapOp,
   calculatePriceByPool,
-  collectAccumulateLpData,
   concatDataToUniqueKey,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
@@ -35,11 +35,15 @@ import {
   toDisplay
 } from "../src/helper";
 import { extractUniqueAndFlatten, pairs } from "../src/pairs";
-import { PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
-import { DuckDb, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
+import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
+import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
+import * as poolHelper from "../src/pool-helper";
+import * as helper from "../src/helper";
 
 describe("test-helper", () => {
   let duckDb: DuckDb;
+
+  afterEach(jest.restoreAllMocks);
 
   describe("bigint", () => {
     describe("toAmount", () => {
@@ -200,7 +204,9 @@ describe("test-helper", () => {
         volume24Hour: 1n,
         apr: 1,
         totalLiquidity: 1,
-        fee7Days: 1n
+        fee7Days: 1n,
+        offerPoolAmount: 1n,
+        askPoolAmount: 1n
       }
     ];
     let assetInfos: [AssetInfo, AssetInfo] = [{ native_token: { denom: ORAI } }, assetInfo];
@@ -376,81 +382,110 @@ describe("test-helper", () => {
     }
   );
 
-  it("test-collectAccumulateLpData-should-aggregate-ops-with-same-pairs", () => {
+  it("test-collectAccumulateLpAndSwapData-should-aggregate-ops-with-same-pairs", async () => {
+    // setup, test with orai/usdt & orai/atom pair
     const poolResponses: PoolResponse[] = [
       {
         assets: [
-          { info: { native_token: { denom: ORAI } }, amount: "1" },
-          { info: { token: { contract_addr: usdtCw20Address } }, amount: "1" }
+          { info: oraiInfo, amount: "1" },
+          { info: usdtInfo, amount: "1" }
         ],
-        total_share: "2"
+        total_share: "1"
       },
       {
         assets: [
-          { info: { native_token: { denom: ORAI } }, amount: "4" },
-          { info: { token: { contract_addr: atomIbcDenom } }, amount: "4" }
+          { info: oraiInfo, amount: "4" },
+          { info: { native_token: { denom: atomIbcDenom } }, amount: "4" }
         ],
         total_share: "8"
       }
     ];
-    const ops: ProvideLiquidityOperationData[] = [
+
+    const lpOpsData: LpOpsData[] = [
       {
-        basePrice: 1,
         baseTokenAmount: 1,
         baseTokenDenom: ORAI,
         quoteTokenAmount: 1,
         quoteTokenDenom: usdtCw20Address,
-        baseTokenReserve: 1,
-        quoteTokenReserve: 1,
-        opType: "provide",
-        uniqueKey: "1",
-        timestamp: 1,
-        txCreator: "a",
-        txhash: "a",
-        txheight: 1,
-        taxRate: 1n
+        opType: "withdraw"
       },
       {
-        basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 2,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1,
+        quoteTokenAmount: 2,
         quoteTokenDenom: usdtCw20Address,
-        baseTokenReserve: 1,
-        quoteTokenReserve: 1,
-        opType: "withdraw",
-        uniqueKey: "2",
-        timestamp: 1,
-        txCreator: "a",
-        txhash: "a",
-        txheight: 1,
-        taxRate: 1n
+        opType: "provide"
       },
       {
-        basePrice: 1,
         baseTokenAmount: 1,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1,
+        quoteTokenAmount: -1,
+        quoteTokenDenom: usdtCw20Address,
+        direction: "Buy"
+      },
+      {
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: -1,
+        quoteTokenDenom: usdtCw20Address,
+        direction: "Sell"
+      },
+
+      {
+        baseTokenAmount: 1,
+        baseTokenDenom: ORAI,
+        quoteTokenAmount: -1,
         quoteTokenDenom: atomIbcDenom,
-        baseTokenReserve: 1,
-        quoteTokenReserve: 1,
-        opType: "withdraw",
-        uniqueKey: "3",
-        timestamp: 1,
-        txCreator: "a",
-        txhash: "a",
-        txheight: 1,
-        taxRate: 1n
+        direction: "Sell"
       }
     ];
+    duckDb = await DuckDb.create(":memory:");
+    await duckDb.createPairInfosTable();
+    await duckDb.insertPairInfos([
+      {
+        firstAssetInfo: JSON.stringify(oraiInfo),
+        secondAssetInfo: JSON.stringify(usdtInfo),
+        commissionRate: "",
+        pairAddr: "oraiUsdtPairAddr",
+        liquidityAddr: "",
+        oracleAddr: "",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1",
+        volume24Hour: 1n,
+        apr: 1,
+        totalLiquidity: 1,
+        fee7Days: 1n,
+        offerPoolAmount: 1n,
+        askPoolAmount: 1n
+      },
+      {
+        firstAssetInfo: JSON.stringify(oraiInfo),
+        secondAssetInfo: JSON.stringify({ native_token: { denom: atomIbcDenom } }),
+        commissionRate: "",
+        pairAddr: "oraiAtomPairAddr",
+        liquidityAddr: "",
+        oracleAddr: "",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1",
+        volume24Hour: 1n,
+        apr: 1,
+        totalLiquidity: 1,
+        fee7Days: 1n,
+        offerPoolAmount: 1n,
+        askPoolAmount: 1n
+      }
+    ]);
 
-    collectAccumulateLpData(ops, poolResponses);
-    expect(ops[0].baseTokenReserve.toString()).toEqual("2");
-    expect(ops[0].quoteTokenReserve.toString()).toEqual("2");
-    expect(ops[1].baseTokenReserve.toString()).toEqual("1");
-    expect(ops[1].quoteTokenReserve.toString()).toEqual("1");
-    expect(ops[2].baseTokenReserve.toString()).toEqual("3");
-    expect(ops[2].quoteTokenReserve.toString()).toEqual("3");
+    // act
+    const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolResponses);
+
+    // assertion
+    expect(accumulatedData).toStrictEqual({
+      oraiUsdtPairAddr: { baseTokenAmount: 2n, quoteTokenAmount: 2n },
+      oraiAtomPairAddr: { baseTokenAmount: 5n, quoteTokenAmount: 3n }
+    });
   });
 
   it("test-concatDataToUniqueKey-should-return-unique-key-in-correct-order-from-timestamp-to-first-to-second-amount-and-denom", () => {
@@ -524,10 +559,95 @@ describe("test-helper", () => {
     expect(newOps[1].uniqueKey).toEqual("2");
   });
 
+  describe("test-ohlcv-calculation", () => {
+    // setup
+    const ops: SwapOperationData[] = [
+      {
+        offerAmount: 2,
+        offerDenom: ORAI,
+        returnAmount: 1,
+        askDenom: usdtCw20Address,
+        direction: "Buy",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1,
+        spreadAmount: 1,
+        taxAmount: 1,
+        commissionAmount: 1
+      } as SwapOperationData,
+      {
+        offerAmount: 2,
+        offerDenom: ORAI,
+        returnAmount: 1,
+        askDenom: usdtCw20Address,
+        direction: "Sell",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1,
+        spreadAmount: 1,
+        taxAmount: 1,
+        commissionAmount: 1
+      } as SwapOperationData,
+      {
+        offerAmount: 2,
+        offerDenom: ORAI,
+        returnAmount: 1,
+        askDenom: atomIbcDenom,
+        direction: "Sell",
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1,
+        spreadAmount: 1,
+        taxAmount: 1,
+        commissionAmount: 1
+      } as SwapOperationData
+    ];
+    const opsByPair = ops.slice(0, 2);
+
+    it("test-calculateSwapOhlcv-should-return-correctly-swap-ohlcv", () => {
+      // setup
+      const pair = "orai-usdt";
+      jest.spyOn(helper, "calculateBasePriceFromSwapOp").mockReturnValue(1);
+      jest.spyOn(helper, "concatOhlcvToUniqueKey").mockReturnValue("orai-usdt-unique-key");
+
+      // act
+      const swapOhlcv = helper.calculateSwapOhlcv(opsByPair, pair);
+
+      // assertion
+      expect(swapOhlcv).toStrictEqual({
+        uniqueKey: "orai-usdt-unique-key",
+        timestamp: 1,
+        pair,
+        volume: 3n,
+        open: 1,
+        close: 1,
+        low: 1,
+        high: 1
+      });
+    });
+
+    it("test-groupSwapOpsByPair-should-return-correctly-group-swap-ops-by-pair", () => {
+      // act
+      const result = helper.groupSwapOpsByPair(ops);
+
+      // assertion
+      expect(result[`${ORAI}-${usdtCw20Address}`].length).toEqual(opsByPair.length);
+      expect(result[`${ORAI}-${usdtCw20Address}`][0]).toStrictEqual(opsByPair[0]);
+      expect(result[`${ORAI}-${usdtCw20Address}`][1]).toStrictEqual(opsByPair[1]);
+      expect(result[`${ORAI}-${atomIbcDenom}`][0]).toStrictEqual(ops[2]);
+    });
+  });
+
   it.each([
     ["Buy" as SwapDirection, 2],
     ["Sell" as SwapDirection, 0.5]
-  ])("test-calculatePriceFromOrder", (direction: SwapDirection, expectedPrice: number) => {
+  ])("test-calculateBasePriceFromSwapOp", (direction: SwapDirection, expectedPrice: number) => {
     const swapOp = {
       offerAmount: 2,
       offerDenom: ORAI,
@@ -589,6 +709,84 @@ describe("test-helper", () => {
     }
   );
 
+  it("test-getSymbolFromAsset-should-throw-error-for-assetInfos-not-valid", () => {
+    const asset_infos = [oraiInfo, { token: { contract_addr: "invalid-token" } }] as [AssetInfo, AssetInfo];
+    expect(() => helper.getSymbolFromAsset(asset_infos)).toThrowError(
+      `cannot found pair with asset_infos: ${JSON.stringify(asset_infos)}`
+    );
+  });
+
+  it("test-getSymbolFromAsset-should-return-correctly-symbol-of-pair-for-valid-assetInfos", () => {
+    const asset_infos = [oraiInfo, usdtInfo] as [AssetInfo, AssetInfo];
+    expect(helper.getSymbolFromAsset(asset_infos)).toEqual("ORAI/USDT");
+  });
+
+  it.each([
+    [oraiInfo, 1n],
+    [{ native_token: { denom: atomIbcDenom } }, 0n]
+  ])("test-parsePoolAmount-given-trueAsset-%p-should-return-%p", (assetInfo: AssetInfo, expectedResult: bigint) => {
+    // setup
+    const poolInfo: PoolResponse = {
+      assets: [
+        {
+          info: oraiInfo,
+          amount: "1"
+        },
+        {
+          info: usdtInfo,
+          amount: "1"
+        }
+      ],
+      total_share: "5"
+    };
+
+    // act
+    const result = helper.parsePoolAmount(poolInfo, assetInfo);
+
+    // assertion
+    expect(result).toEqual(expectedResult);
+  });
+
+  describe("test-get-pair-liquidity", () => {
+    beforeEach(async () => {
+      duckDb = await DuckDb.create(":memory:");
+    });
+
+    it.each([
+      [0n, 0n, 0],
+      [1n, 1n, 4]
+    ])(
+      "test-getPairLiquidity-should-return-correctly-liquidity-by-USDT",
+      async (offerAmount: bigint, askAmount: bigint, expectedResult: number) => {
+        // setup
+        jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue({
+          firstAssetInfo: JSON.stringify(oraiInfo),
+          secondAssetInfo: JSON.stringify(usdtInfo),
+          commissionRate: "",
+          pairAddr: "oraiUsdtPairAddr",
+          liquidityAddr: "",
+          oracleAddr: "",
+          symbols: "1",
+          fromIconUrl: "1",
+          toIconUrl: "1",
+          volume24Hour: 1n,
+          apr: 1,
+          totalLiquidity: 1,
+          fee7Days: 1n,
+          offerPoolAmount: offerAmount,
+          askPoolAmount: askAmount
+        });
+        jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
+
+        // act
+        const result = await helper.getPairLiquidity([oraiInfo, usdtInfo]);
+
+        // assertion
+        expect(result).toEqual(expectedResult);
+      }
+    );
+  });
+
   describe("test-get-volume-pairs", () => {
     it("test-getVolumePairByAsset-should-return-correctly-sum-volume-swap-&-liquidity", async () => {
       //setup mock
@@ -603,20 +801,97 @@ describe("test-helper", () => {
       expect(result).toEqual(2n);
     });
 
-    // it("test-getVolumePairByUsdt-should-return-correctly-volume-pair-in-USDT", async () => {
-    //   //setup
-    //   duckDb = await DuckDb.create(":memory:");
-    //   const [baseAssetInfo, quoteAssetInfo] = [oraiInfo, usdtInfo];
+    it("test-getVolumePairByUsdt-should-return-correctly-volume-pair-in-USDT", async () => {
+      //setup
+      const [baseAssetInfo, quoteAssetInfo] = [oraiInfo, usdtInfo];
+      jest.spyOn(helper, "getVolumePairByAsset").mockResolvedValue(1n);
+      jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 
-    //   // act
-    //   const result = await getVolumePairByUsdt(
-    //     [baseAssetInfo, quoteAssetInfo],
-    //     new Date(1693394183),
-    //     new Date(1693394183)
-    //   );
+      // act
+      const result = await getVolumePairByUsdt(
+        [baseAssetInfo, quoteAssetInfo],
+        new Date(1693394183),
+        new Date(1693394183)
+      );
 
-    //   // assert
-    //   expect(result).toEqual(2n);
-    // });
+      // assert
+      expect(result).toEqual(2n);
+    });
+
+    it("test-getAllVolume24h-should-return-correctly-volume-all-pair", async () => {
+      //setup mock
+      jest.spyOn(helper, "getVolumePairByUsdt").mockResolvedValue(1n);
+
+      // act
+      const result = await helper.getAllVolume24h();
+
+      // assert
+      expect(result.length).toEqual(pairs.length);
+      expect(result.every((value) => value === 1n));
+    });
   });
+
+  describe("test-get-fee-pair", () => {
+    it("test-getFeePair-should-return-correctly-sum-fee-swap-&-liquidity", async () => {
+      //setup mock
+      duckDb = await DuckDb.create(":memory:");
+      jest.spyOn(duckDb, "getFeeSwap").mockResolvedValue(1n);
+      jest.spyOn(duckDb, "getFeeLiquidity").mockResolvedValue(1n);
+
+      // act
+      const result = await helper.getFeePair([oraiInfo, usdtInfo], new Date(1693394183), new Date(1693394183));
+
+      // assert
+      expect(result).toEqual(2n);
+    });
+
+    it("test-getAllFees-should-return-correctly-fee-all-pair", async () => {
+      //setup mock
+      jest.spyOn(helper, "getFeePair").mockResolvedValue(1n);
+
+      // act
+      const result = await helper.getAllFees();
+
+      // assert
+      expect(result.length).toEqual(pairs.length);
+      expect(result.every((value) => value === 1n));
+    });
+  });
+
+  it.each([
+    [
+      [oraiInfo, usdtInfo],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: oraiInfo,
+            ask_asset_info: usdtInfo
+          }
+        }
+      ]
+    ],
+    [
+      [oraiInfo, usdtInfo, { native_token: { denom: atomIbcDenom } }],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: oraiInfo,
+            ask_asset_info: usdtInfo
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: usdtInfo,
+            ask_asset_info: { native_token: { denom: atomIbcDenom } }
+          }
+        }
+      ]
+    ]
+  ])(
+    "test-generateSwapOperations-should-return-correctly-swap-ops",
+    (infoPath: AssetInfo[], expectedResult: SwapOperation[]) => {
+      const result = helper.generateSwapOperations(infoPath);
+      expect(result).toStrictEqual(expectedResult);
+    }
+  );
 });

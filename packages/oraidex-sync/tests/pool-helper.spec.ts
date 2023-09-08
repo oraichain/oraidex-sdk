@@ -132,7 +132,9 @@ describe("test-pool-helper", () => {
           volume24Hour: 1n,
           apr: 1,
           totalLiquidity: 1,
-          fee7Days: 1n
+          fee7Days: 1n,
+          offerPoolAmount: 1n,
+          askPoolAmount: 1n
         }
       ];
       await duckDb.insertPairInfos(pairInfoData);
@@ -197,7 +199,9 @@ describe("test-pool-helper", () => {
             volume24Hour: 1n,
             apr: 1,
             totalLiquidity: 1,
-            fee7Days: 1n
+            fee7Days: 1n,
+            offerPoolAmount: 1n,
+            askPoolAmount: 1n
           },
           {
             firstAssetInfo: JSON.stringify(oraiInfo as AssetInfo),
@@ -212,7 +216,9 @@ describe("test-pool-helper", () => {
             volume24Hour: 1n,
             apr: 1,
             totalLiquidity: 1,
-            fee7Days: 1n
+            fee7Days: 1n,
+            offerPoolAmount: 1n,
+            askPoolAmount: 1n
           }
         ];
         await duckDb.insertPairInfos(pairInfoData);
@@ -301,7 +307,9 @@ describe("test-pool-helper", () => {
           volume24Hour: 1n,
           apr: 1,
           totalLiquidity: 1,
-          fee7Days: 1n
+          fee7Days: 1n,
+          offerPoolAmount: 1n,
+          askPoolAmount: 1n
         },
         13344890,
         1

@@ -55,8 +55,7 @@ class WriteOrders extends WriteData {
           baseTokenDenom: item.baseTokenDenom,
           quoteTokenAmount: item.quoteTokenAmount,
           quoteTokenDenom: item.quoteTokenDenom,
-          opType: item.opType,
-          direction: null
+          opType: item.opType
         } as LpOpsData;
       }),
       ...swapData.map((item) => {
@@ -65,12 +64,26 @@ class WriteOrders extends WriteData {
           baseTokenDenom: item.offerDenom,
           quoteTokenAmount: -item.returnAmount, // reverse sign because we assume first case is sell, check buy later.
           quoteTokenDenom: item.askDenom,
-          opType: null,
           direction: item.direction
         } as LpOpsData;
       })
     ];
-    await collectAccumulateLpAndSwapData(lpOpsData, poolInfos, pairInfos);
+
+    const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolInfos);
+    // update new lp pool amount to pair_infos
+    await Promise.all(
+      pairInfos
+        .map(({ pairAddr }) => {
+          if (accumulatedData[pairAddr]) {
+            return this.duckDb.updatePairInfoAmount(
+              accumulatedData[pairAddr].baseTokenAmount,
+              accumulatedData[pairAddr].quoteTokenAmount,
+              pairAddr
+            );
+          }
+        })
+        .filter(Boolean)
+    );
   }
 
   async process(chunk: any): Promise<boolean> {
