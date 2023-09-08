@@ -1,12 +1,7 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import {
-  collectAccumulateLpAndSwapData,
-  collectAccumulateLpData,
-  collectAccumulateSwapData,
-  getSymbolFromAsset
-} from "./helper";
+import { collectAccumulateLpAndSwapData, getSymbolFromAsset } from "./helper";
 import { getAllPairInfos, getPoolInfos } from "./pool-helper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
@@ -36,49 +31,46 @@ class WriteOrders extends WriteData {
   }
 
   private async accumulatePoolAmount(
-    data: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
+    lpData: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
     swapData: SwapOperationData[]
   ) {
+    if (lpData.length === 0 && swapData.length === 0) return;
+
     const pairInfos = await this.duckDb.queryPairInfos();
-    // if (data.length > 0) {
-    //   const poolInfos = await getPoolInfos(
-    //     pairInfos.map((pair) => pair.pairAddr),
-    //     data[0].txheight // assume data is sorted by height and timestamp
-    //   );
-    //   await collectAccumulateLpData(data, poolInfos, pairInfos);
-    // }
-    // if (swapData.length > 0) {
-    //   const poolInfos = await getPoolInfos(
-    //     pairInfos.map((pair) => pair.pairAddr),
-    //     swapData[0].txheight // assume data is sorted by height and timestamp
-    //   );
-    //   await collectAccumulateSwapData(swapData, poolInfos, pairInfos);
-    // }
-    if (data.length > 0 || swapData.length > 0) {
-      const lpOpsData: LpOpsData[] = [
-        ...data.map((item) => {
-          return {
-            baseTokenAmount: item.baseTokenAmount,
-            baseTokenDenom: item.baseTokenDenom,
-            quoteTokenAmount: item.quoteTokenAmount,
-            quoteTokenDenom: item.quoteTokenDenom,
-            opType: item.opType,
-            direction: null
-          } as LpOpsData;
-        }),
-        ...swapData.map((item) => {
-          return {
-            baseTokenAmount: item.offerAmount,
-            baseTokenDenom: item.offerDenom,
-            quoteTokenAmount: -item.returnAmount,
-            quoteTokenDenom: item.askDenom,
-            opType: null,
-            direction: item.direction
-          } as LpOpsData;
-        })
-      ];
-      await collectAccumulateLpAndSwapData(lpOpsData, pairInfos);
-    }
+    const minSwapTxHeight = swapData[0]?.txheight;
+    const minLpTxHeight = lpData[0]?.txheight;
+    let minTxHeight;
+    if (minSwapTxHeight && minLpTxHeight) {
+      minTxHeight = Math.min(minSwapTxHeight, minLpTxHeight);
+    } else minTxHeight = minSwapTxHeight ?? minLpTxHeight;
+
+    const poolInfos = await getPoolInfos(
+      pairInfos.map((pair) => pair.pairAddr),
+      minTxHeight // assume data is sorted by height and timestamp
+    );
+    const lpOpsData: LpOpsData[] = [
+      ...lpData.map((item) => {
+        return {
+          baseTokenAmount: item.baseTokenAmount,
+          baseTokenDenom: item.baseTokenDenom,
+          quoteTokenAmount: item.quoteTokenAmount,
+          quoteTokenDenom: item.quoteTokenDenom,
+          opType: item.opType,
+          direction: null
+        } as LpOpsData;
+      }),
+      ...swapData.map((item) => {
+        return {
+          baseTokenAmount: item.offerAmount,
+          baseTokenDenom: item.offerDenom,
+          quoteTokenAmount: -item.returnAmount, // reverse sign because we assume first case is sell, check buy later.
+          quoteTokenDenom: item.askDenom,
+          opType: null,
+          direction: item.direction
+        } as LpOpsData;
+      })
+    ];
+    await collectAccumulateLpAndSwapData(lpOpsData, poolInfos, pairInfos);
   }
 
   async process(chunk: any): Promise<boolean> {
