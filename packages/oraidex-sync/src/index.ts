@@ -2,7 +2,7 @@ import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
 import { collectAccumulateLpAndSwapData, getSymbolFromAsset } from "./helper";
-import { getAllPairInfos, getPoolInfos } from "./pool-helper";
+import { getAllPairInfos, getPairByAssetInfos, getPoolInfos } from "./pool-helper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
   Env,
@@ -132,16 +132,13 @@ class OraiDexSync {
 
       const allPools = await this.duckDb.getPools();
       if (allPools.length > 0) return;
-      const poolInfos = await getPoolInfos(
-        pairInfos.map((pair) => pair.contract_addr),
-        currentHeight
-      );
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair, index) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
+          const pairMapping = getPairByAssetInfos(pair.asset_infos);
           return {
-            firstAssetInfo: parseAssetInfo(pair.asset_infos[0]),
-            secondAssetInfo: parseAssetInfo(pair.asset_infos[1]),
+            firstAssetInfo: parseAssetInfo(pairMapping.asset_infos[0]),
+            secondAssetInfo: parseAssetInfo(pairMapping.asset_infos[1]),
             commissionRate: pair.commission_rate,
             pairAddr: pair.contract_addr,
             liquidityAddr: pair.liquidity_token,
@@ -153,8 +150,8 @@ class OraiDexSync {
             apr: 0,
             totalLiquidity: 0,
             fee7Days: 0n,
-            offerPoolAmount: BigInt(poolInfos[index].assets[0].amount),
-            askPoolAmount: BigInt(poolInfos[index].assets[1].amount)
+            offerPoolAmount: 0n,
+            askPoolAmount: 0n
           } as PairInfoData;
         })
       );

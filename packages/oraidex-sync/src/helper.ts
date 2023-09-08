@@ -244,6 +244,7 @@ export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfo
     let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
     if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
     const pairInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+    if (!pairInfo) throw new Error("cannot find pair info when collectAccumulateLpAndSwapData");
     const { pairAddr } = pairInfo;
 
     if (!accumulateData[pairAddr]) {

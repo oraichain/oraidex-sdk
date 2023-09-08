@@ -63,7 +63,8 @@ export const getPairByAssetInfos = (assetInfos: [AssetInfo, AssetInfo]): PairMap
     const [baseAsset, quoteAsset] = pair.asset_infos;
     const denoms = [parseAssetInfoOnlyDenom(baseAsset), parseAssetInfoOnlyDenom(quoteAsset)];
     return (
-      denoms.includes(parseAssetInfoOnlyDenom(assetInfos[0])) && denoms.includes(parseAssetInfoOnlyDenom(assetInfos[1]))
+      denoms.some((denom) => denom === parseAssetInfoOnlyDenom(assetInfos[0])) &&
+      denoms.some((denom) => denom === parseAssetInfoOnlyDenom(assetInfos[1]))
     );
   });
 };
