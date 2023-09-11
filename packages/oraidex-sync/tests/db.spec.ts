@@ -5,7 +5,13 @@ import { isoToTimestampNumber } from "../src/helper";
 import { GetFeeSwap, GetVolumeQuery, PairInfoData, ProvideLiquidityOperationData } from "../src/types";
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
+  afterAll(jest.resetModules);
 
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    jest.resetAllMocks();
+  });
   it.each<[string[], number[]]>([
     [
       ["orai", "atom"],
@@ -279,10 +285,6 @@ describe("test-duckdb", () => {
         symbols: "1",
         fromIconUrl: "1",
         toIconUrl: "1",
-        volume24Hour: 1n,
-        apr: 1,
-        totalLiquidity: 1,
-        fee7Days: 1n,
         offerPoolAmount: 1n,
         askPoolAmount: 1n
       } as PairInfoData

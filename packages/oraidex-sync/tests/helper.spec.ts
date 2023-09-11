@@ -1,4 +1,3 @@
-import fs from "fs";
 import { AssetInfo, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
@@ -43,8 +42,12 @@ import * as helper from "../src/helper";
 describe("test-helper", () => {
   let duckDb: DuckDb;
 
-  afterEach(jest.restoreAllMocks);
-
+  afterAll(jest.resetModules);
+  afterEach(() => {
+    jest.clearAllMocks();
+    jest.restoreAllMocks();
+    jest.resetAllMocks();
+  });
   describe("bigint", () => {
     describe("toAmount", () => {
       it("toAmount-percent", () => {
@@ -201,10 +204,6 @@ describe("test-helper", () => {
         symbols: "1",
         fromIconUrl: "1",
         toIconUrl: "1",
-        volume24Hour: 1n,
-        apr: 1,
-        totalLiquidity: 1,
-        fee7Days: 1n,
         offerPoolAmount: 1n,
         askPoolAmount: 1n
       }
@@ -452,10 +451,6 @@ describe("test-helper", () => {
         symbols: "1",
         fromIconUrl: "1",
         toIconUrl: "1",
-        volume24Hour: 1n,
-        apr: 1,
-        totalLiquidity: 1,
-        fee7Days: 1n,
         offerPoolAmount: 1n,
         askPoolAmount: 1n
       },
@@ -469,10 +464,6 @@ describe("test-helper", () => {
         symbols: "1",
         fromIconUrl: "1",
         toIconUrl: "1",
-        volume24Hour: 1n,
-        apr: 1,
-        totalLiquidity: 1,
-        fee7Days: 1n,
         offerPoolAmount: 1n,
         askPoolAmount: 1n
       }
@@ -759,7 +750,7 @@ describe("test-helper", () => {
       "test-getPairLiquidity-should-return-correctly-liquidity-by-USDT",
       async (offerAmount: bigint, askAmount: bigint, expectedResult: number) => {
         // setup
-        jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue({
+        const poolInfo: PairInfoData = {
           firstAssetInfo: JSON.stringify(oraiInfo),
           secondAssetInfo: JSON.stringify(usdtInfo),
           commissionRate: "",
@@ -769,17 +760,13 @@ describe("test-helper", () => {
           symbols: "1",
           fromIconUrl: "1",
           toIconUrl: "1",
-          volume24Hour: 1n,
-          apr: 1,
-          totalLiquidity: 1,
-          fee7Days: 1n,
           offerPoolAmount: offerAmount,
           askPoolAmount: askAmount
-        });
+        };
         jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 
         // act
-        const result = await helper.getPairLiquidity([oraiInfo, usdtInfo]);
+        const result = await helper.getPairLiquidity(poolInfo);
 
         // assertion
         expect(result).toEqual(expectedResult);

@@ -44,12 +44,15 @@ export type PairInfoData = {
   symbols: string;
   fromIconUrl: string;
   toIconUrl: string;
-  volume24Hour: bigint;
-  apr: number;
-  totalLiquidity: number;
   offerPoolAmount: bigint;
   askPoolAmount: bigint;
-  fee7Days: bigint;
+};
+
+export type PairInfoDataResponse = PairInfoData & {
+  apr: number;
+  totalLiquidity: number;
+  volume24Hour: string;
+  fee7Days: string;
 };
 
 export type PriceInfo = {

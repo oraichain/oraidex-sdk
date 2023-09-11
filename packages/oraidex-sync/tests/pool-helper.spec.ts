@@ -27,9 +27,11 @@ describe("test-pool-helper", () => {
       duckDb.createSwapOhlcv()
     ]);
   });
+  afterAll(jest.resetModules);
   afterEach(() => {
     jest.clearAllMocks();
     jest.restoreAllMocks();
+    jest.resetAllMocks();
   });
 
   it.each<[string, [AssetInfo, AssetInfo], boolean]>([
@@ -129,10 +131,6 @@ describe("test-pool-helper", () => {
           symbols: "1",
           fromIconUrl: "1",
           toIconUrl: "1",
-          volume24Hour: 1n,
-          apr: 1,
-          totalLiquidity: 1,
-          fee7Days: 1n,
           offerPoolAmount: 1n,
           askPoolAmount: 1n
         }
@@ -196,10 +194,6 @@ describe("test-pool-helper", () => {
             symbols: "1",
             fromIconUrl: "1",
             toIconUrl: "1",
-            volume24Hour: 1n,
-            apr: 1,
-            totalLiquidity: 1,
-            fee7Days: 1n,
             offerPoolAmount: 1n,
             askPoolAmount: 1n
           },
@@ -213,10 +207,6 @@ describe("test-pool-helper", () => {
             symbols: "1",
             fromIconUrl: "1",
             toIconUrl: "1",
-            volume24Hour: 1n,
-            apr: 1,
-            totalLiquidity: 1,
-            fee7Days: 1n,
             offerPoolAmount: 1n,
             askPoolAmount: 1n
           }
@@ -304,10 +294,6 @@ describe("test-pool-helper", () => {
           symbols: "1",
           fromIconUrl: "1",
           toIconUrl: "1",
-          volume24Hour: 1n,
-          apr: 1,
-          totalLiquidity: 1,
-          fee7Days: 1n,
           offerPoolAmount: 1n,
           askPoolAmount: 1n
         },
@@ -407,7 +393,7 @@ describe("test-pool-helper", () => {
         }
       ]
     });
-    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValueOnce(1);
+    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(1);
 
     // act
     const result = await poolHelper.calculateAprResult(
@@ -420,10 +406,6 @@ describe("test-pool-helper", () => {
 
     // assertion
     expect(result.length).toEqual(pairs.length);
-    expect(result).toStrictEqual([
-      31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998,
-      31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998, 31.535999999999998,
-      31.535999999999998
-    ]);
+    expect(result).toStrictEqual(Array(pairs.length).fill(315360000));
   });
 });

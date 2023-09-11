@@ -144,10 +144,6 @@ export class DuckDb {
         symbols VARCHAR,
         fromIconUrl VARCHAR,
         toIconUrl VARCHAR,
-        volume24Hour UBIGINT,
-        apr DOUBLE,
-        totalLiquidity UINT64,
-        fee7Days UBIGINT,
         offerPoolAmount UBIGINT,
         askPoolAmount UBIGINT,
         PRIMARY KEY (pairAddr) )`

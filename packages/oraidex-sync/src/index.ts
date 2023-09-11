@@ -146,10 +146,6 @@ class OraiDexSync {
             symbols,
             fromIconUrl: "url1",
             toIconUrl: "url2",
-            volume24Hour: 0n,
-            apr: 0,
-            totalLiquidity: 0,
-            fee7Days: 0n,
             offerPoolAmount: 0n,
             askPoolAmount: 0n
           } as PairInfoData;

@@ -216,7 +216,6 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
  * @param poolInfos - pool info data for initial lp accumulation
  * @param pairInfos - pool info data from db
  */
-// TODO: write test cases for this function
 export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfos: PoolResponse[]) => {
   let accumulateData: {
     [key: string]: {
@@ -397,12 +396,11 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
 }
 
 // get liquidity of pair from assetInfos
-export const getPairLiquidity = async (assetInfos: [AssetInfo, AssetInfo]): Promise<number> => {
-  const duckDb = DuckDb.instances;
+export const getPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
   // get info of pool in pair_infos, ask & offer are accumulated in sync process (via swap ops and lp ops).
-  const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
   if (!poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
-  const baseAssetInfo = assetInfos[0];
+
+  const baseAssetInfo = JSON.parse(poolInfo.firstAssetInfo);
   const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
   return priceBaseAssetInUsdt * Number(poolInfo.offerPoolAmount) * 2;
 };

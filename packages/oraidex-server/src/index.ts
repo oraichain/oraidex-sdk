@@ -1,32 +1,33 @@
 #!/usr/bin/env node
 
-import "dotenv/config";
-import express, { Request } from "express";
-import {
-  DuckDb,
-  TickerInfo,
-  pairs,
-  parseAssetInfoOnlyDenom,
-  findPairAddress,
-  toDisplay,
-  OraiDexSync,
-  simulateSwapPrice,
-  pairsOnlyDenom,
-  VolumeRange,
-  oraiUsdtPairOnlyDenom,
-  ORAI,
-  getAllVolume24h,
-  getAllFees,
-  getPairLiquidity,
-  fetchAprResult
-} from "@oraichain/oraidex-sync";
-import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
-import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
-import { GetCandlesQuery } from "@oraichain/oraidex-sync";
+import {
+  DuckDb,
+  GetCandlesQuery,
+  ORAI,
+  OraiDexSync,
+  PairInfoDataResponse,
+  TickerInfo,
+  VolumeRange,
+  fetchAprResult,
+  findPairAddress,
+  getAllFees,
+  getAllVolume24h,
+  getPairLiquidity,
+  oraiUsdtPairOnlyDenom,
+  pairs,
+  pairsOnlyDenom,
+  parseAssetInfoOnlyDenom,
+  simulateSwapPrice,
+  toDisplay
+} from "@oraichain/oraidex-sync";
+import cors from "cors";
+import "dotenv/config";
+import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
+import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
 
 const app = express();
 app.use(cors());
@@ -239,11 +240,11 @@ app.get("/v1/pools/", async (_req, res) => {
     const [volumes, allFee7Days] = await Promise.all([getAllVolume24h(), getAllFees()]);
 
     const pools = await duckDb.getPools();
-    const allLiquidities = await Promise.all(
-      pools.map((pair) => {
-        return getPairLiquidity([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)]);
-      })
-    );
+    const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
+      if (result.status === "fulfilled") return result.value;
+      else console.error("error get allLiquidities: ", result.reason);
+    });
+
     const allApr = await fetchAprResult(pools, allLiquidities);
     res.status(200).send(
       pools.map((pool, index) => {
@@ -253,7 +254,7 @@ app.get("/v1/pools/", async (_req, res) => {
           fee7Days: allFee7Days[index]?.toString() ?? "0",
           apr: allApr[index],
           totalLiquidity: allLiquidities[index]
-        };
+        } as PairInfoDataResponse;
       })
     );
   } catch (error) {
