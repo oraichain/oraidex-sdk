@@ -1,9 +1,8 @@
-import {Addr, Uint128, Binary, AssetInfo, Decimal, OrderDirection, Cw20ReceiveMsg, Asset, OrderFilter, OrderStatus} from "./types";
+import {Addr, Uint128, Binary, Decimal} from "./types";
 export interface InstantiateMsg {
   admin?: Addr | null;
   commission_rate?: string | null;
   name?: string | null;
-  reward_address?: Addr | null;
   version?: string | null;
 }
 export type ExecuteMsg = {
@@ -11,11 +10,6 @@ export type ExecuteMsg = {
 } | {
   update_admin: {
     admin: Addr;
-  };
-} | {
-  update_config: {
-    commission_rate?: string | null;
-    reward_address?: Addr | null;
   };
 } | {
   create_order_book_pair: {
@@ -44,6 +38,25 @@ export type ExecuteMsg = {
     asset_infos: [AssetInfo, AssetInfo];
   };
 };
+export type AssetInfo = {
+  token: {
+    contract_addr: Addr;
+  };
+} | {
+  native_token: {
+    denom: string;
+  };
+};
+export type OrderDirection = "buy" | "sell";
+export interface Cw20ReceiveMsg {
+  amount: Uint128;
+  msg: Binary;
+  sender: string;
+}
+export interface Asset {
+  amount: Uint128;
+  info: AssetInfo;
+}
 export type QueryMsg = {
   contract_info: {};
 } | {
@@ -91,6 +104,11 @@ export type QueryMsg = {
     asset_infos: [AssetInfo, AssetInfo];
   };
 };
+export type OrderFilter = ("tick" | "none") | {
+  bidder: string;
+} | {
+  price: Decimal;
+};
 export interface MigrateMsg {}
 export interface ContractInfoResponse {
   admin: Addr;
@@ -108,7 +126,6 @@ export interface OrderResponse {
   filled_offer_amount: Uint128;
   offer_asset: Asset;
   order_id: number;
-  status: OrderStatus;
 }
 export interface OrderBookResponse {
   base_coin_info: AssetInfo;

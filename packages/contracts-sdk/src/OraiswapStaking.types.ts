@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
+import {Addr, Uint128, Binary, Decimal} from "./types";
 export interface InstantiateMsg {
   base_denom?: string | null;
   factory_addr: Addr;
@@ -65,6 +65,24 @@ export type ExecuteMsg = {
     stakers: Addr[];
   };
 };
+export type AssetInfo = {
+  token: {
+    contract_addr: Addr;
+  };
+} | {
+  native_token: {
+    denom: string;
+  };
+};
+export interface Cw20ReceiveMsg {
+  amount: Uint128;
+  msg: Binary;
+  sender: string;
+}
+export interface Asset {
+  amount: Uint128;
+  info: AssetInfo;
+}
 export type QueryMsg = {
   config: {};
 } | {
