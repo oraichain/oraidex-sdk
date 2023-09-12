@@ -7,7 +7,7 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual, maxBy, minBy } from "lodash";
-import { ORAI, atomic, tenAmountInDecimalSix, truncDecimals, usdtCw20Address } from "./constants";
+import { ORAI, atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { getPriceAssetByUsdt } from "./pool-helper";
@@ -128,8 +128,6 @@ function findAssetInfoPathToUsdt(info: AssetInfo): AssetInfo[] {
   // first, check usdt mapped target infos because if we the info pairs with usdt directly then we can easily calculate its price
   // otherwise, we find orai mapped target infos, which can lead to usdt.
   // finally, if not paired with orai, then we find recusirvely to find a path leading to usdt token
-  const usdtInfo = { token: { contract_addr: usdtCw20Address } };
-  const oraiInfo = { native_token: { denom: ORAI } };
   if (parseAssetInfo(info) === parseAssetInfo(usdtInfo)) return [info]; // means there's no path, the price should be 1
   const mappedUsdtInfoList = findMappedTargetedAssetInfo(usdtInfo);
   if (mappedUsdtInfoList.find((assetInfo) => parseAssetInfo(assetInfo) === parseAssetInfo(info)))
