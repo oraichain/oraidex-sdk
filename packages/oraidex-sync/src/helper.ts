@@ -11,7 +11,16 @@ import { ORAI, atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo 
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import { LpOpsData, Ohlcv, OraiDexType, PairInfoData, PoolInfo, SwapDirection, SwapOperationData } from "./types";
+import {
+  LpOpsData,
+  Ohlcv,
+  OraiDexType,
+  PairInfoData,
+  PoolAmountHistory,
+  PoolInfo,
+  SwapDirection,
+  SwapOperationData
+} from "./types";
 
 export function toObject(data: any) {
   return JSON.parse(
@@ -76,6 +85,10 @@ export function concatDataToUniqueKey(data: {
 
 export const concatOhlcvToUniqueKey = (data: { timestamp: number; pair: string; volume: bigint }): string => {
   return `${data.timestamp}-${data.pair}-${data.volume.toString()}`;
+};
+
+export const concatLpHistoryToUniqueKey = (data: { timestamp: number; pairAddr: string }): string => {
+  return `${data.timestamp}-${data.pairAddr}`;
 };
 
 export function isoToTimestampNumber(time: string) {
@@ -216,10 +229,7 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
  */
 export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfos: PoolResponse[]) => {
   let accumulateData: {
-    [key: string]: {
-      baseTokenAmount: bigint;
-      quoteTokenAmount: bigint;
-    };
+    [key: string]: Omit<PoolAmountHistory, "pairAddr" | "uniqueKey">;
   } = {};
   const duckDb = DuckDb.instances;
   for (let op of data) {
@@ -255,12 +265,16 @@ export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfo
       );
 
       accumulateData[pairAddr] = {
-        baseTokenAmount: BigInt(initialFirstTokenAmount) + baseAmount,
-        quoteTokenAmount: BigInt(initialSecondTokenAmount) + quoteAmount
+        offerPoolAmount: BigInt(initialFirstTokenAmount) + baseAmount,
+        askPoolAmount: BigInt(initialSecondTokenAmount) + quoteAmount,
+        height: op.height,
+        timestamp: op.timestamp
       };
     } else {
-      accumulateData[pairAddr].baseTokenAmount += baseAmount;
-      accumulateData[pairAddr].quoteTokenAmount += quoteAmount;
+      accumulateData[pairAddr].offerPoolAmount += baseAmount;
+      accumulateData[pairAddr].askPoolAmount += quoteAmount;
+      accumulateData[pairAddr].height = op.height;
+      accumulateData[pairAddr].timestamp = op.timestamp;
     }
   }
 

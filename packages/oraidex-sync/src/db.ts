@@ -12,7 +12,8 @@ import {
   GetCandlesQuery,
   GetFeeSwap,
   GetVolumeQuery,
-  PoolInfo
+  PoolInfo,
+  PoolAmountHistory
 } from "./types";
 import fs, { rename } from "fs";
 import {
@@ -498,5 +499,41 @@ export class DuckDb {
       askDenom
     );
     return BigInt(result[0]?.totalVolume ?? 0);
+  }
+
+  async createPoolOpsTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS lp_amount_history (
+          uniqueKey varchar UNIQUE,
+          pairAddr varchar,
+          timestamp uinteger,
+          height uinteger,
+          offerPoolAmount ubigint,
+          askPoolAmount ubigint)
+      `
+    );
+  }
+
+  async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
+    try {
+      await this.insertBulkData(ops, "lp_amount_history");
+    } catch (error) {
+      console.dir({ ops, error }, { depth: null });
+    }
+  }
+
+  async createAprInfoPair() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS pool_apr (
+          uniqueKey varchar UNIQUE,
+          pairAddr varchar,
+          timestamp uinteger,
+          height uinteger,
+          totalSupply ubigint,
+          totalBondAmount ubigint,
+          rewardPerSec varchar,
+        )
+      `
+    );
   }
 }

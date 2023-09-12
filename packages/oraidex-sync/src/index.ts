@@ -1,7 +1,7 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { collectAccumulateLpAndSwapData, getSymbolFromAsset } from "./helper";
+import { collectAccumulateLpAndSwapData, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
 import { getAllPairInfos, getPairByAssetInfos, getPoolInfos } from "./pool-helper";
 import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
@@ -55,7 +55,9 @@ class WriteOrders extends WriteData {
           baseTokenDenom: item.baseTokenDenom,
           quoteTokenAmount: item.quoteTokenAmount,
           quoteTokenDenom: item.quoteTokenDenom,
-          opType: item.opType
+          opType: item.opType,
+          timestamp: item.timestamp,
+          height: item.txheight
         } as LpOpsData;
       }),
       ...swapData.map((item) => {
@@ -64,26 +66,28 @@ class WriteOrders extends WriteData {
           baseTokenDenom: item.offerDenom,
           quoteTokenAmount: -item.returnAmount, // reverse sign because we assume first case is sell, check buy later.
           quoteTokenDenom: item.askDenom,
-          direction: item.direction
+          direction: item.direction,
+          height: item.txheight,
+          timestamp: item.timestamp
         } as LpOpsData;
       })
     ];
 
     const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolInfos);
-    // update new lp pool amount to pair_infos
-    await Promise.all(
-      pairInfos
-        .map(({ pairAddr }) => {
-          if (accumulatedData[pairAddr]) {
-            return this.duckDb.updatePairInfoAmount(
-              accumulatedData[pairAddr].baseTokenAmount,
-              accumulatedData[pairAddr].quoteTokenAmount,
-              pairAddr
-            );
-          }
-        })
-        .filter(Boolean)
-    );
+    const poolAmountHitories = pairInfos.reduce((accumulator, { pairAddr }) => {
+      if (accumulatedData[pairAddr]) {
+        accumulator.push({
+          ...accumulatedData[pairAddr],
+          pairAddr,
+          uniqueKey: concatLpHistoryToUniqueKey({
+            timestamp: accumulatedData[pairAddr].timestamp,
+            pairAddr
+          })
+        });
+      }
+      return accumulator;
+    }, []);
+    await this.duckDb.insertPoolAmountHistory(poolAmountHitories);
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -165,7 +169,8 @@ class OraiDexSync {
         this.duckDb.createLiquidityOpsTable(),
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable(),
-        this.duckDb.createSwapOhlcv()
+        this.duckDb.createSwapOhlcv(),
+        this.duckDb.createPoolOpsTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
@@ -180,7 +185,7 @@ class OraiDexSync {
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: parseInt(process.env.LIMIT) || 100,
+        limit: 10,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 5000
       }).pipe(new WriteOrders(this.duckDb, this.rpcUrl, this.env, initialData));
@@ -196,7 +201,7 @@ async function initSync() {
   oraidexSync.sync();
 }
 
-// initSync();
+initSync();
 
 export { OraiDexSync };
 

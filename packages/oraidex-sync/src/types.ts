@@ -94,6 +94,8 @@ export type LpOpsData = {
   quoteTokenDenom: string;
   opType?: LiquidityOpType;
   direction?: SwapDirection;
+  height: number;
+  timestamp: number;
 };
 
 export type TxAnlysisResult = {
@@ -224,4 +226,13 @@ export type GetVolumeQuery = Omit<GetCandlesQuery, "tf">;
 export type PoolInfo = {
   offerPoolAmount: bigint;
   askPoolAmount: bigint;
+};
+
+export type PoolAmountHistory = {
+  offerPoolAmount: bigint;
+  askPoolAmount: bigint;
+  timestamp: number;
+  height: number;
+  pairAddr: string;
+  uniqueKey: string;
 };
