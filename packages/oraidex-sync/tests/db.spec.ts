@@ -12,6 +12,7 @@ describe("test-duckdb", () => {
     jest.restoreAllMocks();
     jest.resetAllMocks();
   });
+
   it.each<[string[], number[]]>([
     [
       ["orai", "atom"],
@@ -200,7 +201,7 @@ describe("test-duckdb", () => {
   it("test-duckdb-insert-bulk-should-pass-and-can-query", async () => {
     //setup
     duckDb = await DuckDb.create(":memory:");
-    await Promise.all([duckDb.createLiquidityOpsTable()]);
+    await duckDb.createLiquidityOpsTable();
     // act & test
     const newDate = 1689610068000 / 1000;
     const data: ProvideLiquidityOperationData[] = [
@@ -228,10 +229,10 @@ describe("test-duckdb", () => {
     expect(queryResult[0]).toEqual(data[0]);
   });
 
-  it("test-insert-same-unique-key-should-replace-data", async () => {
+  test("test-insert-same-unique-key-should-replace-data", async () => {
     // setup
     duckDb = await DuckDb.create(":memory:");
-    await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
+    await duckDb.createLiquidityOpsTable();
     const currentTimeStamp = Math.round(new Date().getTime() / 1000);
     let data: ProvideLiquidityOperationData[] = [
       {

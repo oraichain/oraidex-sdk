@@ -84,7 +84,7 @@ export const getPriceByAsset = async (
 ): Promise<number> => {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
-  if (!poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
+  if (!poolInfo || !poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
   const basePrice = calculatePriceByPool(

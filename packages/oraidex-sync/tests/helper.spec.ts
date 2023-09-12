@@ -440,6 +440,7 @@ describe("test-helper", () => {
     ];
     duckDb = await DuckDb.create(":memory:");
     await duckDb.createPairInfosTable();
+
     await duckDb.insertPairInfos([
       {
         firstAssetInfo: JSON.stringify(oraiInfo),
@@ -663,15 +664,10 @@ describe("test-helper", () => {
 
   it.each([
     [usdtCw20Address, "orai", "Buy" as SwapDirection],
-    ["orai", usdtCw20Address, "Sell" as SwapDirection]
-  ])("test-getSwapDirection", (offerDenom: string, askDenom: string, expectedDirection: SwapDirection) => {
+    ["orai", usdtCw20Address, "Sell" as SwapDirection],
+    ["foo", "bar", undefined]
+  ])("test-getSwapDirection", (offerDenom: string, askDenom: string, expectedDirection: SwapDirection | undefined) => {
     // execute
-    // throw error case when offer & ask not in pair
-    try {
-      getSwapDirection("foo", "bar");
-    } catch (error) {
-      expect(error).toEqual(new Error("Cannot find asset infos in list of pairs"));
-    }
     const result = getSwapDirection(offerDenom, askDenom);
     expect(result).toEqual(expectedDirection);
   });
