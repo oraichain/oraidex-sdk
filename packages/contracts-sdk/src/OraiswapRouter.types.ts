@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Cw20ReceiveMsg} from "./types";
 export interface InstantiateMsg {
   factory_addr: Addr;
   factory_addr_v2: Addr;
@@ -30,20 +30,6 @@ export type SwapOperation = {
     offer_asset_info: AssetInfo;
   };
 };
-export type AssetInfo = {
-  token: {
-    contract_addr: Addr;
-  };
-} | {
-  native_token: {
-    denom: string;
-  };
-};
-export interface Cw20ReceiveMsg {
-  amount: Uint128;
-  msg: Binary;
-  sender: string;
-}
 export type QueryMsg = {
   config: {};
 } | {

@@ -1,4 +1,4 @@
-import {Uint128, Binary, Timestamp, Uint64, Addr} from "./types";
+import {Uint128, Binary, Addr} from "./types";
 export type Logo = {
   url: string;
 } | {
@@ -101,6 +101,8 @@ export type Expiration = {
 } | {
   never: {};
 };
+export type Timestamp = Uint64;
+export type Uint64 = string;
 export type QueryMsg = {
   balance: {
     address: string;

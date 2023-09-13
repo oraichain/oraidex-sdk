@@ -1,4 +1,4 @@
-import {Addr, Decimal, Uint128, Coin} from "./types";
+import {Addr, Decimal, Uint128} from "./types";
 export interface InstantiateMsg {
   admin?: Addr | null;
   max_rate?: Decimal | null;
@@ -81,6 +81,10 @@ export interface ExchangeRateItem {
 export interface ExchangeRatesResponse {
   base_denom: string;
   items: ExchangeRateItem[];
+}
+export interface Coin {
+  amount: Uint128;
+  denom: string;
 }
 export interface TaxCapResponse {
   cap: Uint128;

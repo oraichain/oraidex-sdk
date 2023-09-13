@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary, Decimal} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
 export interface InstantiateMsg {
   admin?: Addr | null;
   commission_rate?: string | null;
@@ -38,25 +38,7 @@ export type ExecuteMsg = {
     asset_infos: [AssetInfo, AssetInfo];
   };
 };
-export type AssetInfo = {
-  token: {
-    contract_addr: Addr;
-  };
-} | {
-  native_token: {
-    denom: string;
-  };
-};
 export type OrderDirection = "buy" | "sell";
-export interface Cw20ReceiveMsg {
-  amount: Uint128;
-  msg: Binary;
-  sender: string;
-}
-export interface Asset {
-  amount: Uint128;
-  info: AssetInfo;
-}
 export type QueryMsg = {
   contract_info: {};
 } | {

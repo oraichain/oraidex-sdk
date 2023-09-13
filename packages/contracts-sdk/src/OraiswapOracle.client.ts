@@ -6,8 +6,8 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { StdFee } from "@cosmjs/amino";
-import {Addr, Decimal, Uint128, Coin} from "./types";
-import {InstantiateMsg, ExecuteMsg, QueryMsg, OracleTreasuryQuery, OracleExchangeQuery, OracleContractQuery, MigrateMsg, ContractInfoResponse, ExchangeRateResponse, ExchangeRateItem, ExchangeRatesResponse, TaxCapResponse, TaxRateResponse, TreasuryResponse, ExchangeResponse, ContractResponse} from "./OraiswapOracle.types";
+import {Addr, Decimal, Uint128} from "./types";
+import {InstantiateMsg, ExecuteMsg, QueryMsg, OracleTreasuryQuery, OracleExchangeQuery, OracleContractQuery, MigrateMsg, ContractInfoResponse, ExchangeRateResponse, ExchangeRateItem, ExchangeRatesResponse, Coin, TaxCapResponse, TaxRateResponse, TreasuryResponse, ExchangeResponse, ContractResponse} from "./OraiswapOracle.types";
 export interface OraiswapOracleReadOnlyInterface {
   contractAddress: string;
   treasury: (oracleTreasuryQuery: OracleTreasuryQuery) => Promise<TreasuryResponse>;

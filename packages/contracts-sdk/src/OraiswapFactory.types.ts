@@ -1,4 +1,4 @@
-import {Addr} from "./types";
+import {Addr, AssetInfo, PairInfo} from "./types";
 export interface InstantiateMsg {
   commission_rate?: string | null;
   oracle_addr: Addr;
@@ -21,22 +21,6 @@ export type ExecuteMsg = {
     pair_info: PairInfo;
   };
 };
-export type AssetInfo = {
-  token: {
-    contract_addr: Addr;
-  };
-} | {
-  native_token: {
-    denom: string;
-  };
-};
-export interface PairInfo {
-  asset_infos: [AssetInfo, AssetInfo];
-  commission_rate: string;
-  contract_addr: Addr;
-  liquidity_token: Addr;
-  oracle_addr: Addr;
-}
 export type QueryMsg = {
   config: {};
 } | {

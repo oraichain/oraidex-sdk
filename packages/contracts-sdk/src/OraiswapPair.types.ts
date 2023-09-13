@@ -1,13 +1,4 @@
-import {Addr, Uint128, Binary, Decimal} from "./types";
-export type AssetInfo = {
-  token: {
-    contract_addr: Addr;
-  };
-} | {
-  native_token: {
-    denom: string;
-  };
-};
+import {AssetInfo, Addr, Uint128, Binary, Decimal, Cw20ReceiveMsg, Asset, PairInfo} from "./types";
 export interface InstantiateMsg {
   asset_infos: [AssetInfo, AssetInfo];
   commission_rate?: string | null;
@@ -30,15 +21,6 @@ export type ExecuteMsg = {
     to?: Addr | null;
   };
 };
-export interface Cw20ReceiveMsg {
-  amount: Uint128;
-  msg: Binary;
-  sender: string;
-}
-export interface Asset {
-  amount: Uint128;
-  info: AssetInfo;
-}
 export type QueryMsg = {
   pair: {};
 } | {
@@ -55,13 +37,6 @@ export type QueryMsg = {
 export interface MigrateMsg {}
 export interface PairResponse {
   info: PairInfo;
-}
-export interface PairInfo {
-  asset_infos: [AssetInfo, AssetInfo];
-  commission_rate: string;
-  contract_addr: Addr;
-  liquidity_token: Addr;
-  oracle_addr: Addr;
 }
 export interface PoolResponse {
   assets: [Asset, Asset];
