@@ -2,7 +2,7 @@ import fs from "fs";
 import { oraiInfo, usdtInfo } from "../src";
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
-import { GetFeeSwap, GetVolumeQuery, PairInfoData, ProvideLiquidityOperationData } from "../src/types";
+import { GetFeeSwap, GetVolumeQuery, PairInfoData, PoolApr, ProvideLiquidityOperationData } from "../src/types";
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
   afterAll(jest.resetModules);
@@ -473,6 +473,79 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(volumeByBaseAsset).toEqual(2n);
+    });
+  });
+
+  describe("test-apr", () => {
+    beforeEach(async () => {
+      // setup
+      duckDb = await DuckDb.create(":memory:");
+      await duckDb.createAprInfoPair();
+      await duckDb.insertPoolAprs([
+        {
+          uniqueKey: "orai_usdt_2",
+          pairAddr: "orai_usdt",
+          height: 2,
+          totalSupply: "1",
+          totalBondAmount: "1",
+          rewardPerSec: "1",
+          apr: 2
+        } as PoolApr,
+        {
+          uniqueKey: "orai_usdt_4",
+          pairAddr: "orai_usdt",
+          height: 4,
+          totalSupply: "1",
+          totalBondAmount: "1",
+          rewardPerSec: "1",
+          apr: 4
+        } as PoolApr,
+        {
+          uniqueKey: "orai_usdt_3",
+          pairAddr: "orai_usdt",
+          height: 3,
+          totalSupply: "1",
+          totalBondAmount: "1",
+          rewardPerSec: "1",
+          apr: 3
+        } as PoolApr,
+        {
+          uniqueKey: "orai_atom",
+          pairAddr: "orai_atom",
+          height: 2,
+          totalSupply: "1",
+          totalBondAmount: "1",
+          rewardPerSec: "1",
+          apr: 2
+        } as PoolApr
+      ]);
+    });
+
+    it("test-getApr-should-return-correctly-apr-for-all-pair", async () => {
+      // act
+      const apr = await duckDb.getApr();
+
+      // assertion
+      expect(apr).toEqual([
+        { pairAddr: "orai_usdt", apr: 4 },
+        { pairAddr: "orai_atom", apr: 2 }
+      ]);
+    });
+
+    it("test-getLatestPoolApr-should-return-latest-pool-apr", async () => {
+      // act
+      const result = await duckDb.getLatestPoolApr("orai_usdt");
+
+      // assertion
+      expect(result).toEqual({
+        uniqueKey: "orai_usdt_4",
+        pairAddr: "orai_usdt",
+        height: 4,
+        totalSupply: "1",
+        totalBondAmount: "1",
+        rewardPerSec: "1",
+        apr: 4
+      });
     });
   });
 });

@@ -1,19 +1,34 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { collectAccumulateLpAndSwapData, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
-import { getAllPairInfos, getPairByAssetInfos, getPoolInfos } from "./pool-helper";
-import { parseAssetInfo, parseTxs } from "./tx-parsing";
+import {
+  collectAccumulateLpAndSwapData,
+  concatLpHistoryToUniqueKey,
+  getPairLiquidity,
+  getSymbolFromAsset,
+  parsePairDenomToAssetInfo
+} from "./helper";
+import {
+  calculateAprResult,
+  fetchAprResult,
+  getAllPairInfos,
+  getPairByAssetInfos,
+  getPoolInfos,
+  refetchTokenInfos
+} from "./pool-helper";
+import { parseAssetInfo, parseTxs, processEventApr } from "./tx-parsing";
 import {
   Env,
   InitialData,
   LpOpsData,
   PairInfoData,
+  PoolApr,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { AssetInfo } from "@oraichain/common-contracts-sdk";
 
 class WriteOrders extends WriteData {
   constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
@@ -104,6 +119,19 @@ class WriteOrders extends WriteData {
         [...result.swapOpsData]
       );
 
+      const assetInfosToRefetchTokenInfos = Array.from(
+        [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]
+          .map((op) => [op.baseTokenDenom, op.quoteTokenDenom] as [string, string])
+          .reduce((accumulator, tokenDenoms) => {
+            const assetInfo = parsePairDenomToAssetInfo(tokenDenoms);
+            accumulator.add(assetInfo);
+            return accumulator;
+          }, new Set<[AssetInfo, AssetInfo]>())
+      );
+      await refetchTokenInfos(assetInfosToRefetchTokenInfos, newOffset);
+
+      await processEventApr(txs);
+
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
       console.log("new offset: ", newOffset);
@@ -129,7 +157,7 @@ class OraiDexSync {
     return new OraiDexSync(duckDb, rpcUrl, env);
   }
 
-  private async updateLatestPairInfos(currentHeight: number) {
+  private async updateLatestPairInfos() {
     try {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
@@ -162,6 +190,29 @@ class OraiDexSync {
     }
   }
 
+  private async updateLatestPoolApr(height: number) {
+    const pools = await this.duckDb.getPools();
+    const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
+      if (result.status === "fulfilled") return result.value;
+      else console.error("error get allLiquidities: ", result.reason);
+    });
+    const { allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
+    const allAprs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
+
+    const poolAprs = allAprs.map((apr, index) => {
+      return {
+        uniqueKey: concatLpHistoryToUniqueKey({ timestamp: height, pairAddr: pools[index].pairAddr }),
+        pairAddr: pools[index].pairAddr,
+        height,
+        totalSupply: allTotalSupplies[index],
+        totalBondAmount: allBondAmounts[index],
+        rewardPerSec: JSON.stringify(allRewardPerSec[index]),
+        apr
+      } as PoolApr;
+    });
+    await this.duckDb.insertPoolAprs(poolAprs);
+  }
+
   public async sync() {
     try {
       await Promise.all([
@@ -170,7 +221,8 @@ class OraiDexSync {
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable(),
         this.duckDb.createSwapOhlcv(),
-        this.duckDb.createPoolOpsTable()
+        this.duckDb.createPoolOpsTable(),
+        this.duckDb.createAprInfoPair()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
@@ -180,12 +232,16 @@ class OraiDexSync {
         currentInd = initialSyncHeight;
       }
       console.log("current ind: ", currentInd);
-      await this.updateLatestPairInfos(currentInd);
+      await this.updateLatestPairInfos();
+
+      // update apr in the first time
+      await this.updateLatestPoolApr(currentInd);
+
       new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: 10,
+        limit: 1000,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 5000
       }).pipe(new WriteOrders(this.duckDb, this.rpcUrl, this.env, initialData));

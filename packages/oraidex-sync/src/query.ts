@@ -7,7 +7,7 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
+import { Addr, Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { pairs } from "./pairs";
 import {
@@ -92,9 +92,9 @@ async function aggregateMulticall(queries: Call[]) {
   return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
 }
 
-async function fetchTokenInfos(pairInfos: PairInfoData[]): Promise<TokenInfoResponse[]> {
-  const queries = pairInfos.map((pair) => ({
-    address: pair.liquidityAddr,
+async function fetchTokenInfos(liquidityAddrs: Addr[]): Promise<TokenInfoResponse[]> {
+  const queries = liquidityAddrs.map((address) => ({
+    address,
     data: toBinary({
       token_info: {}
     } as OraiswapTokenTypes.QueryMsg)

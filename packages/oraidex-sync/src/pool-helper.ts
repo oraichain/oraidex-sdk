@@ -234,23 +234,48 @@ export const getStakingAssetInfo = (assetInfos: AssetInfo[]): AssetInfo => {
   return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
 };
 
-export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]): Promise<number[]> => {
+// export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]): Promise<number[]> => {
+//   const assetTokens = pairInfos.map((pair) =>
+//     getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
+//   );
+//   const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
+//   try {
+//     const [allTokenInfo, allLpTokenAsset, allRewardPerSec] = await Promise.all([
+//       fetchTokenInfos(liquidityAddrs),
+//       fetchAllTokenAssetPools(assetTokens),
+//       fetchAllRewardPerSecInfos(assetTokens)
+//     ]);
+//     const allTotalSupplies = allTokenInfo.map((info) => info.total_supply);
+//     const allBondAmounts = allLpTokenAsset.map((info) => info.total_bond_amount);
+//     return calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
+//   } catch (error) {
+//     console.log({ errorFetchAprResult: error });
+//   }
+// };
+
+export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]) => {
   const assetTokens = pairInfos.map((pair) =>
     getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
   );
+  const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
   try {
     const [allTokenInfo, allLpTokenAsset, allRewardPerSec] = await Promise.all([
-      fetchTokenInfos(pairInfos),
+      fetchTokenInfos(liquidityAddrs),
       fetchAllTokenAssetPools(assetTokens),
       fetchAllRewardPerSecInfos(assetTokens)
     ]);
     const allTotalSupplies = allTokenInfo.map((info) => info.total_supply);
     const allBondAmounts = allLpTokenAsset.map((info) => info.total_bond_amount);
-    return calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
+    return {
+      allTotalSupplies,
+      allBondAmounts,
+      allRewardPerSec
+    };
   } catch (error) {
     console.log({ errorFetchAprResult: error });
   }
 };
+
 //  ==== end of calculate APR ====>
 
 export const getAllPairInfos = async (): Promise<PairInfo[]> => {
@@ -258,4 +283,68 @@ export const getAllPairInfos = async (): Promise<PairInfo[]> => {
   const firstFactoryClient = new OraiswapFactoryQueryClient(cosmwasmClient, network.factory);
   const secondFactoryClient = new OraiswapFactoryQueryClient(cosmwasmClient, network.factory_v2);
   return queryAllPairInfos(firstFactoryClient, secondFactoryClient);
+};
+
+export const triggerCalculateApr = async () => {
+  // TODO: get all infos relate to apr in duckdb from apr table -> call to calculateAprResult
+};
+
+export type SupplyAction = "mint" | "burn";
+export type BondAction = "bond" | "unbond" | "deposit_reward";
+export type RewardPerSecAction = "update_reward_per_sec";
+
+export const refetchTokenInfos = async (assetInfos: [AssetInfo, AssetInfo][], height: number) => {
+  const duckDb = DuckDb.instances;
+  const pools = await Promise.all(assetInfos.map((assetInfo) => duckDb.getPoolByAssetInfos(assetInfo)));
+  const liquidityAddrs = pools.map((pair) => pair.liquidityAddr);
+  const tokenInfos = await fetchTokenInfos(liquidityAddrs);
+  const totalSupplies = tokenInfos.map((info) => info.total_supply);
+
+  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
+  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
+    return {
+      ...poolApr,
+      height,
+      totalSupply: totalSupplies[index]
+    };
+  });
+  await duckDb.insertPoolAprs(newPoolAprs);
+};
+
+export const refetchTokenAssetPools = async (assetInfos: [AssetInfo, AssetInfo][], height: number) => {
+  const duckDb = DuckDb.instances;
+  const pools = await Promise.all(assetInfos.map((assetInfo) => duckDb.getPoolByAssetInfos(assetInfo)));
+  const assetTokens = pools.map((pair) =>
+    getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
+  );
+  const tokenAssetPools = await fetchAllTokenAssetPools(assetTokens);
+  const totalBondAmounts = tokenAssetPools.map((info) => info.total_bond_amount);
+  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
+  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
+    return {
+      ...poolApr,
+      height,
+      totalBondAmount: totalBondAmounts[index]
+    };
+  });
+  await duckDb.insertPoolAprs(newPoolAprs);
+};
+
+export const refetchRewardPerSecInfos = async (assetInfos: [AssetInfo, AssetInfo][], height: number) => {
+  const duckDb = DuckDb.instances;
+  const pools = await Promise.all(assetInfos.map((assetInfo) => duckDb.getPoolByAssetInfos(assetInfo)));
+  const assetTokens = pools.map((pair) =>
+    getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
+  );
+  const rewardPerSecInfos = await fetchAllRewardPerSecInfos(assetTokens);
+
+  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
+  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
+    return {
+      ...poolApr,
+      height,
+      rewardPerSec: JSON.stringify(rewardPerSecInfos[index])
+    };
+  });
+  await duckDb.insertPoolAprs(newPoolAprs);
 };

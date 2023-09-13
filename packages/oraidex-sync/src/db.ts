@@ -12,8 +12,8 @@ import {
   GetCandlesQuery,
   GetFeeSwap,
   GetVolumeQuery,
-  PoolInfo,
-  PoolAmountHistory
+  PoolAmountHistory,
+  PoolApr
 } from "./types";
 import fs, { rename } from "fs";
 import {
@@ -504,22 +504,18 @@ export class DuckDb {
   async createPoolOpsTable() {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS lp_amount_history (
-          uniqueKey varchar UNIQUE,
-          pairAddr varchar,
-          timestamp uinteger,
-          height uinteger,
-          offerPoolAmount ubigint,
-          askPoolAmount ubigint)
+        offerPoolAmount ubigint,
+        askPoolAmount ubigint,
+        height uinteger,
+        timestamp uinteger,
+        pairAddr varchar,
+        uniqueKey varchar UNIQUE)
       `
     );
   }
 
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
-    try {
-      await this.insertBulkData(ops, "lp_amount_history");
-    } catch (error) {
-      console.dir({ ops, error }, { depth: null });
-    }
+    await this.insertBulkData(ops, "lp_amount_history");
   }
 
   async createAprInfoPair() {
@@ -527,13 +523,49 @@ export class DuckDb {
       `CREATE TABLE IF NOT EXISTS pool_apr (
           uniqueKey varchar UNIQUE,
           pairAddr varchar,
-          timestamp uinteger,
           height uinteger,
-          totalSupply ubigint,
-          totalBondAmount ubigint,
+          totalSupply varchar,
+          totalBondAmount varchar,
           rewardPerSec varchar,
+          apr double
         )
       `
     );
+  }
+
+  async insertPoolAprs(poolAprs: PoolApr[]) {
+    console.dir({ poolAprs }, { depth: null });
+    await this.insertBulkData(poolAprs, "pool_apr");
+  }
+
+  async getLatestPoolApr(pairAddr: string): Promise<PoolApr> {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM pool_apr
+        WHERE pairAddr = ?
+        ORDER BY height DESC
+        LIMIT 1
+      `,
+      pairAddr
+    );
+
+    return result[0] as PoolApr;
+  }
+
+  async getApr() {
+    const result = await this.conn.all(
+      `
+      SELECT p.pairAddr, p.apr
+      FROM pool_apr p
+      JOIN (
+        SELECT pairAddr, MAX(height) AS max_height
+        FROM pool_apr
+        GROUP BY pairAddr
+      ) max_heights
+      ON p.pairAddr = max_heights.pairAddr AND p.height = max_heights.max_height
+      ORDER BY p.height DESC
+      `
+    );
+    return result as Pick<PoolApr, "apr" | "pairAddr">[];
   }
 }

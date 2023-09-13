@@ -236,3 +236,13 @@ export type PoolAmountHistory = {
   pairAddr: string;
   uniqueKey: string;
 };
+
+export type PoolApr = {
+  uniqueKey: string;
+  pairAddr: string;
+  height: number;
+  totalSupply: string;
+  totalBondAmount: string;
+  rewardPerSec: string;
+  apr: number;
+};

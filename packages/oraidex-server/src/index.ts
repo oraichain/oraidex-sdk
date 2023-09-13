@@ -10,7 +10,6 @@ import {
   PairInfoDataResponse,
   TickerInfo,
   VolumeRange,
-  fetchAprResult,
   findPairAddress,
   getAllFees,
   getAllVolume24h,
@@ -240,19 +239,20 @@ app.get("/v1/pools/", async (_req, res) => {
     const [volumes, allFee7Days] = await Promise.all([getAllVolume24h(), getAllFees()]);
 
     const pools = await duckDb.getPools();
+    const allPoolApr = await duckDb.getApr();
     const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
       if (result.status === "fulfilled") return result.value;
       else console.error("error get allLiquidities: ", result.reason);
     });
 
-    const allApr = await fetchAprResult(pools, allLiquidities);
     res.status(200).send(
       pools.map((pool, index) => {
+        const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
         return {
           ...pool,
           volume24Hour: volumes[index]?.toString() ?? "0",
           fee7Days: allFee7Days[index]?.toString() ?? "0",
-          apr: allApr[index],
+          apr: poolApr?.apr ?? 0,
           totalLiquidity: allLiquidities[index]
         } as PairInfoDataResponse;
       })

@@ -513,6 +513,16 @@ async function getAllFees(): Promise<bigint[]> {
 }
 //  ==== end get fee pair ====>
 
+export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, string]): [AssetInfo, AssetInfo] => {
+  const pair = pairs.find(
+    (pair) =>
+      parseAssetInfoOnlyDenom(pair.asset_infos[0]) === baseDenom &&
+      parseAssetInfoOnlyDenom(pair.asset_infos[1]) === quoteDenom
+  );
+  if (!pair) throw new Error(`cannot find pair for ${baseDenom}-$${quoteDenom}`);
+  return pair.asset_infos;
+};
+
 export {
   calculatePriceByPool,
   convertDateToSecond,

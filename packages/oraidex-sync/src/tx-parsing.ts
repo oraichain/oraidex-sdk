@@ -32,7 +32,7 @@ import {
 } from "./helper";
 import { pairs } from "./pairs";
 import { DuckDb } from "./db";
-import { calculateLiquidityFee, isPoolHasFee } from "./pool-helper";
+import { calculateLiquidityFee, isPoolHasFee, refetchTokenInfos, triggerCalculateApr } from "./pool-helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -329,6 +329,7 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
     for (let msg of msgs) {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
+
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
       const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
@@ -350,5 +351,37 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
     ) as WithdrawLiquidityOperationData[]
   };
 }
+
+export const processEventApr = async (txs: Tx[]) => {
+  const assets = {
+    infoTokenAssetPools: new Set(),
+    infoRewardPerSec: new Set()
+  };
+
+  for (let tx of txs) {
+    const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
+    const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
+
+    for (let msg of msgs) {
+      const wasmAttributes = parseWasmEvents(msg.logs.events);
+      for (let attrs of wasmAttributes) {
+        if (
+          attrs.find(
+            (attr) =>
+              attr.key === "action" &&
+              (attr.value === "bond" || attr.value === "unbond" || attr.value === "deposit_reward")
+          )
+        ) {
+          console.table(attrs);
+          // TODO: FIND ASSET THEN ADD TO LIST ASSET
+          // assets.infoTokenAssetPools.add()
+        }
+
+        // if (attrs.find((attr) => attr.key === "action" && attr.value === "update_reward_per_sec"))
+      }
+    }
+  }
+  return assets;
+};
 
 export { parseAssetInfo, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets, parseTxToMsgExecuteContractMsgs };
