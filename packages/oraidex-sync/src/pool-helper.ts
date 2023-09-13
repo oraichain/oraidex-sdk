@@ -84,12 +84,13 @@ export const getPriceByAsset = async (
 ): Promise<number> => {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
-  if (!poolInfo || !poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
+  const poolAmount = await duckDb.getLatestLpPoolAmount(poolInfo.pairAddr);
+  if (!poolAmount || !poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
   const basePrice = calculatePriceByPool(
-    BigInt(poolInfo.askPoolAmount),
-    BigInt(poolInfo.offerPoolAmount),
+    BigInt(poolAmount.askPoolAmount),
+    BigInt(poolAmount.offerPoolAmount),
     +poolInfo.commissionRate
   );
   return ratioDirection === "base_in_quote" ? basePrice : 1 / basePrice;

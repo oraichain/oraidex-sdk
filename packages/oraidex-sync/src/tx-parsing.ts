@@ -288,14 +288,33 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
         msg: JSON.parse(Buffer.from(msg.msg).toString("utf-8"))
       };
       // Should be provide, remove liquidity, swap, or other oraidex related types
-      if ("provide_liquidity" in obj.msg || "execute_swap_operations" in obj.msg || "execute_swap_operation" in obj.msg)
+      if (
+        "provide_liquidity" in obj.msg ||
+        "execute_swap_operations" in obj.msg ||
+        "execute_swap_operation" in obj.msg ||
+        "bond" in obj.msg ||
+        "unbond" in obj.msg ||
+        "update_reward_per_sec" in obj.msg ||
+        "mint" in obj.msg ||
+        "burn" in obj.msg ||
+        "deposit_reward" in obj.msg
+      )
         objs.push(obj);
       if ("send" in obj.msg) {
         try {
           const contractSendMsg: OraiswapPairCw20HookMsg | OraiswapRouterCw20HookMsg = JSON.parse(
             Buffer.from(obj.msg.send.msg, "base64").toString("utf-8")
           );
-          if ("execute_swap_operations" in contractSendMsg || "withdraw_liquidity" in contractSendMsg) {
+          if (
+            "execute_swap_operations" in contractSendMsg ||
+            "withdraw_liquidity" in contractSendMsg ||
+            "bond" in contractSendMsg ||
+            "unbond" in contractSendMsg ||
+            "update_reward_per_sec" in contractSendMsg ||
+            "mint" in contractSendMsg ||
+            "burn" in contractSendMsg ||
+            "deposit_reward" in contractSendMsg
+          ) {
             objs.push({ ...msg, msg: contractSendMsg });
           }
         } catch (error) {
@@ -357,14 +376,19 @@ export const processEventApr = async (txs: Tx[]) => {
     infoTokenAssetPools: new Set(),
     infoRewardPerSec: new Set()
   };
-
   for (let tx of txs) {
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
     const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
-
     for (let msg of msgs) {
       const wasmAttributes = parseWasmEvents(msg.logs.events);
       for (let attrs of wasmAttributes) {
+        // if (attrs.find((attr) => attr.key === "action" && (attr.value === "mint" || attr.value === "burn"))) {
+        //   console.log("mint-burn");
+        //   console.table(attrs);
+        //   // TODO: FIND ASSET THEN ADD TO LIST ASSET
+        //   // assets.infoTokenAssetPools.add()
+        // }
+
         if (
           attrs.find(
             (attr) =>
@@ -372,12 +396,16 @@ export const processEventApr = async (txs: Tx[]) => {
               (attr.value === "bond" || attr.value === "unbond" || attr.value === "deposit_reward")
           )
         ) {
+          console.log("bond-unbond");
           console.table(attrs);
           // TODO: FIND ASSET THEN ADD TO LIST ASSET
           // assets.infoTokenAssetPools.add()
         }
 
-        // if (attrs.find((attr) => attr.key === "action" && attr.value === "update_reward_per_sec"))
+        if (attrs.find((attr) => attr.key === "action" && attr.value === "update_reward_per_sec")) {
+          console.log("update_reward_per_sec");
+          console.table(attrs);
+        }
       }
     }
   }

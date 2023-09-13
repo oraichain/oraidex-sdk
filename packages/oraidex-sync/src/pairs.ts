@@ -16,6 +16,7 @@ import {
   usdtCw20Address
 } from "./constants";
 import { PairMapping } from "./types";
+import { getStakingAssetInfo } from "./pool-helper";
 
 // the orders are important! Do not change the order of the asset_infos.
 export const pairs: PairMapping[] = [
@@ -108,3 +109,10 @@ export const uniqueInfos = extractUniqueAndFlatten(pairs);
 export const oraiUsdtPairOnlyDenom = pairsOnlyDenom.find(
   (pair) => JSON.stringify(pair.asset_infos) === JSON.stringify([ORAI, usdtCw20Address])
 ).asset_infos;
+
+export const pairWithStakingAsset = pairs.map((pair) => {
+  return {
+    ...pair,
+    stakingAssetInfo: getStakingAssetInfo(pair.asset_infos)
+  };
+});

@@ -514,6 +514,19 @@ export class DuckDb {
     );
   }
 
+  async getLatestLpPoolAmount(pairAddr: string) {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        WHERE pairAddr = ?
+        ORDER BY height DESC
+        LIMIT 1
+      `,
+      pairAddr
+    );
+    return result[0] as PoolAmountHistory;
+  }
+
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
     await this.insertBulkData(ops, "lp_amount_history");
   }
@@ -534,7 +547,6 @@ export class DuckDb {
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
-    console.dir({ poolAprs }, { depth: null });
     await this.insertBulkData(poolAprs, "pool_apr");
   }
 

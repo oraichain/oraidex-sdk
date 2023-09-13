@@ -409,12 +409,13 @@ async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairA
 
 // get liquidity of pair from assetInfos
 export const getPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
-  // get info of pool in pair_infos, ask & offer are accumulated in sync process (via swap ops and lp ops).
-  if (!poolInfo.askPoolAmount || !poolInfo.offerPoolAmount) return 0;
+  const duckDb = DuckDb.instances;
+  const poolAmount = await duckDb.getLatestLpPoolAmount(poolInfo.pairAddr);
+  if (!poolAmount || !poolAmount.askPoolAmount || !poolAmount.offerPoolAmount) return 0;
 
   const baseAssetInfo = JSON.parse(poolInfo.firstAssetInfo);
   const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-  return priceBaseAssetInUsdt * Number(poolInfo.offerPoolAmount) * 2;
+  return priceBaseAssetInUsdt * Number(poolAmount.offerPoolAmount) * 2;
 };
 
 /**
