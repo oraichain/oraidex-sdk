@@ -30,3 +30,4 @@ build
 *oraidex-sync-data*
 
 dist
+.DS_Store

@@ -1,4 +1,14 @@
-import {Uint128, Logo, EmbeddedLogo, Binary, Cw20Coin, InstantiateMarketingInfo, Expiration, Timestamp, Uint64, AllowanceInfo, SpenderAllowanceInfo, LogoInfo, Addr} from "./types";
+import {Uint128, Binary, Addr} from "./types";
+export type Logo = {
+  url: string;
+} | {
+  embedded: EmbeddedLogo;
+};
+export type EmbeddedLogo = {
+  svg: Binary;
+} | {
+  png: Binary;
+};
 export interface InstantiateMsg {
   decimals: number;
   initial_balances: Cw20Coin[];
@@ -6,6 +16,16 @@ export interface InstantiateMsg {
   mint?: MinterResponse | null;
   name: string;
   symbol: string;
+}
+export interface Cw20Coin {
+  address: string;
+  amount: Uint128;
+}
+export interface InstantiateMarketingInfo {
+  description?: string | null;
+  logo?: Logo | null;
+  marketing?: string | null;
+  project?: string | null;
 }
 export interface MinterResponse {
   cap?: Uint128 | null;
@@ -74,6 +94,15 @@ export type ExecuteMsg = {
 } | {
   upload_logo: Logo;
 };
+export type Expiration = {
+  at_height: number;
+} | {
+  at_time: Timestamp;
+} | {
+  never: {};
+};
+export type Timestamp = Uint64;
+export type Uint64 = string;
 export type QueryMsg = {
   balance: {
     address: string;
@@ -115,8 +144,18 @@ export interface AllAccountsResponse {
 export interface AllAllowancesResponse {
   allowances: AllowanceInfo[];
 }
+export interface AllowanceInfo {
+  allowance: Uint128;
+  expires: Expiration;
+  spender: string;
+}
 export interface AllSpenderAllowancesResponse {
   allowances: SpenderAllowanceInfo[];
+}
+export interface SpenderAllowanceInfo {
+  allowance: Uint128;
+  expires: Expiration;
+  owner: string;
 }
 export interface AllowanceResponse {
   allowance: Uint128;
@@ -129,6 +168,9 @@ export interface DownloadLogoResponse {
   data: Binary;
   mime_type: string;
 }
+export type LogoInfo = {
+  url: string;
+} | "embedded";
 export interface MarketingInfoResponse {
   description?: string | null;
   logo?: LogoInfo | null;

@@ -1,4 +1,4 @@
-import {Uint128, Binary, Addr, AssetInfo, Cw20ReceiveMsg, TokenInfo, Decimal, TokenRatio} from "./types";
+import {Uint128, Binary, Addr, AssetInfo, Cw20ReceiveMsg, Decimal} from "./types";
 export interface InstantiateMsg {}
 export type ExecuteMsg = {
   receive: Cw20ReceiveMsg;
@@ -26,6 +26,10 @@ export type ExecuteMsg = {
     asset_infos: AssetInfo[];
   };
 };
+export interface TokenInfo {
+  decimals: number;
+  info: AssetInfo;
+}
 export type QueryMsg = {
   config: {};
 } | {
@@ -39,4 +43,8 @@ export interface ConfigResponse {
 }
 export interface ConvertInfoResponse {
   token_ratio: TokenRatio;
+}
+export interface TokenRatio {
+  info: AssetInfo;
+  ratio: Decimal;
 }
