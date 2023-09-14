@@ -44,8 +44,6 @@ export type PairInfoData = {
   symbols: string;
   fromIconUrl: string;
   toIconUrl: string;
-  offerPoolAmount: bigint;
-  askPoolAmount: bigint;
 };
 
 export type PairInfoDataResponse = PairInfoData & {
@@ -229,13 +227,11 @@ export type PoolInfo = {
 };
 
 export type PoolAmountHistory = {
-  offerPoolAmount: bigint;
-  askPoolAmount: bigint;
   timestamp: number;
   height: number;
   pairAddr: string;
   uniqueKey: string;
-};
+} & PoolInfo;
 
 export type PoolApr = {
   uniqueKey: string;

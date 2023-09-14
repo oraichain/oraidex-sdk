@@ -271,35 +271,6 @@ describe("test-duckdb", () => {
     expect(queryResult.length).toEqual(2);
   });
 
-  it("test-updatePairInfoAmount-should-success", async () => {
-    // setup
-    duckDb = await DuckDb.create(":memory:");
-    await duckDb.createPairInfosTable();
-    await duckDb.insertPairInfos([
-      {
-        firstAssetInfo: JSON.stringify(oraiInfo),
-        secondAssetInfo: JSON.stringify(usdtInfo),
-        commissionRate: "",
-        pairAddr: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
-        liquidityAddr: "",
-        oracleAddr: "",
-        symbols: "1",
-        fromIconUrl: "1",
-        toIconUrl: "1",
-        offerPoolAmount: 1n,
-        askPoolAmount: 1n
-      } as PairInfoData
-    ]);
-
-    // act
-    await duckDb.updatePairInfoAmount(2n, 3n, "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt");
-
-    // assertion
-    const pairInfoAfterUpdate = await duckDb.getPoolByAssetInfos([oraiInfo, usdtInfo]);
-    expect(pairInfoAfterUpdate.offerPoolAmount).toEqual(2);
-    expect(pairInfoAfterUpdate.askPoolAmount).toEqual(3);
-  });
-
   it("test-getFeeSwap-should-return-correctly-fee-in-USDT", async () => {
     // setup
     duckDb = await DuckDb.create(":memory:");

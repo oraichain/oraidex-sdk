@@ -145,26 +145,12 @@ export class DuckDb {
         symbols VARCHAR,
         fromIconUrl VARCHAR,
         toIconUrl VARCHAR,
-        offerPoolAmount UBIGINT,
-        askPoolAmount UBIGINT,
         PRIMARY KEY (pairAddr) )`
     );
   }
 
   async insertPairInfos(ops: PairInfoData[]) {
     await this.insertBulkData(ops, "pair_infos", true);
-  }
-
-  async updatePairInfoAmount(offerPoolAmount: bigint, askPoolAmount: bigint, pairAddr: string) {
-    await this.conn.all(
-      `UPDATE pair_infos
-      SET offerPoolAmount = ?, askPoolAmount = ?
-      WHERE pairAddr = ?
-      `,
-      Number(offerPoolAmount),
-      Number(askPoolAmount),
-      pairAddr
-    );
   }
 
   async insertPriceInfos(ops: PriceInfo[]) {

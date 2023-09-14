@@ -164,9 +164,7 @@ class OraiDexSync {
             oracleAddr: pair.oracle_addr,
             symbols,
             fromIconUrl: "url1",
-            toIconUrl: "url2",
-            offerPoolAmount: 0n,
-            askPoolAmount: 0n
+            toIconUrl: "url2"
           } as PairInfoData;
         })
       );

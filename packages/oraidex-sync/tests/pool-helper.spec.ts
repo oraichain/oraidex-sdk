@@ -127,9 +127,7 @@ describe("test-pool-helper", () => {
           oracleAddr: "",
           symbols: "1",
           fromIconUrl: "1",
-          toIconUrl: "1",
-          offerPoolAmount: 1n,
-          askPoolAmount: 1n
+          toIconUrl: "1"
         }
       ];
       await duckDb.insertPairInfos(pairInfoData);
@@ -192,9 +190,7 @@ describe("test-pool-helper", () => {
             oracleAddr: "",
             symbols: "1",
             fromIconUrl: "1",
-            toIconUrl: "1",
-            offerPoolAmount: 1n,
-            askPoolAmount: 1n
+            toIconUrl: "1"
           },
           {
             firstAssetInfo: JSON.stringify(oraiInfo as AssetInfo),
@@ -205,9 +201,7 @@ describe("test-pool-helper", () => {
             oracleAddr: "",
             symbols: "1",
             fromIconUrl: "1",
-            toIconUrl: "1",
-            offerPoolAmount: 1n,
-            askPoolAmount: 1n
+            toIconUrl: "1"
           }
         ];
         await duckDb.insertPairInfos(pairInfoData);
@@ -292,9 +286,7 @@ describe("test-pool-helper", () => {
           oracleAddr: "1",
           symbols: "1",
           fromIconUrl: "1",
-          toIconUrl: "1",
-          offerPoolAmount: 1n,
-          askPoolAmount: 1n
+          toIconUrl: "1"
         },
         13344890,
         1

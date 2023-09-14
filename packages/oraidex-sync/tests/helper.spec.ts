@@ -202,9 +202,7 @@ describe("test-helper", () => {
         oracleAddr: "",
         symbols: "1",
         fromIconUrl: "1",
-        toIconUrl: "1",
-        offerPoolAmount: 1n,
-        askPoolAmount: 1n
+        toIconUrl: "1"
       }
     ];
     let assetInfos: [AssetInfo, AssetInfo] = [{ native_token: { denom: ORAI } }, assetInfo];
@@ -459,9 +457,7 @@ describe("test-helper", () => {
         oracleAddr: "",
         symbols: "1",
         fromIconUrl: "1",
-        toIconUrl: "1",
-        offerPoolAmount: 1n,
-        askPoolAmount: 1n
+        toIconUrl: "1"
       },
       {
         firstAssetInfo: JSON.stringify(oraiInfo),
@@ -472,9 +468,7 @@ describe("test-helper", () => {
         oracleAddr: "",
         symbols: "1",
         fromIconUrl: "1",
-        toIconUrl: "1",
-        offerPoolAmount: 1n,
-        askPoolAmount: 1n
+        toIconUrl: "1"
       }
     ]);
 
@@ -774,9 +768,7 @@ describe("test-helper", () => {
           oracleAddr: "",
           symbols: "1",
           fromIconUrl: "1",
-          toIconUrl: "1",
-          offerPoolAmount,
-          askPoolAmount
+          toIconUrl: "1"
         };
         jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 
