@@ -91,6 +91,17 @@ export const concatLpHistoryToUniqueKey = (data: { timestamp: number; pairAddr: 
   return `${data.timestamp}-${data.pairAddr}`;
 };
 
+export const concatAprHistoryToUniqueKey = (data: {
+  timestamp: number;
+  supply: string;
+  bond: string;
+  reward: string;
+  apr: number;
+  pairAddr: string;
+}): string => {
+  return `${data.timestamp}-${data.pairAddr}-${data.supply}-${data.bond}-${data.reward}-${data.apr}`;
+};
+
 export function isoToTimestampNumber(time: string) {
   return Math.floor(new Date(time).getTime() / 1000);
 }
@@ -169,18 +180,18 @@ function findPairAddress(pairInfos: PairInfoData[], infos: [AssetInfo, AssetInfo
   )?.pairAddr;
 }
 
-function calculatePriceByPool(
+export const calculatePriceByPool = (
   offerPool: bigint,
   askPool: bigint,
   commissionRate?: number,
   offerAmount?: number
-): number {
+): number => {
   const finalOfferAmount = offerAmount || tenAmountInDecimalSix;
   let bigIntAmount =
     Number(offerPool - (askPool * offerPool) / (askPool + BigInt(finalOfferAmount))) * (1 - commissionRate || 0);
 
   return bigIntAmount / finalOfferAmount;
-}
+};
 
 export function groupDataByTime(data: any[], timeframe?: number): { [key: string]: any[] } {
   let ops: { [k: number]: any[] } = {};
@@ -525,7 +536,6 @@ export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, stri
 };
 
 export {
-  calculatePriceByPool,
   convertDateToSecond,
   delay,
   fetchPoolInfoAmount,

@@ -1,8 +1,24 @@
 import { Attribute, Event } from "@cosmjs/stargate";
-import { isEqual } from "lodash";
+import { Log } from "@cosmjs/stargate/build/logs";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
-import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
+import { isEqual } from "lodash";
+import { DuckDb } from "./db";
+import {
+  buildOhlcv,
+  calculatePriceByPool,
+  concatDataToUniqueKey,
+  getSwapDirection,
+  groupByTime,
+  isAssetInfoPairReverse,
+  isoToTimestampNumber,
+  parseAssetInfo,
+  parseAssetInfoOnlyDenom,
+  removeOpsDuplication
+} from "./helper";
+import { pairs } from "./pairs";
+import { calculateLiquidityFee, isPoolHasFee } from "./pool-helper";
 import {
   AccountTx,
   BasicTxData,
@@ -17,22 +33,6 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
-import { Log } from "@cosmjs/stargate/build/logs";
-import {
-  buildOhlcv,
-  calculatePriceByPool,
-  concatDataToUniqueKey,
-  getSwapDirection,
-  groupByTime,
-  isAssetInfoPairReverse,
-  isoToTimestampNumber,
-  parseAssetInfo,
-  parseAssetInfoOnlyDenom,
-  removeOpsDuplication
-} from "./helper";
-import { pairs } from "./pairs";
-import { DuckDb } from "./db";
-import { calculateLiquidityFee, isPoolHasFee, refetchTokenInfos, triggerCalculateApr } from "./pool-helper";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -294,10 +294,9 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
         "execute_swap_operation" in obj.msg ||
         "bond" in obj.msg ||
         "unbond" in obj.msg ||
-        "update_reward_per_sec" in obj.msg ||
         "mint" in obj.msg ||
         "burn" in obj.msg ||
-        "deposit_reward" in obj.msg
+        ("execute" in obj.msg && typeof obj.msg.execute === "object" && "proposal_id" in obj.msg.execute)
       )
         objs.push(obj);
       if ("send" in obj.msg) {
@@ -310,10 +309,8 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
             "withdraw_liquidity" in contractSendMsg ||
             "bond" in contractSendMsg ||
             "unbond" in contractSendMsg ||
-            "update_reward_per_sec" in contractSendMsg ||
             "mint" in contractSendMsg ||
-            "burn" in contractSendMsg ||
-            "deposit_reward" in contractSendMsg
+            "burn" in contractSendMsg
           ) {
             objs.push({ ...msg, msg: contractSendMsg });
           }
@@ -373,38 +370,26 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
 
 export const processEventApr = async (txs: Tx[]) => {
   const assets = {
-    infoTokenAssetPools: new Set(),
-    infoRewardPerSec: new Set()
+    infoTokenAssetPools: new Set<string>(),
+    isTriggerRewardPerSec: false
   };
   for (let tx of txs) {
+    // guard code. Should refetch all token info if match event update_rewards_per_sec or length ofstaking asset equal to pairs length.
+    if (assets.isTriggerRewardPerSec || assets.infoTokenAssetPools.size === pairs.length) break;
+
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
     const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
     for (let msg of msgs) {
       const wasmAttributes = parseWasmEvents(msg.logs.events);
       for (let attrs of wasmAttributes) {
-        // if (attrs.find((attr) => attr.key === "action" && (attr.value === "mint" || attr.value === "burn"))) {
-        //   console.log("mint-burn");
-        //   console.table(attrs);
-        //   // TODO: FIND ASSET THEN ADD TO LIST ASSET
-        //   // assets.infoTokenAssetPools.add()
-        // }
-
-        if (
-          attrs.find(
-            (attr) =>
-              attr.key === "action" &&
-              (attr.value === "bond" || attr.value === "unbond" || attr.value === "deposit_reward")
-          )
-        ) {
-          console.log("bond-unbond");
-          console.table(attrs);
-          // TODO: FIND ASSET THEN ADD TO LIST ASSET
-          // assets.infoTokenAssetPools.add()
+        if (attrs.find((attr) => attr.key === "action" && (attr.value === "bond" || attr.value === "unbond"))) {
+          const stakingAssetDenom = attrs.find((attr) => attr.key === "asset_info")?.value;
+          assets.infoTokenAssetPools.add(stakingAssetDenom);
         }
 
-        if (attrs.find((attr) => attr.key === "action" && attr.value === "update_reward_per_sec")) {
-          console.log("update_reward_per_sec");
-          console.table(attrs);
+        if (attrs.find((attr) => attr.key === "action" && attr.value === "update_rewards_per_sec")) {
+          assets.isTriggerRewardPerSec = true;
+          break;
         }
       }
     }
@@ -412,4 +397,4 @@ export const processEventApr = async (txs: Tx[]) => {
   return assets;
 };
 
-export { parseAssetInfo, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets, parseTxToMsgExecuteContractMsgs };
+export { parseAssetInfo, parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets };

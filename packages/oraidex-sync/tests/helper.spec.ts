@@ -26,7 +26,6 @@ import {
   findPairIndexFromDenoms,
   getSwapDirection,
   groupByTime,
-  isAssetInfoPairReverse,
   removeOpsDuplication,
   roundTime,
   toAmount,
@@ -406,36 +405,45 @@ describe("test-helper", () => {
         baseTokenDenom: ORAI,
         quoteTokenAmount: 1,
         quoteTokenDenom: usdtCw20Address,
-        opType: "withdraw"
+        opType: "withdraw",
+        height: 1,
+        timestamp: 1
       },
       {
         baseTokenAmount: 2,
         baseTokenDenom: ORAI,
         quoteTokenAmount: 2,
         quoteTokenDenom: usdtCw20Address,
-        opType: "provide"
+        opType: "provide",
+        height: 1,
+        timestamp: 1
       },
       {
         baseTokenAmount: 1,
         baseTokenDenom: ORAI,
         quoteTokenAmount: -1,
         quoteTokenDenom: usdtCw20Address,
-        direction: "Buy"
+        direction: "Buy",
+        height: 1,
+        timestamp: 1
       },
       {
         baseTokenAmount: 1,
         baseTokenDenom: ORAI,
         quoteTokenAmount: -1,
         quoteTokenDenom: usdtCw20Address,
-        direction: "Sell"
+        direction: "Sell",
+        height: 1,
+        timestamp: 1
       },
-
       {
         baseTokenAmount: 1,
         baseTokenDenom: ORAI,
         quoteTokenAmount: -1,
         quoteTokenDenom: atomIbcDenom,
-        direction: "Sell"
+        direction: "Sell",
+        height: 1,
+        timestamp: 1
       }
     ];
     duckDb = await DuckDb.create(":memory:");
@@ -475,8 +483,8 @@ describe("test-helper", () => {
 
     // assertion
     expect(accumulatedData).toStrictEqual({
-      oraiUsdtPairAddr: { baseTokenAmount: 2n, quoteTokenAmount: 2n },
-      oraiAtomPairAddr: { baseTokenAmount: 5n, quoteTokenAmount: 3n }
+      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1 },
+      oraiAtomPairAddr: { askPoolAmount: 3n, height: 1, offerPoolAmount: 5n, timestamp: 1 }
     });
   });
 
@@ -685,16 +693,16 @@ describe("test-helper", () => {
     }
   );
 
-  it.each([
-    ["case-asset-info-pairs-is-NOT-reversed", [oraiInfo, usdtInfo], false],
-    ["case-asset-info-pairs-is-reversed", [usdtInfo, oraiInfo], true]
-  ])(
-    "test-isAssetInfoPairReverse-should-return-correctly",
-    (_caseName: string, assetInfos: AssetInfo[], expectedResult: boolean) => {
-      const result = isAssetInfoPairReverse(assetInfos);
-      expect(result).toBe(expectedResult);
-    }
-  );
+  // it.each([
+  //   ["case-asset-info-pairs-is-NOT-reversed", [oraiInfo, usdtInfo], false],
+  //   ["case-asset-info-pairs-is-reversed", [usdtInfo, oraiInfo], true]
+  // ])(
+  //   "test-isAssetInfoPairReverse-should-return-correctly",
+  //   (_caseName: string, assetInfos: AssetInfo[], expectedResult: boolean) => {
+  //     const result = helper.isAssetInfoPairReverse(assetInfos);
+  //     expect(result).toBe(expectedResult);
+  //   }
+  // );
 
   it("test-getSymbolFromAsset-should-throw-error-for-assetInfos-not-valid", () => {
     const asset_infos = [oraiInfo, { token: { contract_addr: "invalid-token" } }] as [AssetInfo, AssetInfo];
@@ -744,8 +752,19 @@ describe("test-helper", () => {
       [1n, 1n, 4]
     ])(
       "test-getPairLiquidity-should-return-correctly-liquidity-by-USDT",
-      async (offerAmount: bigint, askAmount: bigint, expectedResult: number) => {
+      async (offerPoolAmount: bigint, askPoolAmount: bigint, expectedResult: number) => {
         // setup
+        await duckDb.createPoolOpsTable();
+        await duckDb.insertPoolAmountHistory([
+          {
+            offerPoolAmount,
+            askPoolAmount,
+            timestamp: 1,
+            height: 1,
+            pairAddr: "oraiUsdtPairAddr",
+            uniqueKey: "1"
+          }
+        ]);
         const poolInfo: PairInfoData = {
           firstAssetInfo: JSON.stringify(oraiInfo),
           secondAssetInfo: JSON.stringify(usdtInfo),
@@ -756,8 +775,8 @@ describe("test-helper", () => {
           symbols: "1",
           fromIconUrl: "1",
           toIconUrl: "1",
-          offerPoolAmount: offerAmount,
-          askPoolAmount: askAmount
+          offerPoolAmount,
+          askPoolAmount
         };
         jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 

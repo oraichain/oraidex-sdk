@@ -401,7 +401,6 @@ describe("test-pool-helper", () => {
       allBondAmounts,
       allRewardPerSec
     );
-    console.dir({ result }, { depth: null });
 
     // assertion
     expect(result.length).toEqual(pairs.length);

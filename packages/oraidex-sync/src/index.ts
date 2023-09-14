@@ -5,8 +5,7 @@ import {
   collectAccumulateLpAndSwapData,
   concatLpHistoryToUniqueKey,
   getPairLiquidity,
-  getSymbolFromAsset,
-  parsePairDenomToAssetInfo
+  getSymbolFromAsset
 } from "./helper";
 import {
   calculateAprResult,
@@ -14,9 +13,9 @@ import {
   getAllPairInfos,
   getPairByAssetInfos,
   getPoolInfos,
-  refetchTokenInfos
+  handleEventApr
 } from "./pool-helper";
-import { parseAssetInfo, parseTxs, processEventApr } from "./tx-parsing";
+import { parseAssetInfo, parseTxs } from "./tx-parsing";
 import {
   Env,
   InitialData,
@@ -28,7 +27,6 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
-import { AssetInfo } from "@oraichain/common-contracts-sdk";
 
 class WriteOrders extends WriteData {
   constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
@@ -119,18 +117,7 @@ class WriteOrders extends WriteData {
         [...result.swapOpsData]
       );
 
-      const assetInfosToRefetchTokenInfos = Array.from(
-        [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]
-          .map((op) => [op.baseTokenDenom, op.quoteTokenDenom] as [string, string])
-          .reduce((accumulator, tokenDenoms) => {
-            const assetInfo = parsePairDenomToAssetInfo(tokenDenoms);
-            accumulator.add(assetInfo);
-            return accumulator;
-          }, new Set<[AssetInfo, AssetInfo]>())
-      );
-      await refetchTokenInfos(assetInfosToRefetchTokenInfos, newOffset);
-
-      await processEventApr(txs);
+      await handleEventApr(txs, result, newOffset);
 
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
@@ -196,8 +183,7 @@ class OraiDexSync {
       if (result.status === "fulfilled") return result.value;
       else console.error("error get allLiquidities: ", result.reason);
     });
-    const { allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
-    const allAprs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
+    const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
 
     const poolAprs = allAprs.map((apr, index) => {
       return {

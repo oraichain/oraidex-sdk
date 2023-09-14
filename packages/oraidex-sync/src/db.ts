@@ -540,14 +540,23 @@ export class DuckDb {
           totalSupply varchar,
           totalBondAmount varchar,
           rewardPerSec varchar,
-          apr double
+          apr double,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `
     );
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
-    await this.insertBulkData(poolAprs, "pool_apr");
+    await this.insertBulkData(
+      poolAprs.map((poolApr) => {
+        return {
+          ...poolApr,
+          createdAt: new Date()
+        };
+      }),
+      "pool_apr"
+    );
   }
 
   async getLatestPoolApr(pairAddr: string): Promise<PoolApr> {
@@ -555,7 +564,7 @@ export class DuckDb {
       `
         SELECT * FROM pool_apr
         WHERE pairAddr = ?
-        ORDER BY height DESC
+        ORDER BY createdAt DESC
         LIMIT 1
       `,
       pairAddr
