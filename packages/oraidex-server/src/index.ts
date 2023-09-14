@@ -236,14 +236,13 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (_req, res) => {
   try {
-    const [volumes, allFee7Days] = await Promise.all([getAllVolume24h(), getAllFees()]);
-
-    const pools = await duckDb.getPools();
-    const allPoolApr = await duckDb.getApr();
-    const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
-      if (result.status === "fulfilled") return result.value;
-      else console.error("error get allLiquidities: ", result.reason);
-    });
+    const [volumes, allFee7Days, pools, allPoolApr] = await Promise.all([
+      getAllVolume24h(),
+      getAllFees(),
+      duckDb.getPools(),
+      duckDb.getApr()
+    ]);
+    const allLiquidities = await Promise.all(pools.map((pair) => getPairLiquidity(pair)));
 
     res.status(200).send(
       pools.map((pool, index) => {
