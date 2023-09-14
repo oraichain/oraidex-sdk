@@ -241,5 +241,4 @@ export type PoolApr = {
   totalBondAmount: string;
   rewardPerSec: string;
   apr: number;
-  createdAt?: string;
 };

@@ -14,6 +14,9 @@ import * as helper from "../src/helper";
 import { DuckDb, pairs } from "../src/index";
 import * as poolHelper from "../src/pool-helper";
 import { PairInfoData, PairMapping, ProvideLiquidityOperationData } from "../src/types";
+import { Tx } from "@oraichain/cosmos-rpc-sync";
+import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import * as txParsing from "../src/tx-parsing";
 
 describe("test-pool-helper", () => {
   let duckDb: DuckDb;
@@ -116,13 +119,15 @@ describe("test-pool-helper", () => {
     ])("test-getPriceByAsset-should-return-correctly-price", async (assetInfos, ratioDirection, expectedPrice) => {
       // setup
       duckDb = await DuckDb.create(":memory:");
-      await duckDb.createPairInfosTable();
+      await Promise.all([duckDb.createPairInfosTable(), duckDb.createLpAmountHistoryTable()]);
+
+      const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt";
       let pairInfoData: PairInfoData[] = [
         {
           firstAssetInfo: JSON.stringify({ native_token: { denom: ORAI } } as AssetInfo),
           secondAssetInfo: JSON.stringify({ token: { contract_addr: usdtCw20Address } } as AssetInfo),
           commissionRate: "",
-          pairAddr: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
+          pairAddr,
           liquidityAddr: "",
           oracleAddr: "",
           symbols: "1",
@@ -131,12 +136,17 @@ describe("test-pool-helper", () => {
         }
       ];
       await duckDb.insertPairInfos(pairInfoData);
+      await duckDb.insertPoolAmountHistory([
+        {
+          offerPoolAmount: 1n,
+          askPoolAmount: 1n,
+          height: 1,
+          timestamp: 1,
+          pairAddr,
+          uniqueKey: "1"
+        }
+      ]);
 
-      // mock result of nested function implemented inside getPriceByAsset.
-      jest.spyOn(helper, "fetchPoolInfoAmount").mockResolvedValue({
-        askPoolAmount: 1000n,
-        offerPoolAmount: 2000n
-      });
       jest.spyOn(helper, "calculatePriceByPool").mockReturnValue(0.5);
 
       // assert
@@ -398,4 +408,97 @@ describe("test-pool-helper", () => {
     expect(result.length).toEqual(pairs.length);
     expect(result).toStrictEqual(Array(pairs.length).fill(315360000));
   });
+
+  it.each([
+    [true, pairs.length, pairs.length],
+    [false, 4, 0]
+  ])(
+    "test-getListAssetInfoShouldRefetchApr-with-is-isTriggerRewardPerSec-%p-shoud-return-listAssetInfosPoolShouldRefetch-length-%p-and-assetInfosTriggerRewardPerSec-length-%p",
+    async (
+      isTriggerRewardPerSec: boolean,
+      expectedListAssetInfosPoolShouldRefetch: number,
+      expectedAssetInfosTriggerRewardPerSec: number
+    ) => {
+      // setup
+      const cosmosTx = CosmosTx.encode(
+        CosmosTx.fromPartial({ body: { messages: [{ typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract" }] } })
+      ).finish();
+      const txs: Tx[] = [
+        {
+          hash: "",
+          height: 1,
+          code: 1,
+          txIndex: 0,
+          tx: cosmosTx,
+          timestamp: new Date().toISOString(),
+          rawLog: JSON.stringify({ events: [] }),
+          events: [],
+          msgResponses: [{ typeUrl: "", value: Buffer.from("") }],
+          gasUsed: 1,
+          gasWanted: 1
+        }
+      ];
+
+      const ops: ProvideLiquidityOperationData[] = [
+        {
+          basePrice: 1,
+          baseTokenAmount: 1,
+          baseTokenDenom: ORAI,
+          quoteTokenAmount: 1,
+          quoteTokenDenom: usdtCw20Address,
+          baseTokenReserve: 1,
+          quoteTokenReserve: 1,
+          opType: "provide",
+          uniqueKey: "1",
+          timestamp: 1,
+          txCreator: "a",
+          txhash: "a",
+          txheight: 1,
+          taxRate: 1n
+        },
+        {
+          basePrice: 1,
+          baseTokenAmount: 1,
+          baseTokenDenom: ORAI,
+          quoteTokenAmount: 1,
+          quoteTokenDenom: usdtCw20Address,
+          baseTokenReserve: 1,
+          quoteTokenReserve: 1,
+          opType: "withdraw",
+          uniqueKey: "2",
+          timestamp: 1,
+          txCreator: "a",
+          txhash: "a",
+          txheight: 1,
+          taxRate: 1n
+        },
+        {
+          basePrice: 1,
+          baseTokenAmount: 1,
+          baseTokenDenom: ORAI,
+          quoteTokenAmount: 1,
+          quoteTokenDenom: atomIbcDenom,
+          baseTokenReserve: 1,
+          quoteTokenReserve: 1,
+          opType: "withdraw",
+          uniqueKey: "1",
+          timestamp: 1,
+          txCreator: "a",
+          txhash: "a",
+          txheight: 1,
+          taxRate: 1n
+        }
+      ];
+      jest.spyOn(txParsing, "processEventApr").mockReturnValue({
+        isTriggerRewardPerSec,
+        infoTokenAssetPools: new Set<string>([airiCw20Adress, scAtomCw20Address])
+      });
+
+      const result = await poolHelper.getListAssetInfoShouldRefetchApr(txs, ops);
+      expect(result.assetInfosTriggerTotalSupplies.length).toEqual(2);
+      expect(result.assetInfosTriggerTotalBond.length).toEqual(2);
+      expect(result.listAssetInfosPoolShouldRefetch.length).toEqual(expectedListAssetInfosPoolShouldRefetch);
+      expect(result.assetInfosTriggerRewardPerSec.length).toEqual(expectedAssetInfosTriggerRewardPerSec);
+    }
+  );
 });

@@ -748,7 +748,7 @@ describe("test-helper", () => {
       "test-getPairLiquidity-should-return-correctly-liquidity-by-USDT",
       async (offerPoolAmount: bigint, askPoolAmount: bigint, expectedResult: number) => {
         // setup
-        await duckDb.createPoolOpsTable();
+        await duckDb.createLpAmountHistoryTable();
         await duckDb.insertPoolAmountHistory([
           {
             offerPoolAmount,

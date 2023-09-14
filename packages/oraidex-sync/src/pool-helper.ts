@@ -1,4 +1,5 @@
 import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
+import { Tx } from "@oraichain/cosmos-rpc-sync";
 import {
   Asset,
   AssetInfo,
@@ -13,9 +14,9 @@ import { ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo 
 import {
   calculatePriceByPool,
   getCosmwasmClient,
+  isAssetInfoPairReverse,
   parseAssetInfoOnlyDenom,
-  validateNumber,
-  isAssetInfoPairReverse
+  validateNumber
 } from "./helper";
 import { DuckDb, concatAprHistoryToUniqueKey, getPairLiquidity, parsePairDenomToAssetInfo } from "./index";
 import { pairWithStakingAsset, pairs } from "./pairs";
@@ -26,10 +27,8 @@ import {
   queryAllPairInfos,
   queryPoolInfos
 } from "./query";
-import { PairInfoData, PairMapping, TxAnlysisResult } from "./types";
-import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { processEventApr } from "./tx-parsing";
-
+import { PairInfoData, PairMapping, ProvideLiquidityOperationData } from "./types";
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
 
@@ -86,6 +85,7 @@ export const getPriceByAsset = async (
 ): Promise<number> => {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+  if (!poolInfo) return 0;
   const poolAmount = await duckDb.getLatestLpPoolAmount(poolInfo.pairAddr);
   if (!poolAmount || !poolAmount.askPoolAmount || !poolAmount.offerPoolAmount) return 0;
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
@@ -272,109 +272,105 @@ export const getAllPairInfos = async (): Promise<PairInfo[]> => {
 };
 
 export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], newOffset: number) => {
-  try {
-    // TODO: get all infos relate to apr in duckdb from apr table -> call to calculateAprResult
-    if (assetInfos.length === 0) return;
-    const duckDb = DuckDb.instances;
-    const pools = await Promise.all(assetInfos.map((infos) => duckDb.getPoolByAssetInfos(infos)));
-
-    const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
-      if (result.status === "fulfilled") return result.value;
-      else console.error("error get allLiquidities: ", result.reason);
-    });
-
-    const poolAprInfos = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
-    const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
-    const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
-    const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
-
-    const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
-    const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
-    const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
-      return {
-        ...poolApr,
-        height: newOffset,
-        apr: APRs[index],
-        uniqueKey: concatAprHistoryToUniqueKey({
-          timestamp: Date.now(),
-          supply: allTotalSupplies[index],
-          bond: allBondAmounts[index],
-          reward: allRewardPerSecs[index],
-          apr: APRs[index],
-          pairAddr: pools[index].pairAddr
-        })
-      };
-    });
-    await duckDb.insertPoolAprs(newPoolAprs);
-  } catch (error) {
-    console.log({ triggerCalculateApr: error });
-  }
-};
-
-export const refetchTotalSupplies = async (assetInfos: [AssetInfo, AssetInfo][], height: number) => {
+  // get all infos relate to apr in duckdb from apr table -> call to calculateAprResult
   if (assetInfos.length === 0) return;
   const duckDb = DuckDb.instances;
-  const pools = await Promise.all(assetInfos.map((assetInfo) => duckDb.getPoolByAssetInfos(assetInfo)));
-  const liquidityAddrs = pools.map((pair) => pair.liquidityAddr);
-  const tokenInfos = await fetchTokenInfos(liquidityAddrs);
-  const totalSupplies = tokenInfos.map((info) => info.total_supply);
+  const pools = await Promise.all(assetInfos.map((infos) => duckDb.getPoolByAssetInfos(infos)));
 
-  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
-  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
+  const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
+    if (result.status === "fulfilled") return result.value;
+    else console.error("error get allLiquidities: ", result.reason);
+  });
+
+  const poolAprInfos = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
+  const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
+  const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
+  const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
+
+  const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
+  console.dir({ APRs }, { depth: null });
+  const newPoolAprs = poolAprInfos.map((poolApr, index) => {
     return {
       ...poolApr,
-      height,
-      totalSupply: totalSupplies[index]
+      height: newOffset,
+      apr: APRs[index],
+      uniqueKey: concatAprHistoryToUniqueKey({
+        timestamp: Date.now(),
+        supply: allTotalSupplies[index],
+        bond: allBondAmounts[index],
+        reward: allRewardPerSecs[index],
+        apr: APRs[index],
+        pairAddr: pools[index].pairAddr
+      })
     };
   });
   await duckDb.insertPoolAprs(newPoolAprs);
 };
 
-export const refetchTotalBond = async (assetInfos: [AssetInfo, AssetInfo][], height: number) => {
+export type TypeInfoRelatedApr = "totalSupply" | "totalBondAmount" | "rewardPerSec";
+export const refetchInfoApr = async (
+  type: TypeInfoRelatedApr,
+  assetInfos: [AssetInfo, AssetInfo][],
+  height: number
+) => {
   if (assetInfos.length === 0) return;
   const duckDb = DuckDb.instances;
   const pools = await Promise.all(assetInfos.map((assetInfo) => duckDb.getPoolByAssetInfos(assetInfo)));
   const stakingAssetInfo = pools.map((pair) =>
     getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
   );
+  let newInfos;
+  switch (type) {
+    case "totalSupply": {
+      newInfos = await refetchTotalSupplies(pools);
+      break;
+    }
+    case "totalBondAmount": {
+      newInfos = await refetchTotalBond(stakingAssetInfo);
+      break;
+    }
+    case "rewardPerSec": {
+      newInfos = await refetchRewardPerSecInfos(stakingAssetInfo);
+      break;
+    }
+    default:
+      break;
+  }
+
+  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
+  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
+    return {
+      ...poolApr,
+      height,
+      [type]: newInfos[index]
+    };
+  });
+  await duckDb.insertPoolAprs(newPoolAprs);
+};
+
+export const refetchTotalSupplies = async (pools: PairInfoData[]): Promise<string[]> => {
+  const liquidityAddrs = pools.map((pair) => pair.liquidityAddr);
+  const tokenInfos = await fetchTokenInfos(liquidityAddrs);
+  const totalSupplies = tokenInfos.map((info) => info.total_supply);
+  return totalSupplies;
+};
+
+export const refetchTotalBond = async (stakingAssetInfo: AssetInfo[]): Promise<string[]> => {
   const tokenAssetPools = await fetchAllTokenAssetPools(stakingAssetInfo);
   const totalBondAmounts = tokenAssetPools.map((info) => info.total_bond_amount);
-  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
-  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
-    return {
-      ...poolApr,
-      height,
-      totalBondAmount: totalBondAmounts[index]
-    };
-  });
-  await duckDb.insertPoolAprs(newPoolAprs);
+  return totalBondAmounts;
 };
 
-export const refetchRewardPerSecInfos = async (assetInfos: [AssetInfo, AssetInfo][], height: number) => {
-  if (assetInfos.length === 0) return;
-  const duckDb = DuckDb.instances;
-  const pools = await Promise.all(assetInfos.map((assetInfo) => duckDb.getPoolByAssetInfos(assetInfo)));
-  const assetTokens = pools.map((pair) =>
-    getStakingAssetInfo([JSON.parse(pair.firstAssetInfo), JSON.parse(pair.secondAssetInfo)])
-  );
-  const rewardPerSecInfos = await fetchAllRewardPerSecInfos(assetTokens);
-
-  const latestPoolAprs = await Promise.all(pools.map((pool) => duckDb.getLatestPoolApr(pool.pairAddr)));
-  const newPoolAprs = latestPoolAprs.map((poolApr, index) => {
-    return {
-      ...poolApr,
-      height,
-      rewardPerSec: JSON.stringify(rewardPerSecInfos[index])
-    };
-  });
-  await duckDb.insertPoolAprs(newPoolAprs);
+export const refetchRewardPerSecInfos = async (stakingAssetInfo: AssetInfo[]) => {
+  const rewardPerSecInfos = await fetchAllRewardPerSecInfos(stakingAssetInfo);
+  return rewardPerSecInfos.map((item) => JSON.stringify(item));
 };
 
-export const handleEventApr = async (txs: Tx[], result: TxAnlysisResult, newOffset: number): Promise<void> => {
+export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: ProvideLiquidityOperationData[]) => {
   let listAssetInfosPoolShouldRefetch = new Set<[AssetInfo, AssetInfo]>();
   // mint/burn trigger update total supply
   const assetInfosTriggerTotalSupplies = Array.from(
-    [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData]
+    lpOps
       .map((op) => [op.baseTokenDenom, op.quoteTokenDenom] as [string, string])
       .reduce((accumulator, tokenDenoms) => {
         const assetInfo = parsePairDenomToAssetInfo(tokenDenoms);
@@ -384,15 +380,7 @@ export const handleEventApr = async (txs: Tx[], result: TxAnlysisResult, newOffs
   );
   assetInfosTriggerTotalSupplies.forEach((item) => listAssetInfosPoolShouldRefetch.add(item));
 
-  await refetchTotalSupplies(assetInfosTriggerTotalSupplies, newOffset);
-
-  const { infoTokenAssetPools, isTriggerRewardPerSec } = await processEventApr(txs);
-  if (isTriggerRewardPerSec) {
-    // update_reward_per_sec trigger refetch all info
-    pairs.map((pair) => pair.asset_infos).forEach((assetInfos) => listAssetInfosPoolShouldRefetch.add(assetInfos));
-    await refetchRewardPerSecInfos(Array.from(listAssetInfosPoolShouldRefetch), newOffset);
-  }
-
+  const { infoTokenAssetPools, isTriggerRewardPerSec } = processEventApr(txs);
   // bond/unbond trigger refetch info token asset pools
   const assetInfosTriggerTotalBond = Array.from(infoTokenAssetPools)
     .map((stakingDenom) => {
@@ -401,9 +389,39 @@ export const handleEventApr = async (txs: Tx[], result: TxAnlysisResult, newOffs
     })
     .filter(Boolean);
 
-  !isTriggerRewardPerSec &&
+  if (isTriggerRewardPerSec) {
+    // update_reward_per_sec trigger refetch all info
+    listAssetInfosPoolShouldRefetch.clear();
+    pairs.map((pair) => pair.asset_infos).forEach((assetInfos) => listAssetInfosPoolShouldRefetch.add(assetInfos));
+  } else {
     assetInfosTriggerTotalBond.forEach((assetInfo) => listAssetInfosPoolShouldRefetch.add(assetInfo));
-  await refetchTotalBond(assetInfosTriggerTotalBond, newOffset);
+  }
+
+  return {
+    assetInfosTriggerTotalSupplies,
+    listAssetInfosPoolShouldRefetch: Array.from(listAssetInfosPoolShouldRefetch),
+    assetInfosTriggerTotalBond,
+    assetInfosTriggerRewardPerSec: isTriggerRewardPerSec ? Array.from(listAssetInfosPoolShouldRefetch) : []
+  };
+};
+
+export const handleEventApr = async (
+  txs: Tx[],
+  result: ProvideLiquidityOperationData[],
+  newOffset: number
+): Promise<void> => {
+  const {
+    assetInfosTriggerTotalSupplies,
+    listAssetInfosPoolShouldRefetch,
+    assetInfosTriggerTotalBond,
+    assetInfosTriggerRewardPerSec
+  } = await getListAssetInfoShouldRefetchApr(txs, result);
+
+  await Promise.allSettled([
+    refetchInfoApr("totalSupply", assetInfosTriggerTotalSupplies, newOffset),
+    refetchInfoApr("rewardPerSec", assetInfosTriggerRewardPerSec, newOffset),
+    refetchInfoApr("totalBondAmount", assetInfosTriggerTotalBond, newOffset)
+  ]);
 
   await triggerCalculateApr(Array.from(listAssetInfosPoolShouldRefetch), newOffset);
 };

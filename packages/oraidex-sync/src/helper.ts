@@ -1,10 +1,4 @@
-import {
-  AssetInfo,
-  CosmWasmClient,
-  OraiswapPairQueryClient,
-  OraiswapPairTypes,
-  SwapOperation
-} from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, CosmWasmClient, OraiswapPairTypes, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual, maxBy, minBy } from "lodash";
 import { ORAI, atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
@@ -17,7 +11,6 @@ import {
   OraiDexType,
   PairInfoData,
   PoolAmountHistory,
-  PoolInfo,
   SwapDirection,
   SwapOperationData
 } from "./types";
@@ -409,15 +402,6 @@ export const parsePoolAmount = (poolInfo: OraiswapPairTypes.PoolResponse, trueAs
   return BigInt(poolInfo.assets.find((asset) => isEqual(asset.info, trueAsset))?.amount || "0");
 };
 
-async function fetchPoolInfoAmount(fromInfo: AssetInfo, toInfo: AssetInfo, pairAddr: string): Promise<PoolInfo> {
-  const client = await getCosmwasmClient();
-  const pairContract = new OraiswapPairQueryClient(client, pairAddr);
-  const poolInfo = await pairContract.pool();
-  const offerPoolAmount = parsePoolAmount(poolInfo, fromInfo);
-  const askPoolAmount = parsePoolAmount(poolInfo, toInfo);
-  return { offerPoolAmount, askPoolAmount };
-}
-
 // get liquidity of pair from assetInfos
 export const getPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
   const duckDb = DuckDb.instances;
@@ -535,10 +519,15 @@ export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, stri
   return pair.asset_infos;
 };
 
+export function getDate24hBeforeNow(time: Date) {
+  const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+  const date24hBeforeNow = new Date(time.getTime() - twentyFourHoursInMilliseconds);
+  return date24hBeforeNow;
+}
+
 export {
   convertDateToSecond,
   delay,
-  fetchPoolInfoAmount,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
   findPairAddress,

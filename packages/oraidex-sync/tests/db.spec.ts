@@ -1,8 +1,6 @@
-import fs from "fs";
-import { oraiInfo, usdtInfo } from "../src";
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
-import { GetFeeSwap, GetVolumeQuery, PairInfoData, PoolApr, ProvideLiquidityOperationData } from "../src/types";
+import { GetFeeSwap, GetVolumeQuery, ProvideLiquidityOperationData } from "../src/types";
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
   afterAll(jest.resetModules);
@@ -461,7 +459,7 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2
-        } as PoolApr,
+        },
         {
           uniqueKey: "orai_usdt_4",
           pairAddr: "orai_usdt",
@@ -470,7 +468,7 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 4
-        } as PoolApr,
+        },
         {
           uniqueKey: "orai_usdt_3",
           pairAddr: "orai_usdt",
@@ -479,7 +477,7 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 3
-        } as PoolApr,
+        },
         {
           uniqueKey: "orai_atom",
           pairAddr: "orai_atom",
@@ -488,7 +486,7 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2
-        } as PoolApr
+        }
       ]);
     });
 
@@ -508,7 +506,7 @@ describe("test-duckdb", () => {
       const result = await duckDb.getLatestPoolApr("orai_usdt");
 
       // assertion
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         uniqueKey: "orai_usdt_4",
         pairAddr: "orai_usdt",
         height: 4,

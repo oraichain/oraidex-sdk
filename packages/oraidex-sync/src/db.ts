@@ -1,30 +1,23 @@
-import { Database, Connection } from "duckdb-async";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { Connection, Database } from "duckdb-async";
+import fs from "fs";
+import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
 import {
+  GetCandlesQuery,
+  GetFeeSwap,
+  GetVolumeQuery,
   Ohlcv,
   PairInfoData,
+  PoolAmountHistory,
+  PoolApr,
   PriceInfo,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
   VolumeData,
   VolumeRange,
-  WithdrawLiquidityOperationData,
-  GetCandlesQuery,
-  GetFeeSwap,
-  GetVolumeQuery,
-  PoolAmountHistory,
-  PoolApr
+  WithdrawLiquidityOperationData
 } from "./types";
-import fs, { rename } from "fs";
-import {
-  isoToTimestampNumber,
-  parseAssetInfo,
-  parseAssetInfoOnlyDenom,
-  renameKey,
-  replaceAllNonAlphaBetChar,
-  toObject
-} from "./helper";
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export class DuckDb {
   static instances: DuckDb;
@@ -487,7 +480,7 @@ export class DuckDb {
     return BigInt(result[0]?.totalVolume ?? 0);
   }
 
-  async createPoolOpsTable() {
+  async createLpAmountHistoryTable() {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS lp_amount_history (
         offerPoolAmount ubigint,
@@ -527,22 +520,13 @@ export class DuckDb {
           totalBondAmount varchar,
           rewardPerSec varchar,
           apr double,
-          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
       `
     );
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
-    await this.insertBulkData(
-      poolAprs.map((poolApr) => {
-        return {
-          ...poolApr,
-          createdAt: new Date()
-        };
-      }),
-      "pool_apr"
-    );
+    await this.insertBulkData(poolAprs, "pool_apr");
   }
 
   async getLatestPoolApr(pairAddr: string): Promise<PoolApr> {
@@ -550,7 +534,7 @@ export class DuckDb {
       `
         SELECT * FROM pool_apr
         WHERE pairAddr = ?
-        ORDER BY createdAt DESC
+        ORDER BY height DESC
         LIMIT 1
       `,
       pairAddr

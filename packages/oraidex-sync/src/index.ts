@@ -111,13 +111,11 @@ class WriteOrders extends WriteData {
       if (currentOffset === newOffset) return true;
       let result = await parseTxs(txs);
 
+      const lpOpsData = [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData];
       // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
-      await this.accumulatePoolAmount(
-        [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData],
-        [...result.swapOpsData]
-      );
+      await this.accumulatePoolAmount(lpOpsData, [...result.swapOpsData]);
 
-      await handleEventApr(txs, result, newOffset);
+      await handleEventApr(txs, lpOpsData, newOffset);
 
       // collect the latest offer & ask volume to accumulate the results
       // insert txs
@@ -168,7 +166,6 @@ class OraiDexSync {
           } as PairInfoData;
         })
       );
-
       console.timeEnd("timer-updateLatestPairInfos");
     } catch (error) {
       console.log("error in updateLatestPairInfos: ", error);
@@ -205,7 +202,7 @@ class OraiDexSync {
         this.duckDb.createSwapOpsTable(),
         this.duckDb.createPairInfosTable(),
         this.duckDb.createSwapOhlcv(),
-        this.duckDb.createPoolOpsTable(),
+        this.duckDb.createLpAmountHistoryTable(),
         this.duckDb.createAprInfoPair()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
@@ -235,13 +232,13 @@ class OraiDexSync {
   }
 }
 
-async function initSync() {
-  const duckDb = await DuckDb.create("oraidex-only-sync-data");
-  const oraidexSync = await OraiDexSync.create(duckDb, "http://35.237.59.125:26657", process.env as any);
-  oraidexSync.sync();
-}
+// async function initSync() {
+//   const duckDb = await DuckDb.create("oraidex-only-sync-data");
+//   const oraidexSync = await OraiDexSync.create(duckDb, "http://35.237.59.125:26657", process.env as any);
+//   oraidexSync.sync();
+// }
 
-initSync();
+// initSync();
 
 export { OraiDexSync };
 

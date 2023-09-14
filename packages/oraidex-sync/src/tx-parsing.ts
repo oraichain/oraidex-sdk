@@ -368,7 +368,7 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   };
 }
 
-export const processEventApr = async (txs: Tx[]) => {
+export const processEventApr = (txs: Tx[]) => {
   const assets = {
     infoTokenAssetPools: new Set<string>(),
     isTriggerRewardPerSec: false

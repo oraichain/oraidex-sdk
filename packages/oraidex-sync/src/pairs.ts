@@ -114,13 +114,13 @@ function parseAssetInfoOnlyDenom1(info: AssetInfo): string {
   return info.token.contract_addr;
 }
 
-export const getStakingAssetInfo1 = (assetInfos: AssetInfo[]): AssetInfo => {
+const getStakingAssetInfo = (assetInfos: AssetInfo[]): AssetInfo => {
   return parseAssetInfoOnlyDenom1(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
 };
 
 export const pairWithStakingAsset = pairs.map((pair) => {
   return {
     ...pair,
-    stakingAssetInfo: getStakingAssetInfo1(pair.asset_infos)
+    stakingAssetInfo: getStakingAssetInfo(pair.asset_infos)
   };
 });
