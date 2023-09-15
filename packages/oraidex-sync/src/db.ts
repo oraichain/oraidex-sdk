@@ -1,28 +1,39 @@
-import { Database, Connection } from "duckdb-async";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { Connection, Database } from "duckdb-async";
+import fs from "fs";
+import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
 import {
+  GetCandlesQuery,
+  GetFeeSwap,
+  GetVolumeQuery,
   Ohlcv,
   PairInfoData,
+  PoolAmountHistory,
+  PoolApr,
   PriceInfo,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
   VolumeData,
   VolumeRange,
-  WithdrawLiquidityOperationData,
-  GetCandlesQuery
+  WithdrawLiquidityOperationData
 } from "./types";
-import fs, { rename } from "fs";
-import { isoToTimestampNumber, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
 
 export class DuckDb {
+  static instances: DuckDb;
   protected constructor(public readonly conn: Connection, private db: Database) {}
 
-  static async create(fileName?: string): Promise<DuckDb> {
-    let db = await Database.create(fileName ?? "data");
-    await db.close(); // close to flush WAL file
-    db = await Database.create(fileName ?? "data");
-    const conn = await db.connect();
-    return new DuckDb(conn, db);
+  static async create(fileName: string): Promise<DuckDb> {
+    if (!fileName) throw new Error("Filename is not provided!");
+    if (!DuckDb.instances) {
+      let db = await Database.create(fileName);
+      await db.close(); // close to flush WAL file
+      db = await Database.create(fileName);
+      const conn = await db.connect();
+      DuckDb.instances = new DuckDb(conn, db);
+    }
+
+    return DuckDb.instances;
   }
 
   async closeDb() {
@@ -105,7 +116,8 @@ export class DuckDb {
         timestamp UINTEGER,
         txCreator VARCHAR, 
         txhash VARCHAR,
-        txheight UINTEGER)`
+        txheight UINTEGER,
+        taxRate UBIGINT)`
     );
   }
 
@@ -123,22 +135,15 @@ export class DuckDb {
         pairAddr VARCHAR, 
         liquidityAddr VARCHAR, 
         oracleAddr VARCHAR,
+        symbols VARCHAR,
+        fromIconUrl VARCHAR,
+        toIconUrl VARCHAR,
         PRIMARY KEY (pairAddr) )`
     );
   }
 
   async insertPairInfos(ops: PairInfoData[]) {
     await this.insertBulkData(ops, "pair_infos", true);
-  }
-
-  async createPriceInfoTable() {
-    await this.conn.exec(
-      `CREATE TABLE IF NOT EXISTS price_infos (
-        txheight UINTEGER, 
-        timestamp UINTEGER, 
-        assetInfo VARCHAR, 
-        price UINTEGER)`
-    );
   }
 
   async insertPriceInfos(ops: PriceInfo[]) {
@@ -362,5 +367,196 @@ export class DuckDb {
       ...res,
       time: new Date(res.time * tf * 1000).toISOString()
     })) as VolumeRange[];
+  }
+
+  async getPools(): Promise<PairInfoData[]> {
+    return (await this.conn.all("SELECT * from pair_infos")).map((data) => data as PairInfoData);
+  }
+
+  async getPoolByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PairInfoData> {
+    const firstAssetInfo = parseAssetInfo(assetInfos[0]);
+    const secondAssetInfo = parseAssetInfo(assetInfos[1]);
+    return (
+      await this.conn.all(
+        `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+        firstAssetInfo,
+        secondAssetInfo
+      )
+    ).map((data) => data as PairInfoData)[0];
+  }
+
+  async getFeeSwap(payload: GetFeeSwap): Promise<bigint> {
+    const { offerDenom, askDenom, startTime, endTime } = payload;
+    const [feeRightDirection, feeReverseDirection] = await Promise.all([
+      this.conn.all(
+        `
+      SELECT 
+        sum(commissionAmount + taxAmount) as totalFee,
+        FROM swap_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND offerDenom = ?
+        AND askDenom = ?
+      `,
+        startTime,
+        endTime,
+        offerDenom,
+        askDenom
+      ),
+      this.conn.all(
+        `
+      SELECT 
+        sum(commissionAmount + taxAmount) as totalFee,
+        FROM swap_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND offerDenom = ?
+        AND askDenom = ?
+      `,
+        startTime,
+        endTime,
+        askDenom,
+        offerDenom
+      )
+    ]);
+    return BigInt(feeRightDirection[0]?.totalFee + feeReverseDirection[0]?.totalFee);
+  }
+
+  async getFeeLiquidity(payload: GetFeeSwap): Promise<bigint> {
+    const { offerDenom, askDenom, startTime, endTime } = payload;
+    const result = await this.conn.all(
+      `
+      SELECT 
+        sum(taxRate) as totalFee,
+        FROM lp_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND baseTokenDenom = ?
+        AND quoteTokenDenom = ?
+      `,
+      startTime,
+      endTime,
+      offerDenom,
+      askDenom
+    );
+    return BigInt(result[0]?.totalFee ?? 0);
+  }
+
+  async getVolumeSwap(payload: GetVolumeQuery): Promise<bigint> {
+    const { pair, startTime, endTime } = payload;
+    const result = await this.conn.all(
+      `
+      SELECT 
+        sum(volume) as totalVolume,
+        FROM swap_ohlcv
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND pair = ?
+      `,
+      startTime,
+      endTime,
+      pair
+    );
+    return BigInt(result[0]?.totalVolume ?? 0);
+  }
+
+  async getVolumeLiquidity(payload: GetFeeSwap): Promise<bigint> {
+    const { offerDenom, askDenom, startTime, endTime } = payload;
+    const result = await this.conn.all(
+      `
+      SELECT 
+        sum(baseTokenAmount) as totalVolume,
+        FROM lp_ops_data
+        WHERE timestamp >= ? 
+        AND timestamp <= ?
+        AND baseTokenDenom = ?
+        AND quoteTokenDenom = ?
+      `,
+      startTime,
+      endTime,
+      offerDenom,
+      askDenom
+    );
+    return BigInt(result[0]?.totalVolume ?? 0);
+  }
+
+  async createLpAmountHistoryTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS lp_amount_history (
+        offerPoolAmount ubigint,
+        askPoolAmount ubigint,
+        height uinteger,
+        timestamp uinteger,
+        pairAddr varchar,
+        uniqueKey varchar UNIQUE)
+      `
+    );
+  }
+
+  async getLatestLpPoolAmount(pairAddr: string) {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        WHERE pairAddr = ?
+        ORDER BY height DESC
+        LIMIT 1
+      `,
+      pairAddr
+    );
+    return result[0] as PoolAmountHistory;
+  }
+
+  async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
+    await this.insertBulkData(ops, "lp_amount_history");
+  }
+
+  async createAprInfoPair() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS pool_apr (
+          uniqueKey varchar UNIQUE,
+          pairAddr varchar,
+          height uinteger,
+          totalSupply varchar,
+          totalBondAmount varchar,
+          rewardPerSec varchar,
+          apr double,
+        )
+      `
+    );
+  }
+
+  async insertPoolAprs(poolAprs: PoolApr[]) {
+    await this.insertBulkData(poolAprs, "pool_apr");
+  }
+
+  async getLatestPoolApr(pairAddr: string): Promise<PoolApr> {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM pool_apr
+        WHERE pairAddr = ?
+        ORDER BY height DESC
+        LIMIT 1
+      `,
+      pairAddr
+    );
+
+    return result[0] as PoolApr;
+  }
+
+  async getApr() {
+    const result = await this.conn.all(
+      `
+      SELECT p.pairAddr, p.apr
+      FROM pool_apr p
+      JOIN (
+        SELECT pairAddr, MAX(height) AS max_height
+        FROM pool_apr
+        GROUP BY pairAddr
+      ) max_heights
+      ON p.pairAddr = max_heights.pairAddr AND p.height = max_heights.max_height
+      ORDER BY p.height DESC
+      `
+    );
+    return result as Pick<PoolApr, "apr" | "pairAddr">[];
   }
 }

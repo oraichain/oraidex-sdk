@@ -1,28 +1,32 @@
 #!/usr/bin/env node
 
-import "dotenv/config";
-import express, { Request } from "express";
-import {
-  DuckDb,
-  TickerInfo,
-  pairs,
-  parseAssetInfoOnlyDenom,
-  findPairAddress,
-  toDisplay,
-  OraiDexSync,
-  simulateSwapPrice,
-  pairsOnlyDenom,
-  VolumeRange,
-  oraiUsdtPairOnlyDenom,
-  ORAI
-} from "@oraichain/oraidex-sync";
-import cors from "cors";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
-import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
-import { GetCandlesQuery } from "@oraichain/oraidex-sync";
+import {
+  DuckDb,
+  GetCandlesQuery,
+  ORAI,
+  OraiDexSync,
+  PairInfoDataResponse,
+  TickerInfo,
+  VolumeRange,
+  findPairAddress,
+  getAllFees,
+  getAllVolume24h,
+  getPairLiquidity,
+  oraiUsdtPairOnlyDenom,
+  pairs,
+  pairsOnlyDenom,
+  parseAssetInfoOnlyDenom,
+  simulateSwapPrice,
+  toDisplay
+} from "@oraichain/oraidex-sync";
+import cors from "cors";
+import "dotenv/config";
+import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
+import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
 
 const app = express();
 app.use(cors());
@@ -79,7 +83,6 @@ app.get("/tickers", async (req, res) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
           const tickerId = parseSymbolsToTickerId(symbols);
-          // const { baseIndex, targetIndex, target } = findUsdOraiInPair(pair.asset_infos);
           const baseIndex = 0;
           const targetIndex = 1;
           console.log(latestTimestamp, then);
@@ -215,7 +218,7 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
 //     console.log("prefix sum: ", prefixSum);
 //     res.status(200).send("hello world");
 //   } catch (error) {
-//     console.log("server error /liquidity/v2/historical/chart: ", error);
+//     console.log("server error /liquidity/v2/historical/chart: ",  error);
 //     res.status(500).send(JSON.stringify(error));
 //   } finally {
 //     return;
@@ -231,10 +234,37 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
   }
 });
 
+app.get("/v1/pools/", async (_req, res) => {
+  try {
+    const [volumes, allFee7Days, pools, allPoolApr] = await Promise.all([
+      getAllVolume24h(),
+      getAllFees(),
+      duckDb.getPools(),
+      duckDb.getApr()
+    ]);
+    const allLiquidities = await Promise.all(pools.map((pair) => getPairLiquidity(pair)));
+
+    res.status(200).send(
+      pools.map((pool, index) => {
+        const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
+        return {
+          ...pool,
+          volume24Hour: volumes[index]?.toString() ?? "0",
+          fee7Days: allFee7Days[index]?.toString() ?? "0",
+          apr: poolApr?.apr ?? 0,
+          totalLiquidity: allLiquidities[index]
+        } as PairInfoDataResponse;
+      })
+    );
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(error.message);
+  }
+});
+
 app.listen(port, hostname, async () => {
   // sync data for the service to read
-  // console.dir(pairInfos, { depth: null });
-  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "oraidex-sync-data");
+  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
   const oraidexSync = await OraiDexSync.create(
     duckDb,
     process.env.RPC_URL || "https://rpc.orai.io",

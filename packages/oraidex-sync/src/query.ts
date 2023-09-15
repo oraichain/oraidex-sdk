@@ -1,17 +1,27 @@
 import {
   OraiswapFactoryReadOnlyInterface,
   OraiswapRouterReadOnlyInterface,
+  OraiswapStakingTypes,
+  OraiswapTokenTypes,
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
+import { Addr, Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { pairs } from "./pairs";
-import { findAssetInfoPathToUsdt, generateSwapOperations, parseAssetInfoOnlyDenom, toDisplay } from "./helper";
-import { tenAmountInDecimalSix, usdtCw20Address } from "./constants";
+import {
+  findAssetInfoPathToUsdt,
+  generateSwapOperations,
+  getCosmwasmClient,
+  parseAssetInfoOnlyDenom,
+  toDisplay
+} from "./helper";
+import { network, tenAmountInDecimalSix, usdtCw20Address } from "./constants";
+import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
+import { PairInfoData } from "./types";
 
-async function getPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
+async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
   const res = await multicall.tryAggregate({
     queries: pairAddrs.map((pair) => {
@@ -27,7 +37,7 @@ async function getPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInt
   return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)).filter((data) => data); // remove undefined items
 }
 
-async function getAllPairInfos(
+async function queryAllPairInfos(
   factoryV1: OraiswapFactoryReadOnlyInterface,
   factoryV2: OraiswapFactoryReadOnlyInterface
 ): Promise<PairInfo[]> {
@@ -57,7 +67,7 @@ async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouter
  * Simulate price for pair[0]/pair[pair.length - 1] where the amount of pair[0] is 10^7. This is a multihop simulate swap function. The asset infos in between of the array are for hopping
  * @param pairPath - the path starting from the offer asset info to the ask asset info
  * @param router - router contract
- * @returns - pricea fter simulating
+ * @returns - price after simulating
  */
 async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterReadOnlyInterface): Promise<string> {
   // usdt case, price is always 1
@@ -75,4 +85,61 @@ async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterRe
   }
 }
 
-export { getAllPairInfos, getPoolInfos, simulateSwapPriceWithUsdt, simulateSwapPrice };
+async function aggregateMulticall(queries: Call[]) {
+  const client = await getCosmwasmClient();
+  const multicall = new MulticallQueryClient(client, network.multicall);
+  const res = await multicall.aggregate({ queries });
+  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+}
+
+async function fetchTokenInfos(liquidityAddrs: Addr[]): Promise<TokenInfoResponse[]> {
+  const queries = liquidityAddrs.map((address) => ({
+    address,
+    data: toBinary({
+      token_info: {}
+    } as OraiswapTokenTypes.QueryMsg)
+  }));
+  return await aggregateMulticall(queries);
+}
+
+async function fetchAllTokenAssetPools(assetInfos: AssetInfo[]): Promise<OraiswapStakingTypes.PoolInfoResponse[]> {
+  const queries = assetInfos.map((assetInfo) => {
+    return {
+      address: network.staking,
+      data: toBinary({
+        pool_info: {
+          asset_info: assetInfo
+        }
+      } as OraiswapStakingTypes.QueryMsg)
+    };
+  });
+
+  return await aggregateMulticall(queries);
+}
+
+async function fetchAllRewardPerSecInfos(
+  assetInfos: AssetInfo[]
+): Promise<OraiswapStakingTypes.RewardsPerSecResponse[]> {
+  const queries = assetInfos.map((assetInfo) => {
+    return {
+      address: network.staking,
+      data: toBinary({
+        rewards_per_sec: {
+          asset_info: assetInfo
+        }
+      } as OraiswapStakingTypes.QueryMsg)
+    };
+  });
+  return await aggregateMulticall(queries);
+}
+
+export {
+  queryAllPairInfos,
+  queryPoolInfos,
+  simulateSwapPriceWithUsdt,
+  simulateSwapPrice,
+  aggregateMulticall,
+  fetchTokenInfos,
+  fetchAllTokenAssetPools,
+  fetchAllRewardPerSecInfos
+};

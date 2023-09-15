@@ -41,6 +41,16 @@ export type PairInfoData = {
   pairAddr: string;
   liquidityAddr: string;
   oracleAddr: string;
+  symbols: string;
+  fromIconUrl: string;
+  toIconUrl: string;
+};
+
+export type PairInfoDataResponse = PairInfoData & {
+  apr: number;
+  totalLiquidity: number;
+  volume24Hour: string;
+  fee7Days: string;
 };
 
 export type PriceInfo = {
@@ -68,11 +78,23 @@ export type ProvideLiquidityOperationData = {
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;
+  taxRate: number | bigint;
 } & BasicTxData;
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
 export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData | Ohlcv;
+
+export type LpOpsData = {
+  baseTokenAmount: number;
+  baseTokenDenom: string; // eg: orai, orai1234...
+  quoteTokenAmount: number;
+  quoteTokenDenom: string;
+  opType?: LiquidityOpType;
+  direction?: SwapDirection;
+  height: number;
+  timestamp: number;
+};
 
 export type TxAnlysisResult = {
   // transactions: Tx[];
@@ -124,6 +146,7 @@ export type OraiswapPairCw20HookMsg = {
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
   symbols: [string, string];
+  factoryV1?: boolean;
 };
 
 export type InitialData = {
@@ -187,4 +210,35 @@ export type GetCandlesQuery = {
   tf: number;
   startTime: number;
   endTime: number;
+};
+
+export type GetFeeSwap = {
+  offerDenom: string;
+  askDenom: string;
+  startTime: number;
+  endTime: number;
+};
+
+export type GetVolumeQuery = Omit<GetCandlesQuery, "tf">;
+
+export type PoolInfo = {
+  offerPoolAmount: bigint;
+  askPoolAmount: bigint;
+};
+
+export type PoolAmountHistory = {
+  timestamp: number;
+  height: number;
+  pairAddr: string;
+  uniqueKey: string;
+} & PoolInfo;
+
+export type PoolApr = {
+  uniqueKey: string;
+  pairAddr: string;
+  height: number;
+  totalSupply: string;
+  totalBondAmount: string;
+  rewardPerSec: string;
+  apr: number;
 };

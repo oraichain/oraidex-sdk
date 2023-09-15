@@ -1,3 +1,5 @@
+import { AssetInfo } from "@oraichain/common-contracts-sdk";
+
 export const ORAI = "orai";
 export const airiCw20Adress = "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg";
 export const oraixCw20Address = "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge";
@@ -13,3 +15,19 @@ export const osmosisIbcDenom = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E429269
 export const tenAmountInDecimalSix = 10000000;
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
+export const oraiInfo: AssetInfo = { native_token: { denom: ORAI } };
+export const usdtInfo: AssetInfo = { token: { contract_addr: usdtCw20Address } };
+export const ORAIXOCH_INFO: AssetInfo = {
+  token: {
+    contract_addr: "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt"
+  }
+};
+
+export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
+export const network = {
+  factory: process.env.FACTORY_CONTACT_ADDRESS_V1,
+  factory_v2: process.env.FACTORY_CONTACT_ADDRESS_V2,
+  router: process.env.ROUTER_CONTRACT_ADDRESS,
+  staking: process.env.STAKING_CONTRACT,
+  multicall: process.env.MULTICALL_CONTRACT_ADDRESS
+};

@@ -21,11 +21,13 @@ import { PairMapping } from "./types";
 export const pairs: PairMapping[] = [
   {
     asset_infos: [{ token: { contract_addr: airiCw20Adress } }, { native_token: { denom: ORAI } }],
-    symbols: ["AIRI", "ORAI"]
+    symbols: ["AIRI", "ORAI"],
+    factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: oraixCw20Address } }, { native_token: { denom: ORAI } }],
-    symbols: ["ORAIX", "ORAI"]
+    symbols: ["ORAIX", "ORAI"],
+    factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
@@ -33,15 +35,18 @@ export const pairs: PairMapping[] = [
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
-    symbols: ["ORAI", "ATOM"]
+    symbols: ["ORAI", "ATOM"],
+    factoryV1: true
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
-    symbols: ["ORAI", "USDT"]
+    symbols: ["ORAI", "USDT"],
+    factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: kwtCw20Address } }, { native_token: { denom: ORAI } }],
-    symbols: ["KWT", "ORAI"]
+    symbols: ["KWT", "ORAI"],
+    factoryV1: true
   },
   {
     asset_infos: [
@@ -50,11 +55,13 @@ export const pairs: PairMapping[] = [
         native_token: { denom: osmosisIbcDenom }
       }
     ],
-    symbols: ["ORAI", "OSMO"]
+    symbols: ["ORAI", "OSMO"],
+    factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: milkyCw20Address } }, { token: { contract_addr: usdtCw20Address } }],
-    symbols: ["MILKY", "USDT"]
+    symbols: ["MILKY", "USDT"],
+    factoryV1: true
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
@@ -101,3 +108,19 @@ export const uniqueInfos = extractUniqueAndFlatten(pairs);
 export const oraiUsdtPairOnlyDenom = pairsOnlyDenom.find(
   (pair) => JSON.stringify(pair.asset_infos) === JSON.stringify([ORAI, usdtCw20Address])
 ).asset_infos;
+
+function parseAssetInfoOnlyDenom1(info: AssetInfo): string {
+  if ("native_token" in info) return info.native_token.denom;
+  return info.token.contract_addr;
+}
+
+const getStakingAssetInfo = (assetInfos: AssetInfo[]): AssetInfo => {
+  return parseAssetInfoOnlyDenom1(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
+};
+
+export const pairWithStakingAsset = pairs.map((pair) => {
+  return {
+    ...pair,
+    stakingAssetInfo: getStakingAssetInfo(pair.asset_infos)
+  };
+});

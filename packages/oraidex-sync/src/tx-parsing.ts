@@ -1,22 +1,10 @@
 import { Attribute, Event } from "@cosmjs/stargate";
-import { isEqual } from "lodash";
-import { Tx } from "@oraichain/cosmos-rpc-sync";
-import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import {
-  AccountTx,
-  BasicTxData,
-  ModifiedMsgExecuteContract,
-  MsgExecuteContractWithLogs,
-  MsgType,
-  OraiswapPairCw20HookMsg,
-  OraiswapRouterCw20HookMsg,
-  ProvideLiquidityOperationData,
-  SwapOperationData,
-  TxAnlysisResult,
-  WithdrawLiquidityOperationData
-} from "./types";
 import { Log } from "@cosmjs/stargate/build/logs";
+import { Tx } from "@oraichain/cosmos-rpc-sync";
+import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
+import { isEqual } from "lodash";
+import { DuckDb } from "./db";
 import {
   buildOhlcv,
   calculatePriceByPool,
@@ -30,6 +18,21 @@ import {
   removeOpsDuplication
 } from "./helper";
 import { pairs } from "./pairs";
+import { calculateLiquidityFee, isPoolHasFee } from "./pool-helper";
+import {
+  AccountTx,
+  BasicTxData,
+  LiquidityOpType,
+  ModifiedMsgExecuteContract,
+  MsgExecuteContractWithLogs,
+  MsgType,
+  OraiswapPairCw20HookMsg,
+  OraiswapRouterCw20HookMsg,
+  ProvideLiquidityOperationData,
+  SwapOperationData,
+  TxAnlysisResult,
+  WithdrawLiquidityOperationData
+} from "./types";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -116,46 +119,97 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   return swapData;
 }
 
-function extractMsgProvideLiquidity(
+async function getFeeLiquidity(
+  [baseDenom, quoteDenom]: [string, string],
+  opType: LiquidityOpType,
+  attrs: readonly Attribute[],
+  txheight: number
+): Promise<bigint> {
+  // we only have one pair order. If the order is reversed then we also reverse the order
+  let findedPair = pairs.find((pair) =>
+    isEqual(
+      pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+      [quoteDenom, baseDenom]
+    )
+  );
+  if (findedPair) {
+    [baseDenom, quoteDenom] = [quoteDenom, baseDenom];
+  } else {
+    // otherwise find in reverse order
+    findedPair = pairs.find((pair) =>
+      isEqual(
+        pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+        [baseDenom, quoteDenom]
+      )
+    );
+  }
+  let fee = 0n;
+  const isHasFee = isPoolHasFee(findedPair.asset_infos);
+  if (isHasFee) {
+    let lpShare =
+      opType === "provide"
+        ? attrs.find((attr) => attr.key === "share").value
+        : attrs.find((attr) => attr.key === "withdrawn_share").value;
+    const duckDb = DuckDb.instances;
+    const pair = await duckDb.getPoolByAssetInfos(findedPair.asset_infos);
+    fee = await calculateLiquidityFee(pair, txheight, +lpShare);
+    console.log(`fee ${opType} liquidity: $${fee}`);
+  }
+  return fee;
+}
+
+async function extractMsgProvideLiquidity(
   txData: BasicTxData,
   msg: MsgType,
-  txCreator: string
-): ProvideLiquidityOperationData | undefined {
+  txCreator: string,
+  wasmAttributes: (readonly Attribute[])[]
+): Promise<ProvideLiquidityOperationData | undefined> {
   if ("provide_liquidity" in msg) {
-    const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
-    let baseAsset = msg.provide_liquidity.assets[0];
-    let quoteAsset = msg.provide_liquidity.assets[1];
-    if (isAssetInfoPairReverse(assetInfos)) {
-      baseAsset = msg.provide_liquidity.assets[1];
-      quoteAsset = msg.provide_liquidity.assets[0];
-    }
-    const firstDenom = parseAssetInfoOnlyDenom(baseAsset.info);
-    const secDenom = parseAssetInfoOnlyDenom(quoteAsset.info);
-    const firstAmount = parseInt(baseAsset.amount);
-    const secAmount = parseInt(quoteAsset.amount);
+    for (let attrs of wasmAttributes) {
+      const assetInfos = msg.provide_liquidity.assets.map((asset) => asset.info);
 
-    return {
-      basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
-      baseTokenAmount: firstAmount,
-      baseTokenDenom: firstDenom,
-      baseTokenReserve: firstAmount,
-      opType: "provide",
-      uniqueKey: concatDataToUniqueKey({
+      let baseAsset = msg.provide_liquidity.assets[0];
+      let quoteAsset = msg.provide_liquidity.assets[1];
+      if (isAssetInfoPairReverse(assetInfos)) {
+        baseAsset = msg.provide_liquidity.assets[1];
+        quoteAsset = msg.provide_liquidity.assets[0];
+      }
+      const firstDenom = parseAssetInfoOnlyDenom(baseAsset.info);
+      const secDenom = parseAssetInfoOnlyDenom(quoteAsset.info);
+      const firstAmount = parseInt(baseAsset.amount);
+      const secAmount = parseInt(quoteAsset.amount);
+
+      const fee = await getFeeLiquidity(
+        [parseAssetInfoOnlyDenom(baseAsset.info), parseAssetInfoOnlyDenom(quoteAsset.info)],
+        "provide",
+        attrs,
+        txData.txheight
+      );
+      return {
+        basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
+        baseTokenAmount: firstAmount,
+        baseTokenDenom: firstDenom,
+        baseTokenReserve: firstAmount,
+        opType: "provide",
+        uniqueKey: concatDataToUniqueKey({
+          txheight: txData.txheight,
+          firstAmount,
+          firstDenom,
+          secondAmount: secAmount,
+          secondDenom: secDenom
+        }),
+        quoteTokenAmount: secAmount,
+        quoteTokenDenom: secDenom,
+        quoteTokenReserve: secAmount,
+        timestamp: txData.timestamp,
+        txCreator,
+        txhash: txData.txhash,
         txheight: txData.txheight,
-        firstAmount,
-        firstDenom,
-        secondAmount: secAmount,
-        secondDenom: secDenom
-      }),
-      quoteTokenAmount: secAmount,
-      quoteTokenDenom: secDenom,
-      quoteTokenReserve: secAmount,
-      timestamp: txData.timestamp,
-      txCreator,
-      txhash: txData.txhash,
-      txheight: txData.txheight
-    };
+        taxRate: fee
+      };
+    }
   }
+
   return undefined;
 }
 
@@ -167,11 +221,11 @@ function parseWithdrawLiquidityAssets(assets: string): string[] {
   return matches.slice(1, 5);
 }
 
-function extractMsgWithdrawLiquidity(
+async function extractMsgWithdrawLiquidity(
   txData: BasicTxData,
   wasmAttributes: (readonly Attribute[])[],
   txCreator: string
-): WithdrawLiquidityOperationData[] {
+): Promise<WithdrawLiquidityOperationData[]> {
   const withdrawData: WithdrawLiquidityOperationData[] = [];
 
   for (let attrs of wasmAttributes) {
@@ -185,22 +239,24 @@ function extractMsgWithdrawLiquidity(
     let quoteAsset = assets[3];
     let quoteAssetAmount = parseInt(assets[2]);
     // we only have one pair order. If the order is reversed then we also reverse the order
-    if (
-      pairs.find((pair) =>
-        isEqual(
-          pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
-          [quoteAsset, baseAsset]
-        )
+    let findedPair = pairs.find((pair) =>
+      isEqual(
+        pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
+        [quoteAsset, baseAsset]
       )
-    ) {
-      baseAsset = assets[3];
-      quoteAsset = assets[1];
+    );
+    if (findedPair) {
+      [baseAsset, quoteAsset] = [quoteAsset, baseAsset];
+      [baseAssetAmount, quoteAssetAmount] = [quoteAssetAmount, baseAssetAmount];
     }
     if (assets.length !== 4) continue;
+
+    const fee = await getFeeLiquidity([baseAsset, quoteAsset], "withdraw", attrs, txData.txheight);
+
     withdrawData.push({
       basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
       baseTokenAmount: baseAssetAmount,
-      baseTokenDenom: assets[1],
+      baseTokenDenom: baseAsset,
       baseTokenReserve: baseAssetAmount,
       opType: "withdraw",
       uniqueKey: concatDataToUniqueKey({
@@ -216,7 +272,8 @@ function extractMsgWithdrawLiquidity(
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
-      txheight: txData.txheight
+      txheight: txData.txheight,
+      taxRate: fee
     });
   }
   return withdrawData;
@@ -231,14 +288,30 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
         msg: JSON.parse(Buffer.from(msg.msg).toString("utf-8"))
       };
       // Should be provide, remove liquidity, swap, or other oraidex related types
-      if ("provide_liquidity" in obj.msg || "execute_swap_operations" in obj.msg || "execute_swap_operation" in obj.msg)
+      if (
+        "provide_liquidity" in obj.msg ||
+        "execute_swap_operations" in obj.msg ||
+        "execute_swap_operation" in obj.msg ||
+        "bond" in obj.msg ||
+        "unbond" in obj.msg ||
+        "mint" in obj.msg ||
+        "burn" in obj.msg ||
+        ("execute" in obj.msg && typeof obj.msg.execute === "object" && "proposal_id" in obj.msg.execute)
+      )
         objs.push(obj);
       if ("send" in obj.msg) {
         try {
           const contractSendMsg: OraiswapPairCw20HookMsg | OraiswapRouterCw20HookMsg = JSON.parse(
             Buffer.from(obj.msg.send.msg, "base64").toString("utf-8")
           );
-          if ("execute_swap_operations" in contractSendMsg || "withdraw_liquidity" in contractSendMsg) {
+          if (
+            "execute_swap_operations" in contractSendMsg ||
+            "withdraw_liquidity" in contractSendMsg ||
+            "bond" in contractSendMsg ||
+            "unbond" in contractSendMsg ||
+            "mint" in contractSendMsg ||
+            "burn" in contractSendMsg
+          ) {
             objs.push({ ...msg, msg: contractSendMsg });
           }
         } catch (error) {
@@ -253,7 +326,7 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
   return objs;
 }
 
-function parseTxs(txs: Tx[]): TxAnlysisResult {
+async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   let transactions: Tx[] = [];
   let swapOpsData: SwapOperationData[] = [];
   let accountTxs: AccountTx[] = [];
@@ -268,20 +341,21 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       txhash: tx.hash,
       txheight: tx.height
     };
+
     for (let msg of msgs) {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
+
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
-      const provideLiquidityData = extractMsgProvideLiquidity(basicTxData, msg.msg, sender);
+      const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
-      withdrawLiquidityOpsData.push(...extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender));
+      withdrawLiquidityOpsData.push(...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender)));
       accountTxs.push({ txhash: basicTxData.txhash, accountAddress: sender });
     }
   }
   swapOpsData = swapOpsData.filter((i) => i.direction);
   swapOpsData = removeOpsDuplication(swapOpsData) as SwapOperationData[];
   return {
-    // transactions: txs,
     swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
     ohlcv: buildOhlcv(swapOpsData),
     accountTxs,
@@ -289,9 +363,38 @@ function parseTxs(txs: Tx[]): TxAnlysisResult {
       removeOpsDuplication(provideLiquidityOpsData)
     ) as ProvideLiquidityOperationData[],
     withdrawLiquidityOpsData: groupByTime(
-      removeOpsDuplication(provideLiquidityOpsData)
+      removeOpsDuplication(withdrawLiquidityOpsData)
     ) as WithdrawLiquidityOperationData[]
   };
 }
 
-export { parseAssetInfo, parseWasmEvents, parseTxs, parseWithdrawLiquidityAssets, parseTxToMsgExecuteContractMsgs };
+export const processEventApr = (txs: Tx[]) => {
+  const assets = {
+    infoTokenAssetPools: new Set<string>(),
+    isTriggerRewardPerSec: false
+  };
+  for (let tx of txs) {
+    // guard code. Should refetch all token info if match event update_rewards_per_sec or length ofstaking asset equal to pairs length.
+    if (assets.isTriggerRewardPerSec || assets.infoTokenAssetPools.size === pairs.length) break;
+
+    const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
+    const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);
+    for (let msg of msgs) {
+      const wasmAttributes = parseWasmEvents(msg.logs.events);
+      for (let attrs of wasmAttributes) {
+        if (attrs.find((attr) => attr.key === "action" && (attr.value === "bond" || attr.value === "unbond"))) {
+          const stakingAssetDenom = attrs.find((attr) => attr.key === "asset_info")?.value;
+          assets.infoTokenAssetPools.add(stakingAssetDenom);
+        }
+
+        if (attrs.find((attr) => attr.key === "action" && attr.value === "update_rewards_per_sec")) {
+          assets.isTriggerRewardPerSec = true;
+          break;
+        }
+      }
+    }
+  }
+  return assets;
+};
+
+export { parseAssetInfo, parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets };
