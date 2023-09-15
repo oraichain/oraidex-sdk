@@ -1,7 +1,8 @@
-import { AssetInfo, CosmWasmClient, OraiswapPairTypes, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, CosmWasmClient, OraiswapPairTypes } from "@oraichain/oraidex-contracts-sdk";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual, maxBy, minBy } from "lodash";
-import { ORAI, atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { getPriceAssetByUsdt } from "./pool-helper";
