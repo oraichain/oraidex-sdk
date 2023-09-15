@@ -284,6 +284,19 @@ describe("test-pool-helper", () => {
     it("test-calculateLiquidityFee-should-return-correctly-fee-in-USDT", async () => {
       // mock
       jest.spyOn(poolHelper, "convertFeeAssetToUsdt").mockResolvedValue(1e6);
+      jest.spyOn(poolHelper, "getPoolTotalShare").mockResolvedValue({
+        total_share: "1",
+        assets: [
+          {
+            amount: "1",
+            info: oraiInfo
+          },
+          {
+            amount: "1",
+            info: usdtInfo
+          }
+        ]
+      });
 
       // act
       const liquidityFee = await poolHelper.calculateLiquidityFee(

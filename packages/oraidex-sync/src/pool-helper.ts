@@ -171,6 +171,15 @@ export const calculateFeeByAsset = (asset: Asset, shareRatio: number): Asset => 
   };
 };
 
+export const getPoolTotalShare = async (txHeight: number, pairAddr: string): Promise<PoolResponse> => {
+  const cosmwasmClient = await getCosmwasmClient();
+  cosmwasmClient.setQueryClientWithHeight(txHeight);
+
+  const pairContract = new OraiswapPairQueryClient(cosmwasmClient, pairAddr);
+  const poolInfo = await pairContract.pool();
+  return poolInfo;
+};
+
 /**
  * First, calculate fee by offer asset & ask asset
  * then, calculate fee of those asset to ORAI
@@ -185,13 +194,8 @@ export const calculateLiquidityFee = async (
   txHeight: number,
   withdrawnShare: number
 ): Promise<bigint> => {
-  const cosmwasmClient = await getCosmwasmClient();
-  cosmwasmClient.setQueryClientWithHeight(txHeight);
-
-  const pairContract = new OraiswapPairQueryClient(cosmwasmClient, pair.pairAddr);
-  const poolInfo = await pairContract.pool();
-  const totalShare = +poolInfo.total_share;
-  const shareRatio = withdrawnShare / totalShare;
+  const poolInfo = await getPoolTotalShare(txHeight, pair.pairAddr);
+  const shareRatio = withdrawnShare / +poolInfo.total_share;
 
   const [feeByAssetFrom, feeByAssetTo] = [
     calculateFeeByAsset(poolInfo.assets[0], shareRatio),
