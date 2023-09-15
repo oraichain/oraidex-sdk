@@ -227,6 +227,9 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
 
 app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) => {
   try {
+    if (!req.query.pair || !req.query.tf || !req.query.startTime || !req.query.endTime)
+      return res.status(400).send("Not enough query params");
+
     const candles = await duckDb.getOhlcvCandles(req.query);
     res.status(200).send(candles);
   } catch (error) {
