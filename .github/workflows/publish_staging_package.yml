@@ -55,15 +55,15 @@ jobs:
       - name: Build
         run: yarn build packages/contracts-sdk && yarn build packages/oraidex-sync && yarn --cwd packages/oraidex-server-staging/ build
       - name: Authenticate with private NPM package
-        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN_STAGING }}" > ~/.npmrc
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - name: Publish
         id: publish
         continue-on-error: true
         run: yarn deploy packages/oraidex-server-staging
         env:
           CI: false
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN_STAGING }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_STAGING }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install latest version
         id: install
