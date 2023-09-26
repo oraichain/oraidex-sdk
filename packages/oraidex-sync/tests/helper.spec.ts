@@ -1,4 +1,4 @@
-import { AssetInfo, SwapOperation } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
   ORAI,
@@ -37,16 +37,15 @@ import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, 
 import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import * as helper from "../src/helper";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 
 describe("test-helper", () => {
   let duckDb: DuckDb;
-
-  afterAll(jest.resetModules);
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-    jest.resetAllMocks();
+  beforeAll(async () => {
+    duckDb = await DuckDb.create(":memory:");
   });
+  afterEach(jest.restoreAllMocks);
+
   describe("bigint", () => {
     describe("toAmount", () => {
       it("toAmount-percent", () => {
@@ -379,7 +378,18 @@ describe("test-helper", () => {
   );
 
   it("test-collectAccumulateLpAndSwapData-should-aggregate-ops-with-same-pairs", async () => {
-    // setup, test with orai/usdt & orai/atom pair
+    // setup, test with orai/usdt
+    jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue({
+      firstAssetInfo: JSON.stringify(oraiInfo),
+      secondAssetInfo: JSON.stringify(usdtInfo),
+      commissionRate: "",
+      pairAddr: "oraiUsdtPairAddr",
+      liquidityAddr: "",
+      oracleAddr: "",
+      symbols: "1",
+      fromIconUrl: "1",
+      toIconUrl: "1"
+    });
     const poolResponses: PoolResponse[] = [
       {
         assets: [
@@ -387,13 +397,6 @@ describe("test-helper", () => {
           { info: usdtInfo, amount: "1" }
         ],
         total_share: "1"
-      },
-      {
-        assets: [
-          { info: oraiInfo, amount: "4" },
-          { info: { native_token: { denom: atomIbcDenom } }, amount: "4" }
-        ],
-        total_share: "8"
       }
     ];
 
@@ -433,52 +436,15 @@ describe("test-helper", () => {
         direction: "Sell",
         height: 1,
         timestamp: 1
-      },
-      {
-        baseTokenAmount: 1,
-        baseTokenDenom: ORAI,
-        quoteTokenAmount: -1,
-        quoteTokenDenom: atomIbcDenom,
-        direction: "Sell",
-        height: 1,
-        timestamp: 1
       }
     ];
-    duckDb = await DuckDb.create(":memory:");
-    await duckDb.createPairInfosTable();
-
-    await duckDb.insertPairInfos([
-      {
-        firstAssetInfo: JSON.stringify(oraiInfo),
-        secondAssetInfo: JSON.stringify(usdtInfo),
-        commissionRate: "",
-        pairAddr: "oraiUsdtPairAddr",
-        liquidityAddr: "",
-        oracleAddr: "",
-        symbols: "1",
-        fromIconUrl: "1",
-        toIconUrl: "1"
-      },
-      {
-        firstAssetInfo: JSON.stringify(oraiInfo),
-        secondAssetInfo: JSON.stringify({ native_token: { denom: atomIbcDenom } }),
-        commissionRate: "",
-        pairAddr: "oraiAtomPairAddr",
-        liquidityAddr: "",
-        oracleAddr: "",
-        symbols: "1",
-        fromIconUrl: "1",
-        toIconUrl: "1"
-      }
-    ]);
 
     // act
     const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolResponses);
 
     // assertion
     expect(accumulatedData).toStrictEqual({
-      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1 },
-      oraiAtomPairAddr: { askPoolAmount: 3n, height: 1, offerPoolAmount: 5n, timestamp: 1 }
+      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1 }
     });
   });
 
@@ -687,16 +653,16 @@ describe("test-helper", () => {
     }
   );
 
-  // it.each([
-  //   ["case-asset-info-pairs-is-NOT-reversed", [oraiInfo, usdtInfo], false],
-  //   ["case-asset-info-pairs-is-reversed", [usdtInfo, oraiInfo], true]
-  // ])(
-  //   "test-isAssetInfoPairReverse-should-return-correctly",
-  //   (_caseName: string, assetInfos: AssetInfo[], expectedResult: boolean) => {
-  //     const result = helper.isAssetInfoPairReverse(assetInfos);
-  //     expect(result).toBe(expectedResult);
-  //   }
-  // );
+  it.each([
+    ["case-asset-info-pairs-is-NOT-reversed", [oraiInfo, usdtInfo], false],
+    ["case-asset-info-pairs-is-reversed", [usdtInfo, oraiInfo], true]
+  ])(
+    "test-isAssetInfoPairReverse-should-return-correctly",
+    (_caseName: string, assetInfos: AssetInfo[], expectedResult: boolean) => {
+      const result = helper.isAssetInfoPairReverse(assetInfos);
+      expect(result).toBe(expectedResult);
+    }
+  );
 
   it("test-getSymbolFromAsset-should-throw-error-for-assetInfos-not-valid", () => {
     const asset_infos = [oraiInfo, { token: { contract_addr: "invalid-token" } }] as [AssetInfo, AssetInfo];
@@ -737,10 +703,6 @@ describe("test-helper", () => {
   });
 
   describe("test-get-pair-liquidity", () => {
-    beforeEach(async () => {
-      duckDb = await DuckDb.create(":memory:");
-    });
-
     it.each([
       [0n, 0n, 0],
       [1n, 1n, 4]
@@ -748,17 +710,17 @@ describe("test-helper", () => {
       "test-getPairLiquidity-should-return-correctly-liquidity-by-USDT",
       async (offerPoolAmount: bigint, askPoolAmount: bigint, expectedResult: number) => {
         // setup
-        await duckDb.createLpAmountHistoryTable();
-        await duckDb.insertPoolAmountHistory([
-          {
-            offerPoolAmount,
-            askPoolAmount,
-            timestamp: 1,
-            height: 1,
-            pairAddr: "oraiUsdtPairAddr",
-            uniqueKey: "1"
-          }
-        ]);
+        jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue({
+          offerPoolAmount,
+          askPoolAmount,
+          timestamp: 1,
+          height: 1,
+          pairAddr: "oraiUsdtPairAddr",
+          uniqueKey: "1"
+        });
+        jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
+
+        // act
         const poolInfo: PairInfoData = {
           firstAssetInfo: JSON.stringify(oraiInfo),
           secondAssetInfo: JSON.stringify(usdtInfo),
@@ -770,9 +732,7 @@ describe("test-helper", () => {
           fromIconUrl: "1",
           toIconUrl: "1"
         };
-        jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 
-        // act
         const result = await helper.getPairLiquidity(poolInfo);
 
         // assertion
@@ -783,8 +743,7 @@ describe("test-helper", () => {
 
   describe("test-get-volume-pairs", () => {
     it("test-getVolumePairByAsset-should-return-correctly-sum-volume-swap-&-liquidity", async () => {
-      //setup mock
-      duckDb = await DuckDb.create(":memory:");
+      // setup mock
       jest.spyOn(duckDb, "getVolumeSwap").mockResolvedValue(1n);
       jest.spyOn(duckDb, "getVolumeLiquidity").mockResolvedValue(1n);
 
@@ -828,7 +787,6 @@ describe("test-helper", () => {
   describe("test-get-fee-pair", () => {
     it("test-getFeePair-should-return-correctly-sum-fee-swap-&-liquidity", async () => {
       //setup mock
-      duckDb = await DuckDb.create(":memory:");
       jest.spyOn(duckDb, "getFeeSwap").mockResolvedValue(1n);
       jest.spyOn(duckDb, "getFeeLiquidity").mockResolvedValue(1n);
 

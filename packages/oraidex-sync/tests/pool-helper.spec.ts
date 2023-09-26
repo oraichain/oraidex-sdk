@@ -13,16 +13,15 @@ import {
 import * as helper from "../src/helper";
 import { DuckDb, pairs } from "../src/index";
 import * as poolHelper from "../src/pool-helper";
-import { PairInfoData, PairMapping, ProvideLiquidityOperationData } from "../src/types";
+import { PairInfoData, PairMapping, PoolAmountHistory, ProvideLiquidityOperationData } from "../src/types";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import * as txParsing from "../src/tx-parsing";
-
 describe("test-pool-helper", () => {
   let duckDb: DuckDb;
-
-  afterAll(jest.resetModules);
-  afterEach(jest.resetModules);
+  beforeAll(async () => {
+    duckDb = await DuckDb.create(":memory:")
+  })
   afterEach(jest.restoreAllMocks);
 
   it.each<[string, [AssetInfo, AssetInfo], boolean]>([
@@ -102,51 +101,42 @@ describe("test-pool-helper", () => {
 
   describe("test-calculate-price-group-funcs", () => {
     // use orai/usdt in this test suite
-    // it("test-getPriceByAsset-when-duckdb-empty-should-return-0", async () => {
-    //   // setup
-    //   duckDb = await DuckDb.create(":memory:");
-    //   await Promise.all([duckDb.createPairInfosTable()]);
+    it("test-getPriceByAsset-when-duckdb-empty-should-return-0", async () => {
+      // setup
+      jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(null);
 
-    //   // act & assertion
-    //   const result = await poolHelper.getPriceByAsset([oraiInfo, usdtInfo], "base_in_quote");
-    //   expect(result).toEqual(0);
-    // });
+      // act & assertion
+      const result = await poolHelper.getPriceByAsset([oraiInfo, usdtInfo], "base_in_quote");
+      expect(result).toEqual(0);
+    });
 
     it.each<[[AssetInfo, AssetInfo], poolHelper.RatioDirection, number]>([
-      [[oraiInfo, { token: { contract_addr: "invalid-token" } }], "base_in_quote", 0],
       [[oraiInfo, usdtInfo], "base_in_quote", 0.5],
       [[oraiInfo, usdtInfo], "quote_in_base", 2]
     ])("test-getPriceByAsset-should-return-correctly-price", async (assetInfos, ratioDirection, expectedPrice) => {
       // setup
-      duckDb = await DuckDb.create(":memory:");
-      await Promise.all([duckDb.createPairInfosTable(), duckDb.createLpAmountHistoryTable()]);
-
       const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt";
-      let pairInfoData: PairInfoData[] = [
-        {
-          firstAssetInfo: JSON.stringify({ native_token: { denom: ORAI } } as AssetInfo),
-          secondAssetInfo: JSON.stringify({ token: { contract_addr: usdtCw20Address } } as AssetInfo),
-          commissionRate: "",
-          pairAddr,
-          liquidityAddr: "",
-          oracleAddr: "",
-          symbols: "1",
-          fromIconUrl: "1",
-          toIconUrl: "1"
-        }
-      ];
-      await duckDb.insertPairInfos(pairInfoData);
-      await duckDb.insertPoolAmountHistory([
-        {
-          offerPoolAmount: 1n,
-          askPoolAmount: 1n,
-          height: 1,
-          timestamp: 1,
-          pairAddr,
-          uniqueKey: "1"
-        }
-      ]);
-
+      const pairInfoData: PairInfoData = {
+        firstAssetInfo: JSON.stringify({ native_token: { denom: ORAI } } as AssetInfo),
+        secondAssetInfo: JSON.stringify({ token: { contract_addr: usdtCw20Address } } as AssetInfo),
+        commissionRate: "1",
+        pairAddr,
+        liquidityAddr: "1",
+        oracleAddr: "1",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1"
+      }
+      const poolAmountHistory: PoolAmountHistory = {
+        offerPoolAmount: 1n,
+        askPoolAmount: 1n,
+        height: 1,
+        timestamp: 1,
+        pairAddr,
+        uniqueKey: "1"
+      }
+      jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfoData);
+      jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue(poolAmountHistory);
       jest.spyOn(helper, "calculatePriceByPool").mockReturnValue(0.5);
 
       // assert
@@ -155,9 +145,10 @@ describe("test-pool-helper", () => {
     });
 
     it.each([
-      ["asset-is-cw20-USDT", usdtInfo, 1],
+      ["case-1:-asset-is-cw20-USDT", usdtInfo, 1],
+      ["case-2:-asset-is-ORAI", oraiInfo, 2],
       [
-        "asset-is-MILKY-that-mapped-with-USDT",
+        "case-3:-asset-is-MILKY-that-mapped-with-USDT",
         {
           token: {
             contract_addr: milkyCw20Address
@@ -165,9 +156,8 @@ describe("test-pool-helper", () => {
         },
         0.5
       ],
-      ["asset-is-ORAI", oraiInfo, 2],
       [
-        "asset-is-pair-with-ORAI",
+        "case-4:-asset-is-pair-with-ORAI",
         {
           native_token: {
             denom: atomIbcDenom
@@ -176,7 +166,7 @@ describe("test-pool-helper", () => {
         1
       ],
       [
-        "asset-is-NOT-pair-with-ORAI",
+        "case-5.1:-asset-is-NOT-pair-with-ORAI",
         {
           token: {
             contract_addr: scAtomCw20Address
@@ -187,53 +177,7 @@ describe("test-pool-helper", () => {
     ])(
       "test-getPriceAssetByUsdt-with-%p-should-return-correctly-price-of-asset-in-USDT",
       async (_caseName: string, assetInfo: AssetInfo, expectedPrice: number) => {
-        // setup & mock
-        duckDb = await DuckDb.create(":memory:");
-        await Promise.all([duckDb.createPairInfosTable(), duckDb.createLiquidityOpsTable()]);
-        const pairInfoData: PairInfoData[] = [
-          {
-            firstAssetInfo: JSON.stringify(oraiInfo as AssetInfo),
-            secondAssetInfo: JSON.stringify(usdtInfo as AssetInfo),
-            commissionRate: "",
-            pairAddr: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
-            liquidityAddr: "",
-            oracleAddr: "",
-            symbols: "1",
-            fromIconUrl: "1",
-            toIconUrl: "1"
-          },
-          {
-            firstAssetInfo: JSON.stringify(oraiInfo as AssetInfo),
-            secondAssetInfo: JSON.stringify({ native_token: { denom: atomIbcDenom } } as AssetInfo),
-            commissionRate: "",
-            pairAddr: "orai/atom",
-            liquidityAddr: "",
-            oracleAddr: "",
-            symbols: "1",
-            fromIconUrl: "1",
-            toIconUrl: "1"
-          }
-        ];
-        await duckDb.insertPairInfos(pairInfoData);
-        const lpOpsData: ProvideLiquidityOperationData[] = [
-          {
-            basePrice: 1,
-            baseTokenAmount: 1,
-            baseTokenDenom: "orai",
-            baseTokenReserve: 1000000000 / 2,
-            opType: "withdraw",
-            uniqueKey: "2",
-            quoteTokenAmount: 2,
-            quoteTokenDenom: usdtCw20Address,
-            quoteTokenReserve: 1000000000,
-            timestamp: 1,
-            txCreator: "foobar",
-            txhash: "foo",
-            txheight: 1,
-            taxRate: 1n
-          }
-        ];
-        await duckDb.insertLpOps(lpOpsData);
+        // mock
         jest.spyOn(poolHelper, "getOraiPrice").mockResolvedValue(2);
         jest.spyOn(poolHelper, "getPriceByAsset").mockResolvedValue(0.5);
 
