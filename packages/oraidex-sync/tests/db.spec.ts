@@ -3,13 +3,7 @@ import { isoToTimestampNumber } from "../src/helper";
 import { GetFeeSwap, GetVolumeQuery, ProvideLiquidityOperationData } from "../src/types";
 describe("test-duckdb", () => {
   let duckDb: DuckDb;
-  afterAll(jest.resetModules);
-
-  afterEach(() => {
-    jest.clearAllMocks();
-    jest.restoreAllMocks();
-    jest.resetAllMocks();
-  });
+  afterEach(jest.restoreAllMocks);
 
   it.each<[string[], number[]]>([
     [
