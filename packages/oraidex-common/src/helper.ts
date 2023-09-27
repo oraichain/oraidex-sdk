@@ -62,7 +62,7 @@ export const toDecimal = (numerator: bigint, denominator: bigint): number => {
  * @param {number} desDecimals - The number of decimal places in the `amount` after conversion.
  * @return {number} The value of `amount` after conversion.
  */
-export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecimals = 6): number => {
+export const toDisplay = (amount: string | bigint, sourceDecimals: number = 6, desDecimals: number = 6): number => {
   if (!amount) return 0;
   // guarding conditions to prevent crashing
   const validatedAmount = typeof amount === "string" ? BigInt(amount || "0") : amount;
@@ -90,10 +90,6 @@ export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItem
  */
 export const reduceString = (str: string, from: number, end: number) => {
   return str ? str.substring(0, from) + "..." + str.substring(str.length - end) : "-";
-};
-
-export const parseBep20Erc20Name = (name: string) => {
-  return name.replace(/(BEP20|ERC20)\s+/, "");
 };
 
 export const toTokenInfo = (token: TokenItemType, info?: TokenInfoResponse): TokenInfo => {
