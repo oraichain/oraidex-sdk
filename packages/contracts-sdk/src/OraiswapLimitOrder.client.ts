@@ -7,7 +7,7 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
+import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, OrderStatus, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
 export interface OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
   contractInfo: () => Promise<ContractInfoResponse>;
@@ -59,12 +59,14 @@ export interface OraiswapLimitOrderReadOnlyInterface {
   ticks: ({
     assetInfos,
     direction,
+    end,
     limit,
     orderBy,
     startAfter
   }: {
     assetInfos: AssetInfo[];
     direction: OrderDirection;
+    end?: Decimal;
     limit?: number;
     orderBy?: number;
     startAfter?: Decimal;
@@ -187,12 +189,14 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
   ticks = async ({
     assetInfos,
     direction,
+    end,
     limit,
     orderBy,
     startAfter
   }: {
     assetInfos: AssetInfo[];
     direction: OrderDirection;
+    end?: Decimal;
     limit?: number;
     orderBy?: number;
     startAfter?: Decimal;
@@ -201,6 +205,7 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
       ticks: {
         asset_infos: assetInfos,
         direction,
+        end,
         limit,
         order_by: orderBy,
         start_after: startAfter
@@ -240,6 +245,13 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     admin
   }: {
     admin: Addr;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateConfig: ({
+    commissionRate,
+    rewardAddress
+  }: {
+    commissionRate?: string;
+    rewardAddress?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   createOrderBookPair: ({
     baseCoinInfo,
@@ -291,6 +303,7 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     this.contractAddress = contractAddress;
     this.receive = this.receive.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
+    this.updateConfig = this.updateConfig.bind(this);
     this.createOrderBookPair = this.createOrderBookPair.bind(this);
     this.submitOrder = this.submitOrder.bind(this);
     this.cancelOrder = this.cancelOrder.bind(this);
@@ -323,6 +336,20 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     return await this.client.execute(this.sender, this.contractAddress, {
       update_admin: {
         admin
+      }
+    }, _fee, _memo, _funds);
+  };
+  updateConfig = async ({
+    commissionRate,
+    rewardAddress
+  }: {
+    commissionRate?: string;
+    rewardAddress?: Addr;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_config: {
+        commission_rate: commissionRate,
+        reward_address: rewardAddress
       }
     }, _fee, _memo, _funds);
   };

@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Uint128, AssetInfo, Addr, Logo, EmbeddedLogo, Binary, Asset, InstantiateMarketingInfo} from "./types";
+import {Uint128, AssetInfo, Addr, Logo, EmbeddedLogo, Binary, Cw20Coin, Asset, InstantiateMarketingInfo} from "./types";
 import {InstantiateMsg, ExecuteMsg, ListTokenMsg, MinterResponse, QueryMsg, MigrateMsg, Config} from "./OraidexListingContract.types";
 export interface OraidexListingContractReadOnlyInterface {
   contractAddress: string;
@@ -32,17 +32,25 @@ export interface OraidexListingContractInterface extends OraidexListingContractR
   contractAddress: string;
   sender: string;
   listToken: ({
+    initialBalances,
     label,
     liquidityPoolRewardAssets,
     marketing,
     mint,
-    symbol
+    name,
+    pairAssetInfo,
+    symbol,
+    targetedAssetInfo
   }: {
+    initialBalances?: Cw20Coin[];
     label?: string;
     liquidityPoolRewardAssets: Asset[];
     marketing?: InstantiateMarketingInfo;
     mint?: MinterResponse;
-    symbol: string;
+    name?: string;
+    pairAssetInfo: AssetInfo;
+    symbol?: string;
+    targetedAssetInfo?: AssetInfo;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraidexListingContractClient extends OraidexListingContractQueryClient implements OraidexListingContractInterface {
@@ -59,25 +67,37 @@ export class OraidexListingContractClient extends OraidexListingContractQueryCli
   }
 
   listToken = async ({
+    initialBalances,
     label,
     liquidityPoolRewardAssets,
     marketing,
     mint,
-    symbol
+    name,
+    pairAssetInfo,
+    symbol,
+    targetedAssetInfo
   }: {
+    initialBalances?: Cw20Coin[];
     label?: string;
     liquidityPoolRewardAssets: Asset[];
     marketing?: InstantiateMarketingInfo;
     mint?: MinterResponse;
-    symbol: string;
+    name?: string;
+    pairAssetInfo: AssetInfo;
+    symbol?: string;
+    targetedAssetInfo?: AssetInfo;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       list_token: {
+        initial_balances: initialBalances,
         label,
         liquidity_pool_reward_assets: liquidityPoolRewardAssets,
         marketing,
         mint,
-        symbol
+        name,
+        pair_asset_info: pairAssetInfo,
+        symbol,
+        targeted_asset_info: targetedAssetInfo
       }
     }, _fee, _memo, _funds);
   };

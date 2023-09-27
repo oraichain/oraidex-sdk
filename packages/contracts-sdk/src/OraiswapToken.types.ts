@@ -1,4 +1,4 @@
-import {Uint128, Logo, EmbeddedLogo, Binary, InstantiateMarketingInfo, Addr} from "./types";
+import {Uint128, Logo, EmbeddedLogo, Binary, Cw20Coin, InstantiateMarketingInfo, Addr} from "./types";
 export interface InstantiateMsg {
   decimals: number;
   initial_balances: Cw20Coin[];
@@ -6,10 +6,6 @@ export interface InstantiateMsg {
   mint?: MinterResponse | null;
   name: string;
   symbol: string;
-}
-export interface Cw20Coin {
-  address: string;
-  amount: Uint128;
 }
 export interface MinterResponse {
   cap?: Uint128 | null;
