@@ -1,0 +1,15 @@
+{
+  "name": "@oraichain/oraidex-common",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@keplr-wallet/types": "^0.11.38"
+  },
+  "resolutions": {
+    "bech32": "1.1.4"
+  }
+}

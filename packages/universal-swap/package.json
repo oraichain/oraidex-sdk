@@ -1,0 +1,18 @@
+{
+  "name": "@oraichain/oraidex-universal-swap",
+  "version": "1.0.0",
+  "main": "src/index.js",
+  "files": [
+    "src/"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@oraichain/common-contracts-build": "1.0.32",
+    "@oraichain/common-contracts-sdk": "1.0.31",
+    "@oraichain/cw-simulate": "^2.8.55",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.23",
+    "cosmjs-types": "^0.8.0",
+    "ts-results": "^3.3.0",
+    "@oraichain/oraidex-common": "^1.0.0"
+  }
+}

@@ -753,6 +753,14 @@
     "@jridgewell/resolve-uri" "3.1.0"
     "@jridgewell/sourcemap-codec" "1.4.14"
 
+"@keplr-wallet/types@^0.11.38":
+  version "0.11.64"
+  resolved "https://registry.yarnpkg.com/@keplr-wallet/types/-/types-0.11.64.tgz#5a308c8c019b4e18f894e0f35f0904b60134d605"
+  integrity sha512-GgzeLDHHfZFyne3O7UIfFHj/uYqVbxAZI31RbBwt460OBbvwQzjrlZwvJW3vieWRAgxKSITjzEDBl2WneFTQdQ==
+  dependencies:
+    axios "^0.27.2"
+    long "^4.0.0"
+
 "@kiruse/serde@^0.8.0-rc.6":
   version "0.8.0-rc.6"
   resolved "https://registry.yarnpkg.com/@kiruse/serde/-/serde-0.8.0-rc.6.tgz#7de5aa930527ea2574eb47f154c40b03a2ffd12c"
@@ -1807,10 +1815,22 @@
   dependencies:
     "@octokit/openapi-types" "^17.1.1"
 
+"@oraichain/common-contracts-build@1.0.32":
+  version "1.0.32"
+  resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-build/-/common-contracts-build-1.0.32.tgz#6ba11a98eab1066ac42f290fbf7e877dc00b45a8"
+  integrity sha512-g9wk2oeTWPkOUDwvr19XkDDtH3OkXQGAQKEFlAVn8t4/8KvOC5Jo5XrQwqSd5O4tvfxW6vX+XVpbkhEDcsOkRw==
+  dependencies:
+    "@oraichain/common-contracts-sdk" "1.0.31"
+
 "@oraichain/common-contracts-sdk@1.0.13":
   version "1.0.13"
   resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-sdk/-/common-contracts-sdk-1.0.13.tgz#5a6cd9320b995e184b5d484313e4b4e8ecd4b4bb"
   integrity sha512-XfDDaggu7WcM/vxRxIn0ipLq6+c9+5FBqK/qzWh5HRHxn4e71OvNKVAxXoLOIATscAXkrkOimv55s1CD+hZGmw==
+
+"@oraichain/common-contracts-sdk@1.0.31":
+  version "1.0.31"
+  resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-sdk/-/common-contracts-sdk-1.0.31.tgz#595f93b168438d69d64896909b37855c9afc92fb"
+  integrity sha512-s8H20RXy5gCnu3DnM7L5ClQyj2mdQpbSBpZrXCpIAX9qY0LKsDdZG3sYaDQ8+VN333jz9Pp/qGWdFSYD+6PBsg==
 
 "@oraichain/cosmos-rpc-sync@^1.0.7":
   version "1.0.7"
@@ -1832,6 +1852,36 @@
     bech32 "1.1.4"
     elliptic "^6.5.4"
     secp256k1 "^4.0.3"
+
+"@oraichain/cosmwasm-vm-js@^0.2.76":
+  version "0.2.76"
+  resolved "https://registry.yarnpkg.com/@oraichain/cosmwasm-vm-js/-/cosmwasm-vm-js-0.2.76.tgz#11431450b75bba0c822be1403f0a2483c2fb1694"
+  integrity sha512-dJjFnH9pwI8ruuW3xR70eRdFY9aaJUMU6QPstox5M9O9XKmjHzKmQW9l+IIwKWb81rG1Z1C+RDdzD5bird9aCA==
+  dependencies:
+    "@cosmjs/amino" "^0.31.0"
+    "@cosmjs/crypto" "^0.31.0"
+    "@cosmjs/encoding" "^0.31.0"
+    "@oraichain/immutable" "^4.3.9"
+    "@oraichain/wasm-json-toolkit" "^1.0.24"
+    bech32 "1.1.4"
+    elliptic "^6.5.4"
+    secp256k1 "^4.0.3"
+
+"@oraichain/cw-simulate@^2.8.55":
+  version "2.8.67"
+  resolved "https://registry.yarnpkg.com/@oraichain/cw-simulate/-/cw-simulate-2.8.67.tgz#cbfe3963e5222dac361c379c7733a783b40f182b"
+  integrity sha512-JsDdAmS1ve8Wgai7ds9SzWVzhtUlDhC/DZ0nH3SJ/p7Z6ZgTLTuSgjAm+U7lxrnQY3yfpxysclm+vNQjKYVFWA==
+  dependencies:
+    "@cosmjs/amino" "^0.31.0"
+    "@cosmjs/cosmwasm-stargate" "^0.31.0"
+    "@cosmjs/crypto" "^0.31.0"
+    "@cosmjs/encoding" "^0.31.0"
+    "@kiruse/serde" "^0.8.0-rc.6"
+    "@oraichain/cosmwasm-vm-js" "^0.2.76"
+    eventemitter3 "^5.0.0"
+    protobufjs "^7.2.3"
+    ts-results "^3.3.0"
+    tslib "^2.6.1"
 
 "@oraichain/cw-simulate@^2.8.56":
   version "2.8.56"
@@ -2471,6 +2521,14 @@ axios@^0.21.2:
   integrity sha512-ut5vewkiu8jjGBdqpM44XxjuCjq9LAKeHVmoVfHVzy8eHgxxq8SbAVQNovDA8mVi05kP0Ea/n/UzcSHcTJQfNg==
   dependencies:
     follow-redirects "^1.14.0"
+
+axios@^0.27.2:
+  version "0.27.2"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-0.27.2.tgz#207658cc8621606e586c85db4b41a750e756d972"
+  integrity sha512-t+yRIyySRTp/wua5xEr+z1q60QmLq8ABsS5O9Me1AsE5dfKqgnCFzwiCZZ/cGNd1lq4/7akDWMxdhVlucjmnOQ==
+  dependencies:
+    follow-redirects "^1.14.9"
+    form-data "^4.0.0"
 
 axios@^1.0.0:
   version "1.4.0"
@@ -3694,6 +3752,11 @@ follow-redirects@^1.14.0, follow-redirects@^1.15.0:
   version "1.15.2"
   resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.2.tgz#b460864144ba63f2681096f274c4e57026da2c13"
   integrity sha512-VQLG33o04KaQ8uYi2tVNbdrWp1QWxNNea+nmIB4EVM28v0hmP17z7aG1+wAkNzVq4KeXTq3221ye5qTJP91JwA==
+
+follow-redirects@^1.14.9:
+  version "1.15.3"
+  resolved "https://registry.yarnpkg.com/follow-redirects/-/follow-redirects-1.15.3.tgz#fe2f3ef2690afce7e82ed0b44db08165b207123a"
+  integrity sha512-1VzOtuEM8pC9SFU1E+8KfTjZyMztRsgEfwQl44z8A25uy13jSzTj6dyK2Df52iV0vgHCfBwLhDWevLn95w5v6Q==
 
 foreground-child@^3.1.0:
   version "3.1.1"
