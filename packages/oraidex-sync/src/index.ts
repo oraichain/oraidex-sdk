@@ -146,9 +146,8 @@ class OraiDexSync {
     try {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
-
       const allPools = await this.duckDb.getPools();
-      if (allPools.length > 0) return;
+      if (allPools.length > 0 && pairInfos.length === allPools.length) return;
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair, index) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
