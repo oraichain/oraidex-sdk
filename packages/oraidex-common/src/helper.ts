@@ -4,10 +4,12 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import Long from "long";
 import bech32 from "bech32";
-import { AmountDetails, FormatNumberDecimal, TokenInfo, TokenItemType } from "./token";
+import { AmountDetails, FormatNumberDecimal, TokenInfo, TokenItemType, cosmosTokens } from "./token";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
-import { atomic, truncDecimals } from "./constant";
+import { WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
+import ethers from "ethers";
+import { CoinGeckoId, NetworkChainId } from "./network";
 
 export const checkRegex = (str: string, regex?: RegExp) => {
   const re = regex ?? /^[a-zA-Z\-]{3,12}$/;
@@ -20,6 +22,9 @@ export const getEvmAddress = (bech32Address: string) => {
   const evmAddress = "0x" + Buffer.from(bech32.fromWords(decoded.words)).toString("hex");
   return evmAddress;
 };
+
+export const tronToEthAddress = (base58: string) =>
+  "0x" + Buffer.from(ethers.utils.base58.decode(base58)).subarray(1, -4).toString("hex");
 
 export const validateAddressCosmos = (bech32Address: string, prefix?: string): boolean => {
   try {
@@ -112,14 +117,19 @@ export const toAssetInfo = (token: TokenInfo): AssetInfo => {
     : { native_token: { denom: token.denom } };
 };
 
-export const formateNumberDecimals = (price, decimals = 2) => {
+export const formateNumberDecimals = (price: number | bigint, decimals = 2) => {
   return new Intl.NumberFormat("en-US", {
     currency: "USD",
     maximumFractionDigits: decimals
   }).format(price);
 };
 
-export const detectBestDecimalsDisplay = (price, minDecimal = 2, minPrice = 1, maxDecimal) => {
+export const detectBestDecimalsDisplay = (
+  price: number | bigint,
+  minDecimal: number = 2,
+  minPrice: number = 1,
+  maxDecimal: number
+) => {
   if (price && price > minPrice) return minDecimal;
   let decimals = minDecimal;
   if (price !== undefined) {
@@ -217,4 +227,36 @@ export const handleSentFunds = (...funds: (Coin | undefined)[]): Coin[] | null =
   if (sent_funds.length === 0) return null;
   sent_funds.sort((a, b) => a.denom.localeCompare(b.denom));
   return sent_funds;
+};
+
+export const findTokenCoingeckoId = (tokens: TokenItemType[], coingeckoId: CoinGeckoId): TokenItemType | undefined => {
+  return tokens.find((token) => token.coinGeckoId === coingeckoId);
+};
+
+// hardcode this to improve performance
+export const proxyContractInfo = (): { [x: string]: { wrapNativeAddr: string; routerAddr: string } } => {
+  return {
+    "0x01": {
+      wrapNativeAddr: ethers.utils.getAddress(WRAP_ETH_CONTRACT),
+      routerAddr: ethers.utils.getAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D") // uniswap router
+    },
+    "0x38": {
+      wrapNativeAddr: ethers.utils.getAddress(WRAP_BNB_CONTRACT),
+      routerAddr: ethers.utils.getAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E") // pancakeswap router
+    }
+  };
+};
+
+export const findToTokenOnOraiBridge = (fromToken: TokenItemType, toNetwork: NetworkChainId) => {
+  const toToken = cosmosTokens.find((t) =>
+    t.chainId === "oraibridge-subnet-2" && t.coinGeckoId === fromToken.coinGeckoId && t?.bridgeNetworkIdentifier
+      ? t.bridgeNetworkIdentifier === toNetwork
+      : t.chainId === toNetwork
+  );
+  return toToken;
+};
+
+export const parseAssetInfo = (assetInfo: AssetInfo): string => {
+  if ("native_token" in assetInfo) return assetInfo.native_token.denom;
+  return assetInfo.token.contract_addr;
 };

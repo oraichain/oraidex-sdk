@@ -1,5 +1,14 @@
 import { PairInfo } from "@oraichain/oraidex-contracts-sdk";
-import { CoinGeckoId, CoinIcon, CustomChainInfo, NetworkChainId, NetworkName } from "./network";
+import {
+  CoinGeckoId,
+  CoinIcon,
+  CustomChainInfo,
+  NetworkChainId,
+  NetworkName,
+  chainInfos,
+  oraichainNetwork
+} from "./network";
+import { flatten, uniqBy } from "lodash";
 
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };
@@ -81,3 +90,22 @@ export const getTokensFromNetwork = (network: CustomChainInfo): TokenItemType[] 
     IconLight: currency?.IconLight
   }));
 };
+
+// other chains, oraichain
+const otherChainTokens = flatten(
+  chainInfos.filter((chainInfo) => chainInfo.chainId !== "Oraichain").map(getTokensFromNetwork)
+);
+export const oraichainTokens: TokenItemType[] = getTokensFromNetwork(oraichainNetwork);
+
+export const tokens = [otherChainTokens, oraichainTokens];
+export const flattenTokens = flatten(tokens);
+export const tokenMap = Object.fromEntries(flattenTokens.map((c) => [c.denom, c]));
+export const assetInfoMap = Object.fromEntries(flattenTokens.map((c) => [c.contractAddress || c.denom, c]));
+export const cosmosTokens = uniqBy(
+  flattenTokens.filter(
+    (token) =>
+      // !token.contractAddress &&
+      token.denom && token.cosmosBased && token.coinGeckoId
+  ),
+  (c) => c.denom
+);
