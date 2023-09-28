@@ -5,3 +5,5 @@ export * from "./helper";
 export * from "./constant";
 export * from "./pairs";
 export * from "./wallet";
+export * from "./tronweb";
+export * from "./typechain-types";

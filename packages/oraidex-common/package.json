@@ -8,7 +8,8 @@
   "license": "MIT",
   "devDependencies": {
     "@keplr-wallet/types": "^0.11.38",
-    "ethers": "^5.0.15"
+    "ethers": "^5.0.15",
+    "@ethersproject/providers": "^5.0.10"
   },
   "resolutions": {
     "bech32": "1.1.4"

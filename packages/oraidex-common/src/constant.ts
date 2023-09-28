@@ -1,3 +1,5 @@
+import { EvmChainId } from "./network";
+
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
 
@@ -176,4 +178,10 @@ export const swapEvmRoutes: {
     [`${WRAP_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
     [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT]
   }
+};
+
+export const gravityContracts: Omit<Record<EvmChainId, string>, "0x1ae6"> = {
+  "0x38": GRAVITY_EVM_CONTRACT,
+  "0x01": GRAVITY_EVM_CONTRACT,
+  "0x2b6653dc": GRAVITY_TRON_CONTRACT
 };

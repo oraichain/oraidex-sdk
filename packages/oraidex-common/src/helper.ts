@@ -4,7 +4,15 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import Long from "long";
 import bech32 from "bech32";
-import { AmountDetails, FormatNumberDecimal, TokenInfo, TokenItemType, cosmosTokens } from "./token";
+import {
+  AmountDetails,
+  FormatNumberDecimal,
+  TokenInfo,
+  TokenItemType,
+  cosmosTokens,
+  flattenTokens,
+  oraichainTokens
+} from "./token";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
@@ -25,6 +33,13 @@ export const getEvmAddress = (bech32Address: string) => {
 
 export const tronToEthAddress = (base58: string) =>
   "0x" + Buffer.from(ethers.utils.base58.decode(base58)).subarray(1, -4).toString("hex");
+
+export const ethToTronAddress = (address: string) => {
+  const evmAddress = "0x41" + address.substring(2);
+  const hash = ethers.utils.sha256(ethers.utils.sha256(evmAddress));
+  const checkSum = hash.substring(2, 10);
+  return ethers.utils.base58.encode(evmAddress + checkSum);
+};
 
 export const validateAddressCosmos = (bech32Address: string, prefix?: string): boolean => {
   try {
@@ -260,3 +275,27 @@ export const parseAssetInfo = (assetInfo: AssetInfo): string => {
   if ("native_token" in assetInfo) return assetInfo.native_token.denom;
   return assetInfo.token.contract_addr;
 };
+
+export const getTokenOnSpecificChainId = (
+  coingeckoId: CoinGeckoId,
+  chainId: NetworkChainId
+): TokenItemType | undefined => {
+  return flattenTokens.find((t) => t.coinGeckoId === coingeckoId && t.chainId === chainId);
+};
+
+export const getTokenOnOraichain = (coingeckoId: CoinGeckoId) => {
+  if (coingeckoId === "kawaii-islands" || coingeckoId === "milky-token") {
+    throw new Error("KWT and MILKY not supported in this function");
+  }
+  return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId);
+};
+
+export function isEvmNetworkNativeSwapSupported(chainId: NetworkChainId) {
+  switch (chainId) {
+    case "0x01":
+    case "0x38":
+      return true;
+    default:
+      return false;
+  }
+}
