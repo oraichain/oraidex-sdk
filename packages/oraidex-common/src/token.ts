@@ -9,6 +9,7 @@ import {
   oraichainNetwork
 } from "./network";
 import { flatten, uniqBy } from "lodash";
+import { KWTBSC_ORAICHAIN_DENOM, MILKYBSC_ORAICHAIN_DENOM } from "./constant";
 
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };
@@ -60,8 +61,8 @@ export interface FormatNumberDecimal {
 }
 
 const evmDenomsMap = {
-  kwt: [process.env.REACT_APP_KWTBSC_ORAICHAIN_DENOM],
-  milky: [process.env.REACT_APP_MILKYBSC_ORAICHAIN_DENOM]
+  kwt: [KWTBSC_ORAICHAIN_DENOM],
+  milky: [MILKYBSC_ORAICHAIN_DENOM]
 };
 const minAmountSwapMap = {
   trx: 10

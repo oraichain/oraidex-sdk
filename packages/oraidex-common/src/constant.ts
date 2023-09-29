@@ -137,13 +137,13 @@ export const ORAI_INFO = {
 
 export const ORAIX_INFO = {
   token: {
-    contract_addr: process.env.REACT_APP_ORAIX_CONTRACT
+    contract_addr: ORAIX_CONTRACT
   }
 };
 
 export const ORAIXOCH_INFO = {
   token: {
-    contract_addr: process.env.REACT_APP_XOCH_CONTRACT
+    contract_addr: XOCH_CONTRACT
   }
 };
 
