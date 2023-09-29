@@ -38,21 +38,17 @@ import {
   getTokenOnSpecificChainId,
   CosmosWallet,
   EvmWallet,
-  EvmChainId,
-  swapEvmRoutes,
-  proxyContractInfo,
   getTokenOnOraichain,
-  isEvmNetworkNativeSwapSupported,
   UNISWAP_ROUTER_DEADLINE,
   gravityContracts,
   Bridge__factory,
   IUniswapV2Router02__factory,
-  CoinGeckoId,
   ethToTronAddress
 } from "@oraichain/oraidex-common";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { isEqual } from "lodash";
-import ethers, { Signer } from "ethers";
+import ethers from "ethers";
+import { buildIbcWasmPairKey, getEvmSwapRoute, getIbcInfo, isEvmSwappable, isSupportedNoPoolSwapEvm } from "./helper";
 
 export enum SwapDirection {
   From,
@@ -68,18 +64,6 @@ export interface SwapData {
   metamaskAddress?: string;
   tronAddress?: string;
 }
-
-export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
-  switch (coingeckoId) {
-    case "wbnb":
-    case "weth":
-    case "binancecoin":
-    case "ethereum":
-      return true;
-    default:
-      return false;
-  }
-};
 
 export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
@@ -100,57 +84,6 @@ export class UniversalSwapHandler {
       readonly cwIcs20LatestClient?: CwIcs20LatestClient | CwIcs20LatestReadOnlyInterface;
     }
   ) {}
-
-  private static buildSwapRouterKey(fromContractAddr: string, toContractAddr: string) {
-    return `${fromContractAddr}-${toContractAddr}`;
-  }
-
-  static getEvmSwapRoute(chainId: string, fromContractAddr?: string, toContractAddr?: string): string[] | undefined {
-    if (!isEvmNetworkNativeSwapSupported(chainId as EvmChainId)) return undefined;
-    if (!fromContractAddr && !toContractAddr) return undefined;
-    const chainRoutes = swapEvmRoutes[chainId];
-    const fromAddr = fromContractAddr || proxyContractInfo()[chainId].wrapNativeAddr;
-    const toAddr = toContractAddr || proxyContractInfo()[chainId].wrapNativeAddr;
-
-    // in case from / to contract addr is empty aka native eth or bnb without contract addr then we fallback to swap route with wrapped token
-    // because uniswap & pancakeswap do not support simulating with native directly
-    let route: string[] | undefined = chainRoutes[this.buildSwapRouterKey(fromAddr, toContractAddr)];
-    if (route) return route;
-    // because the route can go both ways. Eg: WBNB->AIRI, if we want to swap AIRI->WBNB, then first we find route WBNB->AIRI, then we reverse the route
-    route = chainRoutes[this.buildSwapRouterKey(toAddr, fromContractAddr)];
-    if (route) {
-      return [].concat(route).reverse();
-    }
-    return undefined;
-  }
-
-  // static functions
-  static isEvmSwappable(data: {
-    fromChainId: string;
-    toChainId: string;
-    fromContractAddr?: string;
-    toContractAddr?: string;
-  }): boolean {
-    const { fromChainId, fromContractAddr, toChainId, toContractAddr } = data;
-    // cant swap if they are not on the same evm chain
-    if (fromChainId !== toChainId) return false;
-    // cant swap on evm if chain id is not eth or bsc
-    if (fromChainId !== "0x01" && fromChainId !== "0x38") return false;
-    // if the tokens do not have contract addresses then we skip
-    // if (!fromContractAddr || !toContractAddr) return false;
-    // only swappable if there's a route to swap from -> to
-    if (!this.getEvmSwapRoute(fromChainId, fromContractAddr, toContractAddr)) return false;
-    return true;
-  }
-
-  getIbcInfo(fromChainId: CosmosChainId, toChainId: NetworkChainId): IBCInfo {
-    if (!ibcInfos[fromChainId]) throw generateError("Cannot find ibc info");
-    return ibcInfos[fromChainId][toChainId];
-  }
-
-  buildIbcWasmPairKey(ibcPort: string, ibcChannel: string, denom: string) {
-    return `${ibcPort}/${ibcChannel}/${denom}`;
-  }
 
   async getUniversalSwapToAddress(
     toChainId: NetworkChainId,
@@ -175,7 +108,7 @@ export class UniversalSwapHandler {
    * @returns combined messages
    */
   async combineMsgCosmos(timeoutTimestamp?: string): Promise<EncodeObject[]> {
-    const ibcInfo: IBCInfo = this.getIbcInfo(
+    const ibcInfo: IBCInfo = getIbcInfo(
       this.swapData.originalFromToken.chainId as CosmosChainId,
       this.swapData.originalToToken.chainId
     );
@@ -247,7 +180,7 @@ export class UniversalSwapHandler {
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId);
     if (!toAddress) throw generateError("Please login keplr!");
 
-    const ibcInfo = this.getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
     const ibcMemo = this.getIbcMemo(metamaskAddress, tronAddress, ibcInfo.channel, {
       chainId: newToToken.chainId,
       prefix: newToToken.prefix
@@ -264,13 +197,9 @@ export class UniversalSwapHandler {
     const ics20Contract = this.config.cwIcs20LatestClient ?? new CwIcs20LatestQueryClient(client, IBC_WASM_CONTRACT);
 
     try {
-      let pairKey = this.buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, toToken.denom);
+      let pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, toToken.denom);
       if (toToken.prefix && toToken.contractAddress) {
-        pairKey = this.buildIbcWasmPairKey(
-          ibcInfo.source,
-          ibcInfo.channel,
-          `${toToken.prefix}${toToken.contractAddress}`
-        );
+        pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, `${toToken.prefix}${toToken.contractAddress}`);
       }
       let balance: Amount;
       try {
@@ -340,7 +269,7 @@ export class UniversalSwapHandler {
     }
     // if to token is evm, then we need to evaluate channel state balance of ibc wasm
     if (to.chainId === "0x01" || to.chainId === "0x38" || to.chainId === "0x2b6653dc") {
-      const ibcInfo: IBCInfo | undefined = this.getIbcInfo("Oraichain", to.chainId);
+      const ibcInfo: IBCInfo | undefined = getIbcInfo("Oraichain", to.chainId);
       if (!ibcInfo) throw generateError("IBC Info error when checking ibc balance");
       await this.checkBalanceChannelIbc(ibcInfo, this.swapData.originalToToken);
     }
@@ -401,11 +330,7 @@ export class UniversalSwapHandler {
     } else if (!toTokenContractAddr) {
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
       // the route is with weth or wbnb, then the uniswap router will automatically convert and transfer native eth / bnb back
-      const evmRoute = UniversalSwapHandler.getEvmSwapRoute(
-        fromToken.chainId,
-        fromToken.contractAddress,
-        toTokenContractAddr
-      );
+      const evmRoute = getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress, toTokenContractAddr);
 
       result = await routerV2.swapExactTokensForETH(
         finalFromAmount,
@@ -517,7 +442,7 @@ export class UniversalSwapHandler {
       type === "cosmos"
         ? this.swapData.originalToToken
         : findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
-    const ibcInfo = this.getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
     await this.checkBalanceChannelIbc(ibcInfo, newToToken);
 
     // handle sign and broadcast transactions
@@ -560,7 +485,7 @@ export class UniversalSwapHandler {
     // has to switch network to the correct chain id on evm since users can swap between network tokens
     if (!this.config.evmWallet.isTron(this.swapData.originalFromToken.chainId))
       await this.config.evmWallet.switchNetwork(this.swapData.originalFromToken.chainId);
-    if (UniversalSwapHandler.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    if (isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(
       this.swapData.originalToToken.coinGeckoId,
@@ -576,10 +501,7 @@ export class UniversalSwapHandler {
     }
 
     // special case for tokens not having a pool on Oraichain. We need to swap on evm instead then transfer to Oraichain
-    if (
-      UniversalSwapHandler.isEvmSwappable(swappableData) &&
-      isSupportedNoPoolSwapEvm(this.swapData.originalFromToken.coinGeckoId)
-    ) {
+    if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(this.swapData.originalFromToken.coinGeckoId)) {
       return this.evmSwap(evmSwapData);
     }
     return this.transferEvmToIBC(

@@ -33,6 +33,13 @@ export abstract class CosmosWallet {
 
 export abstract class EvmWallet {
   public tronWeb: TronWeb;
+
+  public abstract switchNetwork(chainId: string | number): Promise<void>;
+  public abstract getEthAddress(): Promise<string>;
+  public abstract checkEthereum(): boolean;
+  public abstract checkTron(): boolean;
+  public abstract getSigner(): JsonRpcSigner;
+
   public isTron(chainId: string | number) {
     return Number(chainId) == Networks.tron;
   }
@@ -43,11 +50,6 @@ export abstract class EvmWallet {
     if (this.isTron(chainId)) return address.tronAddress;
     return address.metamaskAddress;
   }
-  public abstract switchNetwork(chainId: string | number): Promise<void>;
-  public abstract getEthAddress(): Promise<string>;
-  public abstract checkEthereum(): boolean;
-  public abstract checkTron(): boolean;
-  public abstract getSigner(): JsonRpcSigner;
 
   public async submitTronSmartContract(
     address: string,
