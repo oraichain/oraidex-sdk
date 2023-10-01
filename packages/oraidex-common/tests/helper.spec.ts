@@ -1,18 +1,33 @@
-import { MILKYBSC_ORAICHAIN_DENOM, MILKY_CONTRACT, ORAI, USDC_CONTRACT, USDT_CONTRACT } from "../src/constant";
+import {
+  AIRI_CONTRACT,
+  MILKYBSC_ORAICHAIN_DENOM,
+  MILKY_CONTRACT,
+  ORAI,
+  USDC_CONTRACT,
+  USDT_CONTRACT
+} from "../src/constant";
 import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
 import {
   calculateMinReceive,
+  calculateTimeoutTimestamp,
   ethToTronAddress,
-  formateNumberDecimalsAuto,
+  findToTokenOnOraiBridge,
   getEvmAddress,
   getSubAmountDetails,
   getTokenOnOraichain,
+  getTokenOnSpecificChainId,
+  isEvmNetworkNativeSwapSupported,
   parseAssetInfo,
   parseTokenInfoRawDenom,
-  reduceString,
-  tronToEthAddress
+  toAmount,
+  toAssetInfo,
+  toDecimal,
+  toDisplay,
+  toTokenInfo,
+  tronToEthAddress,
+  validateNumber
 } from "../src/helper";
-import { CoinGeckoId } from "../src/network";
+import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { getPairSwapV2, isFactoryV1 } from "../src/pairs";
 
@@ -30,37 +45,6 @@ describe("should helper functions in helper run exactly", () => {
     const subAmounts = getSubAmountDetails(amounts, tokenInfo);
     expect(subAmounts).toEqual({
       [MILKYBSC_ORAICHAIN_DENOM]: "1000000000000000000"
-    });
-  });
-
-  it.each([
-    [4.1, "4.1"],
-    [4.033333333, "4.03"],
-    [0.033333333, "0.0333"],
-    [0.0000066, "0.000007"],
-    [0.0000064, "0.000006"]
-  ])("should formate number decimals auto run correctly", (price: number, expectedFormat: string) => {
-    const priceFormated = formateNumberDecimalsAuto({
-      price: price,
-      maxDecimal: 6,
-      minDecimal: 2,
-      unit: "",
-      minPrice: 1
-    });
-    expect(priceFormated).toEqual(expectedFormat);
-  });
-
-  describe("reduceString function", () => {
-    it.each([
-      ["Hello world!", 5, 5, "Hello...orld!"],
-      ["orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g", 10, 7, "orai1g4h64...jvfgs7g"],
-      ["A B C D E F G H I J K L M N O P Q R S T U V W X Y Z", 2, 3, "A ...Y Z"]
-    ])('should return a shortened string with "..." in between', (str, from, end, expected) => {
-      expect(reduceString(str, from, end)).toEqual(expected);
-    });
-
-    it('should return "-" if the input string is null', () => {
-      expect(reduceString("", 5, 6)).toEqual("-");
     });
   });
 
@@ -160,5 +144,191 @@ describe("should helper functions in helper run exactly", () => {
     expect(tronToEthAddress("TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc")).toEqual(
       "0x993d06fc97f45f16e4805883b98a6c20bab54964"
     );
+  });
+
+  describe("validateNumber", () => {
+    it("validateNumber-NaN-should-return-zero", async () => {
+      const amount = Number.NaN;
+      const res = validateNumber(amount);
+      expect(res).toBe(0);
+    });
+
+    it("validateNumber-infinite-should-return-zero", async () => {
+      const amount = Number.POSITIVE_INFINITY;
+      const res = validateNumber(amount);
+      expect(res).toBe(0);
+    });
+
+    it("validateNumber-super-large-number", async () => {
+      const amount = 2 * Math.pow(10, 21);
+      const res = validateNumber(amount);
+      expect(res).toBe(2e21);
+    });
+
+    it("validateNumber-happy-path-should-return-amount", async () => {
+      const amount = 6;
+      const res = validateNumber(amount);
+      expect(res).toBe(6);
+    });
+  });
+
+  describe("toAmount", () => {
+    it("toAmount-percent", () => {
+      const bondAmount = BigInt(1000);
+      const percentValue = (toAmount(0.3, 6) * bondAmount) / BigInt(100000000);
+      expect(percentValue.toString()).toBe("3");
+    });
+
+    it.each([
+      [6000, 18, "6000000000000000000000"],
+      [2000000, 18, "2000000000000000000000000"],
+      [6000.5043177, 6, "6000504317"],
+      [6000.504317725654, 6, "6000504317"],
+      [0.0006863532, 6, "686"]
+    ])(
+      "toAmount number %.7f with decimal %d should return %s",
+      (amount: number, decimal: number, expectedAmount: string) => {
+        const res = toAmount(amount, decimal).toString();
+        expect(res).toBe(expectedAmount);
+      }
+    );
+  });
+
+  describe("toDisplay", () => {
+    it.each([
+      ["1000", 6, "0.001", 6],
+      ["454136345353413531", 15, "454.136345", 6],
+      ["454136345353413531", 15, "454.13", 2],
+      ["100000000000000", 18, "0.0001", 6]
+    ])(
+      "toDisplay number %d with decimal %d should return %s",
+      (amount: string, decimal: number, expectedAmount: string, desDecimal: number) => {
+        const res = toDisplay(amount, decimal, desDecimal).toString();
+        expect(res).toBe(expectedAmount);
+      }
+    );
+  });
+
+  describe("toDecimal", () => {
+    it("toDecimal-happy-path", async () => {
+      const numerator = BigInt(6);
+      const denominator = BigInt(3);
+      const res = toDecimal(numerator, denominator);
+      expect(res).toBe(2);
+    });
+
+    it("should return 0 when denominator is zero", async () => {
+      const numerator = BigInt(123456);
+      const denominator = BigInt(0);
+      expect(toDecimal(numerator, denominator)).toBe(0);
+    });
+
+    it("should correctly convert a fraction into its equivalent decimal value", () => {
+      const numerator = BigInt(1);
+      const denominator = BigInt(3);
+
+      // Convert the fraction to its decimal value using toDecimal.
+      const decimalValue = toDecimal(numerator, denominator);
+      // Expect the decimal value to be equal to the expected value.
+      expect(decimalValue).toBeCloseTo(0.333333, 6);
+    });
+
+    it.each([
+      [BigInt(1), BigInt(3), 0.333333, 6],
+      [BigInt(1), BigInt(3), 0.3333, 4],
+      [BigInt(1), BigInt(2), 0.5, 6]
+    ])(
+      "should correctly convert a fraction into its equivalent decimal value",
+      (numerator, denominator, expectedDecValue, desDecimal) => {
+        // Convert the fraction to its decimal value using toDecimal.
+        const decimalValue = toDecimal(numerator, denominator);
+        // Expect the decimal value to be equal to the expected value.
+        expect(decimalValue).toBeCloseTo(expectedDecValue, desDecimal);
+      }
+    );
+  });
+
+  it.each<[string, AssetInfo]>([
+    ["orai", { native_token: { denom: "orai" } }],
+    ["airi", { token: { contract_addr: AIRI_CONTRACT } }]
+  ])("test-toAssetInfo", (denom, expectedAssetInfo) => {
+    // fixture
+    const token = oraichainTokens.find((t) => t.denom === denom);
+    const tokenInfo = toTokenInfo(token!);
+    expect(toAssetInfo(tokenInfo)).toEqual(expectedAssetInfo);
+  });
+
+  it("test-calculateTimeoutTimestamp", () => {
+    const now = 1000;
+    expect(calculateTimeoutTimestamp(10, now)).toEqual((11000000000).toString());
+  });
+
+  it.each<[CoinGeckoId, NetworkChainId, CoinGeckoId, NetworkChainId]>([
+    ["cosmos", "cosmoshub-4", "cosmos", "cosmoshub-4"],
+    ["osmosis", "osmosis-1", "osmosis", "osmosis-1"],
+    ["airight", "0x38", "airight", "oraibridge-subnet-2"],
+    ["usd-coin", "0x01", "usd-coin", "oraibridge-subnet-2"],
+    ["tron", "0x2b6653dc", "tron", "oraibridge-subnet-2"]
+  ])(
+    "test-findToTokenOnOraiBridge-when-universalSwap-from-Oraichain-to%s",
+    (fromCoingeckoId, toChainId, expectedToCoinGeckoId, expectedToChainId) => {
+      const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
+      const toTokenTransfer = findToTokenOnOraiBridge(fromToken!, toChainId);
+      expect(toTokenTransfer!.coinGeckoId).toEqual(expectedToCoinGeckoId);
+      expect(toTokenTransfer!.chainId).toEqual(expectedToChainId);
+    }
+  );
+
+  it.each<[AssetInfo, string]>([
+    [{ native_token: { denom: ORAI } }, ORAI],
+    [{ token: { contract_addr: "foobar" } }, "foobar"]
+  ])("test-parseAssetInfo-given-%j-should-receive-%s", (assetInfo, expectedResult) => {
+    expect(parseAssetInfo(assetInfo)).toEqual(expectedResult);
+  });
+
+  it.each<[CoinGeckoId, NetworkChainId, boolean]>([
+    ["wbnb", "0x38", false],
+    ["wbnb", "Oraichain", true]
+  ])("test-getTokenOnSpecificChainId", (coingeckoId, chainId, expectedResult) => {
+    const result = getTokenOnSpecificChainId(coingeckoId, chainId);
+    expect(result === undefined).toEqual(expectedResult);
+  });
+
+  it.each<[CoinGeckoId, TokenItemType, string]>([
+    ["airight", cosmosTokens.find((token) => token.coinGeckoId === "airight" && token.chainId === "Oraichain")!, ""],
+    ["tether", cosmosTokens.find((token) => token.coinGeckoId === "tether" && token.chainId === "Oraichain")!, ""],
+    ["tron", cosmosTokens.find((token) => token.coinGeckoId === "tron" && token.chainId === "Oraichain")!, ""],
+    [
+      "kawaii-islands",
+      cosmosTokens.find((token) => token.coinGeckoId === "kawaii-islands" && token.chainId === "Oraichain")!,
+      "KWT and MILKY not supported in this function"
+    ]
+  ])("test-getTokenOnOraichain-given-%s-should-receive-%j", (coingeckoId, expectedToken, err) => {
+    try {
+      expect(getTokenOnOraichain(coingeckoId)).toEqual(expectedToken);
+    } catch (error) {
+      expect(error).toEqual(new Error(err));
+    }
+  });
+
+  it.each<[NetworkChainId, boolean]>([
+    ["0x01", true],
+    ["0x38", true],
+    ["Oraichain", false]
+  ])("test-isEvmNetworkNativeSwapSupported", (chainId, expectedResult) => {
+    expect(isEvmNetworkNativeSwapSupported(chainId)).toEqual(expectedResult);
+  });
+
+  it.each<[TokenItemType, string]>([
+    [
+      flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "Oraichain")!,
+      flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "Oraichain")!.contractAddress!
+    ],
+    [
+      flattenTokens.find((item) => item.coinGeckoId === "cosmos" && item.chainId === "Oraichain")!,
+      flattenTokens.find((item) => item.coinGeckoId === "cosmos" && item.chainId === "Oraichain")!.denom
+    ]
+  ])("test-parseTokenInfoRawDenom-given-%j-should-receive-%s", (token, expectedDenom) => {
+    expect(parseTokenInfoRawDenom(token)).toEqual(expectedDenom);
   });
 });

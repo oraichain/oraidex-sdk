@@ -42,15 +42,6 @@ export const ethToTronAddress = (address: string) => {
   return ethers.utils.base58.encode(evmAddress + checkSum);
 };
 
-export const validateAddressCosmos = (bech32Address: string, prefix?: string): boolean => {
-  try {
-    const { prefix: decodedPrefix } = bech32.decode(bech32Address);
-    return prefix && prefix === decodedPrefix;
-  } catch (error) {
-    return false;
-  }
-};
-
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
   if (Number.isNaN(amount) || !Number.isFinite(amount)) return 0;
@@ -102,24 +93,12 @@ export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItem
   );
 };
 
-/**
- * Returns a shortened string by replacing characters in between with '...'.
- * @param str The input string.
- * @param from The position of the character to be kept as-is in the resulting string.
- * @param end The number of characters to be kept as-is at the end of the resulting string.
- * @returns The shortened string, or '-' if the input string is null or undefined.
- */
-export const reduceString = (str: string, from: number, end: number) => {
-  return str ? str.substring(0, from) + "..." + str.substring(str.length - end) : "-";
-};
-
 export const toTokenInfo = (token: TokenItemType, info?: TokenInfoResponse): TokenInfo => {
-  const data = (info as any)?.token_info_response ?? info;
   return {
     ...token,
     symbol: token.name,
     verified: !token.contractAddress,
-    ...data
+    ...info
   };
 };
 
@@ -133,51 +112,8 @@ export const toAssetInfo = (token: TokenInfo): AssetInfo => {
     : { native_token: { denom: token.denom } };
 };
 
-export const formateNumberDecimals = (price: number | bigint, decimals = 2) => {
-  return new Intl.NumberFormat("en-US", {
-    currency: "USD",
-    maximumFractionDigits: decimals
-  }).format(price);
-};
-
-export const detectBestDecimalsDisplay = (
-  price: number | bigint,
-  minDecimal: number = 2,
-  minPrice: number = 1,
-  maxDecimal: number
-) => {
-  if (price && price > minPrice) return minDecimal;
-  let decimals = minDecimal;
-  if (price !== undefined) {
-    // Find out the number of leading floating zeros via regex
-    const priceSplit = price?.toString().split(".");
-    if (priceSplit?.length === 2 && priceSplit[0] === "0") {
-      const leadingZeros = priceSplit[1].match(/^0+/);
-      decimals += leadingZeros ? leadingZeros[0]?.length + 1 : 1;
-    }
-  }
-  if (maxDecimal && decimals > maxDecimal) decimals = maxDecimal;
-  return decimals;
-};
-
-export const formateNumberDecimalsAuto = ({
-  price,
-  maxDecimal,
-  unit,
-  minDecimal,
-  minPrice,
-  unitPosition
-}: FormatNumberDecimal) => {
-  minDecimal = minDecimal ? minDecimal : 2;
-  minPrice = minPrice ? minPrice : 1;
-  unit = unit ? unit : "";
-  const priceFormat = formateNumberDecimals(price, detectBestDecimalsDisplay(price, minDecimal, minPrice, maxDecimal));
-  const res = unitPosition === "prefix" ? unit + priceFormat : priceFormat + unit;
-  return res;
-};
-
-export const calculateTimeoutTimestamp = (timeout: number): string => {
-  return Long.fromNumber(Math.floor(Date.now() / 1000) + timeout)
+export const calculateTimeoutTimestamp = (timeout: number, dateNow?: number): string => {
+  return Long.fromNumber(Math.floor((dateNow ?? Date.now()) / 1000) + timeout)
     .multiply(1000000000)
     .toString();
 };
@@ -243,10 +179,6 @@ export const handleSentFunds = (...funds: (Coin | undefined)[]): Coin[] | null =
   if (sent_funds.length === 0) return null;
   sent_funds.sort((a, b) => a.denom.localeCompare(b.denom));
   return sent_funds;
-};
-
-export const findTokenCoingeckoId = (tokens: TokenItemType[], coingeckoId: CoinGeckoId): TokenItemType | undefined => {
-  return tokens.find((token) => token.coinGeckoId === coingeckoId);
 };
 
 // hardcode this to improve performance
