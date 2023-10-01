@@ -299,3 +299,8 @@ export function isEvmNetworkNativeSwapSupported(chainId: NetworkChainId) {
       return false;
   }
 }
+
+export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {
+  if (tokenInfo.contractAddress) return tokenInfo.contractAddress;
+  return tokenInfo.denom;
+};

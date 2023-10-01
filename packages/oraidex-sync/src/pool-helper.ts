@@ -292,7 +292,6 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
   const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
 
   const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
-  console.dir({ APRs }, { depth: null });
   const newPoolAprs = poolAprInfos.map((poolApr, index) => {
     return {
       ...poolApr,
