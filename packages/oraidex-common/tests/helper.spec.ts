@@ -16,8 +16,10 @@ import {
   getSubAmountDetails,
   getTokenOnOraichain,
   getTokenOnSpecificChainId,
+  handleSentFunds,
   isEvmNetworkNativeSwapSupported,
   parseAssetInfo,
+  parseTokenInfo,
   parseTokenInfoRawDenom,
   toAmount,
   toAssetInfo,
@@ -30,6 +32,7 @@ import {
 import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { getPairSwapV2, isFactoryV1 } from "../src/pairs";
+import { Coin } from "@cosmjs/amino";
 
 describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
@@ -87,7 +90,7 @@ describe("should helper functions in helper run exactly", () => {
 
   it.each<[string, string[], string, boolean]>([
     [MILKY_CONTRACT, [USDT_CONTRACT], "usdt", false],
-    [USDC_CONTRACT, ["orai"], "orai", true]
+    [USDC_CONTRACT, [ORAI], ORAI, true]
   ])("test-get-pair-swap", (contractAddress, expectedArr, exprectArrDenom, expectedArrIncludesOrai) => {
     const { arr, arrLength, arrIncludesOrai, arrDenom } = getPairSwapV2(contractAddress);
     expect(arr).toEqual(expectedArr);
@@ -98,7 +101,7 @@ describe("should helper functions in helper run exactly", () => {
 
   it("test-isFactoryV1-true", () => {
     const data = isFactoryV1([
-      { native_token: { denom: "orai" } },
+      { native_token: { denom: ORAI } },
       { token: { contract_addr: "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg" } }
     ]);
     expect(data).toEqual(true);
@@ -106,7 +109,7 @@ describe("should helper functions in helper run exactly", () => {
 
   it("test-isFactoryV1-false", () => {
     const data = isFactoryV1([
-      { native_token: { denom: "orai" } },
+      { native_token: { denom: ORAI } },
       { token: { contract_addr: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd" } }
     ]);
     expect(data).toEqual(false);
@@ -249,7 +252,7 @@ describe("should helper functions in helper run exactly", () => {
   });
 
   it.each<[string, AssetInfo]>([
-    ["orai", { native_token: { denom: "orai" } }],
+    [ORAI, { native_token: { denom: ORAI } }],
     ["airi", { token: { contract_addr: AIRI_CONTRACT } }]
   ])("test-toAssetInfo", (denom, expectedAssetInfo) => {
     // fixture
@@ -330,5 +333,36 @@ describe("should helper functions in helper run exactly", () => {
     ]
   ])("test-parseTokenInfoRawDenom-given-%j-should-receive-%s", (token, expectedDenom) => {
     expect(parseTokenInfoRawDenom(token)).toEqual(expectedDenom);
+  });
+
+  it.each<[string, string | undefined, AssetInfo, any]>([
+    [ORAI, "10", { native_token: { denom: ORAI } }, { denom: ORAI, amount: "10" }],
+    [ORAI, undefined, { native_token: { denom: ORAI } }, undefined],
+    ["airi", "10", { token: { contract_addr: AIRI_CONTRACT } }, "10"],
+    ["airi", undefined, { token: { contract_addr: AIRI_CONTRACT } }, undefined]
+  ])("test-parseTokenInfo", (denom, amount, expectedInfo, expectedFund) => {
+    // fixture
+    const token = oraichainTokens.find((t) => t.denom === denom)!;
+    const expectedResult: { info: AssetInfo; fund: any } = {
+      info: expectedInfo,
+      fund: expectedFund
+    };
+    expect(parseTokenInfo(token, amount)).toEqual(expectedResult);
+  });
+
+  it("test-handleSentFunds", () => {
+    // fixture, reusable test data
+    const oraiCoin: Coin = { denom: ORAI, amount: "1" };
+    // first case, empty input, should return null
+    expect(handleSentFunds()).toEqual(null);
+
+    // second case, one input, should return one
+    expect(handleSentFunds(oraiCoin)).toEqual([oraiCoin]);
+
+    // third case, 2 inputs, should sort based on the denom alphabet order
+    expect(handleSentFunds(oraiCoin, { denom: "foobar", amount: "2" })).toEqual([
+      { denom: "foobar", amount: "2" },
+      oraiCoin
+    ]);
   });
 });

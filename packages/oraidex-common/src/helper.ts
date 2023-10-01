@@ -159,20 +159,18 @@ export const calculateMinReceive = (
   return ((BigInt(Math.trunc(toDisplay(amount, decimals))) * (100n - BigInt(userSlippage))) / 100n).toString();
 };
 
-export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string | number) => {
-  if (!tokenInfo?.contractAddress) {
-    if (amount)
-      return {
-        fund: { denom: tokenInfo.denom, amount: amount.toString() },
-        info: { native_token: { denom: tokenInfo.denom } }
-      };
-    return { info: { native_token: { denom: tokenInfo.denom } } };
+export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string) => {
+  if (!tokenInfo.contractAddress) {
+    return {
+      fund: amount ? { denom: tokenInfo.denom, amount } : undefined,
+      info: { native_token: { denom: tokenInfo.denom } }
+    };
   }
-  return { info: { token: { contract_addr: tokenInfo?.contractAddress } } };
+  return { info: { token: { contract_addr: tokenInfo.contractAddress } }, fund: amount };
 };
 
 export const handleSentFunds = (...funds: (Coin | undefined)[]): Coin[] | null => {
-  let sent_funds = [];
+  let sent_funds: Coin[] = [];
   for (let fund of funds) {
     if (fund) sent_funds.push(fund);
   }
