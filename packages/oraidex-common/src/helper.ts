@@ -4,15 +4,7 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import Long from "long";
 import bech32 from "bech32";
-import {
-  AmountDetails,
-  FormatNumberDecimal,
-  TokenInfo,
-  TokenItemType,
-  cosmosTokens,
-  flattenTokens,
-  oraichainTokens
-} from "./token";
+import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
