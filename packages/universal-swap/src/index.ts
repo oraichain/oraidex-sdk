@@ -47,7 +47,7 @@ import {
 } from "@oraichain/oraidex-common";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { isEqual } from "lodash";
-import ethers from "ethers";
+import { ethers } from "ethers";
 import { buildIbcWasmPairKey, getEvmSwapRoute, getIbcInfo, isEvmSwappable, isSupportedNoPoolSwapEvm } from "./helper";
 
 export enum SwapDirection {

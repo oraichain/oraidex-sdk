@@ -16,19 +16,20 @@ import {
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
-import ethers from "ethers";
+import { ethers } from "ethers";
 import { CoinGeckoId, NetworkChainId } from "./network";
 
-export const checkRegex = (str: string, regex?: RegExp) => {
-  const re = regex ?? /^[a-zA-Z\-]{3,12}$/;
-  return re.test(str);
-};
-
 export const getEvmAddress = (bech32Address: string) => {
-  if (!bech32Address) return;
-  const decoded = bech32.decode(bech32Address);
-  const evmAddress = "0x" + Buffer.from(bech32.fromWords(decoded.words)).toString("hex");
-  return evmAddress;
+  if (!bech32Address) throw new Error("bech32 address is empty");
+  try {
+    const decoded = bech32.decode(bech32Address);
+    const evmAddress = "0x" + Buffer.from(bech32.fromWords(decoded.words)).toString("hex");
+    return evmAddress;
+  } catch (error) {
+    throw new Error(
+      "Cannot decode the bech32 address to evm address with the given error: " + JSON.stringify({ error })
+    );
+  }
 };
 
 export const tronToEthAddress = (base58: string) =>

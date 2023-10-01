@@ -2,18 +2,21 @@ import { MILKYBSC_ORAICHAIN_DENOM, MILKY_CONTRACT, ORAI, USDC_CONTRACT, USDT_CON
 import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
 import {
   calculateMinReceive,
+  ethToTronAddress,
   formateNumberDecimalsAuto,
+  getEvmAddress,
   getSubAmountDetails,
   getTokenOnOraichain,
   parseAssetInfo,
   parseTokenInfoRawDenom,
-  reduceString
+  reduceString,
+  tronToEthAddress
 } from "../src/helper";
 import { CoinGeckoId } from "../src/network";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { getPairSwapV2, isFactoryV1 } from "../src/pairs";
 
-describe("should utils functions in libs/utils run exactly", () => {
+describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
     usdt: "1000000", // 1
     orai: "1000000", // 1
@@ -136,4 +139,26 @@ describe("should utils functions in libs/utils run exactly", () => {
       expect(result).toEqual(expectedResult);
     }
   );
+
+  it("test-getEvmAddress", () => {
+    expect(getEvmAddress("oraie1ny7sdlyh7303deyqtzpmnznvyzat2jtyxs3y0v")).toEqual(
+      "0x993d06fc97f45f16e4805883b98a6c20bab54964"
+    );
+    expect(() => {
+      getEvmAddress("");
+    }).toThrow("bech32 address is empty");
+    expect(() => {
+      getEvmAddress("foobar");
+    }).toThrow();
+  });
+  it("test-ethToTronAddress", () => {
+    expect(ethToTronAddress("0x993d06fc97f45f16e4805883b98a6c20bab54964")).toEqual(
+      "TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc"
+    );
+  });
+  it("test-tronToEthAddress", () => {
+    expect(tronToEthAddress("TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc")).toEqual(
+      "0x993d06fc97f45f16e4805883b98a6c20bab54964"
+    );
+  });
 });
