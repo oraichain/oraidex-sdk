@@ -13,13 +13,17 @@ import {
   findPairAddress,
   getAllFees,
   getAllVolume24h,
+  getOraiPrice,
   getPairLiquidity,
+  getVolumePairByUsdt,
+  oraiInfo,
   oraiUsdtPairOnlyDenom,
   pairs,
   pairsOnlyDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
-  toDisplay
+  toDisplay,
+  usdtInfo
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import "dotenv/config";
@@ -85,7 +89,6 @@ app.get("/tickers", async (req, res) => {
           const tickerId = parseSymbolsToTickerId(symbols);
           const baseIndex = 0;
           const targetIndex = 1;
-          console.log(latestTimestamp, then);
           const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
           const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
           const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
@@ -114,7 +117,6 @@ app.get("/tickers", async (req, res) => {
       if (result.status === "fulfilled") return result.value;
       else console.log("result: ", result.reason);
     });
-    console.table(data);
     res.status(200).send(data);
   } catch (error) {
     console.log("error: ", error);
@@ -262,6 +264,37 @@ app.get("/v1/pools/", async (_req, res) => {
   } catch (error) {
     console.log({ error });
     res.status(500).send(error.message);
+  }
+});
+
+// get price & volume ORAI in latest 24h
+app.get("/orai-info", async (req, res) => {
+  try {
+    // query tf is in minute unit.
+    const SECONDS_PER_DAY = 24 * 60 * 60;
+    let tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
+    const currentDate = new Date();
+    const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
+    const volume24h = await getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate);
+
+    const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
+    const oraiPriceByTime = await getOraiPrice(timestamp);
+    const currenOraiPrice = await getOraiPrice();
+
+    let percentPriceChange = 0;
+    if (oraiPriceByTime !== 0) {
+      percentPriceChange = ((currenOraiPrice - oraiPriceByTime) / oraiPriceByTime) * 100;
+    }
+
+    res.status(200).send({
+      price: currenOraiPrice,
+      volume_24h: toDisplay(volume24h),
+      price_change: percentPriceChange
+    });
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
 });
 

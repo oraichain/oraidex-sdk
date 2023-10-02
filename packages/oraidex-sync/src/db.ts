@@ -506,6 +506,20 @@ export class DuckDb {
     return result[0] as PoolAmountHistory;
   }
 
+  async getLpAmountWithTime(pairAddr: string, timestamp: number) {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        WHERE pairAddr = ? AND timestamp >= ?
+        ORDER BY timestamp ASC
+        LIMIT 1
+      `,
+      pairAddr,
+      timestamp
+    );
+    return result[0] as PoolAmountHistory;
+  }
+
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
     await this.insertBulkData(ops, "lp_amount_history");
   }
