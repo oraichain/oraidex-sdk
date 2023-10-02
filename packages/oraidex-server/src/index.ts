@@ -5,6 +5,7 @@ import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
   DuckDb,
   GetCandlesQuery,
+  GetPricePairQuery,
   ORAI,
   OraiDexSync,
   PairInfoDataResponse,
@@ -15,11 +16,13 @@ import {
   getAllVolume24h,
   getOraiPrice,
   getPairLiquidity,
+  getPriceByAsset,
   getVolumePairByUsdt,
   oraiInfo,
   oraiUsdtPairOnlyDenom,
   pairs,
   pairsOnlyDenom,
+  pairsWithDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
   toDisplay,
@@ -267,7 +270,7 @@ app.get("/v1/pools/", async (_req, res) => {
   }
 });
 
-// get price & volume ORAI in latest 24h
+// get price & volume ORAI in specific time (default: 24h).
 app.get("/orai-info", async (req, res) => {
   try {
     // query tf is in minute unit.
@@ -300,6 +303,44 @@ app.get("/orai-info", async (req, res) => {
   }
 });
 
+// get price base asset & volume of specific pair in specific time (default: 24h)
+app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
+  try {
+    if (!req.query.base_denom || !req.query.quote_denom) {
+      return res.status(400).send("Not enough query params");
+    }
+
+    // query tf is in minute unit
+    const SECONDS_PER_DAY = 24 * 60 * 60;
+    let tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
+    const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
+
+    const pair = pairsWithDenom.find(
+      (pair) => pair.asset_denoms[0] === req.query.base_denom && pair.asset_denoms[1] === req.query.quote_denom
+    );
+    if (!pair)
+      return res.status(400).send(`Not found pair with assets: ${req.query.base_denom}-${req.query.quote_denom}`);
+
+    const [baseAssetPriceByTime, currentBaseAssetPrice] = await Promise.all([
+      getPriceByAsset(pair.asset_infos, "base_in_quote", timestamp),
+      getPriceByAsset(pair.asset_infos, "base_in_quote")
+    ]);
+
+    let percentPriceChange = 0;
+    if (baseAssetPriceByTime !== 0) {
+      percentPriceChange = ((currentBaseAssetPrice - baseAssetPriceByTime) / baseAssetPriceByTime) * 100;
+    }
+
+    res.status(200).send({
+      price: currentBaseAssetPrice,
+      price_change: percentPriceChange
+    });
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
+});
 app.listen(port, hostname, async () => {
   // sync data for the service to read
   duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);

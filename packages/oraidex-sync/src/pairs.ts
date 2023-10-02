@@ -108,6 +108,14 @@ export const pairsOnlyDenom = pairs.map((pair) => ({
   })
 }));
 
+export const pairsWithDenom = pairs.map((pair) => ({
+  ...pair,
+  asset_denoms: pair.asset_infos.map((info) => {
+    if ("native_token" in info) return info.native_token.denom;
+    return info.token.contract_addr;
+  })
+}));
+
 export const uniqueInfos = extractUniqueAndFlatten(pairs);
 
 export const oraiUsdtPairOnlyDenom = pairsOnlyDenom.find(

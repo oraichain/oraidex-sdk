@@ -243,3 +243,9 @@ export type PoolApr = {
   rewardPerSec: string;
   apr: number;
 };
+
+export type GetPricePairQuery = {
+  base_denom: string;
+  quote_denom: string;
+  tf?: number;
+};
