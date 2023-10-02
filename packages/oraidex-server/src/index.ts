@@ -276,11 +276,13 @@ app.get("/orai-info", async (req, res) => {
     const currentDate = new Date();
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
-    const volume24h = await getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate);
-
     const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
-    const oraiPriceByTime = await getOraiPrice(timestamp);
-    const currenOraiPrice = await getOraiPrice();
+
+    const [volume24h, oraiPriceByTime, currenOraiPrice] = await Promise.all([
+      getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate),
+      getOraiPrice(timestamp),
+      getOraiPrice()
+    ]);
 
     let percentPriceChange = 0;
     if (oraiPriceByTime !== 0) {
