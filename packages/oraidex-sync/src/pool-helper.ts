@@ -71,7 +71,6 @@ export const getPairByAssetInfos = (assetInfos: [AssetInfo, AssetInfo]): PairMap
 };
 
 // get price ORAI in USDT base on ORAI/USDT pool.
-// async function getOraiPrice(): Promise<number> {
 export const getOraiPrice = async (): Promise<number> => {
   const oraiUsdtPair = getPairByAssetInfos([oraiInfo, usdtInfo]);
   const ratioDirection: RatioDirection =
@@ -292,7 +291,6 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
   const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
 
   const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
-  console.dir({ APRs }, { depth: null });
   const newPoolAprs = poolAprInfos.map((poolApr, index) => {
     return {
       ...poolApr,
