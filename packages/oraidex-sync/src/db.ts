@@ -11,6 +11,7 @@ import {
   PoolAmountHistory,
   PoolApr,
   PriceInfo,
+  StakingOperationData,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
@@ -488,6 +489,7 @@ export class DuckDb {
         askPoolAmount ubigint,
         height uinteger,
         timestamp uinteger,
+        totalShare varchar,
         pairAddr varchar,
         uniqueKey varchar UNIQUE)
       `
@@ -584,10 +586,14 @@ export class DuckDb {
           stakerAddress varchar,
           stakingAssetDenom varchar,
           stakeAmount integer,
-          lpPrice double
+          stakeAmountInUsdt double
         )
       `
     );
+  }
+
+  async insertStakingHistories(stakingHistories: StakingOperationData[]) {
+    await this.insertBulkData(stakingHistories, "staking_history");
   }
 
   async createEarningHistoryTable() {
@@ -599,7 +605,7 @@ export class DuckDb {
           stakerAddress varchar,
           stakingAssetDenom varchar,
           earnAmount uinteger,
-          lpPrice double
+          stakeAmountInUsdt double
         )
       `
     );

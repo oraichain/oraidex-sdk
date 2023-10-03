@@ -32,7 +32,8 @@ class WriteOrders extends WriteData {
     await Promise.all([
       this.duckDb.insertSwapOps(txs.swapOpsData),
       this.duckDb.insertLpOps(txs.provideLiquidityOpsData),
-      this.duckDb.insertOhlcv(txs.ohlcv)
+      this.duckDb.insertOhlcv(txs.ohlcv),
+      this.duckDb.insertStakingHistories(txs.stakingOpsData)
     ]);
     await this.duckDb.insertLpOps(txs.withdrawLiquidityOpsData);
   }
@@ -103,7 +104,7 @@ class WriteOrders extends WriteData {
       const currentOffset = await this.duckDb.loadHeightSnapshot();
       // edge case. If no new block has been found, then we skip processing to prevent duplication handling
       if (currentOffset === newOffset) return true;
-      let result = await parseTxs(txs);
+      const result = await parseTxs(txs);
 
       const lpOpsData = [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData];
       // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
@@ -122,7 +123,7 @@ class WriteOrders extends WriteData {
       console.log("lp ops: ", lpOps.length);
       console.log("swap ops: ", swapOpsCount);
     } catch (error) {
-      console.log("error processing data: ", error);
+      console.trace("error processing data: ", error);
       return false;
     }
     return true;

@@ -25,6 +25,14 @@ export type SwapOperationData = {
   taxAmount: number;
 } & BasicTxData;
 
+export type StakingOperationData = {
+  uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
+  stakerAddress: string;
+  stakingAssetDenom: string;
+  stakeAmount: number;
+  stakeAmountInUsdt: number;
+} & BasicTxData;
+
 export type VolumeData = {
   [k: string]: number;
 };
@@ -84,7 +92,12 @@ export type ProvideLiquidityOperationData = {
 
 export type WithdrawLiquidityOperationData = ProvideLiquidityOperationData;
 
-export type OraiDexType = SwapOperationData | ProvideLiquidityOperationData | WithdrawLiquidityOperationData | Ohlcv;
+export type OraiDexType =
+  | SwapOperationData
+  | ProvideLiquidityOperationData
+  | WithdrawLiquidityOperationData
+  | Ohlcv
+  | StakingOperationData;
 
 export type LpOpsData = {
   baseTokenAmount: number;
@@ -104,6 +117,7 @@ export type TxAnlysisResult = {
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
+  stakingOpsData: StakingOperationData[];
 };
 
 export type MsgExecuteContractWithLogs = MsgExecuteContract & {
@@ -232,6 +246,7 @@ export type PoolAmountHistory = {
   height: number;
   pairAddr: string;
   uniqueKey: string;
+  totalShare: string;
 } & PoolInfo;
 
 export type PoolApr = {

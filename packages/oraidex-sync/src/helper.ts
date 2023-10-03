@@ -77,6 +77,15 @@ export const concatLpHistoryToUniqueKey = (data: { timestamp: number; pairAddr: 
   return `${data.timestamp}-${data.pairAddr}`;
 };
 
+export const concatStakingpHistoryToUniqueKey = (data: {
+  txheight: number;
+  stakerAddress: string;
+  stakeAmount: number;
+  stakeAssetDenom: string;
+}): string => {
+  return `${data.txheight}-${data.stakerAddress}-${data.stakeAmount}-${data.stakeAssetDenom}`;
+};
+
 export const concatAprHistoryToUniqueKey = (data: {
   timestamp: number;
   supply: string;
@@ -205,6 +214,30 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
   return true;
 }
 
+export const recalculateTotalShare = ({
+  pool,
+  offerAmount,
+  askAmount,
+  offerPooAmount,
+  askPooAmount,
+  opType
+}: {
+  pool: PoolResponse;
+  offerAmount: bigint;
+  askAmount: bigint;
+  offerPooAmount: bigint;
+  askPooAmount: bigint;
+  opType: string;
+}): bigint => {
+  const totalShare = BigInt(pool.total_share);
+  let share = Math.min(
+    Number((offerAmount * totalShare) / offerPooAmount),
+    Number((askAmount * totalShare) / askPooAmount)
+  );
+  if (opType === "withdraw") share = share * -1;
+  return totalShare + BigInt(Math.trunc(share));
+};
+
 /**
  * This function will accumulate the lp amount
  * @param data - lp ops & swap ops.
@@ -252,7 +285,8 @@ export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfo
         offerPoolAmount: BigInt(initialFirstTokenAmount) + baseAmount,
         askPoolAmount: BigInt(initialSecondTokenAmount) + quoteAmount,
         height: op.height,
-        timestamp: op.timestamp
+        timestamp: op.timestamp,
+        totalShare: "0"
       };
     } else {
       accumulateData[pairAddr].offerPoolAmount += baseAmount;
@@ -260,6 +294,19 @@ export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfo
       accumulateData[pairAddr].height = op.height;
       accumulateData[pairAddr].timestamp = op.timestamp;
     }
+    // update total share
+    let updatedTotalShare = pool.total_share;
+    if (op.opType === "provide" || op.opType === "withdraw") {
+      updatedTotalShare = recalculateTotalShare({
+        pool,
+        offerAmount: baseAmount,
+        askAmount: quoteAmount,
+        offerPooAmount: accumulateData[pairAddr].offerPoolAmount,
+        askPooAmount: accumulateData[pairAddr].askPoolAmount,
+        opType: op.opType
+      }).toString();
+    }
+    accumulateData[pairAddr].totalShare = updatedTotalShare;
   }
 
   return accumulateData;
