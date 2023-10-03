@@ -1,7 +1,7 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { Connection, Database } from "duckdb-async";
 import fs from "fs";
-import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
+import { isoToTimestampNumber, renameKey } from "./helper";
 import {
   GetCandlesQuery,
   GetFeeSwap,
@@ -18,6 +18,7 @@ import {
   VolumeRange,
   WithdrawLiquidityOperationData
 } from "./types";
+import { toObject, parseAssetInfo, replaceAllNonAlphaBetChar } from "./parse";
 
 export class DuckDb {
   static instances: DuckDb;
@@ -572,5 +573,35 @@ export class DuckDb {
       `
     );
     return result as Pick<PoolApr, "apr" | "pairAddr">[];
+  }
+
+  async createStakingHistoryTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS staking_history (
+          uniqueKey varchar UNIQUE,
+          height uinteger,
+          txHash varchar,
+          stakerAddress varchar,
+          stakingAssetDenom varchar,
+          stakeAmount integer,
+          lpPrice double
+        )
+      `
+    );
+  }
+
+  async createEarningHistoryTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS earning_history (
+          uniqueKey varchar UNIQUE,
+          height uinteger,
+          txHash varchar,
+          stakerAddress varchar,
+          stakingAssetDenom varchar,
+          earnAmount uinteger,
+          lpPrice double
+        )
+      `
+    );
   }
 }

@@ -1,10 +1,11 @@
-import { AssetInfo, CosmWasmClient, OraiswapPairTypes } from "@oraichain/oraidex-contracts-sdk";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { AssetInfo, CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { isEqual, maxBy, minBy } from "lodash";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { maxBy, minBy } from "lodash";
 import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
+import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
 import {
   LpOpsData,
@@ -15,15 +16,6 @@ import {
   SwapDirection,
   SwapOperationData
 } from "./types";
-
-export function toObject(data: any) {
-  return JSON.parse(
-    JSON.stringify(
-      data,
-      (key, value) => (typeof value === "bigint" ? value.toString() : value) // return everything else unchanged
-    )
-  );
-}
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -110,19 +102,6 @@ export function renameKey(object: Object, oldKey: string, newKey: string): any {
     delete object[oldKey];
   }
   return object;
-}
-
-export function replaceAllNonAlphaBetChar(columnName: string): string {
-  return columnName.replace(/[^a-zA-Z]/g, "a");
-}
-
-function parseAssetInfo(info: AssetInfo): string {
-  return JSON.stringify(info);
-}
-
-function parseAssetInfoOnlyDenom(info: AssetInfo): string {
-  if ("native_token" in info) return info.native_token.denom;
-  return info.token.contract_addr;
 }
 
 async function delay(timeout: number) {
@@ -399,10 +378,6 @@ async function getCosmwasmClient(): Promise<CosmWasmClient> {
   return client;
 }
 
-export const parsePoolAmount = (poolInfo: OraiswapPairTypes.PoolResponse, trueAsset: AssetInfo): bigint => {
-  return BigInt(poolInfo.assets.find((asset) => isEqual(asset.info, trueAsset))?.amount || "0");
-};
-
 // get liquidity of pair from assetInfos
 export const getPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
   const duckDb = DuckDb.instances;
@@ -424,10 +399,6 @@ function getSpecificDateBeforeNow(time: Date, tf: number) {
   const timeInMs = tf * 1000;
   const dateBeforeNow = new Date(time.getTime() - timeInMs);
   return dateBeforeNow;
-}
-
-function convertDateToSecond(date: Date): number {
-  return Math.round(date.valueOf() / 1000);
 }
 
 // <===== start get volume pairs =====
@@ -510,16 +481,6 @@ async function getAllFees(): Promise<bigint[]> {
 }
 //  ==== end get fee pair ====>
 
-export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, string]): [AssetInfo, AssetInfo] => {
-  const pair = pairs.find(
-    (pair) =>
-      parseAssetInfoOnlyDenom(pair.asset_infos[0]) === baseDenom &&
-      parseAssetInfoOnlyDenom(pair.asset_infos[1]) === quoteDenom
-  );
-  if (!pair) throw new Error(`cannot find pair for ${baseDenom}-$${quoteDenom}`);
-  return pair.asset_infos;
-};
-
 export function getDate24hBeforeNow(time: Date) {
   const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
   const date24hBeforeNow = new Date(time.getTime() - twentyFourHoursInMilliseconds);
@@ -527,7 +488,6 @@ export function getDate24hBeforeNow(time: Date) {
 }
 
 export {
-  convertDateToSecond,
   delay,
   findAssetInfoPathToUsdt,
   findMappedTargetedAssetInfo,
@@ -537,7 +497,5 @@ export {
   getAllVolume24h,
   getCosmwasmClient,
   getSpecificDateBeforeNow,
-  getSymbolFromAsset,
-  parseAssetInfo,
-  parseAssetInfoOnlyDenom
+  getSymbolFromAsset
 };

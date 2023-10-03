@@ -1,4 +1,7 @@
+import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { Addr, Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import {
+  AssetInfo,
   OraiswapFactoryReadOnlyInterface,
   OraiswapRouterReadOnlyInterface,
   OraiswapStakingTypes,
@@ -6,20 +9,10 @@ import {
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { Addr, Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { pairs } from "./pairs";
-import {
-  findAssetInfoPathToUsdt,
-  generateSwapOperations,
-  getCosmwasmClient,
-  parseAssetInfoOnlyDenom,
-  toDisplay
-} from "./helper";
-import { network, tenAmountInDecimalSix, usdtCw20Address } from "./constants";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
-import { PairInfoData } from "./types";
+import { network, tenAmountInDecimalSix } from "./constants";
+import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
+import { pairs } from "./pairs";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -53,14 +46,6 @@ async function queryAllPairInfos(
     })
     .filter(Boolean);
   return liquidityResults;
-}
-
-async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouterReadOnlyInterface): Promise<Asset> {
-  // adjust the query height to get data from the past
-  if (parseAssetInfoOnlyDenom(info) === usdtCw20Address) return { info, amount: "1" };
-  const infoPath = findAssetInfoPathToUsdt(info);
-  const amount = await simulateSwapPrice(infoPath, router);
-  return { info, amount };
 }
 
 /**
@@ -134,12 +119,11 @@ async function fetchAllRewardPerSecInfos(
 }
 
 export {
+  aggregateMulticall,
+  fetchAllRewardPerSecInfos,
+  fetchAllTokenAssetPools,
+  fetchTokenInfos,
   queryAllPairInfos,
   queryPoolInfos,
-  simulateSwapPriceWithUsdt,
-  simulateSwapPrice,
-  aggregateMulticall,
-  fetchTokenInfos,
-  fetchAllTokenAssetPools,
-  fetchAllRewardPerSecInfos
+  simulateSwapPrice
 };

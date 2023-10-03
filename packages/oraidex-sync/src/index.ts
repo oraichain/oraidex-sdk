@@ -7,15 +7,8 @@ import {
   getPairLiquidity,
   getSymbolFromAsset
 } from "./helper";
-import {
-  calculateAprResult,
-  fetchAprResult,
-  getAllPairInfos,
-  getPairByAssetInfos,
-  getPoolInfos,
-  handleEventApr
-} from "./pool-helper";
-import { parseAssetInfo, parseTxs } from "./tx-parsing";
+import { fetchAprResult, getAllPairInfos, getPairByAssetInfos, getPoolInfos, handleEventApr } from "./pool-helper";
+import { parseTxs } from "./tx-parsing";
 import {
   Env,
   InitialData,
@@ -27,6 +20,7 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { parseAssetInfo } from "./parse";
 
 class WriteOrders extends WriteData {
   constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
@@ -202,7 +196,9 @@ class OraiDexSync {
         this.duckDb.createPairInfosTable(),
         this.duckDb.createSwapOhlcv(),
         this.duckDb.createLpAmountHistoryTable(),
-        this.duckDb.createAprInfoPair()
+        this.duckDb.createAprInfoPair(),
+        this.duckDb.createStakingHistoryTable(),
+        this.duckDb.createEarningHistoryTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
@@ -248,3 +244,4 @@ export * from "./pairs";
 export * from "./pool-helper";
 export * from "./query";
 export * from "./types";
+export * from "./parse";

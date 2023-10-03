@@ -13,8 +13,6 @@ import {
   groupByTime,
   isAssetInfoPairReverse,
   isoToTimestampNumber,
-  parseAssetInfo,
-  parseAssetInfoOnlyDenom,
   removeOpsDuplication
 } from "./helper";
 import { pairs } from "./pairs";
@@ -33,6 +31,7 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { parseAssetInfoOnlyDenom } from "./parse";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -397,4 +396,4 @@ export const processEventApr = (txs: Tx[]) => {
   return assets;
 };
 
-export { parseAssetInfo, parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets };
+export { parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets };

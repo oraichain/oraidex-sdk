@@ -38,6 +38,7 @@ import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, 
 import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import * as helper from "../src/helper";
+import * as parse from "../src/parse";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 
 describe("test-helper", () => {
@@ -704,7 +705,7 @@ describe("test-helper", () => {
     };
 
     // act
-    const result = helper.parsePoolAmount(poolInfo, assetInfo);
+    const result = parse.parsePoolAmount(poolInfo, assetInfo);
 
     // assertion
     expect(result).toEqual(expectedResult);
