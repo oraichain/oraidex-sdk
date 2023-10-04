@@ -581,15 +581,35 @@ export class DuckDb {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS staking_history (
           uniqueKey varchar UNIQUE,
-          height uinteger,
-          txHash varchar,
           stakerAddress varchar,
           stakingAssetDenom varchar,
-          stakeAmount integer,
-          stakeAmountInUsdt double
+          stakeAmount bigint,
+          timestamp uinteger,
+          txhash varchar,
+          txheight uinteger,
+          stakeAmountInUsdt double,
+          lpPrice double
         )
       `
     );
+  }
+
+  async getMyStakedAmount(stakerAddress: string) {
+    const result = await this.conn.all(
+      `
+      SELECT s.stakingAssetDenom, s.stakeAmountInUsdt
+      FROM staking_history s
+      JOIN (
+          SELECT stakingAssetDenom, MAX(txheight) AS max_txheight
+          FROM staking_history
+          WHERE stakerAddress = ?
+          GROUP BY stakingAssetDenom
+      ) max_heights
+      ON s.stakingAssetDenom = max_heights.stakingAssetDenom AND s.txheight = max_heights.max_txheight
+      `,
+      stakerAddress
+    );
+    return result as Pick<StakingOperationData, "stakingAssetDenom" | "stakeAmountInUsdt">[];
   }
 
   async insertStakingHistories(stakingHistories: StakingOperationData[]) {
@@ -605,9 +625,23 @@ export class DuckDb {
           stakerAddress varchar,
           stakingAssetDenom varchar,
           earnAmount uinteger,
+          stakeAmount integer,
           stakeAmountInUsdt double
         )
       `
     );
+  }
+
+  async getStakingHistoriesByStaker(stakerAddress: string): Promise<number> {
+    const result = await this.conn.all(
+      `SELECT count(*) as count from staking_history WHERE stakerAddress = ?`,
+      stakerAddress
+    );
+    return result[0].count;
+  }
+
+  async getLpAmountHistory(): Promise<number> {
+    const result = await this.conn.all(`SELECT count(*) as count from lp_amount_history`);
+    return result[0].count;
   }
 }

@@ -29,8 +29,9 @@ export type StakingOperationData = {
   uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
   stakerAddress: string;
   stakingAssetDenom: string;
-  stakeAmount: number;
+  stakeAmount: bigint;
   stakeAmountInUsdt: number;
+  lpPrice: number;
 } & BasicTxData;
 
 export type VolumeData = {
@@ -263,4 +264,8 @@ export type GetPricePairQuery = {
   base_denom: string;
   quote_denom: string;
   tf?: number;
+};
+
+export type GetStakedByUserQuery = {
+  stakerAddress: string;
 };

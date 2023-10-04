@@ -1,25 +1,28 @@
 import { Attribute, Event } from "@cosmjs/stargate";
 import { Log } from "@cosmjs/stargate/build/logs";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
+import { OraiswapStakingQueryClient, OraiswapStakingTypes } from "@oraichain/oraidex-contracts-sdk";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { isEqual } from "lodash";
+import { network } from "./constants";
 import { DuckDb } from "./db";
 import {
   buildOhlcv,
   calculatePriceByPool,
   concatDataToUniqueKey,
   concatStakingpHistoryToUniqueKey,
+  getCosmwasmClient,
   getPairLiquidity,
   getSwapDirection,
   groupByTime,
   isAssetInfoPairReverse,
   isoToTimestampNumber,
   removeOpsDuplication,
-  toDecimal,
-  toDisplay
+  toDecimal
 } from "./helper";
 import { pairWithStakingAsset, pairs } from "./pairs";
+import { parseAssetInfoOnlyDenom, parseStakingDenomToAssetInfo } from "./parse";
 import { calculateLiquidityFee, isPoolHasFee } from "./pool-helper";
 import {
   AccountTx,
@@ -36,7 +39,6 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
-import { parseAssetInfoOnlyDenom } from "./parse";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -125,38 +127,47 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
 
 async function calculateLpPrice({
   stakingAssetDenom,
-  stakingAmount
+  txHeight
 }: {
   stakingAssetDenom: string;
-  stakingAmount: number;
+  txHeight: number;
 }): Promise<number> {
   try {
     const duckDb = DuckDb.instances;
     const pair = pairWithStakingAsset.find(
       (pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo) === stakingAssetDenom
     );
-    if (!pair)
-      throw new Error(`extractStakingOperations:: cannot find pair with staking asset denom: ${stakingAssetDenom}`);
+    if (!pair) throw new Error(`Cannot find pair with staking asset denom: ${stakingAssetDenom}`);
 
     const pairInfo = await duckDb.getPoolByAssetInfos(pair.asset_infos);
-    if (!pairInfo) throw new Error(`extractStakingOperations: cannot find pair with asset_infos: ${pair.asset_infos}`);
+    if (!pairInfo) throw new Error(`Cannot find pair with asset_infos: ${pair.asset_infos}`);
 
     const latestLpPoolHistory = await duckDb.getLatestLpPoolAmount(pairInfo.pairAddr);
-    if (!latestLpPoolHistory)
-      throw new Error(`extractStakingOperations: cannot getLatestLpPoolAmount with pairAddr: ${pairInfo.pairAddr}`);
 
     const totalLiquidityInUsdt = await getPairLiquidity(pairInfo);
-    console.log({
-      totalShare: latestLpPoolHistory.totalShare,
-      totalLiquidityInUsdt
-    });
-    const lpPrice =
-      toDecimal(BigInt(stakingAmount), BigInt(latestLpPoolHistory.totalShare)) *
-      toDisplay(Math.trunc(totalLiquidityInUsdt).toString());
+    const totalShare = BigInt(latestLpPoolHistory.totalShare);
+    // == total LP in usdt / total LP
+    const lpPrice = toDecimal(BigInt(Math.trunc(totalLiquidityInUsdt).toString()), totalShare);
     return lpPrice;
   } catch (error) {
-    console.error("error in calculateLpPrice", error.message);
+    console.log("error in calculateLpPrice: ", error.message);
+    return 0;
   }
+}
+
+export async function fetchRewardInfo(
+  stakerAddr: string,
+  stakingAssetDenom: string,
+  wantedHeight?: number
+): Promise<OraiswapStakingTypes.RewardInfoResponse> {
+  const stakingAssetInfo = parseStakingDenomToAssetInfo(stakingAssetDenom);
+
+  const client = await getCosmwasmClient();
+  client.setQueryClientWithHeight(wantedHeight);
+
+  const stakingContract = new OraiswapStakingQueryClient(client, network.staking);
+  const data = await stakingContract.rewardInfo({ assetInfo: stakingAssetInfo, stakerAddr });
+  return data;
 }
 
 async function extractStakingOperations(
@@ -186,10 +197,22 @@ async function extractStakingOperations(
 
   for (let i = 0; i < stakerAddresses.length; i++) {
     const lpPrice = await calculateLpPrice({
-      stakingAmount: stakeAmounts[i],
+      txHeight: txData.txheight,
       stakingAssetDenom: stakingAssetDenoms[i]
     });
-    if (!lpPrice) continue;
+
+    let newStakedAmount = 0;
+    // check if staker has staked before or not.
+    const duckDb = DuckDb.instances;
+    const countHistories = await duckDb.getStakingHistoriesByStaker(stakerAddresses[i]);
+    if (countHistories === 0) {
+      // get from contract with wanted height is txheight - 1 because we want to get bond amount before user bond/unbond.
+      const currentStaking = await fetchRewardInfo(stakerAddresses[i], stakingAssetDenoms[i], txData.txheight - 1);
+      const initialStakedAmount = Number(currentStaking?.reward_infos[0]?.bond_amount || "0");
+      newStakedAmount = lpPrice * (initialStakedAmount + stakeAmounts[i]);
+    } else {
+      newStakedAmount = lpPrice * stakeAmounts[i];
+    }
     stakingData.push({
       uniqueKey: concatStakingpHistoryToUniqueKey({
         txheight: txData.txheight,
@@ -199,11 +222,12 @@ async function extractStakingOperations(
       }),
       stakerAddress: stakerAddresses[i],
       stakingAssetDenom: stakingAssetDenoms[i],
-      stakeAmount: stakeAmounts[i],
+      stakeAmount: BigInt(stakeAmounts[i]),
       timestamp: txData.timestamp,
       txhash: txData.txhash,
       txheight: txData.txheight,
-      stakeAmountInUsdt: lpPrice * stakeAmounts[i]
+      stakeAmountInUsdt: newStakedAmount,
+      lpPrice
     });
   }
   return stakingData;

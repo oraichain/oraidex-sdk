@@ -7,6 +7,7 @@ import {
   getPairLiquidity,
   getSymbolFromAsset
 } from "./helper";
+import { parseAssetInfo, parsePoolAmount } from "./parse";
 import { fetchAprResult, getAllPairInfos, getPairByAssetInfos, getPoolInfos, handleEventApr } from "./pool-helper";
 import { parseTxs } from "./tx-parsing";
 import {
@@ -14,13 +15,13 @@ import {
   InitialData,
   LpOpsData,
   PairInfoData,
+  PoolAmountHistory,
   PoolApr,
   ProvideLiquidityOperationData,
   SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
-import { parseAssetInfo } from "./parse";
 
 class WriteOrders extends WriteData {
   constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
@@ -54,7 +55,7 @@ class WriteOrders extends WriteData {
 
     const poolInfos = await getPoolInfos(
       pairInfos.map((pair) => pair.pairAddr),
-      minTxHeight // assume data is sorted by height and timestamp
+      minTxHeight - 1 // assume data is sorted by height and timestamp
     );
     const lpOpsData: LpOpsData[] = [
       ...lpData.map((item) => {
@@ -166,6 +167,40 @@ class OraiDexSync {
     }
   }
 
+  private async updateLatestLpAmountHistory(currentInd: number) {
+    try {
+      console.time("timer-updateLatestLpAmountHistory");
+      const countLpAmounts = await this.duckDb.getLpAmountHistory();
+      if (countLpAmounts > 0) return;
+      const pairInfos = await this.duckDb.getPools();
+
+      const poolInfos = await getPoolInfos(
+        pairInfos.map((pair) => pair.pairAddr),
+        currentInd
+      );
+      const INITIAL_TIMESTAMP = 1;
+      await this.duckDb.insertPoolAmountHistory(
+        pairInfos.map((pair, index) => {
+          return {
+            offerPoolAmount: parsePoolAmount(poolInfos[index], JSON.parse(pair.firstAssetInfo)),
+            askPoolAmount: parsePoolAmount(poolInfos[index], JSON.parse(pair.secondAssetInfo)),
+            height: currentInd,
+            timestamp: INITIAL_TIMESTAMP,
+            totalShare: poolInfos[index].total_share,
+            pairAddr: pair.pairAddr,
+            uniqueKey: concatLpHistoryToUniqueKey({
+              timestamp: INITIAL_TIMESTAMP,
+              pairAddr: pair.pairAddr
+            })
+          } as PoolAmountHistory;
+        })
+      );
+      console.timeEnd("timer-updateLatestLpAmountHistory");
+    } catch (error) {
+      console.log("error in updateLatestLpAmountHistory: ", error);
+    }
+  }
+
   private async updateLatestPoolApr(height: number) {
     const pools = await this.duckDb.getPools();
     const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
@@ -211,7 +246,11 @@ class OraiDexSync {
       console.log("current ind: ", currentInd);
       await this.updateLatestPairInfos();
 
-      // update apr in the first time
+      // update offer & ask, total share of pool history in the first time
+      await this.updateLatestLpAmountHistory(currentInd);
+
+      // NOTE: need to updateLatestLpAmountHistory before update apr in the first time
+      // to get the offerAmount, askAmount from lp amount history table.
       await this.updateLatestPoolApr(currentInd);
 
       new SyncData({
@@ -229,8 +268,8 @@ class OraiDexSync {
 }
 
 // async function initSync() {
-//   const duckDb = await DuckDb.create("oraidex-only-sync-data");
-//   const oraidexSync = await OraiDexSync.create(duckDb, "http://35.237.59.125:26657", process.env as any);
+//   const duckDb = await DuckDb.create("oraidex-sync-data-only");
+//   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL, process.env as any);
 //   oraidexSync.sync();
 // }
 
@@ -242,7 +281,7 @@ export * from "./constants";
 export * from "./db";
 export * from "./helper";
 export * from "./pairs";
+export * from "./parse";
 export * from "./pool-helper";
 export * from "./query";
 export * from "./types";
-export * from "./parse";

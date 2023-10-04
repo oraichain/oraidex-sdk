@@ -6,6 +6,7 @@ import {
   DuckDb,
   GetCandlesQuery,
   GetPricePairQuery,
+  GetStakedByUserQuery,
   ORAI,
   OraiDexSync,
   PairInfoDataResponse,
@@ -341,6 +342,21 @@ app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
 });
+
+app.get("/v1/staked", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
+  try {
+    if (!req.query.stakerAddress) {
+      return res.status(400).send("Not enough query params");
+    }
+
+    const result = await duckDb.getMyStakedAmount(req.query.stakerAddress);
+    res.status(200).send(result);
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
+});
+
 app.listen(port, hostname, async () => {
   // sync data for the service to read
   duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
