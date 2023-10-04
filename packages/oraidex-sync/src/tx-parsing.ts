@@ -233,6 +233,71 @@ async function extractStakingOperations(
   return stakingData;
 }
 
+async function extractClaimOperations(
+  txData: BasicTxData,
+  wasmAttributes: (readonly Attribute[])[],
+  msg: MsgType
+): Promise<StakingOperationData[]> {
+  let stakingData: StakingOperationData[] = [];
+  let stakerAddresses: string[] = [];
+  let stakingAssetDenoms: string[] = [];
+  let stakeAmounts: number[] = [];
+  for (let attrs of wasmAttributes) {
+    const stakingAction = attrs.find((attr) => attr.key === "action" && attr.value === "withdraw_reward");
+    if (!stakingAction) continue;
+    console.dir({ msg }, { depth: null });
+
+    const assetInfo = "withdraw" in msg ? msg.withdraw.asset_info : undefined;
+    if (!assetInfo) continue;
+    stakingAssetDenoms.push(parseAssetInfoOnlyDenom(assetInfo));
+    for (let attr of attrs) {
+      if (attr.key === "to") {
+        stakerAddresses.push(attr.value);
+      } else if (attr.key === "amount") {
+        stakeAmounts.push(parseInt(attr.value));
+      }
+    }
+  }
+
+  for (let i = 0; i < stakerAddresses.length; i++) {
+    // TODO: need to calculate price of asset, not price LP
+    const lpPrice = await calculateLpPrice({
+      txHeight: txData.txheight,
+      stakingAssetDenom: stakingAssetDenoms[i]
+    });
+
+    let newStakedAmount = 0;
+    // check if staker has staked before or not.
+    const duckDb = DuckDb.instances;
+    const countHistories = await duckDb.getStakingHistoriesByStaker(stakerAddresses[i]);
+    if (countHistories === 0) {
+      // get from contract with wanted height is txheight - 1 because we want to get bond amount before user bond/unbond.
+      const currentStaking = await fetchRewardInfo(stakerAddresses[i], stakingAssetDenoms[i], txData.txheight - 1);
+      const initialStakedAmount = Number(currentStaking?.reward_infos[0]?.bond_amount || "0");
+      newStakedAmount = lpPrice * (initialStakedAmount + stakeAmounts[i]);
+    } else {
+      newStakedAmount = lpPrice * stakeAmounts[i];
+    }
+    stakingData.push({
+      uniqueKey: concatStakingpHistoryToUniqueKey({
+        txheight: txData.txheight,
+        stakeAmount: stakeAmounts[i],
+        stakerAddress: stakerAddresses[i],
+        stakeAssetDenom: stakingAssetDenoms[i]
+      }),
+      stakerAddress: stakerAddresses[i],
+      stakingAssetDenom: stakingAssetDenoms[i],
+      stakeAmount: BigInt(stakeAmounts[i]),
+      timestamp: txData.timestamp,
+      txhash: txData.txhash,
+      txheight: txData.txheight,
+      stakeAmountInUsdt: newStakedAmount,
+      lpPrice
+    });
+  }
+  return stakingData;
+}
+
 async function getFeeLiquidity(
   [baseDenom, quoteDenom]: [string, string],
   opType: LiquidityOpType,
@@ -410,6 +475,7 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
         "unbond" in obj.msg ||
         "mint" in obj.msg ||
         "burn" in obj.msg ||
+        "withdraw" in obj.msg ||
         ("execute" in obj.msg && typeof obj.msg.execute === "object" && "proposal_id" in obj.msg.execute)
       )
         objs.push(obj);
@@ -444,6 +510,7 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   let transactions: Tx[] = [];
   let swapOpsData: SwapOperationData[] = [];
   let stakingOpsData: StakingOperationData[] = [];
+  let claimOpsData: StakingOperationData[] = [];
   let accountTxs: AccountTx[] = [];
   let provideLiquidityOpsData: ProvideLiquidityOperationData[] = [];
   let withdrawLiquidityOpsData: WithdrawLiquidityOperationData[] = [];
@@ -463,6 +530,7 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
 
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
       stakingOpsData.push(...(await extractStakingOperations(basicTxData, wasmAttributes)));
+      claimOpsData.push(...(await extractClaimOperations(basicTxData, wasmAttributes, msg.msg)));
       const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
       withdrawLiquidityOpsData.push(...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender)));

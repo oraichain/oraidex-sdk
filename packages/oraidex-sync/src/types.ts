@@ -146,8 +146,12 @@ export type MsgType =
       };
     }
   | OraiswapRouterCw20HookMsg
-  | OraiswapPairCw20HookMsg;
-
+  | OraiswapPairCw20HookMsg
+  | {
+      withdraw: {
+        asset_info: AssetInfo;
+      };
+    };
 export type OraiswapRouterCw20HookMsg = {
   execute_swap_operations: {
     minimum_receive?: Uint128 | null;
