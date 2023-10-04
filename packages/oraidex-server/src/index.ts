@@ -346,10 +346,24 @@ app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
 app.get("/v1/staked", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
   try {
     if (!req.query.stakerAddress) {
-      return res.status(400).send("Not enough query params");
+      return res.status(400).send("Not enough query params: stakerAddress");
     }
 
     const result = await duckDb.getMyStakedAmount(req.query.stakerAddress);
+    res.status(200).send(result);
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
+});
+
+app.get("/v1/earned", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
+  try {
+    if (!req.query.stakerAddress) {
+      return res.status(400).send("Not enough query params: stakerAddress");
+    }
+
+    const result = await duckDb.getMyEarnedAmount(req.query.stakerAddress);
     res.status(200).send(result);
   } catch (error) {
     console.log({ error });

@@ -34,7 +34,8 @@ class WriteOrders extends WriteData {
       this.duckDb.insertSwapOps(txs.swapOpsData),
       this.duckDb.insertLpOps(txs.provideLiquidityOpsData),
       this.duckDb.insertOhlcv(txs.ohlcv),
-      this.duckDb.insertStakingHistories(txs.stakingOpsData)
+      this.duckDb.insertStakingHistories(txs.stakingOpsData),
+      this.duckDb.insertEarningHistories(txs.claimOpsData)
     ]);
     await this.duckDb.insertLpOps(txs.withdrawLiquidityOpsData);
   }
@@ -145,7 +146,7 @@ class OraiDexSync {
       const allPools = await this.duckDb.getPools();
       if (allPools.length > 0 && pairInfos.length === allPools.length) return;
       await this.duckDb.insertPairInfos(
-        pairInfos.map((pair, index) => {
+        pairInfos.map((pair) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
           const pairMapping = getPairByAssetInfos(pair.asset_infos);
           return {
@@ -167,7 +168,7 @@ class OraiDexSync {
     }
   }
 
-  private async updateLatestLpAmountHistory(currentInd: number) {
+  private async updateLatestLpAmountHistory(currentHeight: number) {
     try {
       console.time("timer-updateLatestLpAmountHistory");
       const countLpAmounts = await this.duckDb.getLpAmountHistory();
@@ -176,17 +177,19 @@ class OraiDexSync {
 
       const poolInfos = await getPoolInfos(
         pairInfos.map((pair) => pair.pairAddr),
-        currentInd
+        currentHeight
       );
       const INITIAL_TIMESTAMP = 1;
       await this.duckDb.insertPoolAmountHistory(
+        // we check if poolInfos[index] is available because in currentHeight we query, maybe it has some pools are not created yet
+        // e.g currentHeight = 13,000,000. but pool ORAI/INJECTIVE is created in height 13,100,000, so the length of pairInfos !== poolInfos
         pairInfos.map((pair, index) => {
           return {
-            offerPoolAmount: parsePoolAmount(poolInfos[index], JSON.parse(pair.firstAssetInfo)),
-            askPoolAmount: parsePoolAmount(poolInfos[index], JSON.parse(pair.secondAssetInfo)),
-            height: currentInd,
+            offerPoolAmount: poolInfos[index] ? parsePoolAmount(poolInfos[index], JSON.parse(pair.firstAssetInfo)) : 0n,
+            askPoolAmount: poolInfos[index] ? parsePoolAmount(poolInfos[index], JSON.parse(pair.secondAssetInfo)) : 0n,
+            height: currentHeight,
             timestamp: INITIAL_TIMESTAMP,
-            totalShare: poolInfos[index].total_share,
+            totalShare: poolInfos[index]?.total_share ?? "0",
             pairAddr: pair.pairAddr,
             uniqueKey: concatLpHistoryToUniqueKey({
               timestamp: INITIAL_TIMESTAMP,
@@ -257,7 +260,7 @@ class OraiDexSync {
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: 1,
+        limit: +process.env.LIMIT || 1000,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 5000
       }).pipe(new WriteOrders(this.duckDb, this.rpcUrl, this.env, initialData));

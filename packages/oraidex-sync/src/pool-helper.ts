@@ -385,7 +385,7 @@ export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: Provide
       .map((op) => [op.baseTokenDenom, op.quoteTokenDenom] as [string, string])
       .reduce((accumulator, tokenDenoms) => {
         const assetInfo = parsePairDenomToAssetInfo(tokenDenoms);
-        accumulator.add(assetInfo);
+        if (assetInfo) accumulator.add(assetInfo);
         return accumulator;
       }, new Set<[AssetInfo, AssetInfo]>())
   );

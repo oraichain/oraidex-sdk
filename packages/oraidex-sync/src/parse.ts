@@ -35,7 +35,10 @@ export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, stri
       parseAssetInfoOnlyDenom(pair.asset_infos[0]) === baseDenom &&
       parseAssetInfoOnlyDenom(pair.asset_infos[1]) === quoteDenom
   );
-  if (!pair) throw new Error(`cannot find pair for ${baseDenom}-$${quoteDenom}`);
+  if (!pair) {
+    console.trace(`parsePairDenomToAssetInfo: cannot find pair for ${baseDenom}-${quoteDenom}`);
+    return null;
+  }
   return pair.asset_infos;
 };
 
@@ -49,4 +52,12 @@ export const parseStakingDenomToAssetInfo = (stakingAssetDenom: string): AssetIn
   );
   if (!pair) throw new Error(`Cannot find pair with staking asset denom: ${stakingAssetDenom}`);
   return pair.stakingAssetInfo;
+};
+
+export const parseCw20DenomToAssetInfo = (assetDenom: string): AssetInfo => {
+  return {
+    token: {
+      contract_addr: assetDenom
+    }
+  };
 };

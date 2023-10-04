@@ -3,6 +3,7 @@ import { Connection, Database } from "duckdb-async";
 import fs from "fs";
 import { isoToTimestampNumber, renameKey } from "./helper";
 import {
+  EarningOperationData,
   GetCandlesQuery,
   GetFeeSwap,
   GetVolumeQuery,
@@ -597,19 +598,27 @@ export class DuckDb {
   async getMyStakedAmount(stakerAddress: string) {
     const result = await this.conn.all(
       `
-      SELECT s.stakingAssetDenom, s.stakeAmountInUsdt
-      FROM staking_history s
-      JOIN (
-          SELECT stakingAssetDenom, MAX(txheight) AS max_txheight
-          FROM staking_history
-          WHERE stakerAddress = ?
-          GROUP BY stakingAssetDenom
-      ) max_heights
-      ON s.stakingAssetDenom = max_heights.stakingAssetDenom AND s.txheight = max_heights.max_txheight
+      SELECT stakingAssetDenom, sum(stakeAmountInUsdt) as stakeAmountInUsdt
+      FROM staking_history
+      WHERE stakerAddress = ?
+      GROUP BY stakingAssetDenom
       `,
       stakerAddress
     );
     return result as Pick<StakingOperationData, "stakingAssetDenom" | "stakeAmountInUsdt">[];
+  }
+
+  async getMyEarnedAmount(stakerAddress: string) {
+    const result = await this.conn.all(
+      `
+      SELECT stakingAssetDenom, sum(earnAmountInUsdt) as earnAmountInUsdt
+      FROM earning_history
+      WHERE stakerAddress = ?
+      GROUP BY stakingAssetDenom
+      `,
+      stakerAddress
+    );
+    return result as Pick<EarningOperationData, "stakingAssetDenom" | "earnAmountInUsdt">[];
   }
 
   async insertStakingHistories(stakingHistories: StakingOperationData[]) {
@@ -620,21 +629,34 @@ export class DuckDb {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS earning_history (
           uniqueKey varchar UNIQUE,
-          height uinteger,
-          txHash varchar,
+          txheight uinteger,
+          txhash varchar,
+          timestamp uinteger,
           stakerAddress varchar,
           stakingAssetDenom varchar,
-          earnAmount uinteger,
-          stakeAmount integer,
-          stakeAmountInUsdt double
+          stakingAssetPrice double,
+          earnAmount bigint,
+          earnAmountInUsdt double
         )
       `
     );
   }
 
+  async insertEarningHistories(earningHistories: EarningOperationData[]) {
+    await this.insertBulkData(earningHistories, "earning_history");
+  }
+
   async getStakingHistoriesByStaker(stakerAddress: string): Promise<number> {
     const result = await this.conn.all(
       `SELECT count(*) as count from staking_history WHERE stakerAddress = ?`,
+      stakerAddress
+    );
+    return result[0].count;
+  }
+
+  async getEarningHistoriesByStaker(stakerAddress: string): Promise<number> {
+    const result = await this.conn.all(
+      `SELECT count(*) as count from earning_history WHERE stakerAddress = ?`,
       stakerAddress
     );
     return result[0].count;
