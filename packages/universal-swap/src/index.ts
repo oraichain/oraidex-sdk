@@ -43,7 +43,8 @@ import {
   gravityContracts,
   Bridge__factory,
   IUniswapV2Router02__factory,
-  ethToTronAddress
+  ethToTronAddress,
+  oraichainTokens
 } from "@oraichain/oraidex-common";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { isEqual } from "lodash";
@@ -67,7 +68,6 @@ export interface SwapData {
 
 export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
-  public readonly oraichainTokens: TokenItemType[] = getTokensFromNetwork(oraichainNetwork);
   constructor(
     public swapData: {
       readonly sender: string;
@@ -433,7 +433,7 @@ export class UniversalSwapHandler {
   // Universal swap from Oraichain to cosmos-hub | osmosis | EVM networks.
   async swapAndTransfer({ metamaskAddress, tronAddress }: SwapData): Promise<any> {
     // find to token in Oraichain to swap first and use this.toTokenInOrai as originalFromToken in bridge message.
-    this.toTokenInOrai = this.oraichainTokens.find((t) => t.coinGeckoId === this.swapData.originalToToken.coinGeckoId);
+    this.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === this.swapData.originalToToken.coinGeckoId);
 
     const { encodedObjects, type } = await this.combineMsgs(metamaskAddress, tronAddress);
     // if the msgs are meant to send to other cosmos networks, then we keep the to token as is
