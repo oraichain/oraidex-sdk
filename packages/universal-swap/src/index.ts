@@ -624,7 +624,7 @@ export class UniversalSwapHandler {
       };
 
       // if asset info is native => send native way, else send cw20 way
-      if (assetInfo.native_token) {
+      if ("native_token" in assetInfo) {
         const executeMsgSend = {
           transfer_to_remote: msg
         };

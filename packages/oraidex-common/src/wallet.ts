@@ -1,5 +1,5 @@
 import { OfflineSigner } from "@cosmjs/proto-signing";
-import { CosmosChainId, NetworkChainId, Networks, chainInfos, network } from "./network";
+import { CosmosChainId, NetworkChainId, Networks, network } from "./network";
 import { SigningCosmWasmClient, SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
 import { GasPrice } from "@cosmjs/stargate";
 import { ethToTronAddress, tronToEthAddress } from "./helper";

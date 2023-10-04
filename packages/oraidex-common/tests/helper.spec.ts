@@ -338,7 +338,7 @@ describe("should helper functions in helper run exactly", () => {
   it.each<[string, string | undefined, AssetInfo, any]>([
     [ORAI, "10", { native_token: { denom: ORAI } }, { denom: ORAI, amount: "10" }],
     [ORAI, undefined, { native_token: { denom: ORAI } }, undefined],
-    ["airi", "10", { token: { contract_addr: AIRI_CONTRACT } }, "10"],
+    ["airi", "10", { token: { contract_addr: AIRI_CONTRACT } }, undefined],
     ["airi", undefined, { token: { contract_addr: AIRI_CONTRACT } }, undefined]
   ])("test-parseTokenInfo", (denom, amount, expectedInfo, expectedFund) => {
     // fixture

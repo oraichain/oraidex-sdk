@@ -151,14 +151,14 @@ export const calculateMinReceive = (
   return ((BigInt(Math.trunc(toDisplay(amount, decimals))) * (100n - BigInt(userSlippage))) / 100n).toString();
 };
 
-export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string) => {
+export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string): { fund?: Coin; info: AssetInfo } => {
   if (!tokenInfo.contractAddress) {
     return {
       fund: amount ? { denom: tokenInfo.denom, amount } : undefined,
       info: { native_token: { denom: tokenInfo.denom } }
     };
   }
-  return { info: { token: { contract_addr: tokenInfo.contractAddress } }, fund: amount };
+  return { info: { token: { contract_addr: tokenInfo.contractAddress } } };
 };
 
 export const handleSentFunds = (...funds: (Coin | undefined)[]): Coin[] | null => {
