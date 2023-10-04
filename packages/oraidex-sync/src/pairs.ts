@@ -5,6 +5,7 @@ import {
   ORAI,
   airiCw20Adress,
   atomIbcDenom,
+  injAddress,
   kwtCw20Address,
   milkyCw20Address,
   oraixCw20Address,
@@ -74,6 +75,10 @@ export const pairs: PairMapping[] = [
   {
     asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
     symbols: ["scATOM", "ATOM"]
+  },
+  {
+    asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
+    symbols: ["INJ", "ORAI"]
   }
 ];
 

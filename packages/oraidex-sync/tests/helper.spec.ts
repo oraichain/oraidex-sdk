@@ -4,6 +4,7 @@ import {
   ORAI,
   airiCw20Adress,
   atomIbcDenom,
+  injAddress,
   kwtCw20Address,
   milkyCw20Address,
   oraiInfo,
@@ -127,7 +128,7 @@ describe("test-helper", () => {
   it.each<[AssetInfo, number]>([
     [{ token: { contract_addr: usdtCw20Address } }, 2],
     [{ token: { contract_addr: usdcCw20Address } }, 1],
-    [{ native_token: { denom: "orai" } }, 9],
+    [{ native_token: { denom: "orai" } }, 10],
     [{ token: { contract_addr: airiCw20Adress } }, 1]
   ])("test-findMappedTargetedAssetInfo", (info, expectedListLength) => {
     // setup
@@ -183,6 +184,9 @@ describe("test-helper", () => {
       },
       {
         token: { contract_addr: "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq" }
+      },
+      {
+        token: { contract_addr: "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49" }
       }
     ]);
   });
@@ -271,6 +275,10 @@ describe("test-helper", () => {
       {
         asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
         symbols: ["scATOM", "ATOM"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
+        symbols: ["INJ", "ORAI"]
       }
     ]);
   });

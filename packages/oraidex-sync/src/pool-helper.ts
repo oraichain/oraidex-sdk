@@ -28,7 +28,7 @@ import {
   queryPoolInfos
 } from "./query";
 import { processEventApr } from "./tx-parsing";
-import { PairInfoData, PairMapping, ProvideLiquidityOperationData } from "./types";
+import { PairInfoData, PairMapping, PoolAmountHistory, ProvideLiquidityOperationData } from "./types";
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
 
@@ -71,22 +71,35 @@ export const getPairByAssetInfos = (assetInfos: [AssetInfo, AssetInfo]): PairMap
 };
 
 // get price ORAI in USDT base on ORAI/USDT pool.
-// async function getOraiPrice(): Promise<number> {
-export const getOraiPrice = async (): Promise<number> => {
+export const getOraiPrice = async (timestamp?: number): Promise<number> => {
   const oraiUsdtPair = getPairByAssetInfos([oraiInfo, usdtInfo]);
   const ratioDirection: RatioDirection =
     parseAssetInfoOnlyDenom(oraiUsdtPair.asset_infos[0]) === ORAI ? "base_in_quote" : "quote_in_base";
-  return getPriceByAsset([oraiInfo, usdtInfo], ratioDirection);
+  return getPriceByAsset([oraiInfo, usdtInfo], ratioDirection, timestamp);
 };
 
+/**
+ * Get price of asset via askPoolAmount & offerPoolAmount in specific timestamp
+ * @param assetInfos
+ * @param ratioDirection
+ * @param timestamp
+ * @returns price of asset in specific time.
+ */
 export const getPriceByAsset = async (
   assetInfos: [AssetInfo, AssetInfo],
-  ratioDirection: RatioDirection
+  ratioDirection: RatioDirection,
+  timestamp?: number
 ): Promise<number> => {
   const duckDb = DuckDb.instances;
   const poolInfo = await duckDb.getPoolByAssetInfos(assetInfos);
   if (!poolInfo) return 0;
-  const poolAmount = await duckDb.getLatestLpPoolAmount(poolInfo.pairAddr);
+
+  let poolAmount: PoolAmountHistory;
+  if (timestamp) {
+    poolAmount = await duckDb.getLpAmountWithTime(poolInfo.pairAddr, timestamp);
+  } else {
+    poolAmount = await duckDb.getLatestLpPoolAmount(poolInfo.pairAddr);
+  }
   if (!poolAmount || !poolAmount.askPoolAmount || !poolAmount.offerPoolAmount) return 0;
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])

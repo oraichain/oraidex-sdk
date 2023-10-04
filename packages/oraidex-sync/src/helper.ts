@@ -364,7 +364,7 @@ export function getSwapDirection(offerDenom: string, askDenom: string): SwapDire
     return pair.asset_infos.some((info) => info === offerDenom) && pair.asset_infos.some((info) => info === askDenom);
   });
   if (!pair) {
-    console.error("Cannot find asset infos in list of pairs");
+    console.error("getSwapDirection: Cannot find asset infos in list of pairs");
     return;
   }
   const assetInfos = pair.asset_infos;

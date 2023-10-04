@@ -20,6 +20,10 @@ export type EmbeddedLogo = {
   png: Binary;
 };
 export type Binary = string;
+export interface Cw20Coin {
+  address: string;
+  amount: Uint128;
+}
 export interface Asset {
   amount: Uint128;
   info: AssetInfo;
