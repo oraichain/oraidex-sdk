@@ -229,6 +229,7 @@ export class UniversalSwapHandler {
     }
   }
 
+  // TODO: write test cases
   async swap(): Promise<any> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
@@ -236,6 +237,7 @@ export class UniversalSwapHandler {
     return result;
   }
 
+  // TODO: write test cases
   public async evmSwap(data: {
     fromToken: TokenItemType;
     toTokenContractAddr: string;
@@ -306,6 +308,7 @@ export class UniversalSwapHandler {
     return { transactionHash: result.hash };
   }
 
+  // TODO: write test cases
   public async transferToGravity(
     token: TokenItemType,
     amountVal: string,
@@ -339,6 +342,7 @@ export class UniversalSwapHandler {
     }
   }
 
+  // TODO: write test cases
   transferEvmToIBC = async (
     from: TokenItemType,
     fromAmount: number,
@@ -384,6 +388,7 @@ export class UniversalSwapHandler {
     return { encodedObjects: await this.combineMsgEvm(metamaskAddress, tronAddress), type: "evm" };
   }
 
+  // TODO: write test cases
   // Universal swap from Oraichain to cosmos-hub | osmosis | EVM networks.
   async swapAndTransfer({ metamaskAddress, tronAddress }: SwapData): Promise<any> {
     // find to token in Oraichain to swap first and use this.toTokenInOrai as originalFromToken in bridge message.
@@ -408,6 +413,7 @@ export class UniversalSwapHandler {
     return result;
   }
 
+  // TODO: write test cases
   // transfer evm to ibc
   async transferAndSwap(combinedReceiver: string, metamaskAddress?: string, tronAddress?: string): Promise<any> {
     if (!metamaskAddress && !tronAddress) throw Error("Cannot call evm swap if the evm address is empty");
