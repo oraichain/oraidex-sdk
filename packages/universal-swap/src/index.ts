@@ -1,11 +1,5 @@
 import { EncodeObject, coin } from "@cosmjs/proto-signing";
-import {
-  Amount,
-  CwIcs20LatestClient,
-  CwIcs20LatestReadOnlyInterface,
-  CwIcs20LatestQueryClient,
-  Uint128
-} from "@oraichain/common-contracts-sdk";
+import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
@@ -33,8 +27,6 @@ import {
   PAIRS,
   ORAI_INFO,
   getTokenOnSpecificChainId,
-  CosmosWallet,
-  EvmWallet,
   getTokenOnOraichain,
   UNISWAP_ROUTER_DEADLINE,
   gravityContracts,
@@ -48,40 +40,11 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { buildIbcWasmPairKey, getEvmSwapRoute, getIbcInfo, isEvmSwappable, isSupportedNoPoolSwapEvm } from "./helper";
-
-export enum SwapDirection {
-  From,
-  To
-}
-
-export interface SimulateResponse {
-  amount: Uint128;
-  displayAmount: number;
-}
-
-export interface SwapData {
-  metamaskAddress?: string;
-  tronAddress?: string;
-}
+import { SwapData, UniversalSwapConfig, UniversalSwapData } from "./types";
 
 export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
-  constructor(
-    public swapData: {
-      readonly cosmosSender: string;
-      readonly originalFromToken: TokenItemType;
-      readonly originalToToken: TokenItemType;
-      readonly fromAmount: number;
-      readonly simulateAmount: string;
-      readonly userSlippage: number;
-      readonly simulateAverage: string;
-    },
-    public config: {
-      readonly cosmosWallet: CosmosWallet;
-      readonly evmWallet: EvmWallet;
-      readonly cwIcs20LatestClient?: CwIcs20LatestClient | CwIcs20LatestReadOnlyInterface;
-    }
-  ) {}
+  constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
   async getUniversalSwapToAddress(
     toChainId: NetworkChainId,
@@ -221,7 +184,7 @@ export class UniversalSwapHandler {
         }
       }
     } catch (error) {
-      console.log({ CheckBalanceChannelIbcErrors: error });
+      // console.log({ CheckBalanceChannelIbcErrors: error });
       throw generateError(
         `Error in checking balance channel ibc: ${{
           CheckBalanceChannelIbcErrors: error
@@ -245,14 +208,7 @@ export class UniversalSwapHandler {
 
   // ORAI ( ETH ) -> check ORAI (ORAICHAIN - compare from amount with cw20 / native amount) (fromAmount) -> check AIRI - compare to amount with channel balance (ORAICHAIN) (toAmount) -> AIRI (BSC)
   // ORAI ( ETH ) -> check ORAI (ORAICHAIN) - compare from amount with cw20 / native amount) (fromAmount) -> check wTRX - compare to amount with channel balance (ORAICHAIN) (toAmount) -> wTRX (TRON)
-  async checkBalanceIBCOraichain(
-    to: TokenItemType,
-    from: TokenItemType,
-    amount: {
-      toAmount: string;
-      fromAmount: number;
-    }
-  ) {
+  async checkBalanceIBCOraichain(to: TokenItemType, from: TokenItemType, fromAmount: number) {
     // ORAI ( ETH ) -> check ORAI (ORAICHAIN) -> ORAI (BSC)
     // no need to check this case because users will swap directly. This case should be impossible because it is only called when transferring from evm to other networks
     if (from.chainId === "Oraichain" && to.chainId === from.chainId) return;
@@ -260,9 +216,9 @@ export class UniversalSwapHandler {
     const token = getTokenOnOraichain(from.coinGeckoId);
     if (!token) return;
     const { balance } = await this.getBalanceIBCOraichain(token);
-    if (balance < amount.fromAmount) {
+    if (balance < fromAmount) {
       throw generateError(
-        `The bridge contract does not have enough balance to process this bridge transaction. Wanted ${amount.fromAmount}, have ${balance}`
+        `The bridge contract does not have enough balance to process this bridge transaction. Wanted ${fromAmount}, have ${balance}`
       );
     }
     // if to token is evm, then we need to evaluate channel state balance of ibc wasm
@@ -456,10 +412,11 @@ export class UniversalSwapHandler {
   async transferAndSwap(combinedReceiver: string, metamaskAddress?: string, tronAddress?: string): Promise<any> {
     if (!metamaskAddress && !tronAddress) throw Error("Cannot call evm swap if the evm address is empty");
 
-    await this.checkBalanceIBCOraichain(this.swapData.originalToToken, this.swapData.originalFromToken, {
-      fromAmount: this.swapData.fromAmount,
-      toAmount: this.swapData.simulateAmount
-    });
+    await this.checkBalanceIBCOraichain(
+      this.swapData.originalToToken,
+      this.swapData.originalFromToken,
+      this.swapData.fromAmount
+    );
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable

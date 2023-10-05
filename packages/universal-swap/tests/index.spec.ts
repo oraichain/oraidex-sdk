@@ -14,8 +14,12 @@ import {
   testSenderAddress,
   deployIcs20Token,
   deployToken,
+  CosmosChainId,
+  UniversalSwapType,
+  CoinGeckoId,
+  AIRI_CONTRACT,
   IBC_WASM_CONTRACT,
-  CosmosChainId
+  findToTokenOnOraiBridge
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import { UniversalSwapHandler } from "../src/index";
@@ -26,11 +30,13 @@ import Long from "long";
 import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
 import { toUtf8 } from "@cosmjs/encoding";
 import { SigningCosmWasmClient, SigningCosmWasmClientOptions, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { ibcInfos } from "@oraichain/oraidex-common/build/ibc-info";
+import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
 import { OraiswapTokenClient, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import bech32 from "bech32";
+import { UniversalSwapData } from "../src/types";
+import { getIbcInfo } from "../src/helper";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -196,8 +202,17 @@ describe("test universal swap handler functions", () => {
     const simulateAmount = "100";
     const userSlippage = 1;
     const minimumReceive = "10000";
+    const universalSwapData: UniversalSwapData = {
+      cosmosSender: testSenderAddress,
+      originalFromToken: oraichainTokens[0],
+      originalToToken: oraichainTokens[0],
+      simulateAmount,
+      simulateAverage: "0",
+      userSlippage,
+      fromAmount: toDisplay(fromAmount)
+    };
     class FakeUniversalSwapHandler extends UniversalSwapHandler {
-      constructor(data?: any) {
+      constructor(data?: UniversalSwapData) {
         super(
           data ?? {
             cosmosSender: "",
@@ -302,13 +317,9 @@ describe("test universal swap handler functions", () => {
       async (_name: string, fromCoingeckoId, toCoingeckoId, toChainId, expectedTransferMsg) => {
         jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
         const universalSwap = new FakeUniversalSwapHandler({
-          cosmosSender: testSenderAddress,
-          originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId),
-          originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId),
-          simulateAmount,
-          simulateAverage: "0",
-          userSlippage,
-          fromAmount: toDisplay(fromAmount)
+          ...universalSwapData,
+          originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId)!,
+          originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
         });
         universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
         const msg = await universalSwap.combineMsgCosmos("0");
@@ -354,13 +365,8 @@ describe("test universal swap handler functions", () => {
       "test getTranferAddress should return transferAddress correctly & throw error correctly",
       (metamaskAddress: string, tronAddress: string, toToken: TokenItemType, expectedTransferAddr: string) => {
         const universalSwap = new FakeUniversalSwapHandler({
-          cosmosSender: testSenderAddress,
-          originalFromToken: oraichainTokens[0],
-          originalToToken: toToken,
-          simulateAmount,
-          simulateAverage: "0",
-          userSlippage,
-          fromAmount: toDisplay(fromAmount)
+          ...universalSwapData,
+          originalToToken: toToken
         });
         const ibcInfo = ibcInfos["Oraichain"]["oraibridge-subnet-2"]!.channel;
         universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === "airight")!;
@@ -380,13 +386,8 @@ describe("test universal swap handler functions", () => {
       "test getIbcMemo should return ibc memo correctly",
       (transferAddress: string, toToken: TokenItemType, expectedIbcMemo: string) => {
         const universalSwap = new FakeUniversalSwapHandler({
-          cosmosSender: testSenderAddress,
-          originalFromToken: oraichainTokens[0],
-          originalToToken: toToken,
-          simulateAmount,
-          simulateAverage: "0",
-          userSlippage,
-          fromAmount: toDisplay(fromAmount)
+          ...universalSwapData,
+          originalToToken: toToken
         });
         jest.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
         const ibcMemo = universalSwap.getIbcMemo("john doe", "john doe", "john doe", {
@@ -397,23 +398,13 @@ describe("test universal swap handler functions", () => {
       }
     );
 
-    it.each<[string, TokenItemType, string, boolean]>([
-      [
-        "1000000000000000000000000000000000000000",
-        flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!,
-        channel,
-        true
-      ],
-      ["10", flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, false]
-    ])("test-universal-swap-checkBalanceChannelIbc-%", async (amount, toToken, channel, willThrow) => {
+    it.each<[TokenItemType, string, boolean]>([
+      [flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, true],
+      [flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, false]
+    ])("test-universal-swap-checkBalanceChannelIbc-%", async (toToken, channel, willThrow) => {
       const universalSwap = new FakeUniversalSwapHandler({
-        cosmosSender: testSenderAddress,
-        originalFromToken: oraichainTokens[0],
-        originalToToken: toToken,
-        simulateAmount,
-        simulateAverage: "0",
-        userSlippage,
-        fromAmount: toDisplay(fromAmount)
+        ...universalSwapData,
+        originalToToken: toToken
       });
       try {
         await universalSwap.checkBalanceChannelIbc(
@@ -434,15 +425,7 @@ describe("test universal swap handler functions", () => {
       [oraichainTokens.find((t) => t.coinGeckoId === "airight")!, 10000000],
       [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, 0]
     ])("test-universal-swap-getBalanceIBCOraichain-ibc-%", async (token: TokenItemType, expectedBalance: number) => {
-      const universalSwap = new FakeUniversalSwapHandler({
-        cosmosSender: testSenderAddress,
-        originalFromToken: oraichainTokens[0],
-        originalToToken: oraichainTokens[0],
-        simulateAmount: "0",
-        simulateAverage: "0",
-        userSlippage,
-        fromAmount: 0
-      });
+      const universalSwap = new FakeUniversalSwapHandler();
       let mockToken = { ...token };
       if (mockToken.contractAddress) {
         if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
@@ -450,5 +433,246 @@ describe("test universal swap handler functions", () => {
       const { balance } = await universalSwap.getBalanceIBCOraichain(mockToken);
       expect(balance).toEqual(expectedBalance);
     });
+
+    it.each<[TokenItemType, TokenItemType, number, string, boolean]>([
+      [
+        oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, // ORAI (ORAICHAIN)
+        oraichainTokens.find((t) => t.coinGeckoId === "airight")!, // AIRIGHT (ORAICHAIN)
+        0,
+        "0",
+        false
+      ],
+      [
+        flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
+        flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38")!, // ORAI (BSC)
+        10000000,
+        "10000000",
+        true
+      ],
+      [
+        flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
+        flattenTokens.find((t) => t.coinGeckoId === "airight" && t.chainId === "0x38")!, // AIRIGHT (BSC)
+        10000000,
+        "10000000",
+        false
+      ]
+    ])(
+      "test-universal-swap-checkBalanceIBCOraichain",
+      async (from: TokenItemType, to: TokenItemType, fromAmount: number, toAmount: string, willThrow: boolean) => {
+        const universalSwap = new FakeUniversalSwapHandler({
+          ...universalSwapData,
+          originalFromToken: from,
+          originalToToken: to,
+          fromAmount
+        });
+        try {
+          jest
+            .spyOn(universalSwap, "getBalanceIBCOraichain")
+            .mockReturnValue(new Promise((resolve) => resolve({ balance: +toAmount })));
+          await universalSwap.checkBalanceIBCOraichain(from, to, fromAmount);
+          expect(willThrow).toEqual(false);
+        } catch (error) {
+          expect(willThrow).toEqual(true);
+        }
+      }
+    );
+
+    it.each<[NetworkChainId, string]>([
+      ["cosmoshub-4", "cosmos"],
+      ["osmosis-1", "cosmos"],
+      ["Oraichain", "evm"],
+      ["0x01", "evm"]
+    ])("test-combine-msgs-logic", async (chainId, expectedMsgType) => {
+      let toToken = flattenTokens.find((item) => item.coinGeckoId === "tether")!;
+      toToken.chainId = chainId;
+      const universalSwap = new FakeUniversalSwapHandler({ ...universalSwapData, originalToToken: toToken });
+      universalSwap.combineMsgCosmos = async () => {
+        return new Promise((resolve) => resolve([]));
+      };
+      universalSwap.combineMsgEvm = async () => {
+        return new Promise((resolve) => resolve([]));
+      };
+      const { type } = await universalSwap.combineMsgs("Ox1234", "T1234");
+      expect(type).toEqual(expectedMsgType);
+    });
+
+    it.each<[UniversalSwapType, string]>([
+      ["oraichain-to-oraichain", "swap"],
+      ["oraichain-to-other-networks", "swapAndTransfer"],
+      ["other-networks-to-oraichain", "transferAndSwap"]
+    ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
+      const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
+      const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken
+      });
+      jest.spyOn(universalSwap, "swap").mockResolvedValue("swap");
+      jest.spyOn(universalSwap, "swapAndTransfer").mockResolvedValue("swapAndTransfer");
+      jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap");
+      const result = await universalSwap.processUniversalSwap("", universalSwapType, {});
+      expect(result).toEqual(expectedFunction);
+    });
+
+    it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any]>([
+      [
+        "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token",
+        "oraichain-token",
+        "airight",
+        "Oraichain",
+        {
+          execute_swap_operations: {
+            operations: [
+              {
+                orai_swap: {
+                  offer_asset_info: { native_token: { denom: "orai" } },
+                  ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+                }
+              }
+            ],
+            minimum_receive: minimumReceive
+          }
+        },
+        ROUTER_V2_CONTRACT,
+        { funds: [{ amount: fromAmount, denom: "orai" }] }
+      ],
+      [
+        "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token",
+        "tether",
+        "airight",
+        "Oraichain",
+        {
+          send: {
+            contract: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+            amount: fromAmount,
+            msg: toBinary({
+              execute_swap_operations: {
+                operations: [
+                  {
+                    orai_swap: {
+                      offer_asset_info: { token: { contract_addr: USDT_CONTRACT } },
+                      ask_asset_info: { native_token: { denom: "orai" } }
+                    }
+                  },
+                  {
+                    orai_swap: {
+                      offer_asset_info: { native_token: { denom: "orai" } },
+                      ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+                    }
+                  }
+                ],
+                minimum_receive: minimumReceive
+              }
+            })
+          }
+        },
+        USDT_CONTRACT,
+        { funds: null }
+      ]
+    ])(
+      "test-generateMsgsSwap-for-%s",
+      (_name, fromCoinGeckoId, toCoinGeckoId, toChainId, expectedSwapMsg, expectedSwapContractAddr, expectedFunds) => {
+        // setup
+        const universalSwap = new FakeUniversalSwapHandler({
+          ...universalSwapData,
+          originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
+          originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
+        });
+        jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
+
+        // act
+        const swapMsg = universalSwap.generateMsgsSwap();
+
+        // assertion
+        expect(swapMsg[0].contractAddress).toEqual(expectedSwapContractAddr);
+        expect(swapMsg[0].msg).toEqual(expectedSwapMsg);
+        expect(swapMsg[0].funds).toEqual(expectedFunds.funds);
+      }
+    );
+
+    it.each([
+      [
+        "from-&-to-both-oraichain-token",
+        "oraichain-token",
+        {
+          transfer_to_remote: {
+            local_channel_id: oraichain2oraib,
+            remote_address: "foobar",
+            remote_denom: "john doe",
+            timeout: 3600,
+            memo: ""
+          }
+        },
+        IBC_WASM_CONTRACT,
+        { funds: [{ amount: simulateAmount, denom: "orai" }] }
+      ],
+      [
+        "from-and-to-is-cw20-token-and-have-same-coingecko-id",
+        "airight",
+        {
+          send: {
+            contract: IBC_WASM_CONTRACT,
+            amount: simulateAmount,
+            msg: toBinary({
+              local_channel_id: oraichain2oraib,
+              remote_address: "foobar",
+              remote_denom: "john doe",
+              timeout: 3600,
+              memo: ""
+            })
+          }
+        },
+        AIRI_CONTRACT, // contract of cw20 token to invoke send method.
+        { funds: [] }
+      ],
+      [
+        "from-token-in-orai-is-native-token",
+        "oraichain-token",
+        {
+          transfer_to_remote: {
+            local_channel_id: oraichain2oraib,
+            remote_address: "foobar",
+            remote_denom: "john doe",
+            timeout: 3600,
+            memo: ""
+          }
+        },
+        IBC_WASM_CONTRACT,
+        { funds: [{ amount: simulateAmount, denom: "orai" }] }
+      ],
+      [
+        "from-is-cw20-token",
+        "tether",
+        {
+          send: {
+            contract: IBC_WASM_CONTRACT,
+            amount: simulateAmount,
+            msg: toBinary({
+              local_channel_id: oraichain2oraib,
+              remote_address: "foobar",
+              remote_denom: "john doe",
+              timeout: 3600,
+              memo: ""
+            })
+          }
+        },
+        USDT_CONTRACT,
+        { funds: [] }
+      ]
+    ])(
+      "test-generateMsgsTransferOraiToEvm-with-%s",
+      (_name: string, toCoingeckoId, expectedTransferMsg, expectedContractAddr, expectedFunds) => {
+        const universalSwap = new FakeUniversalSwapHandler(universalSwapData);
+        universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
+        const ibcInfo = getIbcInfo("Oraichain", "oraibridge-subnet-2");
+        const toAddress = "foobar";
+        const ibcMemo = "";
+        const msg = universalSwap.generateMsgsTransferOraiToEvm(ibcInfo, toAddress, "john doe", ibcMemo)!;
+        expect(msg[0].contractAddress.toString()).toEqual(expectedContractAddr);
+        expect(msg[0].msg).toEqual(expectedTransferMsg);
+        expect(msg[0].funds).toEqual(expectedFunds.funds);
+      }
+    );
   });
 });
