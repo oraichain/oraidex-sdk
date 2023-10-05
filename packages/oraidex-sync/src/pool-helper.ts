@@ -10,7 +10,7 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual } from "lodash";
-import { ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
+import { OCH_PRICE, ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
 import { calculatePriceByPool, getCosmwasmClient, isAssetInfoPairReverse, validateNumber } from "./helper";
 import { DuckDb, concatAprHistoryToUniqueKey, getPairLiquidity } from "./index";
 import { pairWithStakingAsset, pairs } from "./pairs";
@@ -234,8 +234,8 @@ export const calculateAprResult = async (
 
     let rewardsPerYearValue = 0;
     for (const { amount, info } of rewardsPerSecData.assets) {
-      // NOTE: current hardcode price token xOCH: $0.4
-      const priceAssetInUsdt = isEqual(info, ORAIXOCH_INFO) ? 0.4 : await getPriceAssetByUsdt(info);
+      // NOTE: current hardcode price token xOCH
+      const priceAssetInUsdt = isEqual(info, ORAIXOCH_INFO) ? OCH_PRICE : await getPriceAssetByUsdt(info);
       rewardsPerYearValue += (SEC_PER_YEAR * validateNumber(amount) * priceAssetInUsdt) / atomic;
     }
     aprResult[ind] = (100 * rewardsPerYearValue) / bondValue || 0;
