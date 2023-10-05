@@ -1,18 +1,16 @@
 import { Attribute, Event } from "@cosmjs/stargate";
 import { Log } from "@cosmjs/stargate/build/logs";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
-import { OraiswapStakingQueryClient, OraiswapStakingTypes } from "@oraichain/oraidex-contracts-sdk";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { isEqual } from "lodash";
-import { OCH_PRICE, ORAIXOCH_INFO, network } from "./constants";
+import { OCH_PRICE, ORAIXOCH_INFO } from "./constants";
 import { DuckDb } from "./db";
 import {
   buildOhlcv,
   calculatePriceByPool,
   concatDataToUniqueKey,
   concatStakingpHistoryToUniqueKey,
-  getCosmwasmClient,
   getPairLiquidity,
   getSwapDirection,
   groupByTime,
@@ -24,6 +22,7 @@ import {
 import { pairWithStakingAsset, pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
 import { calculateLiquidityFee, getPriceAssetByUsdt, isPoolHasFee } from "./pool-helper";
+import { fetchAllRewardInfo } from "./query";
 import {
   AccountTx,
   BasicTxData,
@@ -40,7 +39,6 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
-import { fetchAllRewardInfo } from "./query";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
