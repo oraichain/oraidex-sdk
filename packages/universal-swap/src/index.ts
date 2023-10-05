@@ -25,13 +25,10 @@ import {
   calculateMinReceive,
   handleSentFunds,
   tronToEthAddress,
-  ibcInfos,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   oraichain2oraib,
   CosmosChainId,
   IBC_WASM_CONTRACT,
-  getTokensFromNetwork,
-  oraichainNetwork,
   findToTokenOnOraiBridge,
   PAIRS,
   ORAI_INFO,
@@ -44,7 +41,8 @@ import {
   Bridge__factory,
   IUniswapV2Router02__factory,
   ethToTronAddress,
-  oraichainTokens
+  oraichainTokens,
+  network
 } from "@oraichain/oraidex-common";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { isEqual } from "lodash";
@@ -555,7 +553,7 @@ export class UniversalSwapHandler {
 
   generateMsgsSwap() {
     let input: any;
-    let contractAddr: string = "";
+    let contractAddr: string = network.router;
     try {
       const _fromAmount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
 
