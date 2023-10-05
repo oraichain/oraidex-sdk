@@ -447,13 +447,14 @@ describe("test-helper", () => {
         timestamp: 1
       }
     ];
+    jest.spyOn(helper, "recalculateTotalShare").mockReturnValue(1n);
 
     // act
     const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolResponses);
 
     // assertion
     expect(accumulatedData).toStrictEqual({
-      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1 }
+      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1, totalShare: "1" }
     });
   });
 
@@ -725,7 +726,8 @@ describe("test-helper", () => {
           timestamp: 1,
           height: 1,
           pairAddr: "oraiUsdtPairAddr",
-          uniqueKey: "1"
+          uniqueKey: "1",
+          totalShare: "1"
         });
         jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 
@@ -855,4 +857,29 @@ describe("test-helper", () => {
       expect(result).toStrictEqual(expectedResult);
     }
   );
+
+  it.each<[string, bigint]>([
+    ["deposit", 1100n],
+    ["withdraw", 900n]
+  ])("test-recalculateTotalShare-should-calculate-correctly-total-share", (opType, expectedResult) => {
+    // setup
+    const totalShare = 1000n;
+    const offerAmount = 1n;
+    const askAmount = 1n;
+    const offerPooAmount = 10n;
+    const askPooAmount = 10n;
+
+    // act
+    const result = helper.recalculateTotalShare({
+      totalShare,
+      offerAmount,
+      askAmount,
+      offerPooAmount,
+      askPooAmount,
+      opType
+    });
+
+    // assertion
+    expect(result).toEqual(expectedResult);
+  });
 });

@@ -125,13 +125,7 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   return swapData;
 }
 
-async function calculateLpPrice({
-  stakingAssetDenom,
-  txHeight
-}: {
-  stakingAssetDenom: string;
-  txHeight: number;
-}): Promise<number> {
+async function calculateLpPrice(stakingAssetDenom: string): Promise<number> {
   try {
     const duckDb = DuckDb.instances;
     const pair = pairWithStakingAsset.find(
@@ -182,10 +176,7 @@ async function extractStakingOperations(
 
   for (let i = 0; i < stakerAddresses.length; i++) {
     const wantedHeight = txData.txheight - 1;
-    const lpPrice = await calculateLpPrice({
-      txHeight: wantedHeight,
-      stakingAssetDenom: stakingAssetDenoms[i]
-    });
+    const lpPrice = await calculateLpPrice(stakingAssetDenoms[i]);
 
     let newStakedAmount = 0;
     // check if staker has staked before or not.
@@ -248,7 +239,7 @@ async function extractClaimOperations(
   let stakerAddresses: string[] = [];
   let rewardAssetDenoms: string[] = [];
   let earnAmounts: number[] = [];
-  let stakingAssetDenom;
+  let stakingAssetDenom: string;
   for (let attrs of wasmAttributes) {
     const stakingAction = attrs.find((attr) => attr.key === "action" && attr.value === "withdraw_reward");
     if (!stakingAction) continue;
@@ -590,4 +581,4 @@ export const processEventApr = (txs: Tx[]) => {
   return assets;
 };
 
-export { parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets };
+export { parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets, calculateLpPrice };

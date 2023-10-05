@@ -215,21 +215,20 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
 }
 
 export const recalculateTotalShare = ({
-  pool,
+  totalShare,
   offerAmount,
   askAmount,
   offerPooAmount,
   askPooAmount,
   opType
 }: {
-  pool: PoolResponse;
+  totalShare: bigint;
   offerAmount: bigint;
   askAmount: bigint;
   offerPooAmount: bigint;
   askPooAmount: bigint;
   opType: string;
 }): bigint => {
-  const totalShare = BigInt(pool.total_share);
   let share = Math.min(
     Number((offerAmount * totalShare) / offerPooAmount),
     Number((askAmount * totalShare) / askPooAmount)
@@ -298,7 +297,7 @@ export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfo
     let updatedTotalShare = pool.total_share;
     if (op.opType === "provide" || op.opType === "withdraw") {
       updatedTotalShare = recalculateTotalShare({
-        pool,
+        totalShare: BigInt(pool.total_share),
         offerAmount: baseAmount,
         askAmount: quoteAmount,
         offerPooAmount: accumulateData[pairAddr].offerPoolAmount,
