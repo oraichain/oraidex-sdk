@@ -8,15 +8,16 @@ import { ethers } from "ethers";
 import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
+import { AccountData } from "@cosmjs/amino";
 
 export abstract class CosmosWallet {
   public abstract getKeplrAddr(chainId?: NetworkChainId): Promise<string>;
   public abstract collectCosmosWallet(chainId: string): Promise<OfflineSigner>;
 
-  getCosmWasmClient = async (
+  async getCosmWasmClient(
     config: { signer?: OfflineSigner; rpc?: string; chainId: CosmosChainId },
     options?: SigningCosmWasmClientOptions
-  ) => {
+  ): Promise<{ wallet: OfflineSigner; client: SigningCosmWasmClient; defaultAddress: AccountData }> {
     const { chainId, rpc, signer } = config;
     const wallet = signer ?? (await this.collectCosmosWallet(chainId));
     const defaultAddress = (await wallet.getAccounts())[0];
@@ -28,7 +29,7 @@ export abstract class CosmosWallet {
       }
     );
     return { wallet, client, defaultAddress };
-  };
+  }
 }
 
 export abstract class EvmWallet {

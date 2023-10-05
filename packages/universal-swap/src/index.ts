@@ -7,7 +7,7 @@ import {
   Uint128
 } from "@oraichain/common-contracts-sdk";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
-import { AssetInfo, OraiswapTokenQueryClient, OraiswapTokenReadOnlyInterface } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
@@ -208,7 +208,7 @@ export class UniversalSwapHandler {
         balance = channelBalance;
       } catch (error) {
         // do nothing because the given channel and key doesnt exist
-        console.log("error querying channel with key: ", error);
+        // console.log("error querying channel with key: ", error);
         return;
       }
 
@@ -230,15 +230,16 @@ export class UniversalSwapHandler {
     }
   }
 
-  getBalanceIBCOraichain = async (token: TokenItemType, tokenQueryClient?: OraiswapTokenReadOnlyInterface) => {
+  getBalanceIBCOraichain = async (token: TokenItemType) => {
+    const ibcWasm = this.config.cwIcs20LatestClient?.contractAddress ?? IBC_WASM_CONTRACT;
     const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
     if (!token) return { balance: 0 };
     if (token.contractAddress) {
-      const cw20Token = tokenQueryClient ?? new OraiswapTokenQueryClient(client, token.contractAddress);
-      const { balance } = await cw20Token.balance({ address: IBC_WASM_CONTRACT });
+      const cw20Token = new OraiswapTokenQueryClient(client, token.contractAddress);
+      const { balance } = await cw20Token.balance({ address: ibcWasm });
       return { balance: toDisplay(balance, token.decimals) };
     }
-    const { amount } = await client.getBalance(IBC_WASM_CONTRACT, token.denom);
+    const { amount } = await client.getBalance(ibcWasm, token.denom);
     return { balance: toDisplay(amount, token.decimals) };
   };
 
@@ -250,8 +251,7 @@ export class UniversalSwapHandler {
     amount: {
       toAmount: string;
       fromAmount: number;
-    },
-    tokenQueryClient?: OraiswapTokenReadOnlyInterface
+    }
   ) {
     // ORAI ( ETH ) -> check ORAI (ORAICHAIN) -> ORAI (BSC)
     // no need to check this case because users will swap directly. This case should be impossible because it is only called when transferring from evm to other networks
@@ -259,7 +259,7 @@ export class UniversalSwapHandler {
     // always check from token in ibc wasm should have enough tokens to swap / send to destination
     const token = getTokenOnOraichain(from.coinGeckoId);
     if (!token) return;
-    const { balance } = await this.getBalanceIBCOraichain(token, tokenQueryClient);
+    const { balance } = await this.getBalanceIBCOraichain(token);
     if (balance < amount.fromAmount) {
       throw generateError(
         `The bridge contract does not have enough balance to process this bridge transaction. Wanted ${amount.fromAmount}, have ${balance}`

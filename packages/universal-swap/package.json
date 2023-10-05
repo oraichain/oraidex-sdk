@@ -7,14 +7,12 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "@oraichain/common-contracts-build": "1.0.32",
-    "@oraichain/common-contracts-sdk": "1.0.31",
-    "@oraichain/cw-simulate": "^2.8.55",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.23",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.24",
     "cosmjs-types": "^0.8.0",
     "ts-results": "^3.3.0",
     "@oraichain/oraidex-common": "^1.0.0",
     "ethers": "^5.0.15",
-    "tronweb": "5.3.0"
+    "tronweb": "5.3.0",
+    "bech32": "1.1.4"
   }
 }
