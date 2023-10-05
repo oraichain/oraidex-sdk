@@ -595,28 +595,32 @@ export class DuckDb {
     );
   }
 
-  async getMyStakedAmount(stakerAddress: string) {
+  async getMyStakedAmount(stakerAddress: string, startTime: number, endTime: number) {
     const result = await this.conn.all(
       `
       SELECT stakingAssetDenom, sum(stakeAmountInUsdt) as stakeAmountInUsdt
       FROM staking_history
-      WHERE stakerAddress = ?
+      WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
       GROUP BY stakingAssetDenom
       `,
-      stakerAddress
+      stakerAddress,
+      startTime,
+      endTime
     );
     return result as Pick<StakingOperationData, "stakingAssetDenom" | "stakeAmountInUsdt">[];
   }
 
-  async getMyEarnedAmount(stakerAddress: string) {
+  async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number) {
     const result = await this.conn.all(
       `
       SELECT stakingAssetDenom, sum(earnAmountInUsdt) as earnAmountInUsdt
       FROM earning_history
-      WHERE stakerAddress = ?
+      WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
       GROUP BY stakingAssetDenom
       `,
-      stakerAddress
+      stakerAddress,
+      startTime,
+      endTime
     );
     return result as Pick<EarningOperationData, "stakingAssetDenom" | "earnAmountInUsdt">[];
   }
@@ -636,7 +640,8 @@ export class DuckDb {
           stakingAssetDenom varchar,
           stakingAssetPrice double,
           earnAmount bigint,
-          earnAmountInUsdt double
+          earnAmountInUsdt double,
+          rewardAssetDenom varchar
         )
       `
     );

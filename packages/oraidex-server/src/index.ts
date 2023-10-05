@@ -21,6 +21,7 @@ import {
   getVolumePairByUsdt,
   oraiInfo,
   oraiUsdtPairOnlyDenom,
+  pairWithStakingAsset,
   pairs,
   pairsOnlyDenom,
   pairsWithDenom,
@@ -308,7 +309,7 @@ app.get("/orai-info", async (req, res) => {
 app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
   try {
     if (!req.query.base_denom || !req.query.quote_denom) {
-      return res.status(400).send("Not enough query params");
+      return res.status(400).send("Not enough query params: base_denom, quote_denom, tf");
     }
 
     // query tf is in minute unit
@@ -343,28 +344,53 @@ app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
   }
 });
 
-app.get("/v1/staked", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
+app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
   try {
     if (!req.query.stakerAddress) {
       return res.status(400).send("Not enough query params: stakerAddress");
     }
 
-    const result = await duckDb.getMyStakedAmount(req.query.stakerAddress);
-    res.status(200).send(result);
-  } catch (error) {
-    console.log({ error });
-    res.status(500).send(`Error: ${JSON.stringify(error)}`);
-  }
-});
+    const DEFAULT_TIME_FRAME = 30 * 24 * 60 * 60; // 30 days in second unit.
+    const tf = +req.query.tf || DEFAULT_TIME_FRAME;
+    const now = new Date();
+    const startTime = Math.round(getSpecificDateBeforeNow(now, tf).getTime() / 1000);
+    const endTime = Math.round(now.getTime() / 1000);
 
-app.get("/v1/earned", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
-  try {
-    if (!req.query.stakerAddress) {
-      return res.status(400).send("Not enough query params: stakerAddress");
-    }
+    const staked = await duckDb.getMyStakedAmount(req.query.stakerAddress, startTime, endTime);
+    const earned = await duckDb.getMyEarnedAmount(req.query.stakerAddress, startTime, endTime);
+    const stakedWithKey = staked.reduce((accumulator, item) => {
+      accumulator[item.stakingAssetDenom] = item.stakeAmountInUsdt;
+      return accumulator;
+    }, {});
+    const earnedWithKey = earned.reduce((accumulator, item) => {
+      accumulator[item.stakingAssetDenom] = item.earnAmountInUsdt;
+      return accumulator;
+    }, {});
 
-    const result = await duckDb.getMyEarnedAmount(req.query.stakerAddress);
-    res.status(200).send(result);
+    const result = pairWithStakingAsset.reduce(
+      (result, item) => {
+        const stakingAssetDenom = parseAssetInfoOnlyDenom(item.stakingAssetInfo);
+        result[stakingAssetDenom] = {
+          stakingAmountInUsdt: stakedWithKey[stakingAssetDenom] || 0,
+          earnAmountInUsdt: earnedWithKey[stakingAssetDenom] || 0
+        };
+        return result;
+      },
+      {} as {
+        [key: string]: {
+          stakingAmountInUsdt: number;
+          earnAmountInUsdt: number;
+        };
+      }
+    );
+
+    const finalResult = Object.entries(result).map(([denom, values]) => ({
+      stakingAssetDenom: denom,
+      stakingAmountInUsdt: values.stakingAmountInUsdt,
+      earnAmountInUsdt: values.earnAmountInUsdt
+    }));
+
+    res.status(200).send(finalResult);
   } catch (error) {
     console.log({ error });
     res.status(500).send(`Error: ${JSON.stringify(error)}`);

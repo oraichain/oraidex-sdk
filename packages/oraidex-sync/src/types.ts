@@ -37,10 +37,11 @@ export type StakingOperationData = {
 export type EarningOperationData = {
   uniqueKey: string; // concat of txheight, stakeAmount, stakerAddress, and stakeAssetDenom => should be unique
   stakerAddress: string;
-  stakingAssetDenom: string;
+  rewardAssetDenom: string;
   earnAmount: bigint;
   earnAmountInUsdt: number;
   stakingAssetPrice: number;
+  stakingAssetDenom: number;
 } & BasicTxData;
 
 export type VolumeData = {
@@ -283,4 +284,5 @@ export type GetPricePairQuery = {
 
 export type GetStakedByUserQuery = {
   stakerAddress: string;
+  tf?: number;
 };

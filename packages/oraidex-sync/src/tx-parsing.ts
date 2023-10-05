@@ -22,7 +22,7 @@ import {
   toDecimal
 } from "./helper";
 import { pairWithStakingAsset, pairs } from "./pairs";
-import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo, parseStakingDenomToAssetInfo } from "./parse";
+import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
 import { calculateLiquidityFee, getPriceAssetByUsdt, isPoolHasFee } from "./pool-helper";
 import {
   AccountTx,
@@ -40,6 +40,7 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { fetchAllRewardInfo } from "./query";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -156,21 +157,6 @@ async function calculateLpPrice({
   }
 }
 
-export async function fetchRewardInfo(
-  stakerAddr: string,
-  stakingAssetDenom: string,
-  wantedHeight?: number
-): Promise<OraiswapStakingTypes.RewardInfoResponse> {
-  const stakingAssetInfo = parseStakingDenomToAssetInfo(stakingAssetDenom);
-
-  const client = await getCosmwasmClient();
-  client.setQueryClientWithHeight(wantedHeight);
-
-  const stakingContract = new OraiswapStakingQueryClient(client, network.staking);
-  const data = await stakingContract.rewardInfo({ assetInfo: stakingAssetInfo, stakerAddr });
-  return data;
-}
-
 async function extractStakingOperations(
   txData: BasicTxData,
   wasmAttributes: (readonly Attribute[])[]
@@ -197,8 +183,9 @@ async function extractStakingOperations(
   }
 
   for (let i = 0; i < stakerAddresses.length; i++) {
+    const wantedHeight = txData.txheight - 1;
     const lpPrice = await calculateLpPrice({
-      txHeight: txData.txheight,
+      txHeight: wantedHeight,
       stakingAssetDenom: stakingAssetDenoms[i]
     });
 
@@ -208,43 +195,69 @@ async function extractStakingOperations(
     const countHistories = await duckDb.getStakingHistoriesByStaker(stakerAddresses[i]);
     if (countHistories === 0) {
       // get from contract with wanted height is txheight - 1 because we want to get bond amount before user bond/unbond.
-      const currentStaking = await fetchRewardInfo(stakerAddresses[i], stakingAssetDenoms[i], txData.txheight - 1);
-      const initialStakedAmount = Number(currentStaking?.reward_infos[0]?.bond_amount || "0");
-      newStakedAmount = lpPrice * (initialStakedAmount + stakeAmounts[i]);
+      // in this case, we fetch all reward info of all pair from contract to save initial data for user.
+      const currentAllStaking = await fetchAllRewardInfo(stakerAddresses[i], wantedHeight);
+      const newStakingDatas = currentAllStaking.map((item) => {
+        const stakeAmount = Number(item?.reward_infos[0]?.bond_amount || "0");
+        const stakeAmountInUsdt = lpPrice * stakeAmount;
+        return {
+          uniqueKey: concatStakingpHistoryToUniqueKey({
+            txheight: txData.txheight,
+            stakeAmount,
+            stakerAddress: stakerAddresses[i],
+            stakeAssetDenom: parseAssetInfoOnlyDenom(item.stakingAssetInfo)
+          }),
+          stakerAddress: stakerAddresses[i],
+          stakingAssetDenom: parseAssetInfoOnlyDenom(item.stakingAssetInfo),
+          stakeAmount: BigInt(stakeAmount),
+          timestamp: txData.timestamp,
+          txhash: txData.txhash,
+          txheight: wantedHeight,
+          stakeAmountInUsdt,
+          lpPrice
+        } as StakingOperationData;
+      });
+      stakingData.push(...newStakingDatas);
     } else {
       newStakedAmount = lpPrice * stakeAmounts[i];
-    }
-    stakingData.push({
-      uniqueKey: concatStakingpHistoryToUniqueKey({
-        txheight: txData.txheight,
-        stakeAmount: stakeAmounts[i],
+      stakingData.push({
+        uniqueKey: concatStakingpHistoryToUniqueKey({
+          txheight: txData.txheight,
+          stakeAmount: stakeAmounts[i],
+          stakerAddress: stakerAddresses[i],
+          stakeAssetDenom: stakingAssetDenoms[i]
+        }),
         stakerAddress: stakerAddresses[i],
-        stakeAssetDenom: stakingAssetDenoms[i]
-      }),
-      stakerAddress: stakerAddresses[i],
-      stakingAssetDenom: stakingAssetDenoms[i],
-      stakeAmount: BigInt(stakeAmounts[i]),
-      timestamp: txData.timestamp,
-      txhash: txData.txhash,
-      txheight: txData.txheight,
-      stakeAmountInUsdt: newStakedAmount,
-      lpPrice
-    });
+        stakingAssetDenom: stakingAssetDenoms[i],
+        stakeAmount: BigInt(stakeAmounts[i]),
+        timestamp: txData.timestamp,
+        txhash: txData.txhash,
+        txheight: txData.txheight,
+        stakeAmountInUsdt: newStakedAmount,
+        lpPrice
+      });
+    }
   }
   return stakingData;
 }
 
 async function extractClaimOperations(
   txData: BasicTxData,
-  wasmAttributes: (readonly Attribute[])[]
+  wasmAttributes: (readonly Attribute[])[],
+  msg: MsgType
 ): Promise<EarningOperationData[]> {
   let claimData: EarningOperationData[] = [];
   let stakerAddresses: string[] = [];
-  let stakingAssetDenoms: string[] = [];
+  let rewardAssetDenoms: string[] = [];
   let earnAmounts: number[] = [];
+  let stakingAssetDenom;
   for (let attrs of wasmAttributes) {
     const stakingAction = attrs.find((attr) => attr.key === "action" && attr.value === "withdraw_reward");
     if (!stakingAction) continue;
+
+    const stakingAssetInfo = "withdraw" in msg ? msg.withdraw.asset_info : undefined;
+    if (!stakingAssetInfo) continue;
+    stakingAssetDenom = parseAssetInfoOnlyDenom(stakingAssetInfo);
 
     attrs.reduce((_accumulator, attr, index) => {
       if (attr.key === "to") stakerAddresses.push(attr.value);
@@ -258,7 +271,7 @@ async function extractClaimOperations(
            { key:amount, value:892039 }
         */
         const rewardAsset = attrs[index - 2];
-        stakingAssetDenoms.push(rewardAsset.value);
+        rewardAssetDenoms.push(rewardAsset.value);
       }
       return _accumulator;
     }, null);
@@ -266,9 +279,9 @@ async function extractClaimOperations(
   for (let i = 0; i < stakerAddresses.length; i++) {
     let stakingAssetPrice = 0;
     // hardcode price for reward OCH
-    if (stakingAssetDenoms[i] === ORAIXOCH_INFO.token.contract_addr) stakingAssetPrice = OCH_PRICE;
+    if (rewardAssetDenoms[i] === ORAIXOCH_INFO.token.contract_addr) stakingAssetPrice = OCH_PRICE;
     else {
-      const assetInfo = parseCw20DenomToAssetInfo(stakingAssetDenoms[i]);
+      const assetInfo = parseCw20DenomToAssetInfo(rewardAssetDenoms[i]);
       stakingAssetPrice = await getPriceAssetByUsdt(assetInfo);
     }
 
@@ -278,16 +291,17 @@ async function extractClaimOperations(
         txheight: txData.txheight,
         stakeAmount: earnAmounts[i],
         stakerAddress: stakerAddresses[i],
-        stakeAssetDenom: stakingAssetDenoms[i]
+        stakeAssetDenom: rewardAssetDenoms[i]
       }),
       txheight: txData.txheight,
       txhash: txData.txhash,
       timestamp: txData.timestamp,
       stakerAddress: stakerAddresses[i],
-      stakingAssetDenom: stakingAssetDenoms[i],
+      stakingAssetDenom,
       stakingAssetPrice,
       earnAmount: BigInt(earnAmounts[i]),
-      earnAmountInUsdt: newEarnAmount
+      earnAmountInUsdt: newEarnAmount,
+      rewardAssetDenom: rewardAssetDenoms[i]
     });
   }
   return claimData;
@@ -525,7 +539,7 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
 
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
       stakingOpsData.push(...(await extractStakingOperations(basicTxData, wasmAttributes)));
-      claimOpsData.push(...(await extractClaimOperations(basicTxData, wasmAttributes)));
+      claimOpsData.push(...(await extractClaimOperations(basicTxData, wasmAttributes, msg.msg)));
       const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
       withdrawLiquidityOpsData.push(...(await extractMsgWithdrawLiquidity(basicTxData, wasmAttributes, sender)));
