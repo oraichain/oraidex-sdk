@@ -41,7 +41,7 @@ export type EarningOperationData = {
   earnAmount: bigint;
   earnAmountInUsdt: number;
   stakingAssetPrice: number;
-  stakingAssetDenom: number;
+  stakingAssetDenom: string;
 } & BasicTxData;
 
 export type VolumeData = {

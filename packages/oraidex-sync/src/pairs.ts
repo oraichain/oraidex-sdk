@@ -103,12 +103,12 @@ export function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
 
 export const pairsOnlyDenom = pairs.map((pair) => ({
   ...pair,
-  asset_infos: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))
+  asset_infos: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom1(info))
 }));
 
 export const pairsWithDenom = pairs.map((pair) => ({
   ...pair,
-  asset_denoms: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info))
+  asset_denoms: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom1(info))
 }));
 
 export const uniqueInfos = extractUniqueAndFlatten(pairs);
