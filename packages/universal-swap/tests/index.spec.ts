@@ -156,7 +156,7 @@ describe("test universal swap handler functions", () => {
       return new Promise((resolve) =>
         resolve({
           client,
-          wallet: config.signer,
+          wallet: config.signer!,
           defaultAddress: { address: "", algo: "secp256k1", pubkey: Uint8Array.from([]) }
         })
       );
@@ -347,9 +347,9 @@ describe("test universal swap handler functions", () => {
     });
 
     it.each([
-      ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX), "0xae1ae6"],
-      ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX), "0x1234"],
-      ["", "", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX), "this-case-throw-error"]
+      ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0xae1ae6"],
+      ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0x1234"],
+      ["", "", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "this-case-throw-error"]
     ])(
       "test getTranferAddress should return transferAddress correctly & throw error correctly",
       (metamaskAddress: string, tronAddress: string, toToken: TokenItemType, expectedTransferAddr: string) => {
@@ -362,8 +362,8 @@ describe("test universal swap handler functions", () => {
           userSlippage,
           fromAmount: toDisplay(fromAmount)
         });
-        const ibcInfo = ibcInfos["Oraichain"]["oraibridge-subnet-2"].channel;
-        universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === "airight");
+        const ibcInfo = ibcInfos["Oraichain"]["oraibridge-subnet-2"]!.channel;
+        universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === "airight")!;
         try {
           const transferAddress = universalSwap.getTranferAddress(metamaskAddress, tronAddress, ibcInfo);
           expect(transferAddress).toEqual(expectedTransferAddr);
@@ -374,8 +374,8 @@ describe("test universal swap handler functions", () => {
     );
 
     it.each([
-      ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2"), "oraib0x1234"],
-      ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2"), ""]
+      ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "oraib0x1234"],
+      ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, ""]
     ])(
       "test getIbcMemo should return ibc memo correctly",
       (transferAddress: string, toToken: TokenItemType, expectedIbcMemo: string) => {
@@ -391,7 +391,7 @@ describe("test universal swap handler functions", () => {
         jest.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
         const ibcMemo = universalSwap.getIbcMemo("john doe", "john doe", "john doe", {
           chainId: toToken.chainId,
-          prefix: toToken.prefix
+          prefix: toToken.prefix!
         });
         expect(ibcMemo).toEqual(expectedIbcMemo);
       }
@@ -400,11 +400,11 @@ describe("test universal swap handler functions", () => {
     it.each<[string, TokenItemType, string, boolean]>([
       [
         "1000000000000000000000000000000000000000",
-        flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight"),
+        flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!,
         channel,
         true
       ],
-      ["10", flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight"), channel, false]
+      ["10", flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, false]
     ])("test-universal-swap-checkBalanceChannelIbc-%", async (amount, toToken, channel, willThrow) => {
       const universalSwap = new FakeUniversalSwapHandler({
         cosmosSender: testSenderAddress,
@@ -431,8 +431,8 @@ describe("test universal swap handler functions", () => {
     });
 
     it.each([
-      [oraichainTokens.find((t) => t.coinGeckoId === "airight"), 10000000],
-      [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token"), 0]
+      [oraichainTokens.find((t) => t.coinGeckoId === "airight")!, 10000000],
+      [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, 0]
     ])("test-universal-swap-getBalanceIBCOraichain-ibc-%", async (token: TokenItemType, expectedBalance: number) => {
       const universalSwap = new FakeUniversalSwapHandler({
         cosmosSender: testSenderAddress,
