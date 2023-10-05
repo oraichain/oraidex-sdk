@@ -17,7 +17,6 @@ import {
   usdtCw20Address
 } from "./constants";
 import { PairMapping } from "./types";
-import { parseAssetInfoOnlyDenom } from "./parse";
 
 // the orders are important! Do not change the order of the asset_infos.
 export const pairs: PairMapping[] = [
@@ -83,24 +82,6 @@ export const pairs: PairMapping[] = [
   }
 ];
 
-export function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
-  const uniqueItems = new Set();
-
-  data.forEach((item) => {
-    item.asset_infos.forEach((info) => {
-      const stringValue = JSON.stringify(info);
-
-      if (!uniqueItems.has(stringValue)) {
-        uniqueItems.add(stringValue);
-      }
-    });
-  });
-
-  const uniqueFlattenedArray = Array.from(uniqueItems).map((item) => JSON.parse(item as string));
-
-  return uniqueFlattenedArray;
-}
-
 export const pairsOnlyDenom = pairs.map((pair) => ({
   ...pair,
   asset_infos: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom1(info))
@@ -110,8 +91,6 @@ export const pairsWithDenom = pairs.map((pair) => ({
   ...pair,
   asset_denoms: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom1(info))
 }));
-
-export const uniqueInfos = extractUniqueAndFlatten(pairs);
 
 export const oraiUsdtPairOnlyDenom = pairsOnlyDenom.find(
   (pair) => JSON.stringify(pair.asset_infos) === JSON.stringify([ORAI, usdtCw20Address])
