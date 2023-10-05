@@ -70,7 +70,7 @@ export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
   constructor(
     public swapData: {
-      readonly sender: string;
+      readonly cosmosSender: string;
       readonly originalFromToken: TokenItemType;
       readonly originalToToken: TokenItemType;
       readonly fromAmount: number;
@@ -122,7 +122,7 @@ export class UniversalSwapHandler {
         sourcePort: ibcInfo.source,
         sourceChannel: ibcInfo.channel,
         token: amount,
-        sender: this.swapData.sender,
+        sender: this.swapData.cosmosSender,
         receiver: toAddress,
         memo: "",
         timeoutTimestamp: timeoutTimestamp ?? calculateTimeoutTimestamp(ibcInfo.timeout)
@@ -132,7 +132,7 @@ export class UniversalSwapHandler {
     // if not same coingeckoId, swap first then transfer token that have same coingeckoid.
     if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
-      const msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender, msgSwap);
+      const msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.cosmosSender, msgSwap);
       return [...msgExecuteSwap, msgTransfer];
     }
     return [msgTransfer];
@@ -170,7 +170,7 @@ export class UniversalSwapHandler {
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
     if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
-      msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender, msgSwap);
+      msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.cosmosSender, msgSwap);
     }
 
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
@@ -188,7 +188,7 @@ export class UniversalSwapHandler {
 
     // create bridge msg
     const msgTransfer = this.generateMsgsTransferOraiToEvm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
-    const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.sender, msgTransfer);
+    const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.cosmosSender, msgTransfer);
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
@@ -278,7 +278,7 @@ export class UniversalSwapHandler {
   async swap(): Promise<any> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
-    const result = await client.executeMultiple(this.swapData.sender, messages, "auto");
+    const result = await client.executeMultiple(this.swapData.cosmosSender, messages, "auto");
     return result;
   }
 
@@ -450,7 +450,7 @@ export class UniversalSwapHandler {
       chainId: "Oraichain",
       rpc: this.swapData.originalFromToken.rpc
     });
-    const result = await client.signAndBroadcast(this.swapData.sender, encodedObjects, "auto");
+    const result = await client.signAndBroadcast(this.swapData.cosmosSender, encodedObjects, "auto");
     return result;
   }
 

@@ -6,8 +6,8 @@ import { ethToTronAddress, tronToEthAddress } from "./helper";
 import { TokenItemType } from "./token";
 import { ethers } from "ethers";
 import { IERC20Upgradeable__factory } from "./typechain-types";
-import { TronWeb } from "./tronweb";
 import { JsonRpcSigner } from "@ethersproject/providers";
+import { TronWeb } from "./tronweb";
 
 export abstract class CosmosWallet {
   public abstract getKeplrAddr(chainId?: NetworkChainId): Promise<string>;
