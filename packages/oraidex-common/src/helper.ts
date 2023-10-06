@@ -217,3 +217,12 @@ export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {
   if (tokenInfo.contractAddress) return tokenInfo.contractAddress;
   return tokenInfo.denom;
 };
+
+export const isEthAddress = (address: string): boolean => {
+  try {
+    const checkSumAddress = ethers.utils.getAddress(address);
+    return ethers.utils.isAddress(checkSumAddress);
+  } catch (error) {
+    return false;
+  }
+};

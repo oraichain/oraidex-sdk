@@ -17,7 +17,7 @@ import {
   getTokenOnOraichain,
   getTokenOnSpecificChainId,
   handleSentFunds,
-  isEvmNetworkNativeSwapSupported,
+  isEthAddress,
   parseAssetInfo,
   parseTokenInfo,
   parseTokenInfoRawDenom,
@@ -41,6 +41,15 @@ describe("should helper functions in helper run exactly", () => {
     milky: "1000000", // 1
     [MILKYBSC_ORAICHAIN_DENOM]: "1000000000000000000" // 1
   };
+
+  it.each<[string, boolean]>([
+    ["0x", false],
+    ["orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g", false],
+    ["0x3C5C6b570C1DA469E8B24A2E8Ed33c278bDA3222", true]
+  ])("test-is-eth-address-metamask", (address, expectedIsEthAddress) => {
+    const isEth = isEthAddress(address);
+    expect(isEth).toEqual(expectedIsEthAddress);
+  });
 
   it("should get sub amount of evm token correctly and to sum display, to total display correctly", () => {
     // test for milky token that have evm denom => have sub amount.
@@ -312,14 +321,6 @@ describe("should helper functions in helper run exactly", () => {
     } catch (error) {
       expect(error).toEqual(new Error(err));
     }
-  });
-
-  it.each<[NetworkChainId, boolean]>([
-    ["0x01", true],
-    ["0x38", true],
-    ["Oraichain", false]
-  ])("test-isEvmNetworkNativeSwapSupported", (chainId, expectedResult) => {
-    expect(isEvmNetworkNativeSwapSupported(chainId)).toEqual(expectedResult);
   });
 
   it.each<[TokenItemType, string]>([

@@ -1,19 +1,39 @@
 import {
+  ATOM_ORAICHAIN_DENOM,
   CoinGeckoId,
+  CosmosChainId,
+  EvmChainId,
+  KWT_BSC_CONTRACT,
+  MILKY_BSC_CONTRACT,
+  NetworkChainId,
+  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
+  ORAI_BSC_CONTRACT,
   USDT_BSC_CONTRACT,
+  USDT_CONTRACT,
   USDT_TRON_CONTRACT,
   WRAP_BNB_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
-  ibcInfos
+  flattenTokens,
+  ibcInfos,
+  oraib2oraichain,
+  oraichain2atom,
+  oraichain2oraib
 } from "@oraichain/oraidex-common";
+
+import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper";
 import {
   buildIbcWasmPairKey,
   buildSwapRouterKey,
+  combineReceiver,
+  getDestination,
   getEvmSwapRoute,
   getIbcInfo,
+  getSourceReceiver,
+  isEvmNetworkNativeSwapSupported,
   isEvmSwappable,
   isSupportedNoPoolSwapEvm
 } from "../src/helper";
+import { UniversalSwapType } from "../src/types";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -66,5 +86,228 @@ describe("test helper functions", () => {
 
   it("test-buildIbcWasmPairKey", () => {
     expect(buildIbcWasmPairKey("foo", "bar", "john-doe")).toEqual("foo/bar/john-doe");
+  });
+
+  it.each<[NetworkChainId, boolean]>([
+    ["0x01", true],
+    ["0x38", true],
+    ["Oraichain", false]
+  ])("test-isEvmNetworkNativeSwapSupported", (chainId, expectedResult) => {
+    expect(isEvmNetworkNativeSwapSupported(chainId)).toEqual(expectedResult);
+  });
+
+  it("test-getSourceReceiver-should-return-channel-1-plus-address", async () => {
+    const keplrAddress = "orai1329tg05k3snr66e2r9ytkv6hcjx6fkxcarydx6";
+    const tokenAddress = ORAI_BSC_CONTRACT;
+    const res = getSourceReceiver(keplrAddress, tokenAddress);
+    expect(res).toBe(`${oraib2oraichain}/${keplrAddress}`);
+  });
+
+  it("test-getSourceReceiver-should-return-only-address", async () => {
+    const keplrAddress = "orai1329tg05k3snr66e2r9ytkv6hcjx6fkxcarydx6";
+    let tokenAddress = KWT_BSC_CONTRACT;
+    let res = getSourceReceiver(keplrAddress, tokenAddress);
+    expect(res).toBe(keplrAddress);
+
+    tokenAddress = MILKY_BSC_CONTRACT;
+    res = getSourceReceiver(keplrAddress, tokenAddress);
+    expect(res).toBe(keplrAddress);
+  });
+
+  it.each<
+    [
+      CoinGeckoId,
+      EvmChainId | CosmosChainId,
+      CoinGeckoId,
+      EvmChainId | CosmosChainId,
+      string,
+      { destination: string; universalSwapType: UniversalSwapType }
+    ]
+  >([
+    [
+      "airight",
+      "0x01",
+      "airight",
+      "Oraichain",
+      "orai1234",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "airight",
+      "0x38",
+      "airight",
+      "0x01",
+      "orai1234",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "airight",
+      "0x38",
+      "airight",
+      "Oraichain",
+      "",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "airight",
+      "Oraichain",
+      "",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "osmosis",
+      "osmosis-1",
+      "airight",
+      "Oraichain",
+      "",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "kawaii-islands",
+      "kawaii_6886-1",
+      "airight",
+      "Oraichain",
+      "",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "kawaii-islands",
+      "0x1ae6",
+      "airight",
+      "Oraichain",
+      "",
+      { destination: "", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "airight",
+      "0x38",
+      "airight",
+      "Oraichain",
+      "orai1234",
+      { destination: "orai1234", universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "airight",
+      "Oraichain",
+      "tether",
+      "Oraichain",
+      "orai1234",
+      { destination: "", universalSwapType: "oraichain-to-oraichain" }
+    ],
+    [
+      "airight",
+      "0x38",
+      "cosmos",
+      "Oraichain",
+      "orai1234",
+      {
+        destination: `orai1234:${ATOM_ORAICHAIN_DENOM}`,
+        universalSwapType: "other-networks-to-oraichain"
+      }
+    ],
+    [
+      "airight",
+      "Oraichain",
+      "cosmos",
+      "cosmoshub-4",
+      "orai1234",
+      { destination: "", universalSwapType: "oraichain-to-other-networks" }
+    ],
+    [
+      "airight",
+      "0x38",
+      "cosmos",
+      "cosmoshub-4",
+      "orai1234",
+      {
+        destination: `${oraichain2atom}/orai1234:${ATOM_ORAICHAIN_DENOM}`,
+        universalSwapType: "other-networks-to-oraichain"
+      }
+    ],
+    [
+      "tether",
+      "0x38",
+      "oraichain-token",
+      "0x01",
+      "orai1234",
+      { destination: `${oraichain2oraib}/orai1234:orai`, universalSwapType: "other-networks-to-oraichain" }
+    ],
+    [
+      "usd-coin",
+      "0x01",
+      "tether",
+      "0x38",
+      "orai1234",
+      {
+        destination: `${oraichain2oraib}/orai1234:${USDT_CONTRACT}`,
+        universalSwapType: "other-networks-to-oraichain"
+      }
+    ],
+    [
+      "usd-coin",
+      "0x01",
+      "tether",
+      "0x2b6653dc",
+      "orai1234",
+      {
+        destination: `${oraichain2oraib}/orai1234:${USDT_CONTRACT}`,
+        universalSwapType: "other-networks-to-oraichain"
+      }
+    ],
+    [
+      "usd-coin",
+      "0x01",
+      "tether",
+      "0x2b6653dc",
+      "0x1234",
+      {
+        destination: `${oraichain2oraib}/${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234:${USDT_CONTRACT}`,
+        universalSwapType: "other-networks-to-oraichain"
+      }
+    ],
+    [
+      "usd-coin",
+      "0x01",
+      "wbnb",
+      "0x38",
+      "0x1234",
+      {
+        destination: "",
+        universalSwapType: "other-networks-to-oraichain"
+      }
+    ]
+  ])(
+    "test-getDestination-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have destination %s",
+    (fromCoingeckoId, fromChainId, toCoingeckoId, toChainId, receiver, destination) => {
+      jest
+        .spyOn(dexCommonHelper, "isEthAddress")
+        .mockImplementation((address) => (address.includes("0x") ? true : false));
+      const fromToken = flattenTokens.find(
+        (item) => item.coinGeckoId === fromCoingeckoId && item.chainId === fromChainId
+      )!;
+      const toToken = flattenTokens.find((item) => item.coinGeckoId === toCoingeckoId && item.chainId === toChainId);
+      try {
+        const receiverAddress = getDestination(fromToken, toToken, receiver);
+        expect(receiverAddress).toEqual(destination);
+      } catch (error) {
+        expect(error).toEqual(new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`));
+      }
+    }
+  );
+
+  it("test-combineReceiver-empty-destination", () => {
+    const result = combineReceiver("receiver");
+    expect(result.combinedReceiver).toEqual(`${oraib2oraichain}/receiver`);
+  });
+  it("test-combineReceiver-non-empty-destination", () => {
+    const result = combineReceiver(
+      "receiver",
+      flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38"),
+      flattenTokens.find((item) => item.coinGeckoId === "oraichain-token" && item.chainId === "Oraichain"),
+      "foobar"
+    );
+    expect(result.combinedReceiver).toEqual(`${oraib2oraichain}/receiver:foobar:orai`);
   });
 });
