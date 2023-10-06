@@ -213,16 +213,6 @@ export const getTokenOnOraichain = (coingeckoId: CoinGeckoId) => {
   return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId);
 };
 
-export const isEvmNetworkNativeSwapSupported = (chainId: NetworkChainId) => {
-  switch (chainId) {
-    case "0x01":
-    case "0x38":
-      return true;
-    default:
-      return false;
-  }
-};
-
 export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {
   if (tokenInfo.contractAddress) return tokenInfo.contractAddress;
   return tokenInfo.denom;

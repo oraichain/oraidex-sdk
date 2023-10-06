@@ -9,7 +9,6 @@ import {
   WRAP_ETH_CONTRACT,
   USDC_ETH_CONTRACT,
   EvmChainId,
-  isEvmNetworkNativeSwapSupported,
   proxyContractInfo,
   CosmosChainId,
   NetworkChainId,
@@ -25,6 +24,16 @@ export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
     case "weth":
     case "binancecoin":
     case "ethereum":
+      return true;
+    default:
+      return false;
+  }
+};
+
+export const isEvmNetworkNativeSwapSupported = (chainId: NetworkChainId) => {
+  switch (chainId) {
+    case "0x01":
+    case "0x38":
       return true;
     default:
       return false;
