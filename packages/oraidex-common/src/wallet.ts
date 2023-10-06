@@ -1,5 +1,5 @@
 import { OfflineSigner } from "@cosmjs/proto-signing";
-import { CosmosChainId, NetworkChainId, Networks, network } from "./network";
+import { CosmosChainId, EvmChainId, NetworkChainId, Networks, network } from "./network";
 import { SigningCosmWasmClient, SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
 import { GasPrice } from "@cosmjs/stargate";
 import { ethToTronAddress, tronToEthAddress } from "./helper";
@@ -46,10 +46,28 @@ export abstract class CosmosWallet {
 export abstract class EvmWallet {
   public tronWeb: TronWeb;
 
-  public abstract switchNetwork(chainId: string | number): Promise<void>;
+  /**
+   * Note: Browser only. Return if you dont use the browser.
+   * This method allows switching between different evm networks.
+   * @param chainId - evm chain id
+   */
+  public abstract switchNetwork(chainId: string | number | EvmChainId): Promise<void>;
+  /**
+   * This method should return the evm address of the current operating network
+   */
   public abstract getEthAddress(): Promise<string>;
+
+  /**
+   * This method checks if the wallet is handling eth-like networks or not
+   */
   public abstract checkEthereum(): boolean;
+  /**
+   * This method checks if the wallet is handling tron network or not
+   */
   public abstract checkTron(): boolean;
+  /**
+   * This method returns an evm signer responsible for signing evm-based transactions.
+   */
   public abstract getSigner(): JsonRpcSigner;
 
   public isTron(chainId: string | number) {
