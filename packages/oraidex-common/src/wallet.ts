@@ -11,15 +11,26 @@ import { TronWeb } from "./tronweb";
 import { AccountData } from "@cosmjs/amino";
 
 export abstract class CosmosWallet {
-  public abstract getKeplrAddr(chainId?: NetworkChainId): Promise<string>;
-  public abstract collectCosmosWallet(chainId: string): Promise<OfflineSigner>;
+  /**
+   * This method should return the cosmos address in bech32 form given a cosmos chain id
+   * Browsers should make use of the existing methods from the extension to implement this method
+   * @param chainId - Cosmos chain id to parse and return the correct cosmos address
+   */
+  public abstract getKeplrAddr(chainId?: CosmosChainId): Promise<string>;
+
+  /**
+   * This method creates a new cosmos signer which is responsible for signing cosmos-based transactions.
+   * Browsers should use signers from the extension to implement this method
+   * @param chainId - Cosmos chain id
+   */
+  public abstract createCosmosSigner(chainId: CosmosChainId): Promise<OfflineSigner>;
 
   async getCosmWasmClient(
     config: { signer?: OfflineSigner; rpc?: string; chainId: CosmosChainId },
     options?: SigningCosmWasmClientOptions
   ): Promise<{ wallet: OfflineSigner; client: SigningCosmWasmClient; defaultAddress: AccountData }> {
     const { chainId, rpc, signer } = config;
-    const wallet = signer ?? (await this.collectCosmosWallet(chainId));
+    const wallet = signer ?? (await this.createCosmosSigner(chainId));
     const defaultAddress = (await wallet.getAccounts())[0];
     const client = await SigningCosmWasmClient.connectWithSigner(
       rpc ?? network.rpc,
