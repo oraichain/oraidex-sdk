@@ -7,7 +7,6 @@ import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20La
 import {
   TokenItemType,
   NetworkChainId,
-  UniversalSwapType,
   IBCInfo,
   calculateTimeoutTimestamp,
   generateError,
@@ -40,7 +39,7 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { buildIbcWasmPairKey, getEvmSwapRoute, getIbcInfo, isEvmSwappable, isSupportedNoPoolSwapEvm } from "./helper";
-import { SwapData, UniversalSwapConfig, UniversalSwapData } from "./types";
+import { SwapData, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 
 export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
