@@ -15,11 +15,9 @@ import {
   deployIcs20Token,
   deployToken,
   CosmosChainId,
-  UniversalSwapType,
   CoinGeckoId,
   AIRI_CONTRACT,
-  IBC_WASM_CONTRACT,
-  findToTokenOnOraiBridge
+  IBC_WASM_CONTRACT
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import { UniversalSwapHandler } from "../src/index";
@@ -35,7 +33,7 @@ import { OraiswapTokenClient, OraiswapTokenQueryClient } from "@oraichain/oraide
 import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import bech32 from "bech32";
-import { UniversalSwapData } from "../src/types";
+import { UniversalSwapData, UniversalSwapType } from "../src/types";
 import { getIbcInfo } from "../src/helper";
 
 describe("test universal swap handler functions", () => {
@@ -151,7 +149,7 @@ describe("test universal swap handler functions", () => {
     getKeplrAddr(chainId?: NetworkChainId | undefined): Promise<string> {
       return new Promise((resolve) => resolve("orai1234"));
     }
-    collectCosmosWallet(chainId: string): Promise<OfflineSigner> {
+    createCosmosSigner(chainId: string): Promise<OfflineSigner> {
       return DirectSecp256k1HdWallet.generate();
     }
 

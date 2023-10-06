@@ -72,7 +72,9 @@ export class UniversalSwapHandler {
       this.swapData.originalFromToken.chainId as CosmosChainId,
       this.swapData.originalToToken.chainId
     );
-    const toAddress = await this.config.cosmosWallet.getKeplrAddr(this.swapData.originalToToken.chainId);
+    const toAddress = await this.config.cosmosWallet.getKeplrAddr(
+      this.swapData.originalToToken.chainId as CosmosChainId
+    );
     if (!toAddress) throw generateError("Please login keplr!");
 
     const amount = coin(this.swapData.simulateAmount, this.toTokenInOrai.denom);
@@ -137,7 +139,7 @@ export class UniversalSwapHandler {
     const newToToken = findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
     // this.swapData.originalToToken = findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
 
-    const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId);
+    const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
     if (!toAddress) throw generateError("Please login keplr!");
 
     const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
