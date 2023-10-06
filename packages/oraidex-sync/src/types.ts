@@ -285,4 +285,11 @@ export type GetPricePairQuery = {
 export type GetStakedByUserQuery = {
   stakerAddress: string;
   tf?: number;
+  pairDenoms?: string;
 };
+
+export type GetPoolDetailQuery = {
+  pairDenoms: string;
+};
+
+export type StakeByUserResponse = Pick<EarningOperationData, "stakingAssetDenom" | "earnAmountInUsdt">;

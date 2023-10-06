@@ -486,7 +486,7 @@ describe("test-duckdb", () => {
 
     it("test-getApr-should-return-correctly-apr-for-all-pair", async () => {
       // act
-      const apr = await duckDb.getApr();
+      const apr = await duckDb.getAllAprs();
 
       // assertion
       expect(apr).toEqual([

@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
+import { isEqual } from "lodash";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
   DuckDb,
   GetCandlesQuery,
+  GetPoolDetailQuery,
   GetPricePairQuery,
   GetStakedByUserQuery,
   ORAI,
@@ -193,22 +195,65 @@ app.get("/v1/pools/", async (_req, res) => {
       getAllVolume24h(),
       getAllFees(),
       duckDb.getPools(),
-      duckDb.getApr()
+      duckDb.getAllAprs()
     ]);
     const allLiquidities = await Promise.all(pools.map((pair) => getPairLiquidity(pair)));
+    const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
+      const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
+      return {
+        ...pool,
+        volume24Hour: volumes[index]?.toString() ?? "0",
+        fee7Days: allFee7Days[index]?.toString() ?? "0",
+        apr: poolApr?.apr ?? 0,
+        totalLiquidity: allLiquidities[index],
+        rewardPerSec: poolApr?.rewardPerSec
+      } as PairInfoDataResponse;
+    });
 
-    res.status(200).send(
-      pools.map((pool, index) => {
-        const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
-        return {
-          ...pool,
-          volume24Hour: volumes[index]?.toString() ?? "0",
-          fee7Days: allFee7Days[index]?.toString() ?? "0",
-          apr: poolApr?.apr ?? 0,
-          totalLiquidity: allLiquidities[index]
-        } as PairInfoDataResponse;
-      })
+    res.status(200).send(allPoolInfoResponse);
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, res) => {
+  if (!req.query.pairDenoms) return res.status(400).send("Not enough query params: pairDenoms");
+
+  try {
+    const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
+    const pair = pairWithStakingAsset.find((pair) =>
+      isEqual(
+        pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
+        [baseDenom, quoteDenom]
+      )
     );
+    const tf = 24 * 60 * 60; // second of 24h
+    const currentDate = new Date();
+    const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const twoDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf * 2);
+    const [poolVolume, poolVolumeOnedayBefore, pool] = await Promise.all([
+      getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate),
+      getVolumePairByUsdt(pair.asset_infos, twoDayBeforeNow, oneDayBeforeNow),
+      duckDb.getDetailPool(pair.asset_infos.map((asset_info) => JSON.stringify(asset_info)))
+    ]);
+
+    let percentVolumeChange = 0;
+    if (poolVolumeOnedayBefore !== 0n) {
+      percentVolumeChange = (Number(poolVolume - poolVolumeOnedayBefore) / Number(poolVolumeOnedayBefore)) * 100;
+    }
+
+    const poolApr = await duckDb.getAprPool(pool.pairAddr);
+    const poolLiquidity = await getPairLiquidity(pool);
+    const poolDetailResponse = {
+      ...pool,
+      volume24Hour: poolVolume?.toString() ?? "0",
+      volume24hChange: percentVolumeChange,
+      apr: poolApr?.apr ?? 0,
+      totalLiquidity: poolLiquidity,
+      rewardPerSec: poolApr?.rewardPerSec
+    };
+    res.status(200).send(poolDetailResponse);
   } catch (error) {
     console.log({ error });
     res.status(500).send(error.message);
@@ -299,9 +344,21 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
     const startTime = Math.round(getSpecificDateBeforeNow(now, tf).getTime() / 1000);
     const endTime = Math.round(now.getTime() / 1000);
 
+    let stakingAssetDenom;
+    if (req.query.pairDenoms) {
+      const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
+      const pair = pairWithStakingAsset.find((pair) =>
+        isEqual(
+          pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
+          [baseDenom, quoteDenom]
+        )
+      );
+      stakingAssetDenom = pair && parseAssetInfoOnlyDenom(pair.stakingAssetInfo);
+    }
+
     const [staked, earned] = await Promise.all([
-      duckDb.getMyStakedAmount(req.query.stakerAddress, startTime, endTime),
-      duckDb.getMyEarnedAmount(req.query.stakerAddress, startTime, endTime)
+      duckDb.getMyStakedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom),
+      duckDb.getMyEarnedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom)
     ]);
     const stakedWithKey = staked.reduce((accumulator, item) => {
       accumulator[item.stakingAssetDenom] = item.stakeAmountInUsdt;

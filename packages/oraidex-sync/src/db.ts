@@ -12,6 +12,7 @@ import {
   PoolAmountHistory,
   PoolApr,
   PriceInfo,
+  StakeByUserResponse,
   StakingOperationData,
   SwapOperationData,
   TokenVolumeData,
@@ -376,6 +377,16 @@ export class DuckDb {
     return (await this.conn.all("SELECT * from pair_infos")).map((data) => data as PairInfoData);
   }
 
+  async getDetailPool([firstAssetInfo, secondAssetInfo]: string[]): Promise<PairInfoData> {
+    return (
+      await this.conn.all(
+        "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
+        firstAssetInfo,
+        secondAssetInfo
+      )
+    ).map((data) => data as PairInfoData)[0];
+  }
+
   async getPoolByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PairInfoData> {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);
@@ -561,10 +572,10 @@ export class DuckDb {
     return result[0] as PoolApr;
   }
 
-  async getApr() {
+  async getAllAprs() {
     const result = await this.conn.all(
       `
-      SELECT p.pairAddr, p.apr
+      SELECT p.pairAddr, p.apr, p.rewardPerSec
       FROM pool_apr p
       JOIN (
         SELECT pairAddr, MAX(height) AS max_height
@@ -575,7 +586,19 @@ export class DuckDb {
       ORDER BY p.height DESC
       `
     );
-    return result as Pick<PoolApr, "apr" | "pairAddr">[];
+    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec">[];
+  }
+
+  async getAprPool(pairAddr: string) {
+    const result = await this.conn.all(
+      `
+      SELECT * FROM pool_apr
+      WHERE pairAddr = ?
+      ORDER BY height DESC
+      `,
+      pairAddr
+    );
+    return result[0] as PoolApr;
   }
 
   async createStakingHistoryTable() {
@@ -595,34 +618,38 @@ export class DuckDb {
     );
   }
 
-  async getMyStakedAmount(stakerAddress: string, startTime: number, endTime: number) {
-    const result = await this.conn.all(
-      `
-      SELECT stakingAssetDenom, sum(stakeAmountInUsdt) as stakeAmountInUsdt
-      FROM staking_history
-      WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
-      GROUP BY stakingAssetDenom
-      `,
-      stakerAddress,
-      startTime,
-      endTime
-    );
+  async getMyStakedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
+    let query = ` SELECT stakingAssetDenom, SUM(stakeAmountInUsdt) as stakeAmountInUsdt
+                  FROM staking_history
+                  WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
+                `;
+    const queryParams = [stakerAddress, startTime, endTime];
+    if (stakingAssetDenom) {
+      query += ` AND stakingAssetDenom = ?`;
+      queryParams.push(stakingAssetDenom);
+    }
+
+    query += ` GROUP BY stakingAssetDenom`;
+
+    const result = await this.conn.all(query, ...queryParams);
     return result as Pick<StakingOperationData, "stakingAssetDenom" | "stakeAmountInUsdt">[];
   }
 
-  async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number) {
-    const result = await this.conn.all(
-      `
-      SELECT stakingAssetDenom, sum(earnAmountInUsdt) as earnAmountInUsdt
-      FROM earning_history
-      WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
-      GROUP BY stakingAssetDenom
-      `,
-      stakerAddress,
-      startTime,
-      endTime
-    );
-    return result as Pick<EarningOperationData, "stakingAssetDenom" | "earnAmountInUsdt">[];
+  async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
+    let query = ` SELECT stakingAssetDenom, SUM(earnAmountInUsdt) as earnAmountInUsdt
+    FROM earning_history
+    WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
+  `;
+    const queryParams = [stakerAddress, startTime, endTime];
+    if (stakingAssetDenom) {
+      query += ` AND stakingAssetDenom = ?`;
+      queryParams.push(stakingAssetDenom);
+    }
+
+    query += ` GROUP BY stakingAssetDenom`;
+
+    const result = await this.conn.all(query, ...queryParams);
+    return result as StakeByUserResponse[];
   }
 
   async insertStakingHistories(stakingHistories: StakingOperationData[]) {
