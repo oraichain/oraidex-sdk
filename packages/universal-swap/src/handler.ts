@@ -34,11 +34,8 @@ import {
   ethToTronAddress,
   oraichainTokens,
   network,
-  proxyContractInfo,
-  TokenInfo
+  proxyContractInfo
 } from "@oraichain/oraidex-common";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
-import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import {
   buildIbcWasmPairKey,

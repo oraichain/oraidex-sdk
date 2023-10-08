@@ -93,8 +93,8 @@ export const getEvmSwapRoute = (
   if (!isEvmNetworkNativeSwapSupported(chainId as EvmChainId)) return undefined;
   if (!fromContractAddr && !toContractAddr) return undefined;
   const chainRoutes = swapEvmRoutes[chainId];
-  const fromAddr = fromContractAddr || proxyContractInfo()[chainId].wrapNativeAddr;
-  const toAddr = toContractAddr || proxyContractInfo()[chainId].wrapNativeAddr;
+  const fromAddr = fromContractAddr || proxyContractInfo[chainId].wrapNativeAddr;
+  const toAddr = toContractAddr || proxyContractInfo[chainId].wrapNativeAddr;
 
   // in case from / to contract addr is empty aka native eth or bnb without contract addr then we fallback to swap route with wrapped token
   // because uniswap & pancakeswap do not support simulating with native directly
@@ -354,6 +354,7 @@ export const handleSimulateSwap = async (query: {
       toInfo: query.originalToInfo,
       amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString()
     });
+    console.log("amount, display amount: ", { amount, displayAmount });
     return { amount, displayAmount };
   }
   const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);

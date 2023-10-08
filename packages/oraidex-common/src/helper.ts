@@ -172,17 +172,15 @@ export const handleSentFunds = (...funds: (Coin | undefined)[]): Coin[] | null =
 };
 
 // hardcode this to improve performance
-export const proxyContractInfo = (): { [x: string]: { wrapNativeAddr: string; routerAddr: string } } => {
-  return {
-    "0x01": {
-      wrapNativeAddr: ethers.utils.getAddress(WRAP_ETH_CONTRACT),
-      routerAddr: ethers.utils.getAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D") // uniswap router
-    },
-    "0x38": {
-      wrapNativeAddr: ethers.utils.getAddress(WRAP_BNB_CONTRACT),
-      routerAddr: ethers.utils.getAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E") // pancakeswap router
-    }
-  };
+export const proxyContractInfo: { [x: string]: { wrapNativeAddr: string; routerAddr: string } } = {
+  "0x01": {
+    wrapNativeAddr: ethers.utils.getAddress(WRAP_ETH_CONTRACT),
+    routerAddr: ethers.utils.getAddress("0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D") // uniswap router
+  },
+  "0x38": {
+    wrapNativeAddr: ethers.utils.getAddress(WRAP_BNB_CONTRACT),
+    routerAddr: ethers.utils.getAddress("0x10ED43C718714eb63d5aA57B78B54704E256024E") // pancakeswap router
+  }
 };
 
 export const findToTokenOnOraiBridge = (fromToken: TokenItemType, toNetwork: NetworkChainId) => {
