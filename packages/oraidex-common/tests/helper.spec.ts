@@ -136,6 +136,18 @@ describe("should helper functions in helper run exactly", () => {
     }
   );
 
+  it("getEvmAddress-happy-path", async () => {
+    expect(getEvmAddress("oraie1ny7sdlyh7303deyqtzpmnznvyzat2jtyxs3y0v")).toEqual(
+      "0x993d06fc97f45f16e4805883b98a6c20bab54964"
+    );
+    expect(ethToTronAddress("0x993d06fc97f45f16e4805883b98a6c20bab54964")).toEqual(
+      "TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc"
+    );
+    expect(tronToEthAddress("TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc")).toEqual(
+      "0x993d06fc97f45f16e4805883b98a6c20bab54964"
+    );
+  });
+
   it("test-getEvmAddress", () => {
     expect(getEvmAddress("oraie1ny7sdlyh7303deyqtzpmnznvyzat2jtyxs3y0v")).toEqual(
       "0x993d06fc97f45f16e4805883b98a6c20bab54964"

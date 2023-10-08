@@ -1,7 +1,7 @@
 import { EncodeObject, coin } from "@cosmjs/proto-signing";
 import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
-import { AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, OraiswapRouterQueryClient, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
@@ -33,13 +33,15 @@ import {
   IUniswapV2Router02__factory,
   ethToTronAddress,
   oraichainTokens,
-  network
+  network,
+  proxyContractInfo,
+  TokenInfo
 } from "@oraichain/oraidex-common";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { buildIbcWasmPairKey, getEvmSwapRoute, getIbcInfo, isEvmSwappable, isSupportedNoPoolSwapEvm } from "./helper";
-import { SwapData, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
+import { SimulateResponse, SwapData, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 
 export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
@@ -196,7 +198,7 @@ export class UniversalSwapHandler {
 
   getBalanceIBCOraichain = async (token: TokenItemType) => {
     const ibcWasm = this.config.cwIcs20LatestClient?.contractAddress ?? IBC_WASM_CONTRACT;
-    const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: token.chainId as CosmosChainId });
     if (!token) return { balance: 0 };
     if (token.contractAddress) {
       const cw20Token = new OraiswapTokenQueryClient(client, token.contractAddress);
@@ -229,6 +231,120 @@ export class UniversalSwapHandler {
       await this.checkBalanceChannelIbc(ibcInfo, this.swapData.originalToToken);
     }
   }
+
+  // simulate swap functions
+  simulateSwap = async (query: { fromInfo: TokenInfo; toInfo: TokenInfo; amount: string; routerContract?: string }) => {
+    const { amount, fromInfo, toInfo, routerContract } = query;
+
+    // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
+    if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+      return {
+        amount
+      };
+    }
+
+    // check if they have pairs. If not then we go through ORAI
+    const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
+    const { info: askInfo } = parseTokenInfo(toInfo);
+    const operations = this.generateSwapOperationMsgs(offerInfo, askInfo);
+    try {
+      let finalAmount = amount;
+      let isSimulatingRatio = false;
+      // hard-code for tron because the WTRX/USDT pool is having a simulation problem (returning zero / error when simulating too small value of WTRX)
+      if (fromInfo.coinGeckoId === "tron" && amount === toAmount(1, fromInfo.decimals).toString()) {
+        finalAmount = toAmount(10, fromInfo.decimals).toString();
+        isSimulatingRatio = true;
+      }
+      const { client: cosmwasmClient } = await this.config.cosmosWallet.getCosmWasmClient({
+        chainId: fromInfo.chainId as CosmosChainId
+      });
+      const routerClient =
+        this.config.routerClient ?? new OraiswapRouterQueryClient(cosmwasmClient, routerContract ?? network.router);
+      const data = await routerClient.simulateSwapOperations({
+        offerAmount: finalAmount,
+        operations
+      });
+      if (!isSimulatingRatio) return data;
+      return { amount: data.amount.substring(0, data.amount.length - 1) };
+    } catch (error) {
+      throw new Error(`Error when trying to simulate swap using router v2: ${error}`);
+    }
+  };
+
+  simulateSwapEvm = async (query: {
+    fromInfo: TokenItemType;
+    toInfo: TokenItemType;
+    amount: string;
+  }): Promise<SimulateResponse> => {
+    const { amount, fromInfo, toInfo } = query;
+
+    // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
+    if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+      return {
+        amount,
+        displayAmount: toDisplay(amount, toInfo.decimals)
+      };
+    }
+    try {
+      // get proxy contract object so that we can query the corresponding router address
+      const provider = new ethers.providers.JsonRpcProvider(fromInfo.rpc);
+      const toTokenInfoOnSameChainId = getTokenOnSpecificChainId(toInfo.coinGeckoId, fromInfo.chainId);
+      const swapRouterV2 = IUniswapV2Router02__factory.connect(
+        proxyContractInfo[fromInfo.chainId].routerAddr,
+        provider
+      );
+      const route = getEvmSwapRoute(
+        fromInfo.chainId,
+        fromInfo.contractAddress,
+        toTokenInfoOnSameChainId.contractAddress
+      );
+      const outs = await swapRouterV2.getAmountsOut(amount, route);
+      if (outs.length === 0) throw new Error("There is no output amounts after simulating evm swap");
+      let simulateAmount = outs.slice(-1)[0].toString();
+      return {
+        // to display to reset the simulate amount to correct display type (swap simulate from -> same chain id to, so we use same chain id toToken decimals)
+        // then toAmount with actual toInfo decimals so that it has the same decimals as other tokens displayed
+        amount: simulateAmount,
+        displayAmount: toDisplay(simulateAmount, toTokenInfoOnSameChainId.decimals) // get the final out amount, which is the token out amount we want
+      };
+    } catch (ex) {
+      console.log("error simulating evm: ", ex);
+    }
+  };
+
+  handleSimulateSwap = async (query: {
+    fromInfo: TokenInfo;
+    toInfo: TokenInfo;
+    originalFromInfo: TokenItemType;
+    originalToInfo: TokenItemType;
+    amount: string;
+  }): Promise<SimulateResponse> => {
+    // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
+    // otherwise, simulate like normal
+    if (
+      isSupportedNoPoolSwapEvm(query.originalFromInfo.coinGeckoId) ||
+      isEvmSwappable({
+        fromChainId: query.originalFromInfo.chainId,
+        toChainId: query.originalToInfo.chainId,
+        fromContractAddr: query.originalFromInfo.contractAddress,
+        toContractAddr: query.originalToInfo.contractAddress
+      })
+    ) {
+      // reset previous amount calculation since now we need to deal with original from & to info, not oraichain token info
+      const originalAmount = toDisplay(query.amount, query.fromInfo.decimals);
+      const { amount, displayAmount } = await this.simulateSwapEvm({
+        fromInfo: query.originalFromInfo,
+        toInfo: query.originalToInfo,
+        amount: toAmount(originalAmount, query.originalFromInfo.decimals).toString()
+      });
+      return { amount, displayAmount };
+    }
+    const { amount } = await this.simulateSwap(query);
+    return {
+      amount,
+      displayAmount: toDisplay(amount, getTokenOnOraichain(query.toInfo.coinGeckoId)?.decimals)
+    };
+  };
 
   // TODO: write test cases
   async swap(): Promise<any> {
@@ -350,17 +466,14 @@ export class UniversalSwapHandler {
     address: {
       metamaskAddress?: string;
       tronAddress?: string;
-      oraiAddress?: string;
     },
     combinedReceiver: string
   ) => {
-    const { metamaskAddress, tronAddress, oraiAddress } = address;
+    const { metamaskAddress, tronAddress } = address;
     const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(from.chainId, {
       metamaskAddress,
       tronAddress
     });
-    const oraiAddr = oraiAddress ?? (await this.config.cosmosWallet.getKeplrAddr("Oraichain"));
-    if (!finalTransferAddress || !oraiAddr) throw generateError("Please login both metamask or tronlink and keplr!");
     const gravityContractAddr = gravityContracts[from!.chainId!];
     if (!gravityContractAddr || !from) {
       throw generateError("No gravity contract addr or no from token");
@@ -407,7 +520,7 @@ export class UniversalSwapHandler {
 
     // handle sign and broadcast transactions
     const { client } = await this.config.cosmosWallet.getCosmWasmClient({
-      chainId: "Oraichain",
+      chainId: this.swapData.originalFromToken.chainId as CosmosChainId,
       rpc: this.swapData.originalFromToken.rpc
     });
     const result = await client.signAndBroadcast(this.swapData.cosmosSender, encodedObjects, "auto");

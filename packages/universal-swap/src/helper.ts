@@ -24,6 +24,7 @@ import {
   isEthAddress
 } from "@oraichain/oraidex-common";
 import { UniversalSwapType } from "./types";
+import {} from "@oraichain/oraidex-contracts-sdk";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
