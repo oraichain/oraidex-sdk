@@ -1,4 +1,3 @@
-import { BlockHeader } from "@cosmjs/stargate";
 import { Log } from "@cosmjs/stargate/build/logs";
 import { Addr, Asset, AssetInfo, Binary, Decimal, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
@@ -129,6 +128,7 @@ export type TxAnlysisResult = {
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
   stakingOpsData: StakingOperationData[];
   claimOpsData: EarningOperationData[];
+  poolAmountHistories: PoolAmountHistory[];
 };
 
 export type MsgExecuteContractWithLogs = MsgExecuteContract & {
@@ -177,11 +177,6 @@ export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
   symbols: [string, string];
   factoryV1?: boolean;
-};
-
-export type InitialData = {
-  tokenPrices: Asset[];
-  blockHeader: BlockHeader;
 };
 
 export type TickerInfo = {

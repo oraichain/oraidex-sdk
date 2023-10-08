@@ -480,8 +480,8 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(apr).toEqual([
-        { pairAddr: "orai_usdt", apr: 4 },
-        { pairAddr: "orai_atom", apr: 2 }
+        { pairAddr: "orai_usdt", apr: 4, rewardPerSec: "1" },
+        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1" }
       ]);
     });
 

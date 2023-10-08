@@ -21,7 +21,7 @@ import {
 } from "./helper";
 import { pairWithStakingAsset, pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
-import { calculateLiquidityFee, getPriceAssetByUsdt, isPoolHasFee } from "./pool-helper";
+import { accumulatePoolAmount, calculateLiquidityFee, getPriceAssetByUsdt, isPoolHasFee } from "./pool-helper";
 import { fetchAllRewardInfo } from "./query";
 import {
   AccountTx,
@@ -533,18 +533,27 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   }
   swapOpsData = swapOpsData.filter((i) => i.direction);
   swapOpsData = removeOpsDuplication(swapOpsData) as SwapOperationData[];
+
+  provideLiquidityOpsData = groupByTime(
+    removeOpsDuplication(provideLiquidityOpsData)
+  ) as ProvideLiquidityOperationData[];
+  withdrawLiquidityOpsData = groupByTime(
+    removeOpsDuplication(withdrawLiquidityOpsData)
+  ) as WithdrawLiquidityOperationData[];
+
+  const lpOpsData = [...provideLiquidityOpsData, ...withdrawLiquidityOpsData];
+  // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
+  const poolAmountHistories = await accumulatePoolAmount(lpOpsData, [...swapOpsData]);
+
   return {
     swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
     ohlcv: buildOhlcv(swapOpsData),
     accountTxs,
-    provideLiquidityOpsData: groupByTime(
-      removeOpsDuplication(provideLiquidityOpsData)
-    ) as ProvideLiquidityOperationData[],
-    withdrawLiquidityOpsData: groupByTime(
-      removeOpsDuplication(withdrawLiquidityOpsData)
-    ) as WithdrawLiquidityOperationData[],
+    provideLiquidityOpsData,
+    withdrawLiquidityOpsData,
     stakingOpsData: groupByTime(removeOpsDuplication(stakingOpsData)) as StakingOperationData[],
-    claimOpsData: groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[]
+    claimOpsData: groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[],
+    poolAmountHistories
   };
 }
 

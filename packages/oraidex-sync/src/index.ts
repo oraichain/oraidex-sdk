@@ -1,103 +1,26 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import {
-  collectAccumulateLpAndSwapData,
-  concatLpHistoryToUniqueKey,
-  getPairLiquidity,
-  getSymbolFromAsset
-} from "./helper";
+import { concatLpHistoryToUniqueKey, getPairLiquidity, getSymbolFromAsset } from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import { fetchAprResult, getAllPairInfos, getPairByAssetInfos, getPoolInfos, handleEventApr } from "./pool-helper";
 import { parseTxs } from "./tx-parsing";
-import {
-  Env,
-  InitialData,
-  LpOpsData,
-  PairInfoData,
-  PoolAmountHistory,
-  PoolApr,
-  ProvideLiquidityOperationData,
-  SwapOperationData,
-  TxAnlysisResult,
-  WithdrawLiquidityOperationData
-} from "./types";
+import { Env, PairInfoData, PoolAmountHistory, PoolApr, TxAnlysisResult } from "./types";
 
 class WriteOrders extends WriteData {
-  constructor(private duckDb: DuckDb, private rpcUrl: string, private env: Env, private initialData: InitialData) {
+  constructor(private duckDb: DuckDb) {
     super();
   }
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
-    // insert swap ops
     await Promise.all([
       this.duckDb.insertSwapOps(txs.swapOpsData),
-      this.duckDb.insertLpOps(txs.provideLiquidityOpsData),
+      this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
       this.duckDb.insertOhlcv(txs.ohlcv),
       this.duckDb.insertStakingHistories(txs.stakingOpsData),
-      this.duckDb.insertEarningHistories(txs.claimOpsData)
+      this.duckDb.insertEarningHistories(txs.claimOpsData),
+      this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
     ]);
-    await this.duckDb.insertLpOps(txs.withdrawLiquidityOpsData);
-  }
-
-  private async accumulatePoolAmount(
-    lpData: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
-    swapData: SwapOperationData[]
-  ) {
-    if (lpData.length === 0 && swapData.length === 0) return;
-
-    const pairInfos = await this.duckDb.queryPairInfos();
-    const minSwapTxHeight = swapData[0]?.txheight;
-    const minLpTxHeight = lpData[0]?.txheight;
-    let minTxHeight;
-    if (minSwapTxHeight && minLpTxHeight) {
-      minTxHeight = Math.min(minSwapTxHeight, minLpTxHeight);
-    } else minTxHeight = minSwapTxHeight ?? minLpTxHeight;
-
-    const poolInfos = await getPoolInfos(
-      pairInfos.map((pair) => pair.pairAddr),
-      minTxHeight - 1 // assume data is sorted by height and timestamp
-    );
-    const lpOpsData: LpOpsData[] = [
-      ...lpData.map((item) => {
-        return {
-          baseTokenAmount: item.baseTokenAmount,
-          baseTokenDenom: item.baseTokenDenom,
-          quoteTokenAmount: item.quoteTokenAmount,
-          quoteTokenDenom: item.quoteTokenDenom,
-          opType: item.opType,
-          timestamp: item.timestamp,
-          height: item.txheight
-        } as LpOpsData;
-      }),
-      ...swapData.map((item) => {
-        return {
-          baseTokenAmount: item.offerAmount,
-          baseTokenDenom: item.offerDenom,
-          quoteTokenAmount: -item.returnAmount, // reverse sign because we assume first case is sell, check buy later.
-          quoteTokenDenom: item.askDenom,
-          direction: item.direction,
-          height: item.txheight,
-          timestamp: item.timestamp
-        } as LpOpsData;
-      })
-    ];
-
-    const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolInfos);
-    const poolAmountHitories = pairInfos.reduce((accumulator, { pairAddr }) => {
-      if (accumulatedData[pairAddr]) {
-        accumulator.push({
-          ...accumulatedData[pairAddr],
-          pairAddr,
-          uniqueKey: concatLpHistoryToUniqueKey({
-            timestamp: accumulatedData[pairAddr].timestamp,
-            pairAddr
-          })
-        });
-      }
-      return accumulator;
-    }, []);
-    await this.duckDb.insertPoolAmountHistory(poolAmountHitories);
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -108,17 +31,13 @@ class WriteOrders extends WriteData {
       if (currentOffset === newOffset) return true;
       const result = await parseTxs(txs);
 
+      // trigger update info relate apr such as: total bond, total supply, reward per sec, etc.
       const lpOpsData = [...result.provideLiquidityOpsData, ...result.withdrawLiquidityOpsData];
-      // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
-      await this.accumulatePoolAmount(lpOpsData, [...result.swapOpsData]);
-
       await handleEventApr(txs, lpOpsData, newOffset);
 
-      // collect the latest offer & ask volume to accumulate the results
-      // insert txs
-      console.log("new offset: ", newOffset);
       // hash to be promise all because if inserting height pass and txs fail then we will have duplications
       await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
+      console.log("new offset: ", newOffset);
 
       const lpOps = await this.duckDb.queryLpOps();
       const swapOpsCount = await this.duckDb.querySwapOps();
@@ -228,6 +147,7 @@ class OraiDexSync {
 
   public async sync() {
     try {
+      // create tables
       await Promise.all([
         this.duckDb.createHeightSnapshot(),
         this.duckDb.createLiquidityOpsTable(),
@@ -240,13 +160,13 @@ class OraiDexSync {
         this.duckDb.createEarningHistoryTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
-      let initialData: InitialData = { tokenPrices: [], blockHeader: undefined };
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
       if (currentInd <= initialSyncHeight) {
         currentInd = initialSyncHeight;
       }
       console.log("current ind: ", currentInd);
+
       await this.updateLatestPairInfos();
 
       // update offer & ask, total share of pool history in the first time
@@ -260,23 +180,15 @@ class OraiDexSync {
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
-        limit: +process.env.LIMIT || 1000,
+        limit: parseInt(process.env.LIMIT) || 1000,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 5000
-      }).pipe(new WriteOrders(this.duckDb, this.rpcUrl, this.env, initialData));
+      }).pipe(new WriteOrders(this.duckDb));
     } catch (error) {
       console.log("error in start: ", error);
     }
   }
 }
-
-// async function initSync() {
-//   const duckDb = await DuckDb.create("oraidex-sync-data-only");
-//   const oraidexSync = await OraiDexSync.create(duckDb, process.env.RPC_URL, process.env as any);
-//   oraidexSync.sync();
-// }
-
-// initSync();
 
 export { OraiDexSync };
 
