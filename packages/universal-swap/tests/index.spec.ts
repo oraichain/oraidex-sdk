@@ -34,12 +34,17 @@ import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
 import { toUtf8 } from "@cosmjs/encoding";
 import { SigningCosmWasmClient, SigningCosmWasmClientOptions, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
-import { OraiswapRouterClient, OraiswapTokenClient, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import {
+  OraiswapRouterClient,
+  OraiswapRouterQueryClient,
+  OraiswapTokenClient,
+  OraiswapTokenQueryClient
+} from "@oraichain/oraidex-contracts-sdk";
 import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import bech32 from "bech32";
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
-import { getIbcInfo } from "../src/helper";
+import { getIbcInfo, handleSimulateSwap, simulateSwap } from "../src/helper";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -812,17 +817,9 @@ describe("test universal swap handler functions", () => {
       const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
       const routerClient = new OraiswapRouterClient(client, testSenderAddress, "foo");
       jest.spyOn(routerClient, "simulateSwapOperations").mockReturnValue(new Promise((resolve) => resolve({ amount })));
-      const universalSwap = new FakeUniversalSwapHandler(
-        {
-          ...universalSwapData,
-          originalFromToken: fromToken!,
-          originalToToken: toToken!
-        },
-        { cosmosWallet, evmWallet, routerClient }
-      );
       const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
-      const query = { fromInfo, toInfo, amount };
-      const simulateData = await universalSwap.simulateSwap(query);
+      const query = { fromInfo, toInfo, amount, routerClient };
+      const simulateData = await simulateSwap(query);
       expect(simulateData.amount).toEqual(expectedSimulateData);
     }
   );
@@ -833,24 +830,19 @@ describe("test universal swap handler functions", () => {
     [true, false, "2"],
     [true, true, "2"]
   ])("test handleSimulateSwap", async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, expectedSimulateAmount) => {
-    const universalSwap = new FakeUniversalSwapHandler({
-      ...universalSwapData
-    });
-    const simulateSwapSpy = jest.spyOn(universalSwap, "simulateSwap");
-    const simulateSwapEvmSpy = jest.spyOn(universalSwap, "simulateSwapEvm");
+    const simulateSwapSpy = jest.spyOn(universalHelper, "simulateSwap");
+    const simulateSwapEvmSpy = jest.spyOn(universalHelper, "simulateSwapEvm");
     simulateSwapSpy.mockResolvedValue({ amount: "1" });
     simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
     const isSupportedNoPoolSwapEvmSpy = jest.spyOn(universalHelper, "isSupportedNoPoolSwapEvm");
     const isEvmSwappableSpy = jest.spyOn(universalHelper, "isEvmSwappable");
     isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
     isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
-    const fakeTokenInfo = toTokenInfo(flattenTokens[0]);
-    const simulateData = await universalSwap.handleSimulateSwap({
-      fromInfo: fakeTokenInfo,
-      toInfo: fakeTokenInfo,
-      originalFromInfo: flattenTokens[0],
-      originalToInfo: flattenTokens[0],
-      amount: ""
+    const simulateData = await handleSimulateSwap({
+      originalFromInfo: oraichainTokens[0],
+      originalToInfo: oraichainTokens[0],
+      amount: "",
+      routerClient: new OraiswapRouterQueryClient(client, "")
     });
     expect(simulateData.amount).toEqual(expectedSimulateAmount);
     simulateSwapSpy.mockRestore();
