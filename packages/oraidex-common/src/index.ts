@@ -5,5 +5,4 @@ export * from "./helper";
 export * from "./constant";
 export * from "./pairs";
 export * from "./wallet";
-export * from "./test-common";
 export * from "./typechain-types";

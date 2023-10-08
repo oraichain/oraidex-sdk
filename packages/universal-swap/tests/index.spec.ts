@@ -11,9 +11,6 @@ import {
   toDisplay,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   TokenItemType,
-  testSenderAddress,
-  deployIcs20Token,
-  deployToken,
   CosmosChainId,
   CoinGeckoId,
   AIRI_CONTRACT,
@@ -45,6 +42,7 @@ import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import bech32 from "bech32";
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
 import { getIbcInfo, handleSimulateSwap, simulateSwap } from "../src/helper";
+import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({

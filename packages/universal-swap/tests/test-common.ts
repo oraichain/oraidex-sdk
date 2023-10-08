@@ -3,7 +3,6 @@ import { OraiswapTokenClient } from "@oraichain/oraidex-contracts-sdk";
 import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import * as commonArtifacts from "@oraichain/common-contracts-build";
-import { readFileSync } from "fs";
 import { Cw20Coin } from "@oraichain/common-contracts-sdk";
 
 export const testSenderAddress = "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g";
@@ -48,14 +47,9 @@ export const deployIcs20Token = async (
   client: SimulateCosmWasmClient,
   { swap_router_contract, gov_contract = testSenderAddress }: { gov_contract?: string; swap_router_contract: string }
 ): Promise<CwIcs20LatestClient> => {
-  const { codeId } = await client.upload(
+  const { contractAddress } = await commonArtifacts.deployContract(
+    client,
     testSenderAddress,
-    readFileSync(commonArtifacts.getContractDir("cw-ics20-latest")),
-    "auto"
-  );
-  const { contractAddress } = await client.instantiate(
-    testSenderAddress,
-    codeId,
     {
       allowlist: [],
       default_timeout: 3600,
@@ -63,7 +57,7 @@ export const deployIcs20Token = async (
       swap_router_contract
     },
     "cw-ics20-latest",
-    "auto"
+    "cw-ics20-latest"
   );
   return new CwIcs20LatestClient(client, testSenderAddress, contractAddress);
 };
