@@ -91,10 +91,8 @@ export type ProvideLiquidityOperationData = {
   basePrice: number;
   baseTokenAmount: number;
   baseTokenDenom: string; // eg: orai, orai1234...
-  baseTokenReserve: number | bigint;
   quoteTokenAmount: number;
   quoteTokenDenom: string;
-  quoteTokenReserve: number | bigint;
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;

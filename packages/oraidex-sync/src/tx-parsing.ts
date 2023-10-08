@@ -366,7 +366,6 @@ async function extractMsgProvideLiquidity(
         basePrice: calculatePriceByPool(BigInt(firstAmount), BigInt(secAmount)),
         baseTokenAmount: firstAmount,
         baseTokenDenom: firstDenom,
-        baseTokenReserve: firstAmount,
         opType: "provide",
         uniqueKey: concatDataToUniqueKey({
           txheight: txData.txheight,
@@ -377,7 +376,6 @@ async function extractMsgProvideLiquidity(
         }),
         quoteTokenAmount: secAmount,
         quoteTokenDenom: secDenom,
-        quoteTokenReserve: secAmount,
         timestamp: txData.timestamp,
         txCreator,
         txhash: txData.txhash,
@@ -434,7 +432,6 @@ async function extractMsgWithdrawLiquidity(
       basePrice: calculatePriceByPool(BigInt(baseAssetAmount), BigInt(quoteAssetAmount)),
       baseTokenAmount: baseAssetAmount,
       baseTokenDenom: baseAsset,
-      baseTokenReserve: baseAssetAmount,
       opType: "withdraw",
       uniqueKey: concatDataToUniqueKey({
         txheight: txData.txheight,
@@ -445,7 +442,6 @@ async function extractMsgWithdrawLiquidity(
       }),
       quoteTokenAmount: quoteAssetAmount,
       quoteTokenDenom: quoteAsset,
-      quoteTokenReserve: quoteAssetAmount,
       timestamp: txData.timestamp,
       txCreator,
       txhash: txData.txhash,
