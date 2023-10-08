@@ -1,9 +1,9 @@
 {
   "name": "@oraichain/oraidex-universal-swap",
   "version": "1.0.4",
-  "main": "src/index.js",
+  "main": "build/index.js",
   "files": [
-    "src/"
+    "build/"
   ],
   "license": "MIT",
   "devDependencies": {

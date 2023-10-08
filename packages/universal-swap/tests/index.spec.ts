@@ -841,7 +841,7 @@ describe("test universal swap handler functions", () => {
     const simulateData = await handleSimulateSwap({
       originalFromInfo: oraichainTokens[0],
       originalToInfo: oraichainTokens[0],
-      amount: "",
+      originalAmount: 0,
       routerClient: new OraiswapRouterQueryClient(client, "")
     });
     expect(simulateData.amount).toEqual(expectedSimulateAmount);

@@ -334,7 +334,7 @@ export const simulateSwapEvm = async (query: {
 export const handleSimulateSwap = async (query: {
   originalFromInfo: TokenItemType;
   originalToInfo: TokenItemType;
-  amount: string;
+  originalAmount: number;
   routerClient: OraiswapRouterReadOnlyInterface;
 }): Promise<SimulateResponse> => {
   // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
@@ -349,11 +349,10 @@ export const handleSimulateSwap = async (query: {
     })
   ) {
     // reset previous amount calculation since now we need to deal with original from & to info, not oraichain token info
-    const originalAmount = toDisplay(query.amount);
     const { amount, displayAmount } = await simulateSwapEvm({
       fromInfo: query.originalFromInfo,
       toInfo: query.originalToInfo,
-      amount: toAmount(originalAmount, query.originalFromInfo.decimals).toString()
+      amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString()
     });
     return { amount, displayAmount };
   }
@@ -363,7 +362,12 @@ export const handleSimulateSwap = async (query: {
     throw new Error(
       `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
     );
-  const { amount } = await simulateSwap({ fromInfo, toInfo, amount: query.amount, routerClient: query.routerClient });
+  const { amount } = await simulateSwap({
+    fromInfo,
+    toInfo,
+    amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+    routerClient: query.routerClient
+  });
   return {
     amount,
     displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals)
