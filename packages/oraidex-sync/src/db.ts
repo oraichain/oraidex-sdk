@@ -375,16 +375,6 @@ export class DuckDb {
     return (await this.conn.all("SELECT * from pair_infos")).map((data) => data as PairInfoData);
   }
 
-  async getDetailPool([firstAssetInfo, secondAssetInfo]: string[]): Promise<PairInfoData> {
-    return (
-      await this.conn.all(
-        "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
-        firstAssetInfo,
-        secondAssetInfo
-      )
-    ).map((data) => data as PairInfoData)[0];
-  }
-
   async getPoolByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PairInfoData> {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);

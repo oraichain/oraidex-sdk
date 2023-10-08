@@ -235,7 +235,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
     const [poolVolume, poolVolumeOnedayBefore, pool] = await Promise.all([
       getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate),
       getVolumePairByUsdt(pair.asset_infos, twoDayBeforeNow, oneDayBeforeNow),
-      duckDb.getDetailPool(pair.asset_infos.map((asset_info) => JSON.stringify(asset_info)))
+      duckDb.getPoolByAssetInfos(pair.asset_infos)
     ]);
 
     let percentVolumeChange = 0;
