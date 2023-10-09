@@ -184,7 +184,7 @@ export const OraiToken: BridgeAppCurrency = {
   }
 };
 
-const OraiBToken: BridgeAppCurrency = {
+export const OraiBToken: BridgeAppCurrency = {
   coinDenom: "ORAIB",
   coinMinimalDenom: "uoraib",
   coinDecimals: 6,
@@ -195,7 +195,7 @@ const OraiBToken: BridgeAppCurrency = {
   }
 };
 
-const KawaiiToken: BridgeAppCurrency = {
+export const KawaiiToken: BridgeAppCurrency = {
   coinDenom: "ORAIE",
   coinMinimalDenom: "oraie",
   coinDecimals: 18,
@@ -207,7 +207,7 @@ const KawaiiToken: BridgeAppCurrency = {
   }
 };
 
-const InjectiveToken: BridgeAppCurrency = {
+export const InjectiveToken: BridgeAppCurrency = {
   coinDenom: "INJ",
   coinMinimalDenom: "inj",
   coinDecimals: 18,
@@ -219,7 +219,7 @@ const InjectiveToken: BridgeAppCurrency = {
   }
 };
 
-const AtomToken: BridgeAppCurrency = {
+export const AtomToken: BridgeAppCurrency = {
   coinDenom: "ATOM",
   coinMinimalDenom: "uatom",
   coinDecimals: 6,
@@ -232,7 +232,7 @@ const AtomToken: BridgeAppCurrency = {
   }
 };
 
-const OsmoToken: BridgeAppCurrency = {
+export const OsmoToken: BridgeAppCurrency = {
   coinDenom: "OSMO",
   coinMinimalDenom: "uosmo",
   coinDecimals: 6,
