@@ -1,5 +1,4 @@
 import { AssetInfo, CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
-import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
 import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
@@ -7,15 +6,7 @@ import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import {
-  LpOpsData,
-  Ohlcv,
-  OraiDexType,
-  PairInfoData,
-  PoolAmountHistory,
-  SwapDirection,
-  SwapOperationData
-} from "./types";
+import { Ohlcv, OraiDexType, PairInfoData, SwapDirection, SwapOperationData } from "./types";
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -215,101 +206,26 @@ export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
 }
 
 export const recalculateTotalShare = ({
-  pool,
+  totalShare,
   offerAmount,
   askAmount,
   offerPooAmount,
   askPooAmount,
   opType
 }: {
-  pool: PoolResponse;
+  totalShare: bigint;
   offerAmount: bigint;
   askAmount: bigint;
   offerPooAmount: bigint;
   askPooAmount: bigint;
   opType: string;
 }): bigint => {
-  const totalShare = BigInt(pool.total_share);
   let share = Math.min(
     Number((offerAmount * totalShare) / offerPooAmount),
     Number((askAmount * totalShare) / askPooAmount)
   );
   if (opType === "withdraw") share = share * -1;
   return totalShare + BigInt(Math.trunc(share));
-};
-
-/**
- * This function will accumulate the lp amount
- * @param data - lp ops & swap ops.
- * @param poolInfos - pool info data for initial lp accumulation
- * @param pairInfos - pool info data from db
- */
-export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfos: PoolResponse[]) => {
-  let accumulateData: {
-    [key: string]: Omit<PoolAmountHistory, "pairAddr" | "uniqueKey">;
-  } = {};
-  const duckDb = DuckDb.instances;
-  for (let op of data) {
-    const pool = poolInfos.find(
-      (info) =>
-        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.baseTokenDenom) &&
-        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.quoteTokenDenom)
-    );
-    if (!pool) continue;
-
-    let baseAmount = BigInt(op.baseTokenAmount);
-    let quoteAmount = BigInt(op.quoteTokenAmount);
-    if (op.opType === "withdraw" || op.direction === "Buy") {
-      // reverse sign since withdraw means lp decreases
-      baseAmount = -baseAmount;
-      quoteAmount = -quoteAmount;
-    }
-
-    let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
-    if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
-    const pairInfo = await duckDb.getPoolByAssetInfos(assetInfos);
-    if (!pairInfo) throw new Error("cannot find pair info when collectAccumulateLpAndSwapData");
-    const { pairAddr } = pairInfo;
-
-    if (!accumulateData[pairAddr]) {
-      const initialFirstTokenAmount = parseInt(
-        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === parseAssetInfoOnlyDenom(assetInfos[0]))
-          .amount
-      );
-      const initialSecondTokenAmount = parseInt(
-        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === parseAssetInfoOnlyDenom(assetInfos[1]))
-          .amount
-      );
-
-      accumulateData[pairAddr] = {
-        offerPoolAmount: BigInt(initialFirstTokenAmount) + baseAmount,
-        askPoolAmount: BigInt(initialSecondTokenAmount) + quoteAmount,
-        height: op.height,
-        timestamp: op.timestamp,
-        totalShare: "0"
-      };
-    } else {
-      accumulateData[pairAddr].offerPoolAmount += baseAmount;
-      accumulateData[pairAddr].askPoolAmount += quoteAmount;
-      accumulateData[pairAddr].height = op.height;
-      accumulateData[pairAddr].timestamp = op.timestamp;
-    }
-    // update total share
-    let updatedTotalShare = pool.total_share;
-    if (op.opType === "provide" || op.opType === "withdraw") {
-      updatedTotalShare = recalculateTotalShare({
-        pool,
-        offerAmount: baseAmount,
-        askAmount: quoteAmount,
-        offerPooAmount: accumulateData[pairAddr].offerPoolAmount,
-        askPooAmount: accumulateData[pairAddr].askPoolAmount,
-        opType: op.opType
-      }).toString();
-    }
-    accumulateData[pairAddr].totalShare = updatedTotalShare;
-  }
-
-  return accumulateData;
 };
 
 export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {

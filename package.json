@@ -9,7 +9,7 @@
     "build": "tsc -p",
     "deploy": "yarn publish --access public",
     "start:server": "yarn build packages/oraidex-sync/ && npx ts-node-dev packages/oraidex-server/src/index.ts",
-    "start:sync": "npx ts-node packages/oraidex-sync/src/index.ts"
+    "start:sync": "npx ts-node packages/oraidex-sync/src/sync-cmd.ts"
   },
   "workspaces": [
     "packages/*"

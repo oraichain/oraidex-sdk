@@ -1,4 +1,3 @@
-import { BlockHeader } from "@cosmjs/stargate";
 import { Log } from "@cosmjs/stargate/build/logs";
 import { Addr, Asset, AssetInfo, Binary, Decimal, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
@@ -26,11 +25,22 @@ export type SwapOperationData = {
 } & BasicTxData;
 
 export type StakingOperationData = {
-  uniqueKey: string; // concat of offer, ask denom, amount, and timestamp => should be unique
+  uniqueKey: string; // concat of txheight, stakeAmount, stakerAddress, and stakeAssetDenom => should be unique
   stakerAddress: string;
   stakingAssetDenom: string;
-  stakeAmount: number;
+  stakeAmount: bigint;
   stakeAmountInUsdt: number;
+  lpPrice: number;
+} & BasicTxData;
+
+export type EarningOperationData = {
+  uniqueKey: string; // concat of txheight, stakeAmount, stakerAddress, and stakeAssetDenom => should be unique
+  stakerAddress: string;
+  rewardAssetDenom: string;
+  earnAmount: bigint;
+  earnAmountInUsdt: number;
+  stakingAssetPrice: number;
+  stakingAssetDenom: string;
 } & BasicTxData;
 
 export type VolumeData = {
@@ -80,10 +90,8 @@ export type ProvideLiquidityOperationData = {
   basePrice: number;
   baseTokenAmount: number;
   baseTokenDenom: string; // eg: orai, orai1234...
-  baseTokenReserve: number | bigint;
   quoteTokenAmount: number;
   quoteTokenDenom: string;
-  quoteTokenReserve: number | bigint;
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
   txCreator: string;
@@ -97,7 +105,8 @@ export type OraiDexType =
   | ProvideLiquidityOperationData
   | WithdrawLiquidityOperationData
   | Ohlcv
-  | StakingOperationData;
+  | StakingOperationData
+  | EarningOperationData;
 
 export type LpOpsData = {
   baseTokenAmount: number;
@@ -118,6 +127,8 @@ export type TxAnlysisResult = {
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
   stakingOpsData: StakingOperationData[];
+  claimOpsData: EarningOperationData[];
+  poolAmountHistories: PoolAmountHistory[];
 };
 
 export type MsgExecuteContractWithLogs = MsgExecuteContract & {
@@ -145,8 +156,12 @@ export type MsgType =
       };
     }
   | OraiswapRouterCw20HookMsg
-  | OraiswapPairCw20HookMsg;
-
+  | OraiswapPairCw20HookMsg
+  | {
+      withdraw: {
+        asset_info: AssetInfo;
+      };
+    };
 export type OraiswapRouterCw20HookMsg = {
   execute_swap_operations: {
     minimum_receive?: Uint128 | null;
@@ -162,11 +177,6 @@ export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
   symbols: [string, string];
   factoryV1?: boolean;
-};
-
-export type InitialData = {
-  tokenPrices: Asset[];
-  blockHeader: BlockHeader;
 };
 
 export type TickerInfo = {
@@ -264,3 +274,15 @@ export type GetPricePairQuery = {
   quote_denom: string;
   tf?: number;
 };
+
+export type GetStakedByUserQuery = {
+  stakerAddress: string;
+  tf?: number;
+  pairDenoms?: string;
+};
+
+export type GetPoolDetailQuery = {
+  pairDenoms: string;
+};
+
+export type StakeByUserResponse = Pick<EarningOperationData, "stakingAssetDenom" | "earnAmountInUsdt">;

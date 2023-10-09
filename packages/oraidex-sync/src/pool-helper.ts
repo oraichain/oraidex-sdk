@@ -10,9 +10,15 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual } from "lodash";
-import { ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
+import { OCH_PRICE, ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
 import { calculatePriceByPool, getCosmwasmClient, isAssetInfoPairReverse, validateNumber } from "./helper";
-import { DuckDb, concatAprHistoryToUniqueKey, getPairLiquidity } from "./index";
+import {
+  DuckDb,
+  concatAprHistoryToUniqueKey,
+  concatLpHistoryToUniqueKey,
+  getPairLiquidity,
+  recalculateTotalShare
+} from "./index";
 import { pairWithStakingAsset, pairs } from "./pairs";
 import {
   fetchAllRewardPerSecInfos,
@@ -22,7 +28,15 @@ import {
   queryPoolInfos
 } from "./query";
 import { processEventApr } from "./tx-parsing";
-import { PairInfoData, PairMapping, PoolAmountHistory, ProvideLiquidityOperationData } from "./types";
+import {
+  LpOpsData,
+  PairInfoData,
+  PairMapping,
+  PoolAmountHistory,
+  ProvideLiquidityOperationData,
+  SwapOperationData,
+  WithdrawLiquidityOperationData
+} from "./types";
 import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
@@ -77,7 +91,7 @@ export const getOraiPrice = async (timestamp?: number): Promise<number> => {
  * Get price of asset via askPoolAmount & offerPoolAmount in specific timestamp
  * @param assetInfos
  * @param ratioDirection
- * @param timestamp
+ * @param timestamp (optional) if it present, the price of asset will be calculated at this time.
  * @returns price of asset in specific time.
  */
 export const getPriceByAsset = async (
@@ -234,8 +248,8 @@ export const calculateAprResult = async (
 
     let rewardsPerYearValue = 0;
     for (const { amount, info } of rewardsPerSecData.assets) {
-      // NOTE: current hardcode price token xOCH: $0.4
-      const priceAssetInUsdt = isEqual(info, ORAIXOCH_INFO) ? 0.4 : await getPriceAssetByUsdt(info);
+      // NOTE: current hardcode price token xOCH
+      const priceAssetInUsdt = isEqual(info, ORAIXOCH_INFO) ? OCH_PRICE : await getPriceAssetByUsdt(info);
       rewardsPerYearValue += (SEC_PER_YEAR * validateNumber(amount) * priceAssetInUsdt) / atomic;
     }
     aprResult[ind] = (100 * rewardsPerYearValue) / bondValue || 0;
@@ -385,7 +399,7 @@ export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: Provide
       .map((op) => [op.baseTokenDenom, op.quoteTokenDenom] as [string, string])
       .reduce((accumulator, tokenDenoms) => {
         const assetInfo = parsePairDenomToAssetInfo(tokenDenoms);
-        accumulator.add(assetInfo);
+        if (assetInfo) accumulator.add(assetInfo);
         return accumulator;
       }, new Set<[AssetInfo, AssetInfo]>())
   );
@@ -435,4 +449,140 @@ export const handleEventApr = async (
   ]);
 
   await triggerCalculateApr(Array.from(listAssetInfosPoolShouldRefetch), newOffset);
+};
+
+/**
+ * This function will accumulate the lp amount
+ * @param data - lp ops & swap ops.
+ * @param poolInfos - pool info data for initial lp accumulation
+ * @param pairInfos - pool info data from db
+ */
+export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfos: PoolResponse[]) => {
+  let accumulateData: {
+    [key: string]: Omit<PoolAmountHistory, "pairAddr" | "uniqueKey">;
+  } = {};
+  const duckDb = DuckDb.instances;
+  for (let op of data) {
+    const pool = poolInfos.find(
+      (info) =>
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.baseTokenDenom) &&
+        info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === op.quoteTokenDenom)
+    );
+    if (!pool) continue;
+
+    let baseAmount = BigInt(op.baseTokenAmount);
+    let quoteAmount = BigInt(op.quoteTokenAmount);
+    if (op.opType === "withdraw" || op.direction === "Buy") {
+      // reverse sign since withdraw means lp decreases
+      baseAmount = -baseAmount;
+      quoteAmount = -quoteAmount;
+    }
+
+    let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
+    if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
+    const pairInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+    if (!pairInfo) throw new Error("cannot find pair info when collectAccumulateLpAndSwapData");
+    const { pairAddr } = pairInfo;
+
+    if (!accumulateData[pairAddr]) {
+      const initialFirstTokenAmount = parseInt(
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === parseAssetInfoOnlyDenom(assetInfos[0]))
+          .amount
+      );
+      const initialSecondTokenAmount = parseInt(
+        pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === parseAssetInfoOnlyDenom(assetInfos[1]))
+          .amount
+      );
+
+      accumulateData[pairAddr] = {
+        offerPoolAmount: BigInt(initialFirstTokenAmount) + baseAmount,
+        askPoolAmount: BigInt(initialSecondTokenAmount) + quoteAmount,
+        height: op.height,
+        timestamp: op.timestamp,
+        totalShare: "0"
+      };
+    } else {
+      accumulateData[pairAddr].offerPoolAmount += baseAmount;
+      accumulateData[pairAddr].askPoolAmount += quoteAmount;
+      accumulateData[pairAddr].height = op.height;
+      accumulateData[pairAddr].timestamp = op.timestamp;
+    }
+    // update total share
+    let updatedTotalShare = pool.total_share;
+    if (op.opType === "provide" || op.opType === "withdraw") {
+      updatedTotalShare = recalculateTotalShare({
+        totalShare: BigInt(pool.total_share),
+        offerAmount: baseAmount,
+        askAmount: quoteAmount,
+        offerPooAmount: accumulateData[pairAddr].offerPoolAmount,
+        askPooAmount: accumulateData[pairAddr].askPoolAmount,
+        opType: op.opType
+      }).toString();
+    }
+    accumulateData[pairAddr].totalShare = updatedTotalShare;
+  }
+
+  return accumulateData;
+};
+
+export const accumulatePoolAmount = async (
+  lpData: ProvideLiquidityOperationData[] | WithdrawLiquidityOperationData[],
+  swapData: SwapOperationData[]
+): Promise<PoolAmountHistory[]> => {
+  if (lpData.length === 0 && swapData.length === 0) return;
+
+  const duckDb = DuckDb.instances;
+  const pairInfos = await duckDb.queryPairInfos();
+  const minSwapTxHeight = swapData[0]?.txheight;
+  const minLpTxHeight = lpData[0]?.txheight;
+
+  let minTxHeight: number;
+  if (minSwapTxHeight && minLpTxHeight) {
+    minTxHeight = Math.min(minSwapTxHeight, minLpTxHeight);
+  } else minTxHeight = minSwapTxHeight ?? minLpTxHeight;
+
+  const poolInfos = await getPoolInfos(
+    pairInfos.map((pair) => pair.pairAddr),
+    minTxHeight - 1 // assume data is sorted by height and timestamp
+  );
+  const lpOpsData = [
+    ...lpData.map((item) => {
+      return {
+        baseTokenAmount: item.baseTokenAmount,
+        baseTokenDenom: item.baseTokenDenom,
+        quoteTokenAmount: item.quoteTokenAmount,
+        quoteTokenDenom: item.quoteTokenDenom,
+        opType: item.opType,
+        timestamp: item.timestamp,
+        height: item.txheight
+      } as LpOpsData;
+    }),
+    ...swapData.map((item) => {
+      return {
+        baseTokenAmount: item.offerAmount,
+        baseTokenDenom: item.offerDenom,
+        quoteTokenAmount: -item.returnAmount, // reverse sign because we assume first case is sell, check buy later.
+        quoteTokenDenom: item.askDenom,
+        direction: item.direction,
+        height: item.txheight,
+        timestamp: item.timestamp
+      } as LpOpsData;
+    })
+  ];
+
+  const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolInfos);
+  const poolAmountHitories = pairInfos.reduce((accumulator: PoolAmountHistory[], { pairAddr }) => {
+    if (accumulatedData[pairAddr]) {
+      accumulator.push({
+        ...accumulatedData[pairAddr],
+        pairAddr,
+        uniqueKey: concatLpHistoryToUniqueKey({
+          timestamp: accumulatedData[pairAddr].timestamp,
+          pairAddr
+        })
+      } as PoolAmountHistory);
+    }
+    return accumulator;
+  }, []);
+  return poolAmountHitories;
 };

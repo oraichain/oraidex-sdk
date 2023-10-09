@@ -33,7 +33,7 @@ import {
   toDecimal,
   toDisplay
 } from "../src/helper";
-import { extractUniqueAndFlatten, pairs } from "../src/pairs";
+import { pairs } from "../src/pairs";
 import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
 import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 import * as poolHelper from "../src/pool-helper";
@@ -157,40 +157,6 @@ describe("test-helper", () => {
     expect(result.length).toEqual(expectedListLength);
   });
 
-  it("test-extractUniqueAndFlatten-extracting-unique-items-in-pair-mapping", () => {
-    // act
-    const result = extractUniqueAndFlatten(pairs);
-    // assert
-    expect(result).toEqual([
-      { token: { contract_addr: "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg" } },
-      { native_token: { denom: "orai" } },
-      { token: { contract_addr: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge" } },
-      {
-        token: { contract_addr: "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5h5mphd0qlcs47pclp" }
-      },
-      {
-        native_token: { denom: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78" }
-      },
-      { token: { contract_addr: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh" } },
-      { token: { contract_addr: "orai1nd4r053e3kgedgld2ymen8l9yrw8xpjyaal7j5" } },
-      {
-        native_token: { denom: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC" }
-      },
-      { token: { contract_addr: "orai1gzvndtzceqwfymu2kqhta2jn6gmzxvzqwdgvjw" } },
-      {
-        token: { contract_addr: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd" }
-      },
-      {
-        token: { contract_addr: "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40xs3ugd0es5encn0" }
-      },
-      {
-        token: { contract_addr: "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq" }
-      },
-      {
-        token: { contract_addr: "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49" }
-      }
-    ]);
-  });
   it.each<[AssetInfo, string | undefined]>([
     [{ token: { contract_addr: usdtCw20Address } }, "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt"],
     [{ token: { contract_addr: "foo" } }, undefined]
@@ -447,13 +413,14 @@ describe("test-helper", () => {
         timestamp: 1
       }
     ];
+    jest.spyOn(helper, "recalculateTotalShare").mockReturnValue(1n);
 
     // act
     const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolResponses);
 
     // assertion
     expect(accumulatedData).toStrictEqual({
-      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1 }
+      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1, totalShare: "1" }
     });
   });
 
@@ -480,8 +447,6 @@ describe("test-helper", () => {
         baseTokenDenom: ORAI,
         quoteTokenAmount: 1,
         quoteTokenDenom: usdtCw20Address,
-        baseTokenReserve: 1,
-        quoteTokenReserve: 1,
         opType: "provide",
         uniqueKey: "1",
         timestamp: 1,
@@ -496,8 +461,6 @@ describe("test-helper", () => {
         baseTokenDenom: ORAI,
         quoteTokenAmount: 1,
         quoteTokenDenom: usdtCw20Address,
-        baseTokenReserve: 1,
-        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "2",
         timestamp: 1,
@@ -512,8 +475,6 @@ describe("test-helper", () => {
         baseTokenDenom: ORAI,
         quoteTokenAmount: 1,
         quoteTokenDenom: atomIbcDenom,
-        baseTokenReserve: 1,
-        quoteTokenReserve: 1,
         opType: "withdraw",
         uniqueKey: "1",
         timestamp: 1,
@@ -725,7 +686,8 @@ describe("test-helper", () => {
           timestamp: 1,
           height: 1,
           pairAddr: "oraiUsdtPairAddr",
-          uniqueKey: "1"
+          uniqueKey: "1",
+          totalShare: "1"
         });
         jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
 
@@ -855,4 +817,29 @@ describe("test-helper", () => {
       expect(result).toStrictEqual(expectedResult);
     }
   );
+
+  it.each<[string, bigint]>([
+    ["deposit", 1100n],
+    ["withdraw", 900n]
+  ])("test-recalculateTotalShare-should-calculate-correctly-total-share", (opType, expectedResult) => {
+    // setup
+    const totalShare = 1000n;
+    const offerAmount = 1n;
+    const askAmount = 1n;
+    const offerPooAmount = 10n;
+    const askPooAmount = 10n;
+
+    // act
+    const result = helper.recalculateTotalShare({
+      totalShare,
+      offerAmount,
+      askAmount,
+      offerPooAmount,
+      askPooAmount,
+      opType
+    });
+
+    // assertion
+    expect(result).toEqual(expectedResult);
+  });
 });

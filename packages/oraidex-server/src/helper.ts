@@ -15,7 +15,7 @@ export function getDate24hBeforeNow(time: Date) {
  * @returns
  */
 export function getSpecificDateBeforeNow(time: Date, tf: number) {
-  const timeInMs = tf * 1000; // 24 hours in milliseconds
+  const timeInMs = tf * 1000; //time in milliseconds
   const dateBeforeNow = new Date(time.getTime() - timeInMs);
   return dateBeforeNow;
 }

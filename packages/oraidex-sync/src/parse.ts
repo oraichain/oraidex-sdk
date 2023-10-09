@@ -1,5 +1,5 @@
 import { AssetInfo } from "@oraichain/common-contracts-sdk";
-import { pairs } from "./pairs";
+import { pairWithStakingAsset, pairs } from "./pairs";
 import { OraiswapPairTypes } from "@oraichain/oraidex-contracts-sdk";
 import { isEqual } from "lodash";
 
@@ -35,10 +35,29 @@ export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, stri
       parseAssetInfoOnlyDenom(pair.asset_infos[0]) === baseDenom &&
       parseAssetInfoOnlyDenom(pair.asset_infos[1]) === quoteDenom
   );
-  if (!pair) throw new Error(`cannot find pair for ${baseDenom}-$${quoteDenom}`);
+  if (!pair) {
+    console.trace(`parsePairDenomToAssetInfo: cannot find pair for ${baseDenom}-${quoteDenom}`);
+    return null;
+  }
   return pair.asset_infos;
 };
 
 export const parsePoolAmount = (poolInfo: OraiswapPairTypes.PoolResponse, trueAsset: AssetInfo): bigint => {
   return BigInt(poolInfo.assets.find((asset) => isEqual(asset.info, trueAsset))?.amount || "0");
+};
+
+export const parseStakingDenomToAssetInfo = (stakingAssetDenom: string): AssetInfo => {
+  const pair = pairWithStakingAsset.find(
+    (pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo) === stakingAssetDenom
+  );
+  if (!pair) throw new Error(`Cannot find pair with staking asset denom: ${stakingAssetDenom}`);
+  return pair.stakingAssetInfo;
+};
+
+export const parseCw20DenomToAssetInfo = (assetDenom: string): AssetInfo => {
+  return {
+    token: {
+      contract_addr: assetDenom
+    }
+  };
 };
