@@ -46,7 +46,7 @@ export class DuckDb {
 
   private async insertBulkData(data: any[], tableName: string, replace?: boolean, fileName?: string) {
     // we wont insert anything if the data is empty. Otherwise it would throw an error while inserting
-    if (data.length === 0) return;
+    if (!Array.isArray(data) || data.length === 0) return;
     const tableFile = fileName ?? `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
