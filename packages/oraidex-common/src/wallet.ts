@@ -10,6 +10,10 @@ import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
 import { AccountData } from "@cosmjs/amino";
 
+export interface EvmResponse {
+  transactionHash: string;
+}
+
 export abstract class CosmosWallet {
   /**
    * This method should return the cosmos address in bech32 form given a cosmos chain id
@@ -87,7 +91,7 @@ export abstract class EvmWallet {
     options: { feeLimit?: number } = { feeLimit: 40 * 1e6 }, // submitToCosmos costs about 40 TRX
     parameters = [],
     issuerAddress: string
-  ): Promise<string> {
+  ): Promise<EvmResponse> {
     if (!this.tronWeb) {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
@@ -111,7 +115,7 @@ export abstract class EvmWallet {
       const singedTransaction = await this.tronWeb.trx.sign(transaction.transaction);
       console.log("signed tx: ", singedTransaction);
       const result = await this.tronWeb.trx.sendRawTransaction(singedTransaction);
-      return result.txid;
+      return { transactionHash: result.txid };
     } catch (error) {
       throw new Error(error);
     }
@@ -122,7 +126,7 @@ export abstract class EvmWallet {
     owner: string,
     spender: string,
     amount: string
-  ): Promise<string> {
+  ): Promise<EvmResponse> {
     // we store the tron address in base58 form, so we need to convert to hex if its tron because the contracts are using the hex form as parameters
     if (!token.contractAddress) return;
     const ownerHex = this.isTron(token.chainId) ? tronToEthAddress(owner) : owner;
@@ -153,7 +157,7 @@ export abstract class EvmWallet {
       const tokenContract = IERC20Upgradeable__factory.connect(token.contractAddress, this.getSigner());
       const result = await tokenContract.approve(spender, amount, { from: ownerHex });
       await result.wait();
-      return result.hash;
+      return { transactionHash: result.hash };
     }
   }
 }

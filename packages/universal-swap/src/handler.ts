@@ -34,7 +34,8 @@ import {
   ethToTronAddress,
   oraichainTokens,
   network,
-  proxyContractInfo
+  proxyContractInfo,
+  EvmResponse
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -256,7 +257,7 @@ export class UniversalSwapHandler {
     slippage: number; // from 1 to 100
     destination: string;
     simulateAverage: string;
-  }) {
+  }): Promise<EvmResponse> {
     const { fromToken, toTokenContractAddr, address, fromAmount, simulateAverage, slippage, destination } = data;
     const { metamaskAddress, tronAddress } = address;
     const signer = this.config.evmWallet.getSigner();
@@ -321,7 +322,7 @@ export class UniversalSwapHandler {
     amountVal: string,
     from: string | null,
     to: string
-  ): Promise<string> {
+  ): Promise<EvmResponse> {
     const gravityContractAddr = gravityContracts[token.chainId] as string;
     console.log("gravity tron address: ", gravityContractAddr);
     const { evmWallet } = this.config;
@@ -345,7 +346,7 @@ export class UniversalSwapHandler {
       const gravityContract = Bridge__factory.connect(gravityContractAddr, evmWallet.getSigner());
       const result = await gravityContract.sendToCosmos(token.contractAddress, to, amountVal, { from });
       await result.wait();
-      return result.hash;
+      return { transactionHash: result.hash };
     }
   }
 
@@ -358,7 +359,7 @@ export class UniversalSwapHandler {
       tronAddress?: string;
     },
     combinedReceiver: string
-  ) => {
+  ): Promise<EvmResponse> => {
     const { metamaskAddress, tronAddress } = address;
     const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(from.chainId, {
       metamaskAddress,
@@ -376,8 +377,7 @@ export class UniversalSwapHandler {
       gravityContractAddr,
       finalFromAmount
     );
-    const result = await this.transferToGravity(from, finalFromAmount, finalTransferAddress, combinedReceiver);
-    return result;
+    return this.transferToGravity(from, finalFromAmount, finalTransferAddress, combinedReceiver);
   };
 
   async combineMsgs(
@@ -419,7 +419,11 @@ export class UniversalSwapHandler {
 
   // TODO: write test cases
   // transfer evm to ibc
-  async transferAndSwap(combinedReceiver: string, metamaskAddress?: string, tronAddress?: string): Promise<any> {
+  async transferAndSwap(
+    combinedReceiver: string,
+    metamaskAddress?: string,
+    tronAddress?: string
+  ): Promise<EvmResponse> {
     if (!metamaskAddress && !tronAddress) throw Error("Cannot call evm swap if the evm address is empty");
 
     await this.checkBalanceIBCOraichain(
