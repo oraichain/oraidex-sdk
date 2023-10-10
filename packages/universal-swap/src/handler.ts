@@ -1,7 +1,7 @@
 import { EncodeObject, coin } from "@cosmjs/proto-signing";
 import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
-import { AssetInfo, OraiswapRouterQueryClient, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
@@ -23,8 +23,6 @@ import {
   CosmosChainId,
   IBC_WASM_CONTRACT,
   findToTokenOnOraiBridge,
-  PAIRS,
-  ORAI_INFO,
   getTokenOnSpecificChainId,
   getTokenOnOraichain,
   UNISWAP_ROUTER_DEADLINE,
@@ -34,19 +32,19 @@ import {
   ethToTronAddress,
   oraichainTokens,
   network,
-  proxyContractInfo,
   EvmResponse
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
   buildIbcWasmPairKey,
+  combineReceiver,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
   isEvmSwappable,
   isSupportedNoPoolSwapEvm
 } from "./helper";
-import { SimulateResponse, SwapData, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
+import { UniversalSwapConfig, UniversalSwapData } from "./types";
 
 export class UniversalSwapHandler {
   public toTokenInOrai: TokenItemType;
@@ -91,7 +89,7 @@ export class UniversalSwapHandler {
         sourcePort: ibcInfo.source,
         sourceChannel: ibcInfo.channel,
         token: amount,
-        sender: this.swapData.cosmosSender,
+        sender: this.swapData.sender.cosmos,
         receiver: toAddress,
         memo: "",
         timeoutTimestamp: timeoutTimestamp ?? calculateTimeoutTimestamp(ibcInfo.timeout)
@@ -101,7 +99,7 @@ export class UniversalSwapHandler {
     // if not same coingeckoId, swap first then transfer token that have same coingeckoid.
     if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
-      const msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.cosmosSender, msgSwap);
+      const msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
       return [...msgExecuteSwap, msgTransfer];
     }
     return [msgTransfer];
@@ -139,7 +137,7 @@ export class UniversalSwapHandler {
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
     if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
-      msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.cosmosSender, msgSwap);
+      msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
     }
 
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
@@ -157,7 +155,7 @@ export class UniversalSwapHandler {
 
     // create bridge msg
     const msgTransfer = this.generateMsgsTransferOraiToEvm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
-    const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.cosmosSender, msgTransfer);
+    const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgTransfer);
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
@@ -241,7 +239,7 @@ export class UniversalSwapHandler {
   async swap(): Promise<any> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
-    const result = await client.executeMultiple(this.swapData.cosmosSender, messages, "auto");
+    const result = await client.executeMultiple(this.swapData.sender.cosmos, messages, "auto");
     return result;
   }
 
@@ -317,17 +315,16 @@ export class UniversalSwapHandler {
   }
 
   // TODO: write test cases
-  public async transferToGravity(
-    token: TokenItemType,
-    amountVal: string,
-    from: string | null,
-    to: string
-  ): Promise<EvmResponse> {
+  public async transferToGravity(to: string): Promise<EvmResponse> {
+    const token = this.swapData.originalFromToken;
+    let from = this.swapData.sender.evm;
+    const amountVal = toAmount(this.swapData.fromAmount, token.decimals);
     const gravityContractAddr = gravityContracts[token.chainId] as string;
     console.log("gravity tron address: ", gravityContractAddr);
     const { evmWallet } = this.config;
 
     if (evmWallet.isTron(token.chainId)) {
+      from = this.swapData.sender.tron;
       if (evmWallet.checkTron())
         return await evmWallet.submitTronSmartContract(
           ethToTronAddress(gravityContractAddr),
@@ -351,19 +348,12 @@ export class UniversalSwapHandler {
   }
 
   // TODO: write test cases
-  transferEvmToIBC = async (
-    from: TokenItemType,
-    fromAmount: number,
-    address: {
-      metamaskAddress?: string;
-      tronAddress?: string;
-    },
-    combinedReceiver: string
-  ): Promise<EvmResponse> => {
-    const { metamaskAddress, tronAddress } = address;
+  transferEvmToIBC = async (combinedReceiver: string): Promise<EvmResponse> => {
+    const from = this.swapData.originalFromToken;
+    const fromAmount = this.swapData.fromAmount;
     const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(from.chainId, {
-      metamaskAddress,
-      tronAddress
+      metamaskAddress: this.swapData.sender.evm,
+      tronAddress: this.swapData.sender.tron
     });
     const gravityContractAddr = gravityContracts[from!.chainId!];
     if (!gravityContractAddr || !from) {
@@ -377,7 +367,7 @@ export class UniversalSwapHandler {
       gravityContractAddr,
       finalFromAmount
     );
-    return this.transferToGravity(from, finalFromAmount, finalTransferAddress, combinedReceiver);
+    return this.transferToGravity(combinedReceiver);
   };
 
   async combineMsgs(
@@ -394,10 +384,10 @@ export class UniversalSwapHandler {
 
   // TODO: write test cases
   // Universal swap from Oraichain to cosmos-hub | osmosis | EVM networks.
-  async swapAndTransfer({ metamaskAddress, tronAddress }: SwapData): Promise<any> {
+  async swapAndTransfer(): Promise<any> {
     // find to token in Oraichain to swap first and use this.toTokenInOrai as originalFromToken in bridge message.
     this.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === this.swapData.originalToToken.coinGeckoId);
-
+    const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
     const { encodedObjects, type } = await this.combineMsgs(metamaskAddress, tronAddress);
     // if the msgs are meant to send to other cosmos networks, then we keep the to token as is
     // if sent to evm, then we need to convert it to the token on oraibridge so oraibridge can forward to evm
@@ -413,17 +403,14 @@ export class UniversalSwapHandler {
       chainId: this.swapData.originalFromToken.chainId as CosmosChainId,
       rpc: this.swapData.originalFromToken.rpc
     });
-    const result = await client.signAndBroadcast(this.swapData.cosmosSender, encodedObjects, "auto");
+    const result = await client.signAndBroadcast(this.swapData.sender.cosmos, encodedObjects, "auto");
     return result;
   }
 
   // TODO: write test cases
   // transfer evm to ibc
-  async transferAndSwap(
-    combinedReceiver: string,
-    metamaskAddress?: string,
-    tronAddress?: string
-  ): Promise<EvmResponse> {
+  async transferAndSwap(combinedReceiver: string): Promise<EvmResponse> {
+    const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
     if (!metamaskAddress && !tronAddress) throw Error("Cannot call evm swap if the evm address is empty");
 
     await this.checkBalanceIBCOraichain(
@@ -473,18 +460,24 @@ export class UniversalSwapHandler {
     if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(this.swapData.originalFromToken.coinGeckoId)) {
       return this.evmSwap(evmSwapData);
     }
-    return this.transferEvmToIBC(
-      this.swapData.originalFromToken,
-      this.swapData.fromAmount,
-      { metamaskAddress, tronAddress },
-      combinedReceiver
-    );
+    return this.transferEvmToIBC(combinedReceiver);
   }
 
-  async processUniversalSwap(combinedReceiver: string, universalSwapType: UniversalSwapType, swapData: SwapData) {
+  async processUniversalSwap() {
+    const { cosmos, evm, tron } = this.swapData.sender;
+    const toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
+      metamaskAddress: evm,
+      tronAddress: tron
+    });
+    const { combinedReceiver, universalSwapType } = combineReceiver(
+      cosmos,
+      this.swapData.originalFromToken,
+      this.swapData.originalToToken,
+      toAddress
+    );
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
-    if (universalSwapType === "oraichain-to-other-networks") return this.swapAndTransfer(swapData);
-    return this.transferAndSwap(combinedReceiver, swapData.metamaskAddress, swapData.tronAddress);
+    if (universalSwapType === "oraichain-to-other-networks") return this.swapAndTransfer();
+    return this.transferAndSwap(combinedReceiver);
   }
 
   generateMsgsSwap() {

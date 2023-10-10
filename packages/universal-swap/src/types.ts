@@ -22,19 +22,25 @@ export interface SwapData {
   tronAddress?: string;
 }
 
+export interface Sender {
+  cosmos?: string;
+  evm?: string;
+  tron?: string;
+}
+
 export interface UniversalSwapData {
-  readonly cosmosSender: string;
+  readonly sender: Sender;
   readonly originalFromToken: TokenItemType;
   readonly originalToToken: TokenItemType;
   readonly fromAmount: number;
-  readonly simulateAmount: string;
-  readonly userSlippage: number;
-  readonly simulateAverage: string;
+  readonly simulateAmount?: string;
+  readonly userSlippage?: number;
+  readonly simulateAverage?: string;
 }
 
 export interface UniversalSwapConfig {
-  readonly cosmosWallet: CosmosWallet;
-  readonly evmWallet: EvmWallet;
+  readonly cosmosWallet?: CosmosWallet;
+  readonly evmWallet?: EvmWallet;
   readonly cwIcs20LatestClient?: CwIcs20LatestClient | CwIcs20LatestReadOnlyInterface;
   readonly routerClient?: OraiswapRouterInterface | OraiswapRouterReadOnlyInterface;
 }

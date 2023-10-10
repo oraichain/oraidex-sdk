@@ -211,7 +211,7 @@ describe("test universal swap handler functions", () => {
   const userSlippage = 1;
   const minimumReceive = "10000";
   const universalSwapData: UniversalSwapData = {
-    cosmosSender: testSenderAddress,
+    sender: { cosmos: testSenderAddress, evm: "0x1234", tron: "TNJksEkvvdmae8uXYkNE9XKHbTDiSQrpbf" },
     originalFromToken: oraichainTokens[0],
     originalToToken: oraichainTokens[0],
     simulateAmount,
@@ -223,7 +223,7 @@ describe("test universal swap handler functions", () => {
     constructor(data?: UniversalSwapData, config?: UniversalSwapConfig) {
       super(
         data ?? {
-          cosmosSender: "",
+          sender: {},
           originalFromToken: oraichainTokens[0],
           originalToToken: oraichainTokens[1],
           simulateAmount: "0",
@@ -518,8 +518,9 @@ describe("test universal swap handler functions", () => {
     });
     jest.spyOn(universalSwap, "swap").mockResolvedValue("swap");
     jest.spyOn(universalSwap, "swapAndTransfer").mockResolvedValue("swapAndTransfer");
-    jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap");
-    const result = await universalSwap.processUniversalSwap("", universalSwapType, {});
+    jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
+    jest.spyOn(universalHelper, "combineReceiver").mockReturnValue({ combinedReceiver: "", universalSwapType });
+    const result = await universalSwap.processUniversalSwap();
     expect(result).toEqual(expectedFunction);
   });
 
@@ -795,7 +796,7 @@ describe("test universal swap handler functions", () => {
       ...universalSwapData
     });
     jest
-      .spyOn(universalSwap.config.cosmosWallet, "getKeplrAddr")
+      .spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr")
       .mockReturnValue(new Promise((resolve) => resolve(undefined as any)));
     jest.spyOn(dexCommonHelper, "findToTokenOnOraiBridge").mockReturnValue(oraichainTokens[0]);
     try {
