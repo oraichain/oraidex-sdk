@@ -722,7 +722,7 @@ describe("test-helper", () => {
       const result = await getVolumePairByAsset(["orai", "usdt"], new Date(1693394183), new Date(1693394183));
 
       // assert
-      expect(result).toEqual(2n);
+      expect(result).toEqual(3n);
     });
 
     it("test-getVolumePairByUsdt-should-return-correctly-volume-pair-in-USDT", async () => {

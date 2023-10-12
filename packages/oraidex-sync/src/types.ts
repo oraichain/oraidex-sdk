@@ -70,6 +70,8 @@ export type PairInfoDataResponse = PairInfoData & {
   totalLiquidity: number;
   volume24Hour: string;
   fee7Days: string;
+  offerPoolAmount: bigint;
+  askPoolAmount: bigint;
 };
 
 export type PriceInfo = {

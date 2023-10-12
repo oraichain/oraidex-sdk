@@ -197,7 +197,13 @@ app.get("/v1/pools/", async (_req, res) => {
       duckDb.getPools(),
       duckDb.getAllAprs()
     ]);
-    const allLiquidities = await Promise.all(pools.map((pair) => getPairLiquidity(pair)));
+    const liquidityPromises = pools.map((pair) => getPairLiquidity(pair));
+    const poolAmountPromises = pools.map((pair) => duckDb.getLatestLpPoolAmount(pair.pairAddr));
+
+    const [allLiquidities, allPoolAmounts] = await Promise.all([
+      Promise.all(liquidityPromises),
+      Promise.all(poolAmountPromises)
+    ]);
     const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
       return {
@@ -206,7 +212,9 @@ app.get("/v1/pools/", async (_req, res) => {
         fee7Days: allFee7Days[index]?.toString() ?? "0",
         apr: poolApr?.apr ?? 0,
         totalLiquidity: allLiquidities[index],
-        rewardPerSec: poolApr?.rewardPerSec
+        rewardPerSec: poolApr?.rewardPerSec,
+        offerPoolAmount: allPoolAmounts[index].offerPoolAmount,
+        askPoolAmount: allPoolAmounts[index].askPoolAmount
       } as PairInfoDataResponse;
     });
 
@@ -386,11 +394,14 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
       }
     );
 
-    const finalResult = Object.entries(result).map(([denom, values]) => ({
+    let finalResult = Object.entries(result).map(([denom, values]) => ({
       stakingAssetDenom: denom,
       stakingAmountInUsdt: values.stakingAmountInUsdt,
       earnAmountInUsdt: values.earnAmountInUsdt
     }));
+
+    if (stakingAssetDenom)
+      return res.status(200).send([finalResult.find((stakeItem) => stakeItem.stakingAssetDenom === stakingAssetDenom)]);
 
     res.status(200).send(finalResult);
   } catch (error) {

@@ -385,7 +385,10 @@ export const getVolumePairByAsset = async (
       endTime: convertDateToSecond(endTime)
     })
   ]);
-  return volumeSwapPairInBaseAsset + volumeLiquidityPairInBaseAsset;
+
+  // sum of base & quote asset volume.
+  const totalVolumeLiquidityPair = volumeLiquidityPairInBaseAsset * 2n;
+  return volumeSwapPairInBaseAsset + totalVolumeLiquidityPair;
 };
 
 export const getVolumePairByUsdt = async (
