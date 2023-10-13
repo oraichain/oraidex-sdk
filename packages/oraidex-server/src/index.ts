@@ -214,7 +214,8 @@ app.get("/v1/pools/", async (_req, res) => {
         totalLiquidity: allLiquidities[index],
         rewardPerSec: poolApr?.rewardPerSec,
         offerPoolAmount: allPoolAmounts[index].offerPoolAmount,
-        askPoolAmount: allPoolAmounts[index].askPoolAmount
+        askPoolAmount: allPoolAmounts[index].askPoolAmount,
+        totalSupply: allPoolApr[index].totalSupply
       } as PairInfoDataResponse;
     });
 

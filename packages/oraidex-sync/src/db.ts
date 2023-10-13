@@ -563,7 +563,7 @@ export class DuckDb {
   async getAllAprs() {
     const result = await this.conn.all(
       `
-      SELECT p.pairAddr, p.apr, p.rewardPerSec
+      SELECT p.pairAddr, p.apr, p.rewardPerSec, p.totalSupply
       FROM pool_apr p
       JOIN (
         SELECT pairAddr, MAX(height) AS max_height
@@ -574,7 +574,7 @@ export class DuckDb {
       ORDER BY p.height DESC
       `
     );
-    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec">[];
+    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
   }
 
   async getAprPool(pairAddr: string) {
