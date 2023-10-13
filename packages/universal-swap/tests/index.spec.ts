@@ -21,6 +21,7 @@ import {
   toTokenInfo
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
+import * as dexCommonNetwork from "@oraichain/oraidex-common/build/network"; // import like this to enable jest.spyOn & avoid redefine property error
 import * as universalHelper from "../src/helper";
 import { UniversalSwapHandler } from "../src/index";
 import { AccountData, DirectSecp256k1HdWallet, OfflineSigner } from "@cosmjs/proto-signing";
@@ -32,10 +33,11 @@ import { toUtf8 } from "@cosmjs/encoding";
 import { SigningCosmWasmClient, SigningCosmWasmClientOptions, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
 import {
+  OraiswapFactoryClient,
+  OraiswapOracleClient,
   OraiswapRouterClient,
   OraiswapRouterQueryClient,
-  OraiswapTokenClient,
-  OraiswapTokenQueryClient
+  OraiswapTokenClient
 } from "@oraichain/oraidex-contracts-sdk";
 import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
@@ -50,6 +52,8 @@ import {
   simulateSwap
 } from "../src/helper";
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
+import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
+import { readFileSync } from "fs";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -57,8 +61,8 @@ describe("test universal swap handler functions", () => {
     bech32Prefix: "orai"
   });
   let oraiPort: string;
+  let lpId: number;
   let channel = "channel-29";
-  let routerContractAddress = "placeholder";
   let ibcTransferAmount = "100000000";
   let initialBalanceAmount = "10000000000000";
   let airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
@@ -67,6 +71,9 @@ describe("test universal swap handler functions", () => {
   let cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
 
   let ics20Contract: CwIcs20LatestClient;
+  let factoryContract: OraiswapFactoryClient;
+  let routerContract: OraiswapRouterClient;
+  let oracleContract: OraiswapOracleClient;
   let airiToken: OraiswapTokenClient;
 
   beforeEach(() => {
@@ -74,7 +81,52 @@ describe("test universal swap handler functions", () => {
   });
 
   beforeAll(async () => {
-    ics20Contract = await deployIcs20Token(client, { swap_router_contract: routerContractAddress });
+    // deploy oracle addr
+    const { codeId: pairCodeId } = await client.upload(
+      testSenderAddress,
+      readFileSync(oraidexArtifacts.getContractDir("oraiswap_pair")),
+      "auto"
+    );
+    const { codeId: lpCodeId } = await client.upload(
+      testSenderAddress,
+      readFileSync(oraidexArtifacts.getContractDir("oraiswap_token")),
+      "auto"
+    );
+    lpId = lpCodeId;
+    const { contractAddress: oracleAddress } = await oraidexArtifacts.deployContract(
+      client,
+      testSenderAddress,
+      {},
+      "oraiswap-oracle",
+      "oraiswap_oracle"
+    );
+    // deploy factory contract
+    oracleContract = new OraiswapOracleClient(client, testSenderAddress, oracleAddress);
+    const { contractAddress: factoryAddress } = await oraidexArtifacts.deployContract(
+      client,
+      testSenderAddress,
+      {
+        commission_rate: "0",
+        oracle_addr: oracleAddress,
+        pair_code_id: pairCodeId,
+        token_code_id: lpCodeId
+      },
+      "oraiswap-factory",
+      "oraiswap_factory"
+    );
+    const { contractAddress: routerAddress } = await oraidexArtifacts.deployContract(
+      client,
+      testSenderAddress,
+      {
+        factory_addr: factoryAddress,
+        factory_addr_v2: factoryAddress
+      },
+      "oraiswap-router",
+      "oraiswap_router"
+    );
+    factoryContract = new OraiswapFactoryClient(client, testSenderAddress, factoryAddress);
+    routerContract = new OraiswapRouterClient(client, testSenderAddress, routerAddress);
+    ics20Contract = await deployIcs20Token(client, { swap_router_contract: routerAddress });
     oraiPort = "wasm." + ics20Contract.contractAddress;
     let cosmosPort: string = "transfer";
     airiToken = await deployToken(client, {
@@ -832,9 +884,16 @@ describe("test universal swap handler functions", () => {
       routerClient: new OraiswapRouterQueryClient(client, "")
     });
     expect(simulateData.amount).toEqual(expectedSimulateAmount);
-    simulateSwapSpy.mockRestore();
-    simulateSwapEvmSpy.mockRestore();
-    isSupportedNoPoolSwapEvmSpy.mockRestore();
-    isEvmSwappableSpy.mockRestore();
   });
+
+  // it("test-swap()", async () => {
+  //   const universalSwap = new FakeUniversalSwapHandler({
+  //     ...universalSwapData
+  //   });
+  //   // mock
+  //   jest.replaceProperty(dexCommonNetwork.network, "router", routerContract.contractAddress);
+  //   const result = universalSwap.swap();
+
+  //   console.log("result: ", result);
+  // });
 });
