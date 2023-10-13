@@ -9,6 +9,7 @@ import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
 import { AccountData } from "@cosmjs/amino";
+import { EncodeObject } from "@cosmjs/proto-signing";
 
 export interface EvmResponse {
   transactionHash: string;
@@ -45,10 +46,19 @@ export abstract class CosmosWallet {
     );
     return { wallet, client, defaultAddress };
   }
+
+  async signAndBroadcast(fromChainId: CosmosChainId, fromRpc: string, sender: string, encodedObjects: EncodeObject[]) {
+    // handle sign and broadcast transactions
+    const { client } = await this.getCosmWasmClient({
+      chainId: fromChainId as CosmosChainId,
+      rpc: fromRpc
+    });
+    return client.signAndBroadcast(sender, encodedObjects, "auto");
+  }
 }
 
 export abstract class EvmWallet {
-  public tronWeb: TronWeb;
+  constructor(public tronWeb?: TronWeb) {}
 
   /**
    * Note: Browser only. Return if you dont use the browser.

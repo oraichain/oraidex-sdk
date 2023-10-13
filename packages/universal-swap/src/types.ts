@@ -5,7 +5,8 @@ import { OraiswapRouterInterface, OraiswapRouterReadOnlyInterface, Uint128 } fro
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
   | "oraichain-to-oraichain"
-  | "oraichain-to-other-networks";
+  | "oraichain-to-evm"
+  | "oraichain-to-cosmos";
 
 export enum SwapDirection {
   From,
@@ -33,14 +34,17 @@ export interface UniversalSwapData {
   readonly originalFromToken: TokenItemType;
   readonly originalToToken: TokenItemType;
   readonly fromAmount: number;
-  readonly simulateAmount?: string;
+  readonly simulateAmount?: string; // toAmount given fromAmount. TODO: auto simulate if not passed
   readonly userSlippage?: number;
-  readonly simulateAverage?: string;
+  readonly simulatePrice?: string; // price of the token calculated with the quote. Eg: swapping ORAI to USDT => 1 ORAI = 2 USDT, then simulate price = 2. TODO: Auto simulate price if not passed
 }
 
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
   readonly evmWallet?: EvmWallet;
-  readonly cwIcs20LatestClient?: CwIcs20LatestClient | CwIcs20LatestReadOnlyInterface;
-  readonly routerClient?: OraiswapRouterInterface | OraiswapRouterReadOnlyInterface;
+}
+
+export interface SwapRoute {
+  swapRoute: string;
+  universalSwapType: UniversalSwapType;
 }

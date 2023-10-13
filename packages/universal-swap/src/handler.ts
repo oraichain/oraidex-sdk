@@ -1,8 +1,6 @@
 import { EncodeObject, coin } from "@cosmjs/proto-signing";
-import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
-import { OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
-import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { ExecuteInstruction, ExecuteResult, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
   TokenItemType,
@@ -11,7 +9,6 @@ import {
   calculateTimeoutTimestamp,
   generateError,
   getEncodedExecuteContractMsgs,
-  toDisplay,
   toAmount,
   buildMultipleExecuteMessages,
   parseTokenInfo,
@@ -21,10 +18,8 @@ import {
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   oraichain2oraib,
   CosmosChainId,
-  IBC_WASM_CONTRACT,
   findToTokenOnOraiBridge,
   getTokenOnSpecificChainId,
-  getTokenOnOraichain,
   UNISWAP_ROUTER_DEADLINE,
   gravityContracts,
   Bridge__factory,
@@ -36,8 +31,7 @@ import {
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
-  buildIbcWasmPairKey,
-  combineReceiver,
+  addOraiBridgeRoute,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
@@ -159,84 +153,8 @@ export class UniversalSwapHandler {
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
-  async checkBalanceChannelIbc(ibcInfo: IBCInfo, toToken: TokenItemType) {
-    const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
-    const ics20Contract = this.config.cwIcs20LatestClient ?? new CwIcs20LatestQueryClient(client, IBC_WASM_CONTRACT);
-
-    try {
-      let pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, toToken.denom);
-      if (toToken.prefix && toToken.contractAddress) {
-        pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, `${toToken.prefix}${toToken.contractAddress}`);
-      }
-      let balance: Amount;
-      try {
-        const { balance: channelBalance } = await ics20Contract.channelWithKey({
-          channelId: ibcInfo.channel,
-          denom: pairKey
-        });
-        balance = channelBalance;
-      } catch (error) {
-        // do nothing because the given channel and key doesnt exist
-        // console.log("error querying channel with key: ", error);
-        return;
-      }
-
-      if ("native" in balance) {
-        const pairMapping = await ics20Contract.pairMapping({ key: pairKey });
-        const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
-        const _toAmount = toDisplay(this.swapData.simulateAmount, toToken.decimals);
-        if (trueBalance < _toAmount) {
-          throw generateError(`pair key is not enough balance!`);
-        }
-      }
-    } catch (error) {
-      // console.log({ CheckBalanceChannelIbcErrors: error });
-      throw generateError(
-        `Error in checking balance channel ibc: ${{
-          CheckBalanceChannelIbcErrors: error
-        }}`
-      );
-    }
-  }
-
-  getBalanceIBCOraichain = async (token: TokenItemType) => {
-    const ibcWasm = this.config.cwIcs20LatestClient?.contractAddress ?? IBC_WASM_CONTRACT;
-    const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: token.chainId as CosmosChainId });
-    if (!token) return { balance: 0 };
-    if (token.contractAddress) {
-      const cw20Token = new OraiswapTokenQueryClient(client, token.contractAddress);
-      const { balance } = await cw20Token.balance({ address: ibcWasm });
-      return { balance: toDisplay(balance, token.decimals) };
-    }
-    const { amount } = await client.getBalance(ibcWasm, token.denom);
-    return { balance: toDisplay(amount, token.decimals) };
-  };
-
-  // ORAI ( ETH ) -> check ORAI (ORAICHAIN - compare from amount with cw20 / native amount) (fromAmount) -> check AIRI - compare to amount with channel balance (ORAICHAIN) (toAmount) -> AIRI (BSC)
-  // ORAI ( ETH ) -> check ORAI (ORAICHAIN) - compare from amount with cw20 / native amount) (fromAmount) -> check wTRX - compare to amount with channel balance (ORAICHAIN) (toAmount) -> wTRX (TRON)
-  async checkBalanceIBCOraichain(to: TokenItemType, from: TokenItemType, fromAmount: number) {
-    // ORAI ( ETH ) -> check ORAI (ORAICHAIN) -> ORAI (BSC)
-    // no need to check this case because users will swap directly. This case should be impossible because it is only called when transferring from evm to other networks
-    if (from.chainId === "Oraichain" && to.chainId === from.chainId) return;
-    // always check from token in ibc wasm should have enough tokens to swap / send to destination
-    const token = getTokenOnOraichain(from.coinGeckoId);
-    if (!token) return;
-    const { balance } = await this.getBalanceIBCOraichain(token);
-    if (balance < fromAmount) {
-      throw generateError(
-        `The bridge contract does not have enough balance to process this bridge transaction. Wanted ${fromAmount}, have ${balance}`
-      );
-    }
-    // if to token is evm, then we need to evaluate channel state balance of ibc wasm
-    if (to.chainId === "0x01" || to.chainId === "0x38" || to.chainId === "0x2b6653dc") {
-      const ibcInfo: IBCInfo | undefined = getIbcInfo("Oraichain", to.chainId);
-      if (!ibcInfo) throw generateError("IBC Info error when checking ibc balance");
-      await this.checkBalanceChannelIbc(ibcInfo, this.swapData.originalToToken);
-    }
-  }
-
   // TODO: write test cases
-  async swap(): Promise<any> {
+  async swap(): Promise<ExecuteResult> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient({ chainId: "Oraichain" });
     const result = await client.executeMultiple(this.swapData.sender.cosmos, messages, "auto");
@@ -254,9 +172,9 @@ export class UniversalSwapHandler {
     };
     slippage: number; // from 1 to 100
     destination: string;
-    simulateAverage: string;
+    simulatePrice: string;
   }): Promise<EvmResponse> {
-    const { fromToken, toTokenContractAddr, address, fromAmount, simulateAverage, slippage, destination } = data;
+    const { fromToken, toTokenContractAddr, address, fromAmount, simulatePrice, slippage, destination } = data;
     const { metamaskAddress, tronAddress } = address;
     const signer = this.config.evmWallet.getSigner();
     const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(fromToken.chainId, {
@@ -268,7 +186,7 @@ export class UniversalSwapHandler {
     const checkSumAddress = ethers.utils.getAddress(finalTransferAddress);
     const gravityContract = Bridge__factory.connect(gravityContractAddr, signer);
     const routerV2Addr = await gravityContract.swapRouter();
-    const minimumReceive = BigInt(calculateMinReceive(simulateAverage, finalFromAmount, slippage, fromToken.decimals));
+    const minimumReceive = BigInt(calculateMinReceive(simulatePrice, finalFromAmount, slippage, fromToken.decimals));
     let result: ethers.ContractTransaction;
     let fromTokenSpender = gravityContractAddr;
     // in this case, we wont use proxy contract but uniswap router instead because our proxy does not support swap tokens to native ETH.
@@ -348,7 +266,7 @@ export class UniversalSwapHandler {
   }
 
   // TODO: write test cases
-  transferEvmToIBC = async (combinedReceiver: string): Promise<EvmResponse> => {
+  transferEvmToIBC = async (swapRoute: string): Promise<EvmResponse> => {
     const from = this.swapData.originalFromToken;
     const fromAmount = this.swapData.fromAmount;
     const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(from.chainId, {
@@ -367,100 +285,101 @@ export class UniversalSwapHandler {
       gravityContractAddr,
       finalFromAmount
     );
-    return this.transferToGravity(combinedReceiver);
+    return this.transferToGravity(swapRoute);
   };
 
-  async combineMsgs(
-    metamaskAddress: string,
-    tronAddress: string
-  ): Promise<{ encodedObjects: EncodeObject[]; type: "cosmos" | "evm" }> {
-    if (
-      this.swapData.originalToToken.chainId === "cosmoshub-4" ||
-      this.swapData.originalToToken.chainId === "osmosis-1"
-    )
-      return { encodedObjects: await this.combineMsgCosmos(), type: "cosmos" };
-    return { encodedObjects: await this.combineMsgEvm(metamaskAddress, tronAddress), type: "evm" };
+  // TODO: write test cases
+  // Universal swap from Oraichain to cosmos based networks like cosmos-hub | osmosis
+  async swapAndTransferToCosmos() {
+    // find to token in Oraichain to swap first and use this.toTokenInOrai as originalFromToken in bridge message.
+    this.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === this.swapData.originalToToken.coinGeckoId);
+    const encodedObjects = await this.combineMsgCosmos();
+    // if the msgs are meant to send to other cosmos networks, then we keep the to token as is
+    // if sent to evm, then we need to convert it to the token on oraibridge so oraibridge can forward to evm
+    // TODO: channel balance should be checked elsewhere, not this method
+    // const newToToken = this.swapData.originalToToken;
+    // const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    // await this.checkBalanceChannelIbc(ibcInfo, newToToken);
+
+    // handle sign and broadcast transactions
+    return this.config.cosmosWallet.signAndBroadcast(
+      this.swapData.originalFromToken.chainId as CosmosChainId,
+      this.swapData.originalFromToken.rpc,
+      this.swapData.sender.cosmos,
+      encodedObjects
+    );
   }
 
   // TODO: write test cases
   // Universal swap from Oraichain to cosmos-hub | osmosis | EVM networks.
-  async swapAndTransfer(): Promise<any> {
+  async swapAndTransferToEvm() {
     // find to token in Oraichain to swap first and use this.toTokenInOrai as originalFromToken in bridge message.
     this.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === this.swapData.originalToToken.coinGeckoId);
     const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
-    const { encodedObjects, type } = await this.combineMsgs(metamaskAddress, tronAddress);
+    const encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
     // if the msgs are meant to send to other cosmos networks, then we keep the to token as is
     // if sent to evm, then we need to convert it to the token on oraibridge so oraibridge can forward to evm
-    const newToToken =
-      type === "cosmos"
-        ? this.swapData.originalToToken
-        : findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
-    const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
-    await this.checkBalanceChannelIbc(ibcInfo, newToToken);
+    // TODO: channel balance should be checked elsewhere, not this method
+    // const newToToken = findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
+    // const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    // await this.checkBalanceChannelIbc(ibcInfo, newToToken);
 
-    // handle sign and broadcast transactions
-    const { client } = await this.config.cosmosWallet.getCosmWasmClient({
-      chainId: this.swapData.originalFromToken.chainId as CosmosChainId,
-      rpc: this.swapData.originalFromToken.rpc
-    });
-    const result = await client.signAndBroadcast(this.swapData.sender.cosmos, encodedObjects, "auto");
-    return result;
+    return this.config.cosmosWallet.signAndBroadcast(
+      this.swapData.originalFromToken.chainId as CosmosChainId,
+      this.swapData.originalFromToken.rpc,
+      this.swapData.sender.cosmos,
+      encodedObjects
+    );
   }
 
   // TODO: write test cases
   // transfer evm to ibc
-  async transferAndSwap(combinedReceiver: string): Promise<EvmResponse> {
-    const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
+  async transferAndSwap(swapRoute: string): Promise<EvmResponse> {
+    const { sender, originalFromToken, originalToToken, fromAmount, userSlippage, simulatePrice } = this.swapData;
+    const { evm: metamaskAddress, tron: tronAddress } = sender;
     if (!metamaskAddress && !tronAddress) throw Error("Cannot call evm swap if the evm address is empty");
 
-    await this.checkBalanceIBCOraichain(
-      this.swapData.originalToToken,
-      this.swapData.originalFromToken,
-      this.swapData.fromAmount
-    );
+    // TODO: channel balance should be checked outside, not this method
+    // await this.checkBalanceIBCOraichain(originalToToken, originalFromToken, fromAmount);
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable
     // 2nd case: BNB (bsc) -> USDT (oraichain), then find USDT on bsc. We have that and also have route => swappable
     // 3rd case: USDT (bsc) -> ORAI (bsc / Oraichain), both have pools on Oraichain, but we currently dont have the pool route on evm => not swappable => transfer to cosmos like normal
     let swappableData = {
-      fromChainId: this.swapData.originalFromToken.chainId,
-      toChainId: this.swapData.originalToToken.chainId,
-      fromContractAddr: this.swapData.originalFromToken.contractAddress,
-      toContractAddr: this.swapData.originalToToken.contractAddress
+      fromChainId: originalFromToken.chainId,
+      toChainId: originalToToken.chainId,
+      fromContractAddr: originalFromToken.contractAddress,
+      toContractAddr: originalToToken.contractAddress
     };
     let evmSwapData = {
-      fromToken: this.swapData.originalFromToken,
-      toTokenContractAddr: this.swapData.originalToToken.contractAddress,
+      fromToken: originalFromToken,
+      toTokenContractAddr: originalToToken.contractAddress,
       address: { metamaskAddress, tronAddress },
-      fromAmount: this.swapData.fromAmount,
-      slippage: this.swapData.userSlippage,
+      fromAmount: fromAmount,
+      slippage: userSlippage,
       destination: "", // if to token already on same net with from token then no destination is needed.
-      simulateAverage: this.swapData.simulateAverage
+      simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    if (!this.config.evmWallet.isTron(this.swapData.originalFromToken.chainId))
-      await this.config.evmWallet.switchNetwork(this.swapData.originalFromToken.chainId);
+    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
+      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
     if (isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
-    const toTokenSameFromChainId = getTokenOnSpecificChainId(
-      this.swapData.originalToToken.coinGeckoId,
-      this.swapData.originalFromToken.chainId
-    );
+    const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
       swappableData.toChainId = toTokenSameFromChainId.chainId;
       swappableData.toContractAddr = toTokenSameFromChainId.contractAddress;
       evmSwapData.toTokenContractAddr = toTokenSameFromChainId.contractAddress;
       // if to token already on same net with from token then no destination is needed
-      evmSwapData.destination =
-        toTokenSameFromChainId.chainId === this.swapData.originalToToken.chainId ? "" : combinedReceiver;
+      evmSwapData.destination = toTokenSameFromChainId.chainId === originalToToken.chainId ? "" : swapRoute;
     }
 
     // special case for tokens not having a pool on Oraichain. We need to swap on evm instead then transfer to Oraichain
-    if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(this.swapData.originalFromToken.coinGeckoId)) {
+    if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(originalFromToken.coinGeckoId)) {
       return this.evmSwap(evmSwapData);
     }
-    return this.transferEvmToIBC(combinedReceiver);
+    return this.transferEvmToIBC(swapRoute);
   }
 
   async processUniversalSwap() {
@@ -469,15 +388,16 @@ export class UniversalSwapHandler {
       metamaskAddress: evm,
       tronAddress: tron
     });
-    const { combinedReceiver, universalSwapType } = combineReceiver(
+    const { swapRoute, universalSwapType } = addOraiBridgeRoute(
       cosmos,
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
       toAddress
     );
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
-    if (universalSwapType === "oraichain-to-other-networks") return this.swapAndTransfer();
-    return this.transferAndSwap(combinedReceiver);
+    if (universalSwapType === "oraichain-to-cosmos") return this.swapAndTransferToCosmos();
+    if (universalSwapType === "oraichain-to-evm") return this.swapAndTransferToEvm();
+    return this.transferAndSwap(swapRoute);
   }
 
   generateMsgsSwap() {
@@ -487,7 +407,7 @@ export class UniversalSwapHandler {
       const _fromAmount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
 
       const minimumReceive = calculateMinReceive(
-        this.swapData.simulateAverage,
+        this.swapData.simulatePrice,
         _fromAmount,
         this.swapData.userSlippage,
         this.swapData.originalFromToken.decimals
