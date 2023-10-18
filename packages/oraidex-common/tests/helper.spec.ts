@@ -1,5 +1,6 @@
 import {
   AIRI_CONTRACT,
+  AVERAGE_COSMOS_GAS_PRICE,
   MILKYBSC_ORAICHAIN_DENOM,
   MILKY_CONTRACT,
   ORAI,
@@ -13,11 +14,13 @@ import {
   ethToTronAddress,
   findToTokenOnOraiBridge,
   getEvmAddress,
+  getCosmosGasPrice,
   getSubAmountDetails,
   getTokenOnOraichain,
   getTokenOnSpecificChainId,
   handleSentFunds,
   isEthAddress,
+  marshalEncodeObjsToStargateMsgs,
   parseAssetInfo,
   parseTokenInfo,
   parseTokenInfoRawDenom,
@@ -29,10 +32,11 @@ import {
   tronToEthAddress,
   validateNumber
 } from "../src/helper";
-import { CoinGeckoId, NetworkChainId } from "../src/network";
+import { CoinGeckoId, NetworkChainId, OraiToken } from "../src/network";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { getPairSwapV2, isFactoryV1 } from "../src/pairs";
 import { Coin } from "@cosmjs/amino";
+import { toBinary } from "@cosmjs/cosmwasm-stargate";
 
 describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
@@ -377,5 +381,16 @@ describe("should helper functions in helper run exactly", () => {
       { denom: "foobar", amount: "2" },
       oraiCoin
     ]);
+  });
+
+  it("test-marshalEncodeObjsToStargateMsgs", () => {
+    expect(marshalEncodeObjsToStargateMsgs([{ typeUrl: "foobar", value: "hello" }])).toEqual([
+      { stargate: { type_url: "foobar", value: toBinary("hello") } }
+    ]);
+  });
+
+  it("test-getCosmosGasPrice", () => {
+    expect(getCosmosGasPrice("Oraichain")).toEqual(OraiToken.gasPriceStep?.average);
+    expect(getCosmosGasPrice("foobar" as any)).toEqual(AVERAGE_COSMOS_GAS_PRICE);
   });
 });
