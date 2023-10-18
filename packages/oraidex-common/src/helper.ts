@@ -10,6 +10,9 @@ import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
 import { ethers } from "ethers";
 import { CoinGeckoId, NetworkChainId } from "./network";
+import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { Tx } from "./tx";
+import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -223,4 +226,30 @@ export const isEthAddress = (address: string): boolean => {
   } catch (error) {
     return false;
   }
+};
+
+export const parseRpcEvents = (events: readonly Event[]): Event[] => {
+  return events.map((ev) => ({
+    ...ev,
+    attributes: ev.attributes.map((attr) => ({
+      key: Buffer.from(attr.key, "base64").toString("utf-8"),
+      value: Buffer.from(attr.value, "base64").toString("utf-8")
+    }))
+  }));
+};
+
+export const parseTxToMsgExecuteContractMsgs = (tx: Tx): MsgExecuteContract[] => {
+  if (tx.code !== 0) return [];
+  const cosmosTx = CosmosTx.decode(tx.tx);
+  if (!cosmosTx.body) return [];
+  const msgs: MsgExecuteContract[] = [];
+  for (let i = 0; i < cosmosTx.body.messages.length; i++) {
+    const msg = cosmosTx.body.messages[i];
+    if (msg.typeUrl === "/cosmwasm.wasm.v1.MsgExecuteContract") {
+      const msgExecuteContract = MsgExecuteContract.decode(msg.value);
+      // TODO: this is an assumption that the log order is the same as the message order.
+      msgs.push({ ...msgExecuteContract });
+    }
+  }
+  return msgs;
 };

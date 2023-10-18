@@ -100,8 +100,8 @@ export const getEvmSwapRoute = (
   if (!isEvmNetworkNativeSwapSupported(chainId as EvmChainId)) return undefined;
   if (!fromContractAddr && !toContractAddr) return undefined;
   const chainRoutes = swapEvmRoutes[chainId];
-  const fromAddr = fromContractAddr || proxyContractInfo[chainId].wrapNativeAddr;
-  const toAddr = toContractAddr || proxyContractInfo[chainId].wrapNativeAddr;
+  const fromAddr = fromContractAddr ?? proxyContractInfo[chainId].wrapNativeAddr;
+  const toAddr = toContractAddr ?? proxyContractInfo[chainId].wrapNativeAddr;
 
   // in case from / to contract addr is empty aka native eth or bnb without contract addr then we fallback to swap route with wrapped token
   // because uniswap & pancakeswap do not support simulating with native directly
@@ -218,11 +218,11 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
 
 export const addOraiBridgeRoute = (
   sourceReceiver: string,
-  fromToken?: TokenItemType,
-  toToken?: TokenItemType,
+  fromToken: TokenItemType,
+  toToken: TokenItemType,
   destReceiver?: string
 ): SwapRoute => {
-  const source = getSourceReceiver(sourceReceiver, fromToken?.contractAddress);
+  const source = getSourceReceiver(sourceReceiver, fromToken.contractAddress);
   const { swapRoute, universalSwapType } = getRoute(fromToken, toToken, destReceiver);
   if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType };
   return { swapRoute: source, universalSwapType };
