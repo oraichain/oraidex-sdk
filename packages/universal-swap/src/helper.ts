@@ -139,7 +139,9 @@ export const isEvmSwappable = (data: {
 // ibc helpers
 export const getIbcInfo = (fromChainId: CosmosChainId, toChainId: NetworkChainId): IBCInfo => {
   if (!ibcInfos[fromChainId]) throw generateError("Cannot find ibc info");
-  return ibcInfos[fromChainId][toChainId];
+  const ibcInfo = ibcInfos[fromChainId][toChainId];
+  if (!ibcInfo) throw generateError(`Cannot find ibc info from ${fromChainId} to ${toChainId}`);
+  return ibcInfo;
 };
 
 export const buildIbcWasmPairKey = (ibcPort: string, ibcChannel: string, denom: string) => {

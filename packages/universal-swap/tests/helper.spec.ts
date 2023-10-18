@@ -82,7 +82,9 @@ describe("test helper functions", () => {
     }).toThrow();
 
     expect(getIbcInfo("Oraichain", "oraibridge-subnet-2")).toEqual(ibcInfos["Oraichain"]["oraibridge-subnet-2"]);
-    expect(getIbcInfo("osmosis-1", "oraibridge-subnet-2")).toEqual(undefined);
+    expect(() => {
+      getIbcInfo("osmosis-1", "oraibridge-subnet-2");
+    }).toThrow();
   });
 
   it("test-buildIbcWasmPairKey", () => {

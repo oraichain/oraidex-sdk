@@ -368,7 +368,7 @@ describe("test universal swap handler functions", () => {
       ]
     ]
   ])(
-    "test-combineMsgCosmos-with-%s",
+    "test-combineSwapMsgOraichain-with-%s",
     async (_name: string, fromCoingeckoId, toCoingeckoId, toChainId, expectedTransferMsg) => {
       jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
       const universalSwap = new FakeUniversalSwapHandler({
@@ -532,9 +532,9 @@ describe("test universal swap handler functions", () => {
 
   it.each<[UniversalSwapType, string]>([
     ["oraichain-to-oraichain", "swap"],
-    ["oraichain-to-evm", "swapAndTransferToEvm"],
-    ["oraichain-to-cosmos", "swapAndTransferToCosmos"],
-    ["other-networks-to-oraichain", "transferAndSwap"]
+    ["oraichain-to-evm", "swapAndTransferToOtherNetworks"],
+    ["oraichain-to-cosmos", "swapAndTransferToOtherNetworks"],
+    ["cosmos-to-cosmos", "swapCosmosToCosmos"]
   ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
@@ -544,8 +544,10 @@ describe("test universal swap handler functions", () => {
       originalToToken: toToken
     });
     jest.spyOn(universalSwap, "swap").mockResolvedValue("swap" as any);
-    jest.spyOn(universalSwap, "swapAndTransferToCosmos").mockResolvedValue("swapAndTransferToCosmos" as any);
-    jest.spyOn(universalSwap, "swapAndTransferToEvm").mockResolvedValue("swapAndTransferToEvm" as any);
+    jest
+      .spyOn(universalSwap, "swapAndTransferToOtherNetworks")
+      .mockResolvedValue("swapAndTransferToOtherNetworks" as any);
+    jest.spyOn(universalSwap, "swapCosmosToCosmos").mockResolvedValue("swapCosmosToCosmos" as any);
     jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
     jest.spyOn(universalHelper, "addOraiBridgeRoute").mockReturnValue({ swapRoute: "", universalSwapType });
     const result = await universalSwap.processUniversalSwap();

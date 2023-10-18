@@ -49,7 +49,7 @@ export const swapOraichainToCosmos = async (data: {
     },
     { cosmosWallet }
   );
-  return handler.swapAndTransferToCosmos();
+  return handler.swapAndTransferToOtherNetworks("oraichain-to-cosmos");
 };
 
 export const swapOraichainToEvm = async (data: {
@@ -78,7 +78,7 @@ export const swapOraichainToEvm = async (data: {
     },
     { cosmosWallet, evmWallet }
   );
-  return handler.swapAndTransferToEvm();
+  return handler.swapAndTransferToOtherNetworks("oraichain-to-evm");
 };
 
 // TODO: Support swapping from other cosmos based networks 1 step
