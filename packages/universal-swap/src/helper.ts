@@ -26,13 +26,14 @@ import {
   ORAI_INFO,
   parseTokenInfo,
   toAmount,
-  TokenInfo,
   toDisplay,
   getTokenOnSpecificChainId,
   IUniswapV2Router02__factory,
-  cosmosTokens
+  cosmosTokens,
+  StargateMsg,
+  IBC_WASM_HOOKS_CONTRACT
 } from "@oraichain/oraidex-common";
-import { SimulateResponse, SwapRoute, UniversalSwapType } from "./types";
+import { SimulateResponse, SwapRoute } from "./types";
 import {
   AssetInfo,
   CosmWasmClient,
@@ -43,6 +44,7 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
+import { toBinary } from "@cosmjs/cosmwasm-stargate";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
@@ -100,8 +102,8 @@ export const getEvmSwapRoute = (
   if (!isEvmNetworkNativeSwapSupported(chainId as EvmChainId)) return undefined;
   if (!fromContractAddr && !toContractAddr) return undefined;
   const chainRoutes = swapEvmRoutes[chainId];
-  const fromAddr = fromContractAddr ?? proxyContractInfo[chainId].wrapNativeAddr;
-  const toAddr = toContractAddr ?? proxyContractInfo[chainId].wrapNativeAddr;
+  const fromAddr = fromContractAddr || proxyContractInfo[chainId].wrapNativeAddr;
+  const toAddr = toContractAddr || proxyContractInfo[chainId].wrapNativeAddr;
 
   // in case from / to contract addr is empty aka native eth or bnb without contract addr then we fallback to swap route with wrapped token
   // because uniswap & pancakeswap do not support simulating with native directly
@@ -137,7 +139,9 @@ export const isEvmSwappable = (data: {
 // ibc helpers
 export const getIbcInfo = (fromChainId: CosmosChainId, toChainId: NetworkChainId): IBCInfo => {
   if (!ibcInfos[fromChainId]) throw generateError("Cannot find ibc info");
-  return ibcInfos[fromChainId][toChainId];
+  const ibcInfo = ibcInfos[fromChainId][toChainId];
+  if (!ibcInfo) throw generateError(`Cannot find ibc info from ${fromChainId} to ${toChainId}`);
+  return ibcInfo;
 };
 
 export const buildIbcWasmPairKey = (ibcPort: string, ibcChannel: string, denom: string) => {
@@ -179,16 +183,16 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
       return { swapRoute: "", universalSwapType: "oraichain-to-cosmos" };
     return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
   }
-  if (
-    fromToken.chainId === "cosmoshub-4" ||
-    fromToken.chainId === "osmosis-1" ||
-    fromToken.chainId === "kawaii_6886-1" ||
-    fromToken.chainId === "0x1ae6"
-  ) {
+  // TODO: support 1-step swap for kwt & injective
+  if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6" || fromToken.chainId === "injective-1") {
     throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
   }
-  // if to token chain id is Oraichain, then we dont need to care about ibc msg case
+  // cosmos to cosmos case where from token is a cosmos token
+  if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
+    return { swapRoute: "", universalSwapType: "cosmos-to-cosmos" };
+  }
   if (toToken.chainId === "Oraichain") {
+    // if to token chain id is Oraichain, then we dont need to care about ibc msg case
     // first case, two tokens are the same, only different in network => simple swap
     if (fromToken.coinGeckoId === toToken.coinGeckoId)
       return { swapRoute: destReceiver, universalSwapType: "other-networks-to-oraichain" };
@@ -463,4 +467,17 @@ export const checkBalanceIBCOraichain = async (
     if (!ibcInfo) throw generateError("IBC Info error when checking ibc balance");
     await checkBalanceChannelIbc(ibcInfo, to, toSimulateAmount, ics20Client);
   }
+};
+
+export const buildIbcWasmHooksMemo = (stargateMsgs: StargateMsg[]): string => {
+  return JSON.stringify({
+    wasm: {
+      execute: {
+        contract_addr: IBC_WASM_HOOKS_CONTRACT,
+        msg: {
+          execute_msgs: toBinary(stargateMsgs)
+        }
+      }
+    }
+  });
 };

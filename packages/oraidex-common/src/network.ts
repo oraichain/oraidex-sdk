@@ -889,6 +889,9 @@ export const network: CustomChainInfo & NetworkConfig = {
   explorer: "https://scan.orai.io"
 };
 
+// exclude kawaiverse subnet and other special evm that has different cointype
+export const evmChains = chainInfos.filter((c) => c.networkType === "evm");
+
 // evm network
 export enum Networks {
   mainnet = 1,

@@ -1,14 +1,13 @@
 import { OfflineSigner } from "@cosmjs/proto-signing";
-import { CosmosChainId, EvmChainId, NetworkChainId, Networks, network } from "./network";
-import { SigningCosmWasmClient, SigningCosmWasmClientOptions } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice } from "@cosmjs/stargate";
+import { CosmosChainId, EvmChainId, NetworkChainId, Networks } from "./network";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { SigningStargateClient, SigningStargateClientOptions } from "@cosmjs/stargate";
 import { ethToTronAddress, tronToEthAddress } from "./helper";
 import { TokenItemType } from "./token";
 import { ethers } from "ethers";
 import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
-import { AccountData } from "@cosmjs/amino";
 import { EncodeObject } from "@cosmjs/proto-signing";
 
 export interface EvmResponse {
@@ -31,28 +30,35 @@ export abstract class CosmosWallet {
   public abstract createCosmosSigner(chainId: CosmosChainId): Promise<OfflineSigner>;
 
   async getCosmWasmClient(
-    config: { signer?: OfflineSigner; rpc?: string; chainId: CosmosChainId },
-    options?: SigningCosmWasmClientOptions
-  ): Promise<{ wallet: OfflineSigner; client: SigningCosmWasmClient; defaultAddress: AccountData }> {
-    const { chainId, rpc, signer } = config;
-    const wallet = signer ?? (await this.createCosmosSigner(chainId));
-    const defaultAddress = (await wallet.getAccounts())[0];
-    const client = await SigningCosmWasmClient.connectWithSigner(
-      rpc ?? network.rpc,
-      wallet,
-      options ?? {
-        gasPrice: GasPrice.fromString(network.fee.gasPrice + network.denom)
-      }
-    );
-    return { wallet, client, defaultAddress };
+    config: { rpc: string; chainId: CosmosChainId },
+    options: SigningStargateClientOptions
+  ): Promise<{
+    wallet: OfflineSigner;
+    client: SigningCosmWasmClient;
+    stargateClient: SigningStargateClient;
+  }> {
+    const { chainId, rpc } = config;
+    const wallet = await this.createCosmosSigner(chainId);
+    const client = await SigningCosmWasmClient.connectWithSigner(rpc, wallet, options);
+    const stargateClient = await SigningStargateClient.connectWithSigner(rpc, wallet, options);
+    return { wallet, client, stargateClient };
   }
 
-  async signAndBroadcast(fromChainId: CosmosChainId, fromRpc: string, sender: string, encodedObjects: EncodeObject[]) {
+  async signAndBroadcast(
+    fromChainId: CosmosChainId,
+    fromRpc: string,
+    options: SigningStargateClientOptions,
+    sender: string,
+    encodedObjects: EncodeObject[]
+  ) {
     // handle sign and broadcast transactions
-    const { client } = await this.getCosmWasmClient({
-      chainId: fromChainId as CosmosChainId,
-      rpc: fromRpc
-    });
+    const { client } = await this.getCosmWasmClient(
+      {
+        chainId: fromChainId as CosmosChainId,
+        rpc: fromRpc
+      },
+      options
+    );
     return client.signAndBroadcast(sender, encodedObjects, "auto");
   }
 }

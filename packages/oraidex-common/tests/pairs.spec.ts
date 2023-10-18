@@ -1,5 +1,5 @@
-import { MILKY_CONTRACT, USDC_CONTRACT, USDT_CONTRACT } from "../src/constant";
-import { getPairSwapV2, isFactoryV1 } from "../src/pairs";
+import { MILKY_CONTRACT, OSMOSIS_ORAICHAIN_DENOM, USDC_CONTRACT, USDT_CONTRACT } from "../src/constant";
+import { getPairSwapV2, isFactoryV1, isInPairList } from "../src/pairs";
 
 describe("test pairs functions should behave correctly", () => {
   it.each<[string, string[], string, boolean]>([
@@ -25,5 +25,13 @@ describe("test pairs functions should behave correctly", () => {
         { token: { contract_addr: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd" } }
       ])
     ).toEqual(false);
+  });
+
+  it.each<[string, boolean]>([
+    [USDT_CONTRACT, true],
+    [OSMOSIS_ORAICHAIN_DENOM, true],
+    ["foobar", false]
+  ])("test-isInPairList", (identifier, expectedResult) => {
+    expect(isInPairList(identifier)).toEqual(expectedResult);
   });
 });

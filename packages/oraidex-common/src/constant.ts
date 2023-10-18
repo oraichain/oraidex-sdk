@@ -19,6 +19,7 @@ export const GAS_ESTIMATION_SWAP_DEFAULT = 580000;
 export const GAS_ESTIMATION_BRIDGE_DEFAULT = 200000;
 export const MULTIPLIER = 1.6;
 export const HIGH_GAS_PRICE = 0.007;
+export const AVERAGE_COSMOS_GAS_PRICE = 0.025; // average based on Keplr
 
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 
@@ -106,6 +107,7 @@ export const STAKING_CONTRACT = "orai19p43y0tqnr5qlhfwnxft2u5unph5yn60y7tuvu";
 export const REWARDER_CONTRACT = "orai15hua2q83fp666nwhnyrn9g8gt9ueenl32qnugh";
 export const CONVERTER_CONTRACT = "orai14wy8xndhnvjmx6zl2866xqvs7fqwv2arhhrqq9";
 export const ORAIDEX_LISTING_CONTRACT = "orai1mkr02jzz0jfh34ps6z966uyueu4tlmnyg57nn72pxfq9t9a706tsha5znh";
+export const IBC_WASM_HOOKS_CONTRACT = "orai1w0h4ua3k8w2udju97nlws6dfh2ppwkhcewg09zp8gera4mf8lxxs6q086g";
 
 // config for evm
 export const GRAVITY_EVM_CONTRACT = "0x758191e89ff9E898D884ca3426e486e5d8476A44";

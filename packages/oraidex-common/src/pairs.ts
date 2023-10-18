@@ -74,6 +74,18 @@ export const PAIRS: PairMapping[] = [
   // }
 ];
 
+// token identifier can be denom or contract addr
+export const isInPairList = (tokenIdentifier: string) => {
+  return PAIRS.some((pair) =>
+    pair.asset_infos.some((info) => {
+      if ("native_token" in info) {
+        return info.native_token.denom === tokenIdentifier;
+      }
+      return info.token.contract_addr === tokenIdentifier;
+    })
+  );
+};
+
 /**
  * Get list contract_addr | denom that make a pair when combined with input
  * @param contractAddress

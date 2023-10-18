@@ -7,12 +7,14 @@ import bech32 from "bech32";
 import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
-import { WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
+import { AVERAGE_COSMOS_GAS_PRICE, WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
 import { ethers } from "ethers";
-import { CoinGeckoId, NetworkChainId } from "./network";
+import { CoinGeckoId, CosmosChainId, NetworkChainId } from "./network";
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { Tx } from "./tx";
+import { StargateMsg, Tx } from "./tx";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
+import { toBinary } from "@cosmjs/cosmwasm-stargate";
+import { CosmosWallet } from "./wallet";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -144,6 +146,10 @@ export const buildMultipleExecuteMessages = (
   }
 };
 
+export const marshalEncodeObjsToStargateMsgs = (messages: EncodeObject[]): StargateMsg[] => {
+  return messages.map((msg) => ({ stargate: { type_url: msg.typeUrl, value: toBinary(msg.value) } }));
+};
+
 export const calculateMinReceive = (
   simulateAverage: string,
   fromAmount: string,
@@ -252,4 +258,12 @@ export const parseTxToMsgExecuteContractMsgs = (tx: Tx): MsgExecuteContract[] =>
     }
   }
   return msgs;
+};
+
+export const getCosmosGasPrice = (chainId: CosmosChainId): number => {
+  const findToken = cosmosTokens.find((t) => t.chainId == chainId);
+  if (findToken && findToken.gasPriceStep) {
+    return findToken.gasPriceStep.average;
+  }
+  return AVERAGE_COSMOS_GAS_PRICE;
 };

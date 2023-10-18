@@ -54,6 +54,7 @@ import {
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { readFileSync } from "fs";
+import { SigningStargateClientOptions } from "@cosmjs/stargate";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -223,19 +224,6 @@ describe("test universal swap handler functions", () => {
     createCosmosSigner(chainId: string): Promise<OfflineSigner> {
       return DirectSecp256k1HdWallet.generate();
     }
-
-    getCosmWasmClient(
-      config: { signer?: OfflineSigner; rpc?: string; chainId: CosmosChainId },
-      options?: SigningCosmWasmClientOptions
-    ): Promise<{ wallet: OfflineSigner; client: SigningCosmWasmClient; defaultAddress: AccountData }> {
-      return new Promise((resolve) =>
-        resolve({
-          client,
-          wallet: config.signer!,
-          defaultAddress: { address: "", algo: "secp256k1", pubkey: Uint8Array.from([]) }
-        })
-      );
-    }
   }
 
   class StubEvmWallet extends EvmWallet {
@@ -282,7 +270,7 @@ describe("test universal swap handler functions", () => {
     constructor(data?: UniversalSwapData, config?: UniversalSwapConfig) {
       super(
         data ?? {
-          sender: {},
+          sender: { cosmos: testSenderAddress },
           originalFromToken: oraichainTokens[0],
           originalToToken: oraichainTokens[1],
           simulateAmount: "0",
@@ -380,7 +368,7 @@ describe("test universal swap handler functions", () => {
       ]
     ]
   ])(
-    "test-combineMsgCosmos-with-%s",
+    "test-combineSwapMsgOraichain-with-%s",
     async (_name: string, fromCoingeckoId, toCoingeckoId, toChainId, expectedTransferMsg) => {
       jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
       const universalSwap = new FakeUniversalSwapHandler({
@@ -389,7 +377,7 @@ describe("test universal swap handler functions", () => {
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
       });
       universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
-      const msg = await universalSwap.combineMsgCosmos("0");
+      const msg = await universalSwap.combineSwapMsgOraichain("0");
       expect(msg).toEqual(expectedTransferMsg);
     }
   );
@@ -544,9 +532,9 @@ describe("test universal swap handler functions", () => {
 
   it.each<[UniversalSwapType, string]>([
     ["oraichain-to-oraichain", "swap"],
-    ["oraichain-to-evm", "swapAndTransferToEvm"],
-    ["oraichain-to-cosmos", "swapAndTransferToCosmos"],
-    ["other-networks-to-oraichain", "transferAndSwap"]
+    ["oraichain-to-evm", "swapAndTransferToOtherNetworks"],
+    ["oraichain-to-cosmos", "swapAndTransferToOtherNetworks"],
+    ["cosmos-to-cosmos", "swapCosmosToCosmos"]
   ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
@@ -556,8 +544,10 @@ describe("test universal swap handler functions", () => {
       originalToToken: toToken
     });
     jest.spyOn(universalSwap, "swap").mockResolvedValue("swap" as any);
-    jest.spyOn(universalSwap, "swapAndTransferToCosmos").mockResolvedValue("swapAndTransferToCosmos" as any);
-    jest.spyOn(universalSwap, "swapAndTransferToEvm").mockResolvedValue("swapAndTransferToEvm" as any);
+    jest
+      .spyOn(universalSwap, "swapAndTransferToOtherNetworks")
+      .mockResolvedValue("swapAndTransferToOtherNetworks" as any);
+    jest.spyOn(universalSwap, "swapCosmosToCosmos").mockResolvedValue("swapCosmosToCosmos" as any);
     jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
     jest.spyOn(universalHelper, "addOraiBridgeRoute").mockReturnValue({ swapRoute: "", universalSwapType });
     const result = await universalSwap.processUniversalSwap();
@@ -628,6 +618,7 @@ describe("test universal swap handler functions", () => {
         originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
       });
+      universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoinGeckoId)!;
       jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
       // act
