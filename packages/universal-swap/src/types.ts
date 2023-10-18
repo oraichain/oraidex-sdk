@@ -6,7 +6,8 @@ export type UniversalSwapType =
   | "other-networks-to-oraichain"
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
-  | "oraichain-to-cosmos";
+  | "oraichain-to-cosmos"
+  | "cosmos-to-cosmos";
 
 export enum SwapDirection {
   From,
@@ -24,7 +25,7 @@ export interface SwapData {
 }
 
 export interface Sender {
-  cosmos?: string;
+  cosmos: string;
   evm?: string;
   tron?: string;
 }

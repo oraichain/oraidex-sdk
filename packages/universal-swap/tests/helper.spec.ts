@@ -21,6 +21,7 @@ import {
 } from "@oraichain/oraidex-common";
 
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper";
+import * as universalHelper from "../src/helper";
 import {
   buildIbcWasmPairKey,
   buildSwapRouterKey,
@@ -297,14 +298,14 @@ describe("test helper functions", () => {
   );
 
   it("test-addOraiBridgeRoute-empty-swapRoute", () => {
-    const result = addOraiBridgeRoute("receiver");
+    const result = addOraiBridgeRoute("receiver", "any" as any, "any" as any);
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
   });
   it("test-addOraiBridgeRoute-non-empty-swapRoute", () => {
     const result = addOraiBridgeRoute(
       "receiver",
-      flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38"),
-      flattenTokens.find((item) => item.coinGeckoId === "oraichain-token" && item.chainId === "Oraichain"),
+      flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!,
+      flattenTokens.find((item) => item.coinGeckoId === "oraichain-token" && item.chainId === "Oraichain")!,
       "foobar"
     );
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver:foobar:orai`);

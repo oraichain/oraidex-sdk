@@ -111,5 +111,5 @@ export const swapEvmToOraichain = async (data: {
     },
     { cosmosWallet, evmWallet }
   );
-  return handler.processUniversalSwap();
+  return handler.processUniversalSwap() as Promise<EvmResponse>;
 };

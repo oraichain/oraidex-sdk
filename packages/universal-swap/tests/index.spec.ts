@@ -54,6 +54,7 @@ import {
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { readFileSync } from "fs";
+import { SigningStargateClientOptions } from "@cosmjs/stargate";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -223,19 +224,6 @@ describe("test universal swap handler functions", () => {
     createCosmosSigner(chainId: string): Promise<OfflineSigner> {
       return DirectSecp256k1HdWallet.generate();
     }
-
-    getCosmWasmClient(
-      config: { signer?: OfflineSigner; rpc?: string; chainId: CosmosChainId },
-      options?: SigningCosmWasmClientOptions
-    ): Promise<{ wallet: OfflineSigner; client: SigningCosmWasmClient; defaultAddress: AccountData }> {
-      return new Promise((resolve) =>
-        resolve({
-          client,
-          wallet: config.signer!,
-          defaultAddress: { address: "", algo: "secp256k1", pubkey: Uint8Array.from([]) }
-        })
-      );
-    }
   }
 
   class StubEvmWallet extends EvmWallet {
@@ -282,7 +270,7 @@ describe("test universal swap handler functions", () => {
     constructor(data?: UniversalSwapData, config?: UniversalSwapConfig) {
       super(
         data ?? {
-          sender: {},
+          sender: { cosmos: testSenderAddress },
           originalFromToken: oraichainTokens[0],
           originalToToken: oraichainTokens[1],
           simulateAmount: "0",
@@ -389,7 +377,7 @@ describe("test universal swap handler functions", () => {
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
       });
       universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
-      const msg = await universalSwap.combineMsgCosmos("0");
+      const msg = await universalSwap.combineSwapMsgOraichain("0");
       expect(msg).toEqual(expectedTransferMsg);
     }
   );
@@ -628,6 +616,7 @@ describe("test universal swap handler functions", () => {
         originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
       });
+      universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoinGeckoId)!;
       jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
       // act
