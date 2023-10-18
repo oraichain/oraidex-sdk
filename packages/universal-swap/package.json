@@ -6,13 +6,18 @@
     "build/"
   ],
   "license": "MIT",
-  "devDependencies": {
+  "dependencies": {
     "@oraichain/oraidex-common": "^1.0.7",
     "@oraichain/oraidex-contracts-sdk": "^1.0.24",
+    "uWebSockets.js": "uNetworking/uWebSockets.js#v20.32.0",
+    "@duckdb/duckdb-wasm": "^1.27.1-dev125.0",
+    "web-worker": "^1.2.0",
     "bech32": "1.1.4",
-    "cosmjs-types": "^0.8.0",
     "ethers": "^5.0.15",
-    "tronweb": "5.3.0",
+    "tronweb": "5.3.0"
+  },
+  "devDependencies": {
+    "cosmjs-types": "^0.8.0",
     "ts-results": "^3.3.0"
   }
 }
