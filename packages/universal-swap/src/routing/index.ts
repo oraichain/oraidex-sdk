@@ -1,7 +1,6 @@
 /* Non-SSL is simply App() */
 
 import uws from "uWebSockets.js";
-import { BridgeContext } from "./event-listener";
 import { initDuckDb } from "./db";
 
 uws
@@ -32,8 +31,6 @@ uws
       console.log("Listening to port 9001");
     }
     const conn = await initDuckDb();
-    const context = new BridgeContext(conn, "rpc.orai.io");
-    await context.connectCosmosSocket();
   });
 
 export * from "./event-listener";
