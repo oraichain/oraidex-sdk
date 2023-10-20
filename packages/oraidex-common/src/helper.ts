@@ -267,3 +267,12 @@ export const getCosmosGasPrice = (chainId: CosmosChainId): number => {
   }
   return AVERAGE_COSMOS_GAS_PRICE;
 };
+
+export function toObject(data: any) {
+  return JSON.parse(
+    JSON.stringify(
+      data,
+      (key, value) => (typeof value === "bigint" ? value.toString() : value) // return everything else unchanged
+    )
+  );
+}

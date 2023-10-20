@@ -3,6 +3,8 @@
 import uws from "uWebSockets.js";
 import "dotenv/config";
 import { DuckDbNode, DuckDbWasm } from "./db";
+// import { createMachines } from "./machine";
+import { sendTo } from "xstate/lib/actions";
 
 uws
   .App({
@@ -38,6 +40,8 @@ uws
       duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
     }
     await duckDb.createTable();
+
+    // const { evmToOraichainMachine } = createMachines(duckDb);
   });
 
 export * from "./tendermint-event-listener";

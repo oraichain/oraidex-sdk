@@ -1,14 +1,22 @@
 import { ethers } from "ethers";
 import { Gravity__factory, Gravity } from "@oraichain/oraidex-common";
+import { DuckDB } from "./db";
 
-const listenToSendToCosmosEvent = () => {
-  const gravity: Gravity = Gravity__factory.connect(
-    ethers.utils.getAddress("0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"),
-    new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb")
-  );
-  gravity.on(gravity.filters.SendToCosmosEvent(), (a, b, c, d, e) => {
-    console.log(a, b, c, d, e);
-  });
-};
+export class EthEvent {
+  constructor(public readonly db: DuckDB) {}
 
-listenToSendToCosmosEvent();
+  listenToEthEvent = async (rpcUrl: string, gravityContract: string) => {
+    const gravity: Gravity = Gravity__factory.connect(
+      ethers.utils.getAddress(gravityContract),
+      new ethers.providers.JsonRpcProvider(rpcUrl)
+    );
+    return gravity.on(
+      gravity.filters.SendToCosmosEvent(),
+      (fromTokenAddr, sender, destination, fromAmount, eventNonce) => {
+        console.log(fromTokenAddr, sender, destination, fromAmount, eventNonce);
+        // this.db.insertData({})
+        // create new evm machine,
+      }
+    );
+  };
+}
