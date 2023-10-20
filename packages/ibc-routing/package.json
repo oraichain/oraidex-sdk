@@ -18,7 +18,8 @@
     "uWebSockets.js": "uNetworking/uWebSockets.js#v20.32.0",
     "web-worker": "^1.2.0",
     "ws": "^8.14.2",
-    "xstate": "^4.38.2"
+    "xstate": "^4.38.2",
+    "duckdb-async": "^0.8.1"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",

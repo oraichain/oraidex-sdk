@@ -1,7 +1,8 @@
 /* Non-SSL is simply App() */
 
 import uws from "uWebSockets.js";
-import { initDuckDb } from "./db";
+import "dotenv/config";
+import { DuckDbNode, DuckDbWasm } from "./db";
 
 uws
   .App({
@@ -30,7 +31,13 @@ uws
     if (listenSocket) {
       console.log("Listening to port 9001");
     }
-    const conn = await initDuckDb();
+    let duckDb: DuckDbNode | DuckDbWasm;
+    if (process.env.NODE_ENV !== "production") {
+      duckDb = await DuckDbWasm.create();
+    } else {
+      duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
+    }
+    await duckDb.createTable();
   });
 
 export * from "./tendermint-event-listener";
