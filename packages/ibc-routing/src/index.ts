@@ -33,4 +33,4 @@ uws
     const conn = await initDuckDb();
   });
 
-export * from "./event-listener";
+export * from "./tendermint-event-listener";
