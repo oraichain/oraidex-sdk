@@ -387,7 +387,7 @@ export class DuckDb {
     ).map((data) => data as PairInfoData)[0];
   }
 
-  async getFeeSwap(payload: GetFeeSwap): Promise<bigint> {
+  async getFeeSwap(payload: GetFeeSwap): Promise<[number, number]> {
     const { offerDenom, askDenom, startTime, endTime } = payload;
     const [feeRightDirection, feeReverseDirection] = await Promise.all([
       this.conn.all(
@@ -421,7 +421,8 @@ export class DuckDb {
         offerDenom
       )
     ]);
-    return BigInt(feeRightDirection[0]?.totalFee + feeReverseDirection[0]?.totalFee);
+
+    return [feeRightDirection[0]?.totalFee, feeReverseDirection[0]?.totalFee];
   }
 
   async getFeeLiquidity(payload: GetFeeSwap): Promise<bigint> {

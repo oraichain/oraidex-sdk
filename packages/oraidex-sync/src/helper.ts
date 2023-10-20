@@ -415,6 +415,32 @@ async function getAllVolume24h(): Promise<bigint[]> {
 // ===== end get volume pairs =====>
 
 //  <==== start get fee pair ====
+export const getFeeSwapInUsdt = async (
+  [baseAsset, quoteAsset]: [AssetInfo, AssetInfo],
+  startTime: Date,
+  endTime: Date
+): Promise<bigint> => {
+  const duckDb = DuckDb.instances;
+  // get fee in base unit & quote unit
+  const [feeInQuoteAsset, feeInBaseAsset] = await duckDb.getFeeSwap({
+    offerDenom: parseAssetInfoOnlyDenom(baseAsset),
+    askDenom: parseAssetInfoOnlyDenom(quoteAsset),
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
+
+  const [baseAssetPrice, quoteAssetPrice] = await Promise.all([
+    getPriceAssetByUsdt(baseAsset),
+    getPriceAssetByUsdt(quoteAsset)
+  ]);
+
+  const totalFeeInUsdt = baseAssetPrice * feeInBaseAsset + quoteAssetPrice * feeInQuoteAsset;
+  if ("token" in baseAsset && baseAsset.token.contract_addr === "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg") {
+    console.log({ totalFeeInUsdt, baseAssetPrice, quoteAssetPrice, feeInBaseAsset, feeInQuoteAsset });
+  }
+  return BigInt(Math.trunc(totalFeeInUsdt));
+};
+
 export const getFeePair = async (
   asset_infos: [AssetInfo, AssetInfo],
   startTime: Date,
@@ -422,12 +448,7 @@ export const getFeePair = async (
 ): Promise<bigint> => {
   const duckDb = DuckDb.instances;
   const [swapFee, liquidityFee] = await Promise.all([
-    duckDb.getFeeSwap({
-      offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
-      askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    }),
+    getFeeSwapInUsdt(asset_infos, startTime, endTime),
     duckDb.getFeeLiquidity({
       offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
       askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
@@ -439,7 +460,7 @@ export const getFeePair = async (
 };
 
 async function getAllFees(): Promise<bigint[]> {
-  const tf = 7 * 24 * 60 * 60; // second of 7 days
+  const tf = 70 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));
