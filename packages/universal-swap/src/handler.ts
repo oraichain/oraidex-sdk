@@ -49,7 +49,6 @@ import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./typ
 import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 export class UniversalSwapHandler {
-  public toTokenInOrai: TokenItemType;
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
   private getTokenOnOraichain(coinGeckoId: CoinGeckoId): TokenItemType {
@@ -92,7 +91,8 @@ export class UniversalSwapHandler {
     );
     if (!toAddress) throw generateError("Please login keplr!");
 
-    const amount = coin(this.swapData.simulateAmount, this.toTokenInOrai.denom);
+    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
+    const amount = coin(this.swapData.simulateAmount, toTokenInOrai.denom);
     const msgTransfer = {
       typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
       value: MsgTransfer.fromPartial({
@@ -121,8 +121,9 @@ export class UniversalSwapHandler {
     if (this.swapData.originalToToken.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX) {
       transferAddress = tronToEthAddress(tronAddress);
     }
+    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     // only allow transferring back to ethereum / bsc only if there's metamask address and when the metamask address is used, which is in the ibcMemo variable
-    if (!transferAddress && (this.toTokenInOrai.evmDenoms || channel === oraichain2oraib)) {
+    if (!transferAddress && (toTokenInOrai.evmDenoms || channel === oraichain2oraib)) {
       throw generateError("Please login metamask / tronlink!");
     }
     return transferAddress;
@@ -150,8 +151,9 @@ export class UniversalSwapHandler {
       msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
     }
 
+    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
-    const newToToken = findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
+    const newToToken = findToTokenOnOraiBridge(toTokenInOrai, this.swapData.originalToToken.chainId);
     // this.swapData.originalToToken = findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
 
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
@@ -309,13 +311,14 @@ export class UniversalSwapHandler {
 
   private getGasPriceFromToken() {
     return GasPrice.fromString(
-      `${this.swapData.originalFromToken.gasPriceStep.average}${this.swapData.originalFromToken.denom}`
+      `${getCosmosGasPrice(this.swapData.originalFromToken.chainId as CosmosChainId)}${
+        this.swapData.originalFromToken.denom
+      }`
     );
   }
 
   // TODO: write test cases
   async swapAndTransferToOtherNetworks(universalSwapType: UniversalSwapType) {
-    this.toTokenInOrai = this.getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     let encodedObjects: EncodeObject[];
     switch (universalSwapType) {
       case "oraichain-to-cosmos":
@@ -402,7 +405,6 @@ export class UniversalSwapHandler {
       throw generateError(
         `from token with coingecko id ${originalFromToken.coinGeckoId} does not have any associated pool on Oraichain. Could not swap`
       );
-    this.toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId);
     const encodedObjects = await this.combineSwapMsgOraichain();
     const { stargateClient } = await this.config.cosmosWallet.getCosmWasmClient(
       {
@@ -410,9 +412,7 @@ export class UniversalSwapHandler {
         rpc: originalFromToken.rpc
       },
       {
-        gasPrice: GasPrice.fromString(
-          `${getCosmosGasPrice(originalFromToken.chainId as CosmosChainId)}${originalFromToken.denom}`
-        )
+        gasPrice: this.getGasPriceFromToken()
       }
     );
     const amount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
@@ -460,8 +460,7 @@ export class UniversalSwapHandler {
     const { originalFromToken, originalToToken, fromAmount } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
-    if (!this.toTokenInOrai)
-      throw generateError(`Could not find token ${originalToToken.coinGeckoId} on Oraichain. Could not swap`);
+    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
 
@@ -476,7 +475,7 @@ export class UniversalSwapHandler {
         fromTokenOnOrai.decimals
       );
       const { fund: offerSentFund, info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
-      const { fund: askSentFund, info: askInfo } = parseTokenInfo(this.toTokenInOrai);
+      const { fund: askSentFund, info: askInfo } = parseTokenInfo(toTokenInOrai);
       const funds = handleSentFunds(offerSentFund, askSentFund);
       let inputTemp = {
         execute_swap_operations: {
@@ -518,8 +517,9 @@ export class UniversalSwapHandler {
    * @returns
    */
   generateMsgsTransferOraiToEvm(ibcInfo: IBCInfo, toAddress: string, remoteDenom: string, ibcMemo: string) {
+    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     try {
-      const { info: assetInfo } = parseTokenInfo(this.toTokenInOrai);
+      const { info: assetInfo } = parseTokenInfo(toTokenInOrai);
 
       const ibcWasmContractAddress = ibcInfo.source.split(".")[1];
       if (!ibcWasmContractAddress)
@@ -563,7 +563,7 @@ export class UniversalSwapHandler {
       // generate contract message for CW20 token in Oraichain.
       // Example: tranfer USDT/Oraichain -> AIRI/BSC. _toTokenInOrai is AIRI in Oraichain.
       const msgs: ExecuteInstruction = {
-        contractAddress: this.toTokenInOrai.contractAddress,
+        contractAddress: toTokenInOrai.contractAddress,
         msg: executeMsgSend,
         funds: []
       };
