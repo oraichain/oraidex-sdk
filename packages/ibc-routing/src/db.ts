@@ -25,6 +25,7 @@ export const sqlCommands = {
     (
       txHash varchar,
       height uinteger,
+      prevState varchar,
       eventNonce uinteger,
       packetSequence uinteger
     )`,
@@ -32,6 +33,7 @@ export const sqlCommands = {
     (
         txhash varchar,
         height uinteger,
+        prevState: varchar,
         packetSequence uinteger,
         packetAck varchar,
         nextPacketSequence uinteger,
