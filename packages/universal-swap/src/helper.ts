@@ -33,7 +33,7 @@ import {
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT
 } from "@oraichain/oraidex-common";
-import { SimulateResponse, SwapRoute } from "./types";
+import { OraiBridgeRouteData, SimulateResponse, SwapRoute } from "./types";
 import {
   AssetInfo,
   CosmWasmClient,
@@ -249,7 +249,7 @@ export const splitOnce = (s: string, seperator: string) => {
  * <first-destination>:<final-receiver>:<token-identifier-on-oraichain>
  * */
 export const unmarshalOraiBridgeRoute = (destination: string) => {
-  let routeData = {
+  let routeData: OraiBridgeRouteData = {
     oraiBridgeChannel: "",
     oraiReceiver: "",
     finalDestinationChannel: "",

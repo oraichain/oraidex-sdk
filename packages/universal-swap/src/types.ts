@@ -49,3 +49,11 @@ export interface SwapRoute {
   swapRoute: string;
   universalSwapType: UniversalSwapType;
 }
+
+export interface OraiBridgeRouteData {
+  oraiBridgeChannel: string;
+  oraiReceiver: string;
+  finalDestinationChannel: string;
+  finalReceiver: string;
+  tokenIdentifier: string;
+}
