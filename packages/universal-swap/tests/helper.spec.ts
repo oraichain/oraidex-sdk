@@ -312,4 +312,69 @@ describe("test helper functions", () => {
     );
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver:foobar:orai`);
   });
+
+  it.each<[string, any]>([
+    [
+      "channel-1/orai1234:0x1234",
+      {
+        oraiBridgeChannel: "channel-1",
+        oraiReceiver: "orai1234",
+        finalDestinationChannel: "",
+        finalReceiver: "0x1234",
+        tokenIdentifier: ""
+      }
+    ],
+    [
+      "orai1234:0x1234",
+      {
+        oraiBridgeChannel: "",
+        oraiReceiver: "orai1234",
+        finalDestinationChannel: "",
+        finalReceiver: "0x1234",
+        tokenIdentifier: ""
+      }
+    ],
+    [
+      "orai1234",
+      {
+        oraiBridgeChannel: "",
+        oraiReceiver: "orai1234",
+        finalDestinationChannel: "",
+        finalReceiver: "",
+        tokenIdentifier: ""
+      }
+    ],
+    [
+      "orai1234:0x1234:atom",
+      {
+        oraiBridgeChannel: "",
+        oraiReceiver: "orai1234",
+        finalDestinationChannel: "",
+        finalReceiver: "0x1234",
+        tokenIdentifier: "atom"
+      }
+    ],
+    [
+      "orai1234:channel-29/0x1234:atom",
+      {
+        oraiBridgeChannel: "",
+        oraiReceiver: "orai1234",
+        finalDestinationChannel: "channel-29",
+        finalReceiver: "0x1234",
+        tokenIdentifier: "atom"
+      }
+    ],
+    [
+      "channel-1/orai1234:channel-29/0x1234:atom",
+      {
+        oraiBridgeChannel: "channel-1",
+        oraiReceiver: "orai1234",
+        finalDestinationChannel: "channel-29",
+        finalReceiver: "0x1234",
+        tokenIdentifier: "atom"
+      }
+    ]
+  ])("test-unmarshalOraiBridgeRoute-%s", (destination, routeData) => {
+    expect(universalHelper.unmarshalOraiBridgeRoute(destination)).toEqual(routeData);
+  });
 });

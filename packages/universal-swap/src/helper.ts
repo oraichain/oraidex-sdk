@@ -232,6 +232,59 @@ export const addOraiBridgeRoute = (
   return { swapRoute: source, universalSwapType };
 };
 
+export const splitOnce = (s: string, seperator: string) => {
+  const i = s.indexOf(seperator);
+  // cannot find seperator then return string
+  if (i === -1) return [s];
+  return [s.slice(0, i), s.slice(i + 1)];
+};
+
+/**
+ * cases:
+ * <oraibridge-destination>/<orai-receiver>:<end-destination>
+ * <orai-receiver>:<end-destination>
+ * <first-destination>
+ * <first-destination>:<final-destination-channel>/<final-receiver>:<token-identifier-on-oraichain>
+ * <first-destination>:<final-receiver>
+ * <first-destination>:<final-receiver>:<token-identifier-on-oraichain>
+ * */
+export const unmarshalOraiBridgeRoute = (destination: string) => {
+  let routeData = {
+    oraiBridgeChannel: "",
+    oraiReceiver: "",
+    finalDestinationChannel: "",
+    finalReceiver: "",
+    tokenIdentifier: ""
+  };
+  const splittedDestination = splitOnce(destination, ":");
+  if (splittedDestination.length === 0 || splittedDestination.length > 2)
+    throw generateError(`The destination data is malformed: ${destination}`);
+  const firstDestination = splittedDestination[0].split("/");
+  if (firstDestination.length === 2) {
+    routeData.oraiBridgeChannel = firstDestination[0];
+    routeData.oraiReceiver = firstDestination[1];
+  } else if (firstDestination.length === 1) {
+    routeData.oraiReceiver = firstDestination[0];
+  } else throw generateError(`First destination ${JSON.stringify(firstDestination)} of ${destination} is malformed`);
+  // there's nothing we need to parse anymore
+  if (splittedDestination.length === 1) return routeData;
+  const finalDestinationData = splittedDestination[1].split(":");
+  if (finalDestinationData.length === 1) routeData.finalReceiver = finalDestinationData[0];
+  else if (finalDestinationData.length === 2) {
+    routeData.tokenIdentifier = finalDestinationData[1];
+    const splittedFinalDestinationData = finalDestinationData[0].split("/");
+    if (splittedFinalDestinationData.length === 1) routeData.finalReceiver = splittedFinalDestinationData[0];
+    else if (splittedFinalDestinationData.length === 2) {
+      routeData.finalDestinationChannel = splittedFinalDestinationData[0];
+      routeData.finalReceiver = splittedFinalDestinationData[1];
+    } else
+      throw generateError(
+        `splitted final destination data ${JSON.stringify(splittedFinalDestinationData)} is malformed`
+      );
+  } else throw generateError(`Final destination data ${JSON.stringify(finalDestinationData)} is malformed`);
+  return routeData;
+};
+
 // generate messages
 export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetInfo): SwapOperation[] => {
   const pairExist = PAIRS.some((pair) => {
