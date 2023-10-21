@@ -311,9 +311,7 @@ export class UniversalSwapHandler {
 
   private getGasPriceFromToken() {
     return GasPrice.fromString(
-      `${getCosmosGasPrice(this.swapData.originalFromToken.chainId as CosmosChainId)}${
-        this.swapData.originalFromToken.denom
-      }`
+      `${getCosmosGasPrice(this.swapData.originalFromToken.gasPriceStep)}${this.swapData.originalFromToken.denom}`
     );
   }
 

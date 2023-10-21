@@ -376,7 +376,6 @@ describe("test universal swap handler functions", () => {
         originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId)!,
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
       });
-      universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
       const msg = await universalSwap.combineSwapMsgOraichain("0");
       expect(msg).toEqual(expectedTransferMsg);
     }
@@ -424,7 +423,9 @@ describe("test universal swap handler functions", () => {
         originalToToken: toToken
       });
       const ibcInfo = ibcInfos["Oraichain"]["oraibridge-subnet-2"]!.channel;
-      universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === "airight")!;
+      jest
+        .spyOn(dexCommonHelper, "getTokenOnOraichain")
+        .mockReturnValue(oraichainTokens.find((t) => t.coinGeckoId === "airight")!);
       try {
         const transferAddress = universalSwap.getTranferAddress(metamaskAddress, tronAddress, ibcInfo);
         expect(transferAddress).toEqual(expectedTransferAddr);
@@ -618,7 +619,6 @@ describe("test universal swap handler functions", () => {
         originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
       });
-      universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoinGeckoId)!;
       jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
       // act
@@ -703,8 +703,10 @@ describe("test universal swap handler functions", () => {
   ])(
     "test-generateMsgsTransferOraiToEvm-with-%s",
     (_name: string, toCoingeckoId, expectedTransferMsg, expectedContractAddr, expectedFunds) => {
-      const universalSwap = new FakeUniversalSwapHandler(universalSwapData);
-      universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId)!
+      });
       const ibcInfo = getIbcInfo("Oraichain", "oraibridge-subnet-2");
       const toAddress = "foobar";
       const ibcMemo = "";
@@ -816,7 +818,6 @@ describe("test universal swap handler functions", () => {
       originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
     });
     jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
-    universalSwap.toTokenInOrai = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId)!;
 
     const msg = await universalSwap.combineMsgEvm("0x1234", "T1234");
     expect(msg).toEqual(expectedTransferMsg);

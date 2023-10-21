@@ -390,7 +390,7 @@ describe("should helper functions in helper run exactly", () => {
   });
 
   it("test-getCosmosGasPrice", () => {
-    expect(getCosmosGasPrice("Oraichain")).toEqual(OraiToken.gasPriceStep?.average);
-    expect(getCosmosGasPrice("foobar" as any)).toEqual(AVERAGE_COSMOS_GAS_PRICE);
+    expect(getCosmosGasPrice({ low: 0, average: 0, high: 0 })).toEqual(0);
+    expect(getCosmosGasPrice()).toEqual(AVERAGE_COSMOS_GAS_PRICE);
   });
 });

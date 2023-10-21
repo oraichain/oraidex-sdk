@@ -260,10 +260,9 @@ export const parseTxToMsgExecuteContractMsgs = (tx: Tx): MsgExecuteContract[] =>
   return msgs;
 };
 
-export const getCosmosGasPrice = (chainId: CosmosChainId): number => {
-  const findToken = cosmosTokens.find((t) => t.chainId == chainId);
-  if (findToken && findToken.gasPriceStep) {
-    return findToken.gasPriceStep.average;
+export const getCosmosGasPrice = (gasPriceStep?: { low: number; average: number; high: number }): number => {
+  if (gasPriceStep) {
+    return gasPriceStep.average;
   }
   return AVERAGE_COSMOS_GAS_PRICE;
 };
