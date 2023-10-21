@@ -5,6 +5,8 @@ import "dotenv/config";
 import { DuckDbNode, DuckDbWasm } from "./db";
 // import { createMachines } from "./machine";
 import { sendTo } from "xstate/lib/actions";
+import { ContextHandler, EthEvent } from "./event";
+import { ethers } from "ethers";
 
 uws
   .App({
@@ -30,18 +32,25 @@ uws
     res.writeStatus("200 OK").writeHeader("IsExample", "Yes").end("Hello there!");
   })
   .listen(9001, async (listenSocket) => {
+    console.log("dirname: ", __dirname);
     if (listenSocket) {
       console.log("Listening to port 9001");
     }
     let duckDb: DuckDbNode | DuckDbWasm;
     if (process.env.NODE_ENV !== "production") {
-      duckDb = await DuckDbWasm.create();
+      duckDb = await DuckDbWasm.create(__dirname);
     } else {
       duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
     }
     await duckDb.createTable();
 
+    const eventHandler = new ContextHandler(duckDb);
+    const ethEvent = new EthEvent(eventHandler);
+    // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
+    ethEvent.listenToEthEvent(
+      new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"
+    );
+
     // const { evmToOraichainMachine } = createMachines(duckDb);
   });
-
-export * from "./tendermint-event-listener";

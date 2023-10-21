@@ -12,9 +12,10 @@ export const sqlCommands = {
       txHash varchar,
       height uinteger,
       prevSstate varchar,
-      memo varchar,
-      chainId varchar,
+      destination varchar,
       fromAmount ubigint,
+      oraiBridgeChannelId varchar,
+      oraiReceiver varchar,
       destinationDenom varchar,
       destinationChannelId varchar,
       destinationReceiver varchar,
@@ -119,8 +120,8 @@ export class DuckDbWasm extends DuckDB {
     super();
   }
 
-  static async create(): Promise<DuckDbWasm> {
-    const DUCKDB_DIST = "node_modules/@duckdb/duckdb-wasm/dist";
+  static async create(currentRootDir: string): Promise<DuckDbWasm> {
+    const DUCKDB_DIST = resolve(currentRootDir, "node_modules/@duckdb/duckdb-wasm/dist");
     const getDuckDbDist = (type: string) => {
       return {
         mainModule: resolve(DUCKDB_DIST, `./duckdb-${type}.wasm`),
