@@ -6,20 +6,7 @@ import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/
 import { AnyInterpreter, interpret } from "xstate";
 import { createEvmToEvmIntepreter } from "./machine";
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
-
-export const sendToCosmosEvent = "SendToCosmosEvent(address,address,string,uint256,uint256)";
-export const oraiBridgeAutoForwardEvent = {
-  type: "message",
-  attribute: { key: "action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }
-};
-export const oraiBridgeAutoForwardEventType = "gravity.v1.EventSendToCosmosExecutedIbcAutoForward";
-export const evmGravityEvents = [sendToCosmosEvent];
-export enum NetworkEventType {
-  EVM,
-  ORAIBRIDGE,
-  ORAICHAIN,
-  COSMOS
-}
+import { NetworkEventType, evmGravityEvents, sendToCosmosEvent } from "./constants";
 
 export const keccak256HashString = (data: string): string => {
   return ethers.utils.keccak256(Buffer.from(data));
@@ -56,7 +43,11 @@ export class EventHandler {
         if (eventData.length === 0)
           throw generateError(`malformed OraiBridge event data: ${JSON.stringify(eventData)}`);
         // for intermediate states like OraiBridge, we will send the event to all intepreters. If the event matches then they will move on to the next state based on their logic
-        for (let intepreter of this.intepreters) intepreter.send({ type: "STORE_AUTO_FORWARD", payload: eventData[0] });
+        for (let i = 0; i < this.intepreters.length; i++) {
+          const currentState = this.intepreters[i].send({ type: "STORE_AUTO_FORWARD", payload: eventData[0] });
+          // this means that the entire state machine has reached the final state => done, we can remove the intepreter from the list (it is also stopped automatically as well)
+          if (currentState.done) this.intepreters.splice(i, 1);
+        }
         break;
       case NetworkEventType.ORAICHAIN:
         break;

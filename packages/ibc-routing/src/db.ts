@@ -21,7 +21,7 @@ export const sqlCommands = {
       destinationDenom varchar,
       destinationChannelId varchar,
       destinationReceiver varchar,
-      eventNonce uinteger,
+      eventNonce uinteger primary key,
     )`,
     oraiBridgeState: `create table if not exists oraibridge_state 
     (
@@ -31,7 +31,7 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       eventNonce uinteger,
-      packetSequence uinteger
+      packetSequence uinteger primary key
     )`,
     oraichainState: `create table if not exists oraichain_state 
     (
@@ -40,7 +40,7 @@ export const sqlCommands = {
         prevState varchar,
         prevTxHash varchar,
         nextState varchar,
-        packetSequence uinteger,
+        packetSequence uinteger primary key,
         packetAck varchar,
         nextPacketSequence uinteger,
         nextMemo varchar,
@@ -50,11 +50,12 @@ export const sqlCommands = {
     )`
   },
   query: {
-    evmState: `SELECT * from evm_state where txHash = ?`,
-    oraiBridgeState: `
+    evmStateByHash: `SELECT * from evm_state where txHash = ?`,
+    evmStateByNonce: `SELECT * from evm_state where eventNonce = ?`,
+    oraiBridgeStateByNonce: `
       SELECT * from oraibridge_state where eventNonce = ?
       `,
-    oraichainState: `
+    oraichainStatebySequence: `
       SELECT * from oraichain_state where packetSequence = ?
       `
   }
@@ -63,6 +64,7 @@ export const sqlCommands = {
 export abstract class DuckDB {
   abstract createTable(): Promise<void>;
   abstract queryInitialEvmStateByHash(txHash: string): Promise<any>;
+  abstract queryInitialEvmStateByNonce(nonce: number): Promise<any>;
   abstract queryOraiBridgeStateByNonce(eventNonce: string): Promise<any>;
   abstract queryOraichainStateBySequence(packetSequence: string): Promise<any>;
   abstract insertData(data: any, tableName: string): Promise<void>;
@@ -94,19 +96,25 @@ export class DuckDbNode extends DuckDB {
   }
 
   async queryInitialEvmStateByHash(txHash: string) {
-    const result = await this.conn.all(sqlCommands.query.evmState, txHash);
+    const result = await this.conn.all(sqlCommands.query.evmStateByHash, txHash);
+    if (result.length > 0) return result[0];
+    return [];
+  }
+
+  async queryInitialEvmStateByNonce(nonce: number) {
+    const result = await this.conn.all(sqlCommands.query.evmStateByNonce, nonce);
     if (result.length > 0) return result[0];
     return [];
   }
 
   async queryOraiBridgeStateByNonce(eventNonce: string) {
-    const result = await this.conn.all(sqlCommands.query.oraiBridgeState, eventNonce);
+    const result = await this.conn.all(sqlCommands.query.oraiBridgeStateByNonce, eventNonce);
     if (result.length > 0) return result[0];
     return [];
   }
 
   async queryOraichainStateBySequence(packetSequence: string) {
-    const result = await this.conn.all(sqlCommands.query.oraichainState, packetSequence);
+    const result = await this.conn.all(sqlCommands.query.oraichainStatebySequence, packetSequence);
     if (result.length > 0) return result[0];
     return [];
   }
@@ -161,21 +169,28 @@ export class DuckDbWasm extends DuckDB {
   }
 
   async queryInitialEvmStateByHash(txHash: string) {
-    const stmt = await this.conn.prepare(sqlCommands.query.evmState);
+    const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
     const result = (await stmt.query(txHash)).toArray();
     if (result.length > 0) return result[0];
     return [];
   }
 
+  async queryInitialEvmStateByNonce(nonce: number) {
+    const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
+    const result = (await stmt.query(nonce)).toArray();
+    if (result.length > 0) return result[0];
+    return [];
+  }
+
   async queryOraiBridgeStateByNonce(eventNonce: string) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeState);
+    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateByNonce);
     const result = (await stmt.query(eventNonce)).toArray();
     if (result.length > 0) return result[0];
     return [];
   }
 
   async queryOraichainStateBySequence(packetSequence: string) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraichainState);
+    const stmt = await this.conn.prepare(sqlCommands.query.oraichainStatebySequence);
     const result = (await stmt.query(packetSequence)).toArray();
     if (result.length > 0) return result[0];
     return [];

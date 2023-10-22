@@ -3,8 +3,9 @@
 import uws from "uWebSockets.js";
 import "dotenv/config";
 import { DuckDbNode, DuckDbWasm } from "./db";
-import { EventHandler, EthEvent, OraiBridgeEvent } from "./event";
+import { EventHandler, EthEvent, OraiBridgeEvent, OraichainEvent } from "./event";
 import { ethers } from "ethers";
+import { autoForwardTag, onRecvPacketTag } from "./constants";
 
 uws
   .App({
@@ -48,14 +49,14 @@ uws
     await eventHandler.recoverIntepreters();
     const ethEvent = new EthEvent(eventHandler);
     const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "bridge-v2.rpc.orai.io");
+    const oraichainEvent = new OraichainEvent(duckDb, eventHandler, "rpc.orai.io");
     // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
     ethEvent.listenToEthEvent(
       new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),
       "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"
     );
-    await oraiBridgeEvent.connectCosmosSocket([
-      { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }
-    ]);
+    await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    await oraichainEvent.connectCosmosSocket([onRecvPacketTag]);
 
     // const { evmToOraichainMachine } = createMachines(duckDb);
   });

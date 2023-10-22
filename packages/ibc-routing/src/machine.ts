@@ -1,9 +1,9 @@
 import { createMachine, interpret } from "xstate";
 import { DuckDB } from "./db";
 import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
-import { oraiBridgeAutoForwardEventType } from "./event";
 import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
+import { oraiBridgeAutoForwardEventType } from "./constants";
 
 export const createEvmToEvmIntepreter = (db: DuckDB) => {
   const machine = createMachine({
@@ -35,7 +35,6 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
       checkAutoForward: {
         invoke: {
           src: async (ctx, event) => {
-            console.log("event in auto forward: ", event);
             if (!event.payload) throw generateError("There should be payload for this auto forward state event");
             const txEvent: TxEvent = event.payload;
             const events = parseRpcEvents(txEvent.result.events);
@@ -54,7 +53,7 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
             console.log("event nonce: ", eventNonce);
             return new Promise((resolve) => resolve({ txEvent, eventNonce }));
           },
-          onError: "autoForwardFailure",
+          onError: "checkAutoForwardFailure",
           onDone: [
             {
               target: "storeAutoForward",
@@ -74,15 +73,56 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
       storeAutoForward: {
         invoke: {
           src: async (ctx, event) => {
-            console.log("event reecived: ", event); // should have { txEvent, eventNonce } sent from checkAutoForward
+            const txEvent: TxEvent = event.data.txEvent; // should have { txEvent, eventNonce } sent from checkAutoForward
+            const prevEvmState = await ctx.db.queryInitialEvmStateByNonce(event.data.eventNonce);
+            if (!prevEvmState) throw generateError("Cannot find the previous evm state data");
+            // collect packet sequence
+            const events = parseRpcEvents(txEvent.result.events);
+            const sendPacketEvent = events.find((e) => e.type === "send_packet");
+            if (!sendPacketEvent) throw generateError("Cannot find the send packet event in auto forward message");
+            const packetSequenceAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
+            if (!packetSequenceAttr)
+              throw generateError("Cannot find the packet sequence in send_packet of auto forward");
+            const packetSequence = parseInt(packetSequenceAttr.value);
+            const autoForwardData = {
+              txHash: Buffer.from(txEvent.hash).toString("hex").toUpperCase(),
+              height: txEvent.height,
+              prevState: "evm_state",
+              prevTxHash: prevEvmState.txHash,
+              next_state: "oraichain_state",
+              eventNonce: event.data.eventNonce,
+              packetSequence: packetSequence
+            };
+            console.log("auto forward data: ", autoForwardData);
+            await ctx.db.insertData(autoForwardData, "oraibridge_state");
+            ctx.oraiBridgeEventNonce = event.data.eventNonce;
+            ctx.oraiBridgePacketSequence = packetSequence;
+            return new Promise((resolve) => resolve(""));
+          },
+          onDone: { target: "oraichain" }, // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
+          // rejected promise
+          onError: {
+            target: "storeAutoForwardFailure",
+            // rejected promise data is on event.data property
+            actions: (ctx, event) => console.log("error storing data into oraibridge state: ", event.data)
           }
         }
       },
-      autoForwardFailure: {},
+      checkAutoForwardFailure: {},
+      storeAutoForwardFailure: {},
       oraichain: {
-        // on: {
-        //   STORE_ON_RECV_PACKET: "storeOraichain"
-        // }
+        on: {
+          STORE_ON_RECV_PACKET: "checkOnRecvPacketOraichain"
+        }
+      },
+      checkOnRecvPacketOraichain: {
+        invoke: {
+          src: (ctx, event) => {
+            console.log("received event on Oraichain: ", event);
+            // TODO: parse event
+            return new Promise((resolve) => resolve(""));
+          }
+        }
       },
       sendToCosmosEvm: {
         invoke: {
