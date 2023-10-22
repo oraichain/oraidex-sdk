@@ -1,7 +1,8 @@
 import { DuckDbNode } from "../src/db";
-import { EventHandler, EthEvent } from "../src/event";
+import { EventHandler, EthEvent, OraiBridgeEvent } from "../src/event";
 import { ethers, getSigners } from "hardhat";
 import { BigNumber } from "ethers";
+import { oraiBridgeAutoForwardTx } from "./mock-tendermint-ws.spec";
 
 const testSendToCosmosData = [
   "0x55d398326f99059fF775485246999027B3197955",
@@ -56,5 +57,21 @@ describe("test-eth-ws", () => {
     const ethEvent = new EthEvent(eventHandler);
     const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
     gravity.emit("SendToCosmosEvent", ...testSendToCosmosData);
+    // TODO: how to wait for emit event to finish then start the next
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "localhost:26657");
+    const stream = await oraiBridgeEvent.connectCosmosSocket([
+      { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }
+    ]);
+    // has to convert back to bytes because javascript object is not friendly with Uint8Array
+    stream.shamefullySendNext({
+      ...oraiBridgeAutoForwardTx,
+      tx: new Uint8Array(Buffer.from(oraiBridgeAutoForwardTx.tx, "base64")),
+      hash: new Uint8Array(Buffer.from(oraiBridgeAutoForwardTx.hash, "hex")),
+      result: {
+        ...oraiBridgeAutoForwardTx.result,
+        data: new Uint8Array(Buffer.from(oraiBridgeAutoForwardTx.result.data, "base64"))
+      }
+    });
   });
 });

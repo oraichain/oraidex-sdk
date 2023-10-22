@@ -4,7 +4,7 @@ import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { EventHandler, OraiBridgeEvent } from "../src/event";
 import { DuckDbNode } from "../src/db";
 
-const oraiBridgeAutoForwardTx = {
+export const oraiBridgeAutoForwardTx = {
   tx: "Cn0KYAolL2dyYXZpdHkudjEuTXNnRXhlY3V0ZUliY0F1dG9Gb3J3YXJkcxI3CDISLG9yYWliMTZtdzZ1NTYyNG03MGFwdWc2Zmg5YTlhdmV6ZjY3eTU2MnIwZHNuGgVvcmFpYhIUU2VudCB3aXRoIERlZXAgU3BhY2UY59yWBBJnClIKRgofL2Nvc21vcy5jcnlwdG8uc2VjcDI1NmsxLlB1YktleRIjCiECe0ZyCtvZLYgJolyLGFABMPV9Ycre2vSp9oUGhHaJ69oSBAoCCAEY0fkGEhEKCwoGdW9yYWliEgEwEPDJDxpAPj6SO09EYQcH9j/gGOzt2j/Wbk9jciWFWkkh7elj3KsWS8Igvtk48HOGiyEXgwgZD2xXcqKkrDsLgQsCcEXI2w==",
   hash: "5144ff1caf5b3d960978a3511490351670fbb8da604571e6652b78e7d11d9590",
   result: {
@@ -220,7 +220,7 @@ const oraiBridgeAutoForwardTx = {
         attributes: [
           { key: "YW1vdW50", value: "IjEwMDAwMDAwMDAwMDAwMDAi" },
           { key: "Y2hhbm5lbA==", value: "ImNoYW5uZWwtMSI=" },
-          { key: "bm9uY2U=", value: "IjQ0MzI2Ig==" },
+          { key: "bm9uY2U=", value: "NDQyMzU=" },
           {
             key: "cmVjZWl2ZXI=",
             value:

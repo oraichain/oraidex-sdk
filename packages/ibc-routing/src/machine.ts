@@ -1,9 +1,14 @@
-import { assign, createMachine } from "xstate";
+import { createMachine, interpret } from "xstate";
 import { DuckDB } from "./db";
 import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
+import { oraiBridgeAutoForwardEventType } from "./event";
+import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 
-export const createEvmToEvmMachine = (db: DuckDB) => {
-  return createMachine({
+export const createEvmToEvmIntepreter = (db: DuckDB) => {
+  const machine = createMachine({
+    predictableActionArguments: true,
+    preserveActionOrder: true,
     initial: "evm",
     // we only maintain important context attributes for events to identify which machine they belong to
     context: {
@@ -24,14 +29,61 @@ export const createEvmToEvmMachine = (db: DuckDB) => {
       },
       oraibridge: {
         on: {
-          STORE_AUTO_FORWARD: "autoForwardOraiBridge"
+          STORE_AUTO_FORWARD: "checkAutoForward"
         }
       },
-      // oraichain: {
-      //   on: {
-      //     STORE_ON_RECV_PACKET: "storeOraichain"
-      //   }
-      // },
+      checkAutoForward: {
+        invoke: {
+          src: async (ctx, event) => {
+            console.log("event in auto forward: ", event);
+            if (!event.payload) throw generateError("There should be payload for this auto forward state event");
+            const txEvent: TxEvent = event.payload;
+            const events = parseRpcEvents(txEvent.result.events);
+            const autoForwardEvent = events.find((event) => event.type === oraiBridgeAutoForwardEventType);
+            if (!autoForwardEvent) {
+              console.log("not autoforward event");
+              return;
+            }
+            const nonceAttr = autoForwardEvent.attributes.find((attr) => attr.key === "nonce");
+            if (!nonceAttr) {
+              console.log("There is no event nonce attribute.");
+              return;
+            }
+            event;
+            const eventNonce = parseInt(JSON.parse(nonceAttr.value));
+            console.log("event nonce: ", eventNonce);
+            return new Promise((resolve) => resolve({ txEvent, eventNonce }));
+          },
+          onError: "autoForwardFailure",
+          onDone: [
+            {
+              target: "storeAutoForward",
+              cond: (ctx, event) => {
+                return event.data.eventNonce === ctx.evmEventNonce;
+              }
+            },
+            {
+              target: "oraibridge",
+              cond: (ctx, event) => {
+                return event.data.eventNonce !== ctx.evmEventNonce;
+              }
+            }
+          ]
+        }
+      },
+      storeAutoForward: {
+        invoke: {
+          src: async (ctx, event) => {
+            console.log("event reecived: ", event); // should have { txEvent, eventNonce } sent from checkAutoForward
+          }
+        }
+      },
+      autoForwardFailure: {},
+      oraichain: {
+        // on: {
+        //   STORE_ON_RECV_PACKET: "storeOraichain"
+        // }
+      },
       sendToCosmosEvm: {
         invoke: {
           // function that returns a promise
@@ -60,7 +112,7 @@ export const createEvmToEvmMachine = (db: DuckDB) => {
             await ctx.db.insertData(sendToCosmosData, "evm_state");
             return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
           },
-          onDone: "oraibridge", // move to 'afterDb' state
+          onDone: { target: "oraibridge" }, // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
           // rejected promise
           onError: {
             target: "SendToCosmosEvmFailure",
@@ -69,23 +121,9 @@ export const createEvmToEvmMachine = (db: DuckDB) => {
           }
         }
       },
-      SendToCosmosEvmFailure: {},
-      autoForwardFailure: {},
-      autoForwardOraiBridge: {
-        invoke: {
-          src: (ctx, event) => {
-            console.log("event in autoforward oraibridge: ", event);
-            return new Promise((resolve) => resolve(""));
-          },
-          // onDone: "oraichain", // move to 'afterDb' state
-          // rejected promise
-          onError: {
-            target: "autoForwardFailure",
-            // rejected promise data is on event.data property
-            actions: (ctx, event) => console.log("error storing data into oraibridge state: ", event.data)
-          }
-        }
-      }
+      SendToCosmosEvmFailure: {}
     }
   });
+  const intepreter = interpret(machine).onTransition((state) => console.log(state.value));
+  return intepreter;
 };

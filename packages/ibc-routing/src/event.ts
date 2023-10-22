@@ -4,7 +4,7 @@ import { DuckDB } from "./db";
 import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
 import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { AnyInterpreter, interpret } from "xstate";
-import { createEvmToEvmMachine } from "./machine";
+import { createEvmToEvmIntepreter } from "./machine";
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 
 export const sendToCosmosEvent = "SendToCosmosEvent(address,address,string,uint256,uint256)";
@@ -29,28 +29,6 @@ export class EventHandler {
   public intepreters: AnyInterpreter[] = [];
   constructor(public readonly db: DuckDB) {}
 
-  processAutoForwardEvent(events: Event[], txEvent: TxEvent) {
-    const autoForwardEvent = events.find((event) => event.type === oraiBridgeAutoForwardEventType);
-    if (!autoForwardEvent) {
-      console.log("not autoforward event");
-      return;
-    }
-    const nonceAttr = autoForwardEvent.attributes.find((attr) => attr.key === "nonce");
-    if (!nonceAttr) {
-      console.log("There is no event nonce attribute.");
-      return;
-    }
-    const eventNonce = parseInt(JSON.parse(nonceAttr.value));
-    const intepreter = this.intepreters.find(
-      (inte) => inte.machine.context.evmEventNonce && inte.machine.context.evmEventNonce === eventNonce
-    );
-    if (!intepreter) {
-      console.log("found no intepreter that has the same evm event nonce as given: ", eventNonce);
-      return;
-    }
-    intepreter.send({ type: "STORE_AUTO_FORWARD", payload: { events, txEvent } });
-  }
-
   handleEvent(networkEventType: NetworkEventType, eventData: any[]) {
     switch (networkEventType) {
       case NetworkEventType.EVM:
@@ -65,9 +43,10 @@ export class EventHandler {
 
         if (topics.includes(keccak256HashString(sendToCosmosEvent))) {
           // create new machine so we start a new context for the transaction
-          const machine = createEvmToEvmMachine(this.db);
-          const intepreter = interpret(machine).start();
+          const intepreter = createEvmToEvmIntepreter(this.db);
           this.intepreters.push(intepreter);
+          intepreter.start();
+          // we wont need to loop through the intepreter list because we know this event starts a new machine already
           intepreter.send({ type: "STORE_SEND_TO_COSMOS", payload: eventData });
         } else {
           console.log("unrelated event data: ", eventData);
@@ -76,21 +55,8 @@ export class EventHandler {
       case NetworkEventType.ORAIBRIDGE:
         if (eventData.length === 0)
           throw generateError(`malformed OraiBridge event data: ${JSON.stringify(eventData)}`);
-        const txEvent: TxEvent = eventData[0];
-        const events = parseRpcEvents(txEvent.result.events);
-        // auto forward case, we handle it by forwarding to the evm case
-        if (
-          events.some(
-            (event) =>
-              event.type === oraiBridgeAutoForwardEvent.type &&
-              event.attributes.some(
-                (attr) => JSON.stringify(attr) === JSON.stringify(oraiBridgeAutoForwardEvent.attribute)
-              )
-          )
-        ) {
-          this.processAutoForwardEvent(events, txEvent);
-          break;
-        }
+        // for intermediate states like OraiBridge, we will send the event to all intepreters. If the event matches then they will move on to the next state based on their logic
+        for (let intepreter of this.intepreters) intepreter.send({ type: "STORE_AUTO_FORWARD", payload: eventData[0] });
         break;
       case NetworkEventType.ORAICHAIN:
         break;
