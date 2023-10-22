@@ -1,5 +1,6 @@
 import { EventHandler, OraiBridgeEvent } from "../src/event";
 import { DuckDbNode } from "../src/db";
+import { oraiBridgeAutoForwardTx } from "./common";
 
 describe("test-mock-websocket", () => {
   let duckDb: DuckDbNode;
