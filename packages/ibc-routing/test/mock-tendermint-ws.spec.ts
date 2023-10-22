@@ -37,8 +37,7 @@ const oraiBridgeAutoForwardTx = {
         attributes: [
           {
             key: "c2lnbmF0dXJl",
-            value:
-              "UGo2U08wOUVZUWNIOWovZ0dPenQyai9XYms5amNpV0ZXa2toN2VsajNLc1dTOElndnRrNDhIT0dpeUVYZ3dnWkQyeFhjcUtrckRzTGdRc0NjRVhJMnc9PQ=="
+            value: "UGo2U08wOUVZUWNIOWovZ0dPenQyai9XYms5amNpV0ZXa2toN2VsajNLc1dTOElndnRrNDhIT0dpeUVYZ3dnWkQyeFhjcUtrckRzTGdRc0NjRVhJMnc9PQ=="
           }
         ]
       },
@@ -256,9 +255,8 @@ describe("test-mock-websocket", () => {
   });
   it("test-oraibridge-ws", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "localhost:26657");
-    const stream = await oraiBridgeEvent.connectCosmosSocket([
-      { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }
-    ]);
+    await oraiBridgeEvent.connectCosmosSocket();
+    const stream = await oraiBridgeEvent.subcribeTx([{ key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     stream.shamefullySendNext({
       ...oraiBridgeAutoForwardTx,

@@ -1,21 +1,42 @@
-import { ethers } from "ethers";
+import { ethers, EventFilter } from "ethers";
 import { Gravity__factory, Gravity, generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { DuckDB } from "./db";
-import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
+import { Tendermint37Client, TxData, WebsocketClient } from "@cosmjs/tendermint-rpc";
 import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { AnyInterpreter, interpret } from "xstate";
 import { createEvmToEvmMachine } from "./machine";
-import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 // import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 
 export const sendToCosmosEvent = "SendToCosmosEvent(address,address,string,uint256,uint256)";
+
 export const oraiBridgeAutoForwardEvent = {
   type: "message",
   attribute: { key: "action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }
 };
-export const oraiBridgeAutoForwardEventType = "gravity.v1.EventSendToCosmosExecutedIbcAutoForward";
 export const evmGravityEvents = [sendToCosmosEvent];
+
+export enum EVMEventType {
+  SEND_TO_COSMOS = "SendToCosmosEvent(address,address,string,uint256,uint256)",
+  TRANSACTION_BATCH_EXECUTED_EVENT = "TransactionBatchExecutedEvent(uint256, address,uint256,)"
+}
+
+export enum OraiBridgeAction {
+  AUTO_FORWARD_EVENT = "/gravity.v1.MsgExecuteIbcAutoForwards"
+}
+export enum OraiBridgeEventType {
+  EVENT_SEND_TO_COSMOS_EXECUTED_IBC_AUTO_FORWARD = "gravity.v1.EventSendToCosmosExecutedIbcAutoForward"
+}
+
+export enum IBCEventType {
+  SEND_PACKET = "send_packet",
+  RECEIVE_PACKET = "recv_packet",
+  IBC_TRANSFER = "ibc_transfer",
+  ACKNOWLEDGE_PACKET = "acknowledge_packet"
+}
+
+export enum OraichainEventType { }
+
 export enum NetworkEventType {
   EVM,
   ORAIBRIDGE,
@@ -32,7 +53,7 @@ export class EventHandler {
   constructor(public readonly db: DuckDB) { }
 
   processAutoForwardEvent(events: Event[], txEvent: TxEvent) {
-    const autoForwardEvent = events.find((event) => event.type === oraiBridgeAutoForwardEventType);
+    const autoForwardEvent = events.find((event) => event.type === OraiBridgeAction.AUTO_FORWARD_EVENT);
     if (!autoForwardEvent) {
       console.log("not autoforward event");
       return;
@@ -51,12 +72,12 @@ export class EventHandler {
     intepreter.send({ type: "STORE_AUTO_FORWARD", payload: { events, txEvent } });
   }
 
-  handleEvent(networkEventType: NetworkEventType, eventData: any[]) {
+  handleEvent(networkEventType: NetworkEventType, eventData: TxEvent[] | EventFilter[]) {
     switch (networkEventType) {
       case NetworkEventType.EVM:
-        const eventObject = eventData.find((data) => typeof data === "object" && data.topics);
+        const eventObject = (eventData as EventFilter[]).find((data) => typeof data === "object" && data.topics);
         if (!eventObject) throw generateError(`There is something wrong with the evm event because it has no topics: ${JSON.stringify(eventData)}`);
-        const topics: string[] = eventObject.topics;
+        const topics = eventObject.topics;
         if (!topics) throw generateError(`There is no topics => something wrong with this event: ${JSON.stringify(eventData)}`);
 
         if (topics.includes(keccak256HashString(sendToCosmosEvent))) {
@@ -71,7 +92,7 @@ export class EventHandler {
         break;
       case NetworkEventType.ORAIBRIDGE:
         if (eventData.length === 0) throw generateError(`malformed OraiBridge event data: ${JSON.stringify(eventData)}`);
-        const txEvent: TxEvent = eventData[0];
+        const txEvent: TxEvent = (eventData as TxEvent[])[0];
         const events = parseRpcEvents(txEvent.result.events);
         // auto forward case, we handle it by forwarding to the evm case
         if (
@@ -118,7 +139,6 @@ export class EthEvent {
 
 export abstract class CosmosEvent {
   tendermintClient: Tendermint37Client;
-  cosmWasmClient: CosmWasmClient;
   constructor(
     public readonly db: DuckDB,
     protected readonly handler: EventHandler,
@@ -126,19 +146,17 @@ export abstract class CosmosEvent {
   ) { }
 
   // this function handles the websocket event after receiving. Each cosmos network has a different set of events needed to handle => this should be abstract
-  abstract callback(eventData: unknown): void;
+  abstract callback(eventData: TxEvent): void;
 
   connectCosmosSocket = async () => {
     const socketConnection = new WebsocketClient(this.baseUrl);
-    this.cosmWasmClient = await CosmWasmClient.connect(this.baseUrl);
-    // this.tendermintClient = await Tendermint37Client.create(socketConnection);
+    this.tendermintClient = await Tendermint37Client.create(socketConnection);
   };
 
-  subcribeTx = async (tags: QueryTag[], next: (event) => any) => {
+  subcribeTx = async (tags: QueryTag[]) => {
     if (!this.tendermintClient) {
       await this.connectCosmosSocket();
     }
-
     const stream = this.tendermintClient.subscribeTx(
       buildQuery({
         tags
@@ -163,43 +181,6 @@ export class OraiBridgeEvent extends CosmosEvent {
   constructor(db: DuckDB, handler: EventHandler, baseUrl: string) {
     super(db, handler, baseUrl);
   }
-
-  listenToOraiBridgeEvent = async () => {
-    if (!this.tendermintClient) {
-      await this.connectCosmosSocket();
-    }
-    const query = buildQuery({
-      tags: [
-        {
-          key: "gravity.v1.EventSendToCosmosExecutedIbcAutoForward.nonce",
-          value: "583"
-        }
-      ]
-      // raw: "gravity.v1.EventSendToCosmosExecutedIbcAutoForward.nonce='113'"
-    });
-
-    const result = await this.cosmWasmClient.searchTx({
-      tags: [
-        {
-          key: "gravity.v1.EventSendToCosmosExecutedIbcAutoForward.receiver",
-          value: "orai1u3ucyql6deplaxdv67an2k709vkhfvpmhezrm0"
-        }
-      ]
-    });
-    // const result = await this.tendermintClient.txSearch({
-    //   page: 1,
-    //   query
-    // });
-    console.log(
-      result
-      //.txs
-      // .map((r) => r.result.events)
-      // .find((e) => e.type === "gravity.v1.EventSendToCosmosExecutedIbcAutoForward")
-      // .attributes.map(({ key, value }) => {
-      //   return { key: Buffer.from(key, "base64").toString(), value: Buffer.from(value, "base64").toString() };
-      // })
-    );
-  };
 
   callback(eventData: TxEvent): void {
     this.handler.handleEvent(NetworkEventType.ORAIBRIDGE, [eventData]);
