@@ -5,6 +5,8 @@ import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { oraiBridgeAutoForwardEventType } from "./constants";
 
+// TODO: add more cases for each state to make the machine more resistent
+// for example, if server down / socket down, miss oraibridge event, but still receive oraichain event with no found packet sequence then we will need to adapt somehow
 export const createEvmToEvmIntepreter = (db: DuckDB) => {
   const machine = createMachine({
     predictableActionArguments: true,

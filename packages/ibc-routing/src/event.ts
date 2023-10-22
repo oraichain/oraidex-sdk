@@ -50,6 +50,12 @@ export class EventHandler {
         }
         break;
       case NetworkEventType.ORAICHAIN:
+        // TODO: we also have the transfer_back_to_remote_chain case where we need to create a new intepreter
+        for (let i = 0; i < this.intepreters.length; i++) {
+          const currentState = this.intepreters[i].send({ type: "STORE_ON_RECV_PACKET", payload: eventData[0] });
+          // this means that the entire state machine has reached the final state => done, we can remove the intepreter from the list (it is also stopped automatically as well)
+          if (currentState.done) this.intepreters.splice(i, 1);
+        }
         break;
       default:
         break;
@@ -69,14 +75,6 @@ export class EthEvent {
     return gravity.on({ topics: evmGravityEvents.map((ev) => keccak256HashString(ev)) }, (...args) => {
       this.handler.handleEvent(NetworkEventType.EVM, args);
     });
-    // gravity.on(
-    //   gravity.filters.SendToCosmosEvent(),
-    //   (fromTokenAddr, sender, destination, fromAmount, eventNonce) => {
-    //     console.log(fromTokenAddr, sender, destination, fromAmount, eventNonce);
-    //     // this.db.insertData({})
-    //     // create new evm machine,
-    //   }
-    // );
   };
 }
 
@@ -116,6 +114,7 @@ export class OraiBridgeEvent extends CosmosEvent {
 
 export class OraichainEvent extends CosmosEvent {
   callback(eventData: TxEvent): void {
+    // TODO: consider parsing the OnRecvPacket here because it is a large tx
     this.handler.handleEvent(NetworkEventType.ORAICHAIN, [eventData]);
   }
 }
