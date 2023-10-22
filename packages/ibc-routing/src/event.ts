@@ -1,9 +1,9 @@
-import { BigNumber, ethers } from "ethers";
+import { ethers } from "ethers";
 import { Gravity__factory, Gravity, generateError } from "@oraichain/oraidex-common";
 import { DuckDB } from "./db";
 import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
 import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
-import { AnyStateMachine, State } from "xstate";
+import { AnyInterpreter, interpret } from "xstate";
 import { createEvmToEvmMachine } from "./machine";
 import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
 
@@ -21,7 +21,7 @@ export const keccak256HashString = (data: string): string => {
 };
 
 export class ContextHandler {
-  public machines: { txHash: string; machine: { instance: AnyStateMachine; currentState: any } }[];
+  public intepreters: AnyInterpreter[] = [];
   constructor(public readonly db: DuckDB) {}
   handleEvent(networkEventType: NetworkEventType, eventData: any[]) {
     switch (networkEventType) {
@@ -36,30 +36,11 @@ export class ContextHandler {
           throw generateError(`There is no topics => something wrong with this event: ${JSON.stringify(eventData)}`);
 
         if (topics.includes(keccak256HashString(sendToCosmosEvent))) {
-          // TODO: this work can be delegated to the state machine
-          const { transactionHash: txHash, blockNumber: height } = eventData[5];
-          const routeData: OraiBridgeRouteData = unmarshalOraiBridgeRoute(eventData[2]);
-          const sendToCosmosData = {
-            txHash,
-            height,
-            prevState: "",
-            destination: eventData[2],
-            fromAmount: eventData[3].toString(),
-            oraiBridgeChannelId: routeData.oraiBridgeChannel,
-            oraiReceiver: routeData.oraiReceiver,
-            destinationDenom: routeData.tokenIdentifier,
-            destinationChannel: routeData.finalDestinationChannel,
-            destinationReceiver: routeData.finalReceiver,
-            eventNonce: parseInt(eventData[4].toString())
-          };
-          console.log("send to cosmos data: ", sendToCosmosData);
           // create new machine so we start a new context for the transaction
-          // const machine = createEvmToEvmMachine(this.db);
-          // const currentState = machine.transition(machine.initialState, { type: "STORE", payload: eventData });
-          // this.machines.push({
-          //   txHash: eventData.txHash,
-          //   machine: { instance: machine, currentState }
-          // });
+          const machine = createEvmToEvmMachine(this.db);
+          const intepreter = interpret(machine).start();
+          this.intepreters.push(intepreter);
+          intepreter.send({ type: "STORE", payload: eventData });
         } else {
           console.log("unrelated event data: ", eventData);
         }

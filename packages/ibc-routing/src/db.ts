@@ -11,7 +11,8 @@ export const sqlCommands = {
     (
       txHash varchar,
       height uinteger,
-      prevSstate varchar,
+      prevState varchar,
+      nextState varchar,
       destination varchar,
       fromAmount ubigint,
       oraiBridgeChannelId varchar,
@@ -26,6 +27,7 @@ export const sqlCommands = {
       txHash varchar,
       height uinteger,
       prevState varchar,
+      nextState varchar,
       eventNonce uinteger,
       packetSequence uinteger
     )`,
@@ -33,7 +35,8 @@ export const sqlCommands = {
     (
         txhash varchar,
         height uinteger,
-        prevState: varchar,
+        prevState varchar,
+        nextState varchar,
         packetSequence uinteger,
         packetAck varchar,
         nextPacketSequence uinteger,
@@ -59,7 +62,7 @@ export abstract class DuckDB {
   abstract queryInitialEvmStateByHash(txHash: string): Promise<any>;
   abstract queryOraiBridgeStateByNonce(eventNonce: string): Promise<any>;
   abstract queryOraichainStateBySequence(packetSequence: string): Promise<any>;
-  abstract insertData(data: any, fileName: string): Promise<void>;
+  abstract insertData(data: any, tableName: string): Promise<void>;
 }
 
 export class DuckDbNode extends DuckDB {
@@ -68,12 +71,12 @@ export class DuckDbNode extends DuckDB {
     super();
   }
 
-  static async create(fileName?: string): Promise<DuckDbNode> {
-    if (!fileName) throw new Error("Filename is not provided!");
+  static async create(tableName?: string): Promise<DuckDbNode> {
+    const path = tableName || ":memory:";
     if (!DuckDbNode.instances) {
-      let db = await Database.create(fileName || ":memory:");
+      let db = await Database.create(path);
       await db.close(); // close to flush WAL file
-      db = await Database.create(fileName);
+      db = await Database.create(path);
       const conn = await db.connect();
       DuckDbNode.instances = new DuckDbNode(conn, db);
     }
@@ -106,11 +109,11 @@ export class DuckDbNode extends DuckDB {
   }
 
   // TODO: use typescript here instead of any
-  async insertData(data: any, fileName: string) {
-    const tableFile = `${fileName}.json`;
+  async insertData(data: any, tableName: string) {
+    const tableFile = `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-    const query = `INSERT OR REPLACE INTO ${fileName} SELECT * FROM read_json_auto(?)`;
+    const query = `INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`;
     await this.conn.run(query, tableFile);
     await fs.promises.unlink(tableFile);
   }
@@ -175,13 +178,18 @@ export class DuckDbWasm extends DuckDB {
     return [];
   }
 
-  async insertData(data: any, fileName: string) {
-    const tableFile = `${fileName}.json`;
-    // the file written out is temporary only. Will be deleted after insertion
-    await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-    const query = `INSERT OR REPLACE INTO ${fileName} SELECT * FROM read_json_auto(?)`;
-    const stmt = await this.conn.prepare(query);
-    await stmt.send(query, tableFile);
-    await fs.promises.unlink(tableFile);
+  async insertData(data: any, tableName: string) {
+    // TODO: FIXME
+    //   try {
+    //     const tableFile = `${tableName}.json`;
+    //     // the file written out is temporary only. Will be deleted after insertion
+    //     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
+    //     const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
+    //     const stmt = await this.conn.prepare(query);
+    //     await stmt.send(query, tableFile);
+    //     await fs.promises.unlink(tableFile);
+    //   } catch (error) {
+    //     console.log("insert data error: ", error);
+    //   }
   }
 }

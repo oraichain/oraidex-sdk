@@ -1,6 +1,6 @@
 import { resolve } from "path";
-import { DuckDbWasm } from "../src/db";
-import { ContextHandler, EthEvent } from "../src/event";
+import { DuckDbNode, DuckDbWasm } from "../src/db";
+import { ContextHandler, EthEvent, keccak256HashString, sendToCosmosEvent } from "../src/event";
 import { ethers, getSigners } from "hardhat";
 import { BigNumber } from "ethers";
 
@@ -44,7 +44,7 @@ const testSendToCosmosData = [
 describe("test-eth-ws", () => {
   const [owner] = getSigners(1);
   it("test-eth-ws", async () => {
-    const duckDb: DuckDbWasm = await DuckDbWasm.create(resolve(__dirname, "../../../"));
+    const duckDb: DuckDbNode = await DuckDbNode.create();
     await duckDb.createTable();
 
     const eventHandler = new ContextHandler(duckDb);
