@@ -41,7 +41,7 @@ export const createEvmToEvmMachine = (db: DuckDB) => {
             await ctx.db.insertData(sendToCosmosData, "evm_state");
             return new Promise((resolve) => resolve(txHash));
           },
-          onDone: "afterDb", // move to 'afterDb' state
+          // onDone: "afterDb", // move to 'afterDb' state
           // rejected promise
           onError: {
             target: "storeEvmFailure",
