@@ -1,0 +1,44 @@
+{
+  "root": true,
+  "extends": [
+    "plugin:@typescript-eslint/recommended"
+  ],
+  "plugins": [
+    "@typescript-eslint"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "sourceType": "module",
+    "ecmaVersion": 11,
+    "project": "./tsconfig.json"
+  },
+  "globals": {
+    "atob": true,
+    "btoa": true,
+    "document": true,
+    "fetch": true,
+    "jest": true,
+    "it": true,
+    "beforeEach": true,
+    "afterEach": true,
+    "describe": true,
+    "expect": true,
+    "chrome": true,
+    "FileSystem": true,
+    "FileEntry": true
+  },
+  "overrides": [
+    {
+      "files": [
+        "*.js",
+        "*.ts",
+        "*.tsx"
+      ],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "warn",
+        "prefer-const": "warn",
+        "@typescript-eslint/no-empty-function": "warn"
+      }
+    }
+  ]
+}
