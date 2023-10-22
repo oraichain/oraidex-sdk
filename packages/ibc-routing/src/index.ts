@@ -3,9 +3,7 @@
 import uws from "uWebSockets.js";
 import "dotenv/config";
 import { DuckDbNode, DuckDbWasm } from "./db";
-// import { createMachines } from "./machine";
-import { sendTo } from "xstate/lib/actions";
-import { ContextHandler, EthEvent } from "./event";
+import { EventHandler, EthEvent, OraiBridgeEvent } from "./event";
 import { ethers } from "ethers";
 
 uws
@@ -36,21 +34,28 @@ uws
     if (listenSocket) {
       console.log("Listening to port 9001");
     }
-    let duckDb: DuckDbNode | DuckDbWasm;
-    if (process.env.NODE_ENV !== "production") {
-      duckDb = await DuckDbWasm.create(__dirname);
-    } else {
-      duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
-    }
+    // let duckDb: DuckDbNode | DuckDbWasm;
+    // if (process.env.NODE_ENV !== "production") {
+    //   duckDb = await DuckDbWasm.create(__dirname);
+    // } else {
+    //   duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
+    // }
+    const duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME || ":memory:");
     await duckDb.createTable();
 
-    const eventHandler = new ContextHandler(duckDb);
+    const eventHandler = new EventHandler(duckDb);
+    // recover all previous intepreters so that we can be at the current states for all contexts
+    await eventHandler.recoverIntepreters();
     const ethEvent = new EthEvent(eventHandler);
+    const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "bridge-v2.rpc.orai.io");
     // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
     ethEvent.listenToEthEvent(
       new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),
       "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"
     );
+    await oraiBridgeEvent.connectCosmosSocket([
+      { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" }
+    ]);
 
     // const { evmToOraichainMachine } = createMachines(duckDb);
   });

@@ -1,6 +1,5 @@
-import { resolve } from "path";
-import { DuckDbNode, DuckDbWasm } from "../src/db";
-import { ContextHandler, EthEvent, keccak256HashString, sendToCosmosEvent } from "../src/event";
+import { DuckDbNode } from "../src/db";
+import { EventHandler, EthEvent } from "../src/event";
 import { ethers, getSigners } from "hardhat";
 import { BigNumber } from "ethers";
 
@@ -42,12 +41,18 @@ const testSendToCosmosData = [
 ];
 
 describe("test-eth-ws", () => {
-  const [owner] = getSigners(1);
-  it("test-eth-ws", async () => {
-    const duckDb: DuckDbNode = await DuckDbNode.create();
+  let duckDb: DuckDbNode;
+  let eventHandler: EventHandler;
+
+  beforeEach(async () => {
+    duckDb = await DuckDbNode.create();
     await duckDb.createTable();
 
-    const eventHandler = new ContextHandler(duckDb);
+    eventHandler = new EventHandler(duckDb);
+  });
+
+  const [owner] = getSigners(1);
+  it("test-eth-ws", async () => {
     const ethEvent = new EthEvent(eventHandler);
     const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
     gravity.emit("SendToCosmosEvent", ...testSendToCosmosData);
