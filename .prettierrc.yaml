@@ -3,3 +3,4 @@ printWidth: 150
 singleQuote: false
 semi: true
 trailingComma: none
+bracketSpacing: false
