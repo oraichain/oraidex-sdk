@@ -5,18 +5,34 @@ import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraide
 export const createEvmToEvmMachine = (db: DuckDB) => {
   return createMachine({
     initial: "evm",
+    // we only maintain important context attributes for events to identify which machine they belong to
     context: {
       db,
-      initialTxHash: ""
+      evmEventNonce: -1,
+      oraiBridgeEventNonce: -1,
+      oraiBridgePacketSequence: -1,
+      oraiReceivePacketSequence: -1, // sequence when OnRecvPacket
+      oraiSendPacketSequence: -1, // sequence when SendPacket
+      finalMemo: ""
     },
     states: {
       evm: {
         on: {
           // listen to event sent elsewhere. Once received 'STORE' type event, then it will move to 'storeDb' state
-          STORE: "storeEvm"
+          STORE_SEND_TO_COSMOS: "sendToCosmosEvm"
         }
       },
-      storeEvm: {
+      oraibridge: {
+        on: {
+          STORE_AUTO_FORWARD: "autoForwardOraiBridge"
+        }
+      },
+      // oraichain: {
+      //   on: {
+      //     STORE_ON_RECV_PACKET: "storeOraichain"
+      //   }
+      // },
+      sendToCosmosEvm: {
         invoke: {
           // function that returns a promise
           src: async (ctx, event) => {
@@ -27,6 +43,7 @@ export const createEvmToEvmMachine = (db: DuckDB) => {
               txHash,
               height,
               prevState: "",
+              prevTxHash: "",
               nextState: "oraibridge_state",
               destination: eventData[2],
               fromAmount: eventData[3].toString(),
@@ -37,23 +54,36 @@ export const createEvmToEvmMachine = (db: DuckDB) => {
               destinationReceiver: routeData.finalReceiver,
               eventNonce: parseInt(eventData[4].toString())
             };
-            ctx.initialTxHash = txHash;
+            // this context data will be used for querying in the next state
+            ctx.evmEventNonce = sendToCosmosData.eventNonce;
+            console.log("send to cosmos data: ", sendToCosmosData);
             await ctx.db.insertData(sendToCosmosData, "evm_state");
-            return new Promise((resolve) => resolve(txHash));
+            return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
           },
-          // onDone: "afterDb", // move to 'afterDb' state
+          onDone: "oraibridge", // move to 'afterDb' state
           // rejected promise
           onError: {
-            target: "storeEvmFailure",
+            target: "SendToCosmosEvmFailure",
             // rejected promise data is on event.data property
             actions: (ctx, event) => console.log("error storing data into evm state: ", event.data)
           }
         }
       },
-      storeEvmFailure: {},
-      afterDb: {
-        entry: () => {
-          console.log("in after db");
+      SendToCosmosEvmFailure: {},
+      autoForwardFailure: {},
+      autoForwardOraiBridge: {
+        invoke: {
+          src: (ctx, event) => {
+            console.log("event in autoforward oraibridge: ", event);
+            return new Promise((resolve) => resolve(""));
+          },
+          // onDone: "oraichain", // move to 'afterDb' state
+          // rejected promise
+          onError: {
+            target: "autoForwardFailure",
+            // rejected promise data is on event.data property
+            actions: (ctx, event) => console.log("error storing data into oraibridge state: ", event.data)
+          }
         }
       }
     }
