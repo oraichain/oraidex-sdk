@@ -564,15 +564,14 @@ export class DuckDb {
   async getAllAprs() {
     const result = await this.conn.all(
       `
-      SELECT p.pairAddr, p.apr, p.rewardPerSec, p.totalSupply
-      FROM pool_apr p
-      JOIN (
-        SELECT pairAddr, MAX(height) AS max_height
+      WITH RankedPool AS (
+        SELECT pairAddr, apr, rewardPerSec, totalSupply, height,
+               ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY height DESC) AS rn
         FROM pool_apr
-        GROUP BY pairAddr
-      ) max_heights
-      ON p.pairAddr = max_heights.pairAddr AND p.height = max_heights.max_height
-      ORDER BY p.height DESC
+    )
+    SELECT pairAddr, apr, rewardPerSec, totalSupply
+    FROM RankedPool
+    WHERE rn = 1;
       `
     );
     return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
