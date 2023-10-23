@@ -206,16 +206,17 @@ app.get("/v1/pools/", async (_req, res) => {
     ]);
     const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
+      if (!poolApr) return null;
       return {
         ...pool,
         volume24Hour: volumes[index]?.toString() ?? "0",
         fee7Days: allFee7Days[index]?.toString() ?? "0",
-        apr: poolApr?.apr ?? 0,
+        apr: poolApr.apr,
         totalLiquidity: allLiquidities[index],
-        rewardPerSec: poolApr?.rewardPerSec,
+        rewardPerSec: poolApr.rewardPerSec,
         offerPoolAmount: allPoolAmounts[index].offerPoolAmount,
         askPoolAmount: allPoolAmounts[index].askPoolAmount,
-        totalSupply: allPoolApr[index].totalSupply
+        totalSupply: poolApr.totalSupply
       } as PairInfoDataResponse;
     });
 

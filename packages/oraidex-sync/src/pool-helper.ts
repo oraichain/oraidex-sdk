@@ -68,13 +68,13 @@ export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): 
   return res;
 };
 
-export const getPairByAssetInfos = (assetInfos: [AssetInfo, AssetInfo]): PairMapping => {
+export const getPairByAssetInfos = ([baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo]): PairMapping => {
   return pairs.find((pair) => {
     const [baseAsset, quoteAsset] = pair.asset_infos;
     const denoms = [parseAssetInfoOnlyDenom(baseAsset), parseAssetInfoOnlyDenom(quoteAsset)];
     return (
-      denoms.some((denom) => denom === parseAssetInfoOnlyDenom(assetInfos[0])) &&
-      denoms.some((denom) => denom === parseAssetInfoOnlyDenom(assetInfos[1]))
+      denoms.some((denom) => denom === parseAssetInfoOnlyDenom(baseAssetInfo)) &&
+      denoms.some((denom) => denom === parseAssetInfoOnlyDenom(quoteAssetInfo))
     );
   });
 };
@@ -472,6 +472,8 @@ export const collectAccumulateLpAndSwapData = async (data: LpOpsData[], poolInfo
 
     let baseAmount = BigInt(op.baseTokenAmount);
     let quoteAmount = BigInt(op.quoteTokenAmount);
+    // with swap, when Buy, we add quoteAmount to pool, and remove baseAmount from pool, so we need to reverse sign
+    // Example: Buy ORAI => offer is usdt, ask is orai
     if (op.opType === "withdraw" || op.direction === "Buy") {
       // reverse sign since withdraw means lp decreases
       baseAmount = -baseAmount;
@@ -558,11 +560,17 @@ export const accumulatePoolAmount = async (
       } as LpOpsData;
     }),
     ...swapData.map((item) => {
+      const baseAmount = item.direction === "Sell" ? item.offerAmount : item.returnAmount;
+      const baseDenom = item.direction === "Sell" ? item.offerDenom : item.askDenom;
+      const quoteDenom = item.direction === "Sell" ? item.askDenom : item.offerDenom;
+      const quoteAmount = -(item.direction === "Sell" ? item.returnAmount : item.offerAmount);
       return {
-        baseTokenAmount: item.offerAmount,
-        baseTokenDenom: item.offerDenom,
-        quoteTokenAmount: -item.returnAmount, // reverse sign because we assume first case is sell, check buy later.
-        quoteTokenDenom: item.askDenom,
+        // when sell, offer amount is base, quote amount is quote, so we need to add offerAmount and substract askAmount to pool
+        // Example: ORAI/USDT, when sell ORAI, we offer ORAI and returned USDT
+        baseTokenAmount: baseAmount,
+        baseTokenDenom: baseDenom,
+        quoteTokenAmount: -quoteAmount, // reverse sign because we assume first case is sell, check buy later.
+        quoteTokenDenom: quoteDenom,
         direction: item.direction,
         height: item.txheight,
         timestamp: item.timestamp
