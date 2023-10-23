@@ -302,7 +302,7 @@ describe("test-duckdb", () => {
     const feeSwap = await duckDb.getFeeSwap(payload);
 
     // assertion
-    expect(feeSwap).toEqual(2000000n);
+    expect(feeSwap).toEqual([1000000, 1000000]);
   });
 
   it.each([

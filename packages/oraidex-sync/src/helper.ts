@@ -435,9 +435,6 @@ export const getFeeSwapInUsdt = async (
   ]);
 
   const totalFeeInUsdt = baseAssetPrice * feeInBaseAsset + quoteAssetPrice * feeInQuoteAsset;
-  if ("token" in baseAsset && baseAsset.token.contract_addr === "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg") {
-    console.log({ totalFeeInUsdt, baseAssetPrice, quoteAssetPrice, feeInBaseAsset, feeInQuoteAsset });
-  }
   return BigInt(Math.trunc(totalFeeInUsdt));
 };
 
@@ -460,7 +457,7 @@ export const getFeePair = async (
 };
 
 async function getAllFees(): Promise<bigint[]> {
-  const tf = 70 * 24 * 60 * 60; // second of 7 days
+  const tf = 7 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));

@@ -395,11 +395,11 @@ describe("test-helper", () => {
         timestamp: 1
       },
       {
-        baseTokenAmount: 1,
+        baseTokenAmount: 2,
         baseTokenDenom: ORAI,
         quoteTokenAmount: -1,
         quoteTokenDenom: usdtCw20Address,
-        direction: "Buy",
+        direction: "Sell",
         height: 1,
         timestamp: 1
       },
@@ -408,8 +408,8 @@ describe("test-helper", () => {
         baseTokenDenom: ORAI,
         quoteTokenAmount: -1,
         quoteTokenDenom: usdtCw20Address,
-        direction: "Sell",
-        height: 1,
+        direction: "Buy",
+        height: 2,
         timestamp: 1
       }
     ];
@@ -420,7 +420,7 @@ describe("test-helper", () => {
 
     // assertion
     expect(accumulatedData).toStrictEqual({
-      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 1, offerPoolAmount: 2n, timestamp: 1, totalShare: "1" }
+      oraiUsdtPairAddr: { askPoolAmount: 2n, height: 2, offerPoolAmount: 3n, timestamp: 1, totalShare: "1" }
     });
   });
 
@@ -758,7 +758,7 @@ describe("test-helper", () => {
   describe("test-get-fee-pair", () => {
     it("test-getFeePair-should-return-correctly-sum-fee-swap-&-liquidity", async () => {
       //setup mock
-      jest.spyOn(duckDb, "getFeeSwap").mockResolvedValue(1n);
+      jest.spyOn(helper, "getFeeSwapInUsdt").mockResolvedValue(1n);
       jest.spyOn(duckDb, "getFeeLiquidity").mockResolvedValue(1n);
 
       // act
