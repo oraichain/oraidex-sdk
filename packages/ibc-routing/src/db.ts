@@ -3,11 +3,11 @@ import { Connection, Database } from "duckdb-async";
 import { resolve } from "path";
 import Worker from "web-worker";
 import fs from "fs";
-import { toObject } from "@oraichain/oraidex-common";
+import { generateError, toObject } from "@oraichain/oraidex-common";
 
 export const sqlCommands = {
   create: {
-    evmState: `create table if not exists evm_state 
+    EvmState: `create table if not exists EvmState 
     (
       txHash varchar,
       height uinteger,
@@ -15,7 +15,7 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       destination varchar,
-      fromAmount ubigint,
+      fromAmount hugeint,
       oraiBridgeChannelId varchar,
       oraiReceiver varchar,
       destinationDenom varchar,
@@ -23,7 +23,7 @@ export const sqlCommands = {
       destinationReceiver varchar,
       eventNonce uinteger primary key,
     )`,
-    oraiBridgeState: `create table if not exists oraibridge_state 
+    OraiBridgeState: `create table if not exists OraiBridgeState 
     (
       txHash varchar,
       height uinteger,
@@ -31,11 +31,20 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       eventNonce uinteger,
-      packetSequence uinteger primary key
+      packetSequence uinteger primary key,
+      amount hugeint,
+      denom varchar,
+      memo varchar,
+      receiver varchar,
+      sender varchar,
+      srcPort varchar,
+      srcChannel varchar,
+      dstPort varchar,
+      dstChannel varchar,
     )`,
-    oraichainState: `create table if not exists oraichain_state 
+    OraichainState: `create table if not exists OraichainState 
     (
-        txhash varchar,
+        txHash varchar,
         height uinteger,
         prevState varchar,
         prevTxHash varchar,
@@ -44,20 +53,21 @@ export const sqlCommands = {
         packetAck varchar,
         nextPacketSequence uinteger,
         nextMemo varchar,
-        nextAmount ubigint,
+        nextAmount hugeint,
         nextReceiver varchar,
         nextDestinationDenom varchar,
     )`
   },
   query: {
-    evmStateByHash: `SELECT * from evm_state where txHash = ?`,
-    evmStateByNonce: `SELECT * from evm_state where eventNonce = ?`,
+    evmStateByHash: `SELECT * from EvmState where txHash = ?`,
+    evmStateByNonce: `SELECT * from EvmState where eventNonce = ?`,
     oraiBridgeStateByNonce: `
-      SELECT * from oraibridge_state where eventNonce = ?
+      SELECT * from OraiBridgeState where eventNonce = ?
       `,
-    oraichainStatebySequence: `
-      SELECT * from oraichain_state where packetSequence = ?
-      `
+    oraichainStateByPacketSequence: `
+      SELECT * from OraichainState where packetSequence = ?
+      `,
+    stateDataByPacketSequence: (tableName: string) => `SELECT * from ${tableName} where packetSequence = ?`
   }
 };
 
@@ -67,6 +77,7 @@ export abstract class DuckDB {
   abstract queryInitialEvmStateByNonce(nonce: number): Promise<any>;
   abstract queryOraiBridgeStateByNonce(eventNonce: string): Promise<any>;
   abstract queryOraichainStateBySequence(packetSequence: string): Promise<any>;
+  abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
   abstract insertData(data: any, tableName: string): Promise<void>;
 }
 
@@ -114,9 +125,22 @@ export class DuckDbNode extends DuckDB {
   }
 
   async queryOraichainStateBySequence(packetSequence: string) {
-    const result = await this.conn.all(sqlCommands.query.oraichainStatebySequence, packetSequence);
+    const result = await this.conn.all(sqlCommands.query.oraichainStateByPacketSequence, packetSequence);
     if (result.length > 0) return result[0];
     return [];
+  }
+
+  async findStateByPacketSequence(packetSequence: number): Promise<any> {
+    for (let tableName of Object.keys(sqlCommands.create)) {
+      try {
+        const result = await this.conn.all(sqlCommands.query.stateDataByPacketSequence(tableName), packetSequence);
+        if (result.length > 0) return { tableName, state: result[0] };
+      } catch (error) {
+        // ignore errors because some tables may not have packetSequence column
+        continue;
+      }
+    }
+    return null;
   }
 
   // TODO: use typescript here instead of any
@@ -190,10 +214,14 @@ export class DuckDbWasm extends DuckDB {
   }
 
   async queryOraichainStateBySequence(packetSequence: string) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraichainStatebySequence);
+    const stmt = await this.conn.prepare(sqlCommands.query.oraichainStateByPacketSequence);
     const result = (await stmt.query(packetSequence)).toArray();
     if (result.length > 0) return result[0];
     return [];
+  }
+
+  async findStateByPacketSequence(packetSequence: number): Promise<any> {
+    throw generateError("Not implemented");
   }
 
   async insertData(data: any, tableName: string) {
