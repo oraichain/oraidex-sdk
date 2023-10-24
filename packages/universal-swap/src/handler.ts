@@ -325,6 +325,7 @@ export class UniversalSwapHandler {
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
         encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
+        break;
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
