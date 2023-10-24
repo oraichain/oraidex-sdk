@@ -70,5 +70,6 @@ describe("test-integration", () => {
     stream.shamefullySendNext(unmarshalTxEvent(oraiBridgeAutoForwardTx));
     await sleep(300);
     oraiStream.shamefullySendNext(unmarshalTxEvent(onRecvPacketTx));
+    await sleep(300);
   });
 });

@@ -64,6 +64,9 @@ export const sqlCommands = {
     oraiBridgeStateByNonce: `
       SELECT * from OraiBridgeState where eventNonce = ?
       `,
+    oraiBridgeStateBySequence: `
+      SELECT * from OraiBridgeState where packetSequence = ?
+      `,
     oraichainStateByPacketSequence: `
       SELECT * from OraichainState where packetSequence = ?
       `,
@@ -75,8 +78,9 @@ export abstract class DuckDB {
   abstract createTable(): Promise<void>;
   abstract queryInitialEvmStateByHash(txHash: string): Promise<any>;
   abstract queryInitialEvmStateByNonce(nonce: number): Promise<any>;
-  abstract queryOraiBridgeStateByNonce(eventNonce: string): Promise<any>;
-  abstract queryOraichainStateBySequence(packetSequence: string): Promise<any>;
+  abstract queryOraiBridgeStateByNonce(eventNonce: number): Promise<any>;
+  abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryOraichainStateBySequence(packetSequence: number): Promise<any>;
   abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
   abstract insertData(data: any, tableName: string): Promise<void>;
 }
@@ -118,13 +122,19 @@ export class DuckDbNode extends DuckDB {
     return [];
   }
 
-  async queryOraiBridgeStateByNonce(eventNonce: string) {
+  async queryOraiBridgeStateByNonce(eventNonce: number) {
     const result = await this.conn.all(sqlCommands.query.oraiBridgeStateByNonce, eventNonce);
     if (result.length > 0) return result[0];
     return [];
   }
 
-  async queryOraichainStateBySequence(packetSequence: string) {
+  async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
+    const result = await this.conn.all(sqlCommands.query.oraiBridgeStateBySequence, packetSequence);
+    if (result.length > 0) return result[0];
+    return [];
+  }
+
+  async queryOraichainStateBySequence(packetSequence: number) {
     const result = await this.conn.all(sqlCommands.query.oraichainStateByPacketSequence, packetSequence);
     if (result.length > 0) return result[0];
     return [];
@@ -137,10 +147,9 @@ export class DuckDbNode extends DuckDB {
         if (result.length > 0) return { tableName, state: result[0] };
       } catch (error) {
         // ignore errors because some tables may not have packetSequence column
-        continue;
       }
     }
-    return null;
+    return { tableName: "", state: "" };
   }
 
   // TODO: use typescript here instead of any
@@ -206,14 +215,21 @@ export class DuckDbWasm extends DuckDB {
     return [];
   }
 
-  async queryOraiBridgeStateByNonce(eventNonce: string) {
+  async queryOraiBridgeStateByNonce(eventNonce: number) {
     const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateByNonce);
     const result = (await stmt.query(eventNonce)).toArray();
     if (result.length > 0) return result[0];
     return [];
   }
 
-  async queryOraichainStateBySequence(packetSequence: string) {
+  async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
+    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateBySequence);
+    const result = (await stmt.query(packetSequence)).toArray();
+    if (result.length > 0) return result[0];
+    return [];
+  }
+
+  async queryOraichainStateBySequence(packetSequence: number) {
     const stmt = await this.conn.prepare(sqlCommands.query.oraichainStateByPacketSequence);
     const result = (await stmt.query(packetSequence)).toArray();
     if (result.length > 0) return result[0];

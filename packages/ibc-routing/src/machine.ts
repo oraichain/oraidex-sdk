@@ -1,7 +1,7 @@
 import { createMachine, interpret } from "xstate";
 import { DuckDB } from "./db";
 import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
-import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { oraiBridgeAutoForwardEventType } from "./constants";
 import { convertTxHashToHex } from "./helpers";
@@ -89,7 +89,6 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
               console.log("There is no event nonce attribute.");
               return;
             }
-            event;
             const eventNonce = parseInt(JSON.parse(nonceAttr.value));
             console.log("event nonce: ", eventNonce);
             return new Promise((resolve) => resolve({ txEvent, eventNonce }));
@@ -152,8 +151,6 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
             };
             console.log("auto forward data: ", autoForwardData);
             await ctx.db.insertData(autoForwardData, "OraiBridgeState");
-            const insertedState = await ctx.db.queryOraiBridgeStateByNonce(event.data.eventNonce);
-            console.log("inserted state: ", insertedState);
             ctx.oraiBridgeEventNonce = event.data.eventNonce;
             ctx.oraiBridgePacketSequence = packetSequence;
             return new Promise((resolve) => resolve(""));
@@ -188,6 +185,33 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
             if (!packetSequenceAttr)
               throw generateError("Could not find packet sequence attr in checkOnRecvPacketOraichain");
             const packetSequence = parseInt(packetSequenceAttr.value);
+            return new Promise((resolve) => resolve({ packetSequence, events, txEvent }));
+          },
+          onError: {
+            actions: (ctx, event) => console.log("error check on recv packet OraichainState: ", event.data),
+            target: "checkOnRecvPacketFailure"
+          },
+          onDone: [
+            {
+              target: "storeOnRecvPacket",
+              cond: (ctx, event) => {
+                return event.data.packetSequence === ctx.oraiBridgePacketSequence;
+              }
+            },
+            {
+              target: "oraichain",
+              cond: (ctx, event) => {
+                return event.data.packetSequence !== ctx.oraiBridgePacketSequence;
+              }
+            }
+          ]
+        }
+      },
+      storeOnRecvPacket: {
+        invoke: {
+          src: async (ctx, event) => {
+            const txEvent: TxEvent = event.data.txEvent;
+            const events: Event[] = event.data.events;
             const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
             if (!writeAckEvent)
               throw generateError("Could not find the write acknowledgement event in checkOnRecvPacketOraichain");
@@ -198,6 +222,7 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
             // if equals 1 it means the ack is successful. Otherwise, this packet has some errors
             console.log("packet ack: ", packetAck);
             if (packetAck != "1") {
+              console.log("in here");
               throw generateError(`The packet ack is not successful: ${packetAck}`);
             }
             // try finding the previous state and collect its tx hash and compare with our received packet sequence
@@ -207,16 +232,20 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
             let nextState = "";
             const sendPacketEvent = events.find((e) => e.type === "send_packet");
             if (sendPacketEvent) {
-              // TODO: do
+              // TODO: do something here to move to the next state
             }
-            const { tableName, state } = await db.findStateByPacketSequence(packetSequence);
+            const { tableName, state } = await ctx.db.findStateByPacketSequence(event.data.packetSequence);
+            if (!tableName)
+              throw generateError(
+                `Could not find the row with packet sequence ${event.data.packetSequence} in any table`
+              );
             let onRecvPacketData = {
               txHash: convertTxHashToHex(txEvent.hash),
               height: txEvent.height,
               prevState: tableName,
               prevTxHash: state.txHash,
               nextState,
-              packetSequence,
+              packetSequence: event.data.packetSequence,
               packetAck,
               // the below fields are reserved for cases if we send packet to another chain
               nextPacketSequence: 0,
@@ -225,15 +254,12 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
               nextReceiver: "",
               nextDestinationDenom: ""
             };
-            await db.insertData(onRecvPacketData, "OraichainState");
+            await ctx.db.insertData(onRecvPacketData, "OraichainState");
             // now we have verified everything, lets store the result into the db
             // TODO: if there's a next state, prepare to return a valid result here
             if (nextState) return new Promise((resolve) => resolve(""));
             // no next state, we move to final state of the machine
             return new Promise((resolve) => resolve("final"));
-          },
-          onError: {
-            actions: (ctx, event) => console.log("error storing data into OraichainState: ", event.data)
           },
           onDone: [
             {
@@ -251,6 +277,7 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
           ]
         }
       },
+      checkOnRecvPacketFailure: {},
       cosmos: {},
       finalState: {
         type: "final"
