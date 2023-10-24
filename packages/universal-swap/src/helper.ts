@@ -31,12 +31,15 @@ import {
   IUniswapV2Router02__factory,
   cosmosTokens,
   StargateMsg,
-  IBC_WASM_HOOKS_CONTRACT
+  IBC_WASM_HOOKS_CONTRACT,
+  toTokenInfo,
+  network
 } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, SimulateResponse, SwapRoute } from "./types";
+import { OraiBridgeRouteData, SimulateResponse, SwapRoute, UniversalSwapConfig } from "./types";
 import {
   AssetInfo,
   CosmWasmClient,
+  OraiswapRouterClient,
   OraiswapRouterReadOnlyInterface,
   OraiswapTokenQueryClient
 } from "@oraichain/oraidex-contracts-sdk";
@@ -44,7 +47,8 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { toBinary } from "@cosmjs/cosmwasm-stargate";
+import { SigningCosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice } from "@cosmjs/stargate";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
@@ -393,6 +397,13 @@ export const simulateSwapEvm = async (query: {
   }
 };
 
+export const getRelayerInfoFromToken = (relayerFee, fromTokenTotalBalance, originalFromToken, fromAmount) => {
+  const relayeFeeFromToken = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
+  const caculateTotalBalanceFromToken = toDisplay(fromTokenTotalBalance, originalFromToken.decimals);
+  let calulateFromTokenAndFeeRelayer = relayeFeeFromToken + fromAmount;
+  return { caculateTotalBalanceFromToken, calulateFromTokenAndFeeRelayer };
+};
+
 export const handleSimulateSwap = async (query: {
   originalFromInfo: TokenItemType;
   originalToInfo: TokenItemType;
@@ -435,6 +446,79 @@ export const handleSimulateSwap = async (query: {
     amount,
     displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals)
   };
+};
+
+export const checkFeeRelayer = async (query: {
+  originalFromToken: TokenItemType;
+  fromTokenBalance: bigint;
+  relayerFee: {
+    relayerAmount: string;
+    relayerDecimals: number;
+  };
+  fromAmount: number;
+  sender?: string;
+  config?: UniversalSwapConfig;
+}) => {
+  if (!query.relayerFee.relayerAmount) return true;
+  const { caculateTotalBalanceFromToken, calulateFromTokenAndFeeRelayer } = getRelayerInfoFromToken(
+    query.relayerFee,
+    query.fromTokenBalance,
+    query.originalFromToken,
+    query.fromAmount
+  );
+
+  // From Token is orai
+  if (query.originalFromToken.coinGeckoId === "oraichain-token") {
+    if (calulateFromTokenAndFeeRelayer > caculateTotalBalanceFromToken) {
+      throw generateError(`Fee relayer is not enough!`);
+    }
+    return true;
+  }
+  // estimate exchange token when From Token not orai
+  const { client } = await query.config.cosmosWallet.getCosmWasmClient(
+    { chainId: "Oraichain", rpc: network.rpc },
+    { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
+  );
+
+  await checkFeeRelayerNotOrai({
+    totalBalanceFrom: caculateTotalBalanceFromToken,
+    originalFromToken: query.originalFromToken,
+    relayerAmount: query.relayerFee.relayerAmount,
+    fromAmount: query.fromAmount,
+    client,
+    sender: query.sender
+  });
+};
+
+export const checkFeeRelayerNotOrai = async (query: {
+  originalFromToken: TokenItemType;
+  totalBalanceFrom: number;
+  relayerAmount: string;
+  fromAmount: number;
+  client?: SigningCosmWasmClient;
+  sender?: string;
+  simulateAmount?: string;
+}) => {
+  const tokenTo = getTokenOnOraichain("oraichain-token");
+  const tokenFrom = getTokenOnOraichain(query.originalFromToken.coinGeckoId);
+  let amountSimulateOraiToToken = query.simulateAmount;
+  if (!query.simulateAmount) {
+    const routerClient = new OraiswapRouterClient(query.client, query.sender, network.router);
+    const { amount } = await simulateSwap({
+      fromInfo: toTokenInfo(tokenTo),
+      toInfo: tokenFrom,
+      amount: query.relayerAmount,
+      routerClient
+    });
+    amountSimulateOraiToToken = amount;
+  }
+
+  const calulateFromTokenAndFeeRelayer = toDisplay(amountSimulateOraiToToken, tokenFrom.decimals) + query.fromAmount;
+
+  if (calulateFromTokenAndFeeRelayer > query.totalBalanceFrom) {
+    throw generateError(`Fee relayer is not enough!`);
+  }
+  return true;
 };
 
 // verify balance

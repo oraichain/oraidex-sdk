@@ -39,6 +39,7 @@ import { ethers } from "ethers";
 import {
   addOraiBridgeRoute,
   buildIbcWasmHooksMemo,
+  checkFeeRelayer,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
@@ -348,12 +349,31 @@ export class UniversalSwapHandler {
   // TODO: write test cases
   // transfer evm to ibc
   async transferAndSwap(swapRoute: string): Promise<EvmResponse> {
-    const { sender, originalFromToken, originalToToken, fromAmount, userSlippage, simulatePrice } = this.swapData;
+    const {
+      sender,
+      originalFromToken,
+      originalToToken,
+      fromAmount,
+      userSlippage,
+      simulatePrice,
+      fromTokenBalance,
+      relayerFee
+    } = this.swapData;
     const { evm: metamaskAddress, tron: tronAddress } = sender;
     if (!metamaskAddress && !tronAddress) throw generateError("Cannot call evm swap if the evm address is empty");
 
     // TODO: channel balance should be checked outside, not this method
     // await this.checkBalanceIBCOraichain(originalToToken, originalFromToken, fromAmount);
+
+    // TODO: check fee relayer
+    // await checkFeeRelayer({
+    //   originalFromToken,
+    //   fromAmount,
+    //   fromTokenBalance,
+    //   relayerFee,
+    //   sender: metamaskAddress
+    //   config: this.config
+    // });
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable

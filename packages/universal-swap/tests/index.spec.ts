@@ -48,8 +48,11 @@ import {
   checkBalanceIBCOraichain,
   getBalanceIBCOraichain,
   getIbcInfo,
+  getRelayerInfoFromToken,
   handleSimulateSwap,
-  simulateSwap
+  simulateSwap,
+  checkFeeRelayer,
+  checkFeeRelayerNotOrai
 } from "../src/helper";
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
@@ -378,6 +381,57 @@ describe("test universal swap handler functions", () => {
       });
       const msg = await universalSwap.combineSwapMsgOraichain("0");
       expect(msg).toEqual(expectedTransferMsg);
+    }
+  );
+
+  it.each<[string, string, bigint, number]>([
+    ["oraichain-token", "Oraichain", 1000n, 1000],
+    ["oraichain-token", "0x38", 10000000000000n, 10000000000],
+    ["oraichain-token", "0x01", 10000000000000n, 10000]
+  ])("test checkRelayerFee", async (fromDenom, fromChainId, fromTokenBalance, fromAmount) => {
+    try {
+      // const originalFromToken =
+      const originalFromToken = flattenTokens.find(
+        (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
+      );
+      const result = await checkFeeRelayer({
+        originalFromToken: originalFromToken as TokenItemType,
+        fromAmount,
+        fromTokenBalance,
+        relayerFee: {
+          relayerAmount: "1000",
+          relayerDecimals: 6
+        }
+      });
+      expect(result).toEqual(true);
+    } catch (error) {
+      expect(error?.ex?.message).toEqual("Fee relayer is not enough!");
+    }
+  });
+
+  it.each<[string, string, number, string, number, string]>([
+    ["tether", "0x38", 1000, "2900000", 1, "1000"],
+    ["airight", "0x38", 1000, "1092640043", 1, "1000"],
+    ["tron", "0x2b6653dc", 1000, "2345543", 1, "1000"]
+  ])(
+    "test checkFeeRelayerNotOrai",
+    async (fromDenom, fromChainId, totalBalanceFrom, simulateAmount, fromAmount, relayerAmount) => {
+      try {
+        // const originalFromToken =
+        const originalFromToken = flattenTokens.find(
+          (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
+        );
+        const result = await checkFeeRelayerNotOrai({
+          originalFromToken: originalFromToken as TokenItemType,
+          totalBalanceFrom,
+          relayerAmount,
+          fromAmount,
+          simulateAmount
+        });
+        expect(result).toEqual(true);
+      } catch (error) {
+        expect(error?.ex?.message).toEqual("Fee relayer is not enough!");
+      }
     }
   );
 
@@ -852,6 +906,37 @@ describe("test universal swap handler functions", () => {
       const query = { fromInfo, toInfo, amount, routerClient };
       const simulateData = await simulateSwap(query);
       expect(simulateData.amount).toEqual(expectedSimulateData);
+    }
+  );
+
+  it.each<[bigint, string, string, number, number, number]>([
+    [10000000n, "airight", "Oraichain", 1, 10, 1.001],
+    [1000000000000000000000n, "airight", "0x38", 10, 1000, 10.001]
+  ])(
+    "test-getRelayerInfoFromToken",
+    (
+      fromTokenTotalBalance,
+      fromCoingeckoId,
+      fromChainId,
+      fromAmount,
+      expectedTotalBalance,
+      expectedTotalBalanceFromTokenAndFeeRelayer
+    ) => {
+      const relayerFee = {
+        relayerAmount: "1000",
+        relayerDecimals: 6
+      };
+      const originalFromToken = flattenTokens.find(
+        (t) => t.coinGeckoId === fromCoingeckoId && t.chainId === fromChainId
+      );
+      const { caculateTotalBalanceFromToken, calulateFromTokenAndFeeRelayer } = getRelayerInfoFromToken(
+        relayerFee,
+        fromTokenTotalBalance,
+        originalFromToken,
+        fromAmount
+      );
+      expect(caculateTotalBalanceFromToken).toEqual(expectedTotalBalance);
+      expect(calulateFromTokenAndFeeRelayer).toEqual(expectedTotalBalanceFromTokenAndFeeRelayer);
     }
   );
 
