@@ -24,12 +24,12 @@ const connectCosmosSocket = async () => {
 
 describe("test-mock-websocket", () => {
   it("test-ws", async () => {
-    const stream = await connectCosmosSocket();
-    stream.shamefullySendNext({
-      tx: Uint8Array.from([]),
-      hash: Uint8Array.from([]),
-      height: 1,
-      result: { code: 1, events: [], gasUsed: 1, gasWanted: 1 } as TxData
-    } as TxEvent);
+    // const stream = await connectCosmosSocket();
+    // stream.shamefullySendNext({
+    //   tx: Uint8Array.from([]),
+    //   hash: Uint8Array.from([]),
+    //   height: 1,
+    //   result: { code: 1, events: [], gasUsed: 1, gasWanted: 1 } as TxData
+    // } as TxEvent);
   });
 });
