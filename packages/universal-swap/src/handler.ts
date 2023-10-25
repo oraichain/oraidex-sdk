@@ -396,16 +396,12 @@ export class UniversalSwapHandler {
   }
 
   // this method allows swapping between arbitrary cosmos networks that have pools on Oraichain using ibc wasm hooks
+  // TODO: write test cases
   async swapCosmosToCosmos() {
     const { originalFromToken, originalToToken, sender } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
-    if (!isInPairList(fromTokenOnOrai.denom) && !isInPairList(fromTokenOnOrai.contractAddress))
-      throw generateError(
-        `from token with coingecko id ${originalFromToken.coinGeckoId} does not have any associated pool on Oraichain. Could not swap`
-      );
-    const encodedObjects = await this.combineSwapMsgOraichain();
-    const { stargateClient } = await this.config.cosmosWallet.getCosmWasmClient(
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       {
         chainId: originalFromToken.chainId as CosmosChainId,
         rpc: originalFromToken.rpc
@@ -421,17 +417,36 @@ export class UniversalSwapHandler {
       throw generateError(
         `Could not find the ibc info given the from token with coingecko id ${originalFromToken.coinGeckoId}`
       );
-    return stargateClient.sendIbcTokens(
-      sender.cosmos,
-      IBC_WASM_HOOKS_CONTRACT,
-      coin(amount, this.swapData.originalFromToken.denom),
-      ibcInfo.source,
-      ibcInfo.channel,
-      Height.fromPartial({ revisionHeight: 0, revisionNumber: 0 }),
-      ibcInfo.timeout,
-      "auto",
-      buildIbcWasmHooksMemo(marshalEncodeObjsToStargateMsgs(encodedObjects))
-    );
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    let msgTransfer = MsgTransfer.fromPartial({
+      sourcePort: ibcInfo.source,
+      receiver: oraiAddress,
+      sourceChannel: ibcInfo.channel,
+      token: coin(amount, this.swapData.originalFromToken.denom),
+      sender: this.swapData.sender.cosmos,
+      memo: "",
+      timeoutTimestamp: calculateTimeoutTimestamp(ibcInfo.timeout)
+    });
+    let msgTransferEncodeObj: EncodeObject = {
+      typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
+      value: msgTransfer
+    };
+    // it means the user just wants to transfer ibc to Oraichain with same token, nothing more, then we can purely call send ibc tokens
+    if (
+      fromTokenOnOrai.chainId === originalToToken.chainId &&
+      fromTokenOnOrai.coinGeckoId === originalToToken.coinGeckoId
+    )
+      return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
+    if (!isInPairList(fromTokenOnOrai.denom) && !isInPairList(fromTokenOnOrai.contractAddress))
+      throw generateError(
+        `from token with coingecko id ${originalFromToken.coinGeckoId} does not have any associated pool on Oraichain. Could not swap`
+      );
+    const encodedObjects = await this.combineSwapMsgOraichain();
+    msgTransfer.receiver = IBC_WASM_HOOKS_CONTRACT;
+    // complex univeral transaction, can be ibc transfer then swap then transfer to another chain
+    msgTransfer.memo = buildIbcWasmHooksMemo(marshalEncodeObjsToStargateMsgs(encodedObjects));
+    msgTransferEncodeObj = { ...msgTransferEncodeObj, value: msgTransfer };
+    return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
   }
 
   async processUniversalSwap() {
