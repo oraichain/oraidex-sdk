@@ -383,49 +383,50 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  it.each<[string, string, number]>([
-    ["oraichain-token", "Oraichain", 1000],
-    ["oraichain-token", "0x38", 10000000000],
-    ["oraichain-token", "0x01", 10000]
-  ])("test checkRelayerFee", async (fromDenom, fromChainId, fromAmount) => {
-    try {
+  it.each<[string, string, string, boolean]>([
+    ["oraichain-token", "Oraichain", "0", true],
+    ["oraichain-token", "Oraichain", "1000000", false],
+    ["oraichain-token", "0x38", "100000", true],
+    ["airight", "0x38", "100000", true],
+    ["tether", "0x38", "10000000", false]
+  ])(
+    "test checkRelayerFee given token %s, chain id %s with from amount %d, is it sufficient for relayer fee?: %s",
+    async (fromDenom, fromChainId, relayerFeeAmount, isSufficient) => {
       const originalFromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
+      // TODO: run tests without mocking to simulate actual swap logic
+      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
       const result = await checkFeeRelayer({
         originalFromToken: originalFromToken as TokenItemType,
-        fromAmount,
+        fromAmount: 1,
         relayerFee: {
-          relayerAmount: "1000",
+          relayerAmount: relayerFeeAmount,
           relayerDecimals: 6
-        }
+        },
+        routerClient: routerContract
       });
-      expect(result).toEqual(true);
-    } catch (error) {
-      expect(error?.ex?.message).toEqual("Fee relayer is not enough!");
+      expect(result).toEqual(isSufficient);
     }
-  });
+  );
 
-  it.each<[string, string, string, number, string]>([
-    ["tether", "0x38", "2900000", 1, "1000"],
-    ["airight", "0x38", "1092640043", 1, "1000"],
-    ["tron", "0x2b6653dc", "2345543", 1, "1000"]
-  ])("test checkFeeRelayerNotOrai", async (fromDenom, fromChainId, simulateAmount, fromAmount, relayerAmount) => {
-    try {
-      const originalFromToken = flattenTokens.find(
-        (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
-      );
+  it.each<[string, string, boolean]>([
+    ["tether", "100000", true],
+    ["tron", "10000000", false]
+  ])(
+    "test checkFeeRelayerNotOrai given denom %s with from amount %d, is it sufficient for relayer fee?: %s",
+    async (fromDenom, mockSimulateAmount, isSufficient) => {
+      const originalFromToken = oraichainTokens.find((item) => item.coinGeckoId === fromDenom);
+      // TODO: run tests without mocking to simulate actual swap
+      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
       const result = await checkFeeRelayerNotOrai({
-        originalFromToken: originalFromToken as TokenItemType,
-        relayerAmount,
-        fromAmount,
-        simulateAmount
+        fromTokenInOrai: originalFromToken as TokenItemType,
+        fromAmount: 1,
+        routerClient: routerContract
       });
-      expect(result).toEqual(true);
-    } catch (error) {
-      expect(error?.ex?.message).toEqual("Fee relayer is not enough!");
+      expect(result).toEqual(isSufficient);
     }
-  });
+  );
 
   it("test-getUniversalSwapToAddress", async () => {
     const universalSwap = new FakeUniversalSwapHandler();

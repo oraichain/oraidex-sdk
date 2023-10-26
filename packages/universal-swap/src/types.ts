@@ -43,7 +43,6 @@ export interface UniversalSwapData {
   readonly simulateAmount?: string; // toAmount given fromAmount. TODO: auto simulate if not passed
   readonly userSlippage?: number;
   readonly simulatePrice?: string; // price of the token calculated with the quote. Eg: swapping ORAI to USDT => 1 ORAI = 2 USDT, then simulate price = 2. TODO: Auto simulate price if not passed
-  readonly fromTokenBalance?: bigint;
   readonly relayerFee?: RelayerFeeData;
 }
 

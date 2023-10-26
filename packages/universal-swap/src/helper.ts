@@ -33,7 +33,8 @@ import {
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
   toTokenInfo,
-  network
+  network,
+  isInPairList
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapRoute, UniversalSwapConfig } from "./types";
 import {
@@ -344,6 +345,7 @@ export const simulateSwap = async (query: {
   const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
   const { info: askInfo } = parseTokenInfo(toInfo);
   const operations = generateSwapOperationMsgs(offerInfo, askInfo);
+  console.log("operations: ", operations);
   try {
     let finalAmount = amount;
     let isSimulatingRatio = false;
@@ -448,60 +450,47 @@ export const checkFeeRelayer = async (query: {
     relayerDecimals: number;
   };
   fromAmount: number;
-  sender?: string;
-  config?: UniversalSwapConfig;
-}) => {
-  if (!query.relayerFee.relayerAmount) return true;
-  const relayerDisplay = toDisplay(query.relayerFee.relayerAmount, query.relayerFee.relayerDecimals);
+  routerClient: OraiswapRouterReadOnlyInterface;
+}): Promise<boolean> => {
+  const { originalFromToken, relayerFee, fromAmount, routerClient } = query;
+  if (!relayerFee.relayerAmount) return true;
+  const relayerDisplay = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
 
   // From Token is orai
-  if (query.originalFromToken.coinGeckoId === "oraichain-token") {
-    if (relayerDisplay >= query.fromAmount) {
-      throw generateError(`Fee relayer is not enough!`);
-    }
+  if (originalFromToken.coinGeckoId === "oraichain-token") {
+    if (relayerDisplay >= fromAmount) return false;
     return true;
   }
-  // estimate exchange token when From Token not orai
-  const { client } = await query.config.cosmosWallet.getCosmWasmClient(
-    { chainId: "Oraichain", rpc: network.rpc },
-    { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
-  );
 
-  await checkFeeRelayerNotOrai({
-    originalFromToken: query.originalFromToken,
-    relayerAmount: query.relayerFee.relayerAmount,
-    fromAmount: query.fromAmount,
-    client,
-    sender: query.sender
+  return checkFeeRelayerNotOrai({
+    fromTokenInOrai: getTokenOnOraichain(originalFromToken.coinGeckoId),
+    fromAmount,
+    routerClient
   });
 };
 
 export const checkFeeRelayerNotOrai = async (query: {
-  originalFromToken: TokenItemType;
-  relayerAmount: string;
+  fromTokenInOrai: TokenItemType;
   fromAmount: number;
-  client?: SigningCosmWasmClient;
-  sender?: string;
-  simulateAmount?: string;
-}) => {
-  const tokenTo = getTokenOnOraichain("oraichain-token");
-  const tokenFrom = getTokenOnOraichain(query.originalFromToken.coinGeckoId);
-  let amountSimulateOraiToToken = query.simulateAmount;
-  if (!query.simulateAmount) {
-    const routerClient = new OraiswapRouterClient(query.client, query.sender, network.router);
+  routerClient: OraiswapRouterReadOnlyInterface;
+}): Promise<boolean> => {
+  const { fromTokenInOrai, fromAmount, routerClient } = query;
+  if (fromTokenInOrai.chainId !== "Oraichain")
+    throw generateError(
+      "From token on Oraichain is not on Oraichain. The developers have made a mistake. Please notify them!"
+    );
+  const oraiToken = getTokenOnOraichain("oraichain-token");
+  // estimate exchange token when From Token not orai. Only need to swap & check if it is swappable with ORAI. Otherwise, we ignore the fees
+  if (isInPairList(fromTokenInOrai.denom) || isInPairList(fromTokenInOrai.contractAddress)) {
     const { amount } = await simulateSwap({
-      fromInfo: toTokenInfo(tokenTo),
-      toInfo: tokenFrom,
-      amount: query.relayerAmount,
-      routerClient
+      fromInfo: fromTokenInOrai,
+      toInfo: oraiToken,
+      amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
+      routerClient: routerClient
     });
-    amountSimulateOraiToToken = amount;
-  }
-
-  const relayerDisplay = toDisplay(amountSimulateOraiToToken, tokenFrom.decimals);
-
-  if (relayerDisplay >= query.fromAmount) {
-    throw generateError(`Fee relayer is not enough!`);
+    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    if (relayerDisplay >= fromAmount) return false;
+    return true;
   }
   return true;
 };
