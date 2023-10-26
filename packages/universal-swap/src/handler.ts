@@ -33,12 +33,16 @@ import {
   isInPairList,
   getCosmosGasPrice,
   marshalEncodeObjsToStargateMsgs,
-  CoinGeckoId
+  CoinGeckoId,
+  IBC_WASM_CONTRACT
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
   addOraiBridgeRoute,
   buildIbcWasmHooksMemo,
+  checkBalanceChannelIbc,
+  checkBalanceIBCOraichain,
+  checkFeeRelayer,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
@@ -48,6 +52,8 @@ import {
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
+import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
+import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
@@ -334,42 +340,94 @@ export class UniversalSwapHandler {
   // TODO: write test cases
   async swapAndTransferToOtherNetworks(universalSwapType: UniversalSwapType) {
     let encodedObjects: EncodeObject[];
+    const { originalToToken, simulateAmount, sender } = this.swapData;
+    if (!this.config.cosmosWallet)
+      throw generateError("Cannot transfer and swap if the cosmos wallet is not initialized");
+    // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+      { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+      {
+        gasPrice: this.getGasPriceFromToken()
+      }
+    );
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    if (oraiAddress !== this.swapData.sender.cosmos)
+      throw generateError(
+        `There is a mismatch between the sender ${sender.cosmos} versus the Oraichain address ${oraiAddress}. Should not swap!`
+      );
+
     switch (universalSwapType) {
       case "oraichain-to-cosmos":
         encodedObjects = await this.combineSwapMsgOraichain();
         break;
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
+        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        const isSufficient = await checkFeeRelayer({
+          originalFromToken: this.swapData.originalFromToken,
+          fromAmount: this.swapData.fromAmount,
+          relayerFee: this.swapData.relayerFee,
+          routerClient
+        });
+        if (!isSufficient)
+          throw generateError(
+            `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+          );
         encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
         break;
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
+    const ibcInfo = getIbcInfo("Oraichain", originalToToken.chainId);
+    const ics20Client = new CwIcs20LatestQueryClient(client, IBC_WASM_CONTRACT);
+    await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
+
     // handle sign and broadcast transactions
-    // TODO: channel balance should be checked elsewhere, not this method
-    // const newToToken = this.swapData.originalToToken;
-    // const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
-    // await this.checkBalanceChannelIbc(ibcInfo, newToToken);
-    return this.config.cosmosWallet.signAndBroadcast(
-      this.swapData.originalFromToken.chainId as CosmosChainId,
-      this.swapData.originalFromToken.rpc,
-      {
-        gasPrice: this.getGasPriceFromToken()
-      },
-      this.swapData.sender.cosmos,
-      encodedObjects
-    );
+    return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
   }
 
   // TODO: write test cases
   // transfer evm to ibc
   async transferAndSwap(swapRoute: string): Promise<EvmResponse> {
-    const { sender, originalFromToken, originalToToken, fromAmount, userSlippage, simulatePrice } = this.swapData;
+    const {
+      sender,
+      originalFromToken,
+      originalToToken,
+      fromAmount,
+      userSlippage,
+      simulatePrice,
+      relayerFee,
+      simulateAmount
+    } = this.swapData;
     const { evm: metamaskAddress, tron: tronAddress } = sender;
     if (!metamaskAddress && !tronAddress) throw generateError("Cannot call evm swap if the evm address is empty");
+    if (!this.config.cosmosWallet) throw generateError("Cannot transfer and swap if cosmos wallet is not initialized");
+    // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+      { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+      {}
+    );
 
-    // TODO: channel balance should be checked outside, not this method
-    // await this.checkBalanceIBCOraichain(originalToToken, originalFromToken, fromAmount);
+    await checkBalanceIBCOraichain(
+      originalToToken,
+      originalFromToken,
+      fromAmount,
+      simulateAmount,
+      client,
+      IBC_WASM_CONTRACT
+    );
+
+    const routerClient = new OraiswapRouterQueryClient(client, network.router);
+    const isSufficient = await checkFeeRelayer({
+      originalFromToken,
+      fromAmount,
+      relayerFee,
+      routerClient
+    });
+    if (!isSufficient)
+      throw generateError(
+        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+      );
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable
