@@ -397,13 +397,6 @@ export const simulateSwapEvm = async (query: {
   }
 };
 
-export const getRelayerInfoFromToken = (relayerFee, fromTokenTotalBalance, originalFromToken, fromAmount) => {
-  const relayeFeeFromToken = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
-  const caculateTotalBalanceFromToken = toDisplay(fromTokenTotalBalance, originalFromToken.decimals);
-  let calulateFromTokenAndFeeRelayer = relayeFeeFromToken + fromAmount;
-  return { caculateTotalBalanceFromToken, calulateFromTokenAndFeeRelayer };
-};
-
 export const handleSimulateSwap = async (query: {
   originalFromInfo: TokenItemType;
   originalToInfo: TokenItemType;
@@ -450,7 +443,6 @@ export const handleSimulateSwap = async (query: {
 
 export const checkFeeRelayer = async (query: {
   originalFromToken: TokenItemType;
-  fromTokenBalance: bigint;
   relayerFee: {
     relayerAmount: string;
     relayerDecimals: number;
@@ -460,16 +452,11 @@ export const checkFeeRelayer = async (query: {
   config?: UniversalSwapConfig;
 }) => {
   if (!query.relayerFee.relayerAmount) return true;
-  const { caculateTotalBalanceFromToken, calulateFromTokenAndFeeRelayer } = getRelayerInfoFromToken(
-    query.relayerFee,
-    query.fromTokenBalance,
-    query.originalFromToken,
-    query.fromAmount
-  );
+  const relayerDisplay = toDisplay(query.relayerFee.relayerAmount, query.relayerFee.relayerDecimals);
 
   // From Token is orai
   if (query.originalFromToken.coinGeckoId === "oraichain-token") {
-    if (calulateFromTokenAndFeeRelayer > caculateTotalBalanceFromToken) {
+    if (relayerDisplay >= query.fromAmount) {
       throw generateError(`Fee relayer is not enough!`);
     }
     return true;
@@ -481,7 +468,6 @@ export const checkFeeRelayer = async (query: {
   );
 
   await checkFeeRelayerNotOrai({
-    totalBalanceFrom: caculateTotalBalanceFromToken,
     originalFromToken: query.originalFromToken,
     relayerAmount: query.relayerFee.relayerAmount,
     fromAmount: query.fromAmount,
@@ -492,7 +478,6 @@ export const checkFeeRelayer = async (query: {
 
 export const checkFeeRelayerNotOrai = async (query: {
   originalFromToken: TokenItemType;
-  totalBalanceFrom: number;
   relayerAmount: string;
   fromAmount: number;
   client?: SigningCosmWasmClient;
@@ -513,9 +498,9 @@ export const checkFeeRelayerNotOrai = async (query: {
     amountSimulateOraiToToken = amount;
   }
 
-  const calulateFromTokenAndFeeRelayer = toDisplay(amountSimulateOraiToToken, tokenFrom.decimals) + query.fromAmount;
+  const relayerDisplay = toDisplay(amountSimulateOraiToToken, tokenFrom.decimals);
 
-  if (calulateFromTokenAndFeeRelayer > query.totalBalanceFrom) {
+  if (relayerDisplay >= query.fromAmount) {
     throw generateError(`Fee relayer is not enough!`);
   }
   return true;

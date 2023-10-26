@@ -344,7 +344,6 @@ export class UniversalSwapHandler {
         await checkFeeRelayer({
           originalFromToken: this.swapData.originalFromToken,
           fromAmount: this.swapData.fromAmount,
-          fromTokenBalance: this.swapData.fromTokenBalance,
           relayerFee: this.swapData.relayerFee,
           sender: metamaskAddress,
           config: this.config
@@ -392,7 +391,6 @@ export class UniversalSwapHandler {
     await checkFeeRelayer({
       originalFromToken,
       fromAmount,
-      fromTokenBalance,
       relayerFee,
       sender: metamaskAddress,
       config: this.config
