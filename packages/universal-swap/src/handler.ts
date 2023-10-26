@@ -345,6 +345,14 @@ export class UniversalSwapHandler {
         break;
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
+        await checkFeeRelayer({
+          originalFromToken: this.swapData.originalFromToken,
+          fromAmount: this.swapData.fromAmount,
+          fromTokenBalance: this.swapData.fromTokenBalance,
+          relayerFee: this.swapData.relayerFee,
+          sender: metamaskAddress,
+          config: this.config
+        });
         encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
         break;
       default:
@@ -404,15 +412,14 @@ export class UniversalSwapHandler {
       IBC_WASM_CONTRACT
     );
 
-    // TODO: check fee relayer
-    // await checkFeeRelayer({
-    //   originalFromToken,
-    //   fromAmount,
-    //   fromTokenBalance,
-    //   relayerFee,
-    //   sender: metamaskAddress
-    //   config: this.config
-    // });
+    await checkFeeRelayer({
+      originalFromToken,
+      fromAmount,
+      fromTokenBalance,
+      relayerFee,
+      sender: metamaskAddress,
+      config: this.config
+    });
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable
