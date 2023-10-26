@@ -33,12 +33,15 @@ import {
   isInPairList,
   getCosmosGasPrice,
   marshalEncodeObjsToStargateMsgs,
-  CoinGeckoId
+  CoinGeckoId,
+  IBC_WASM_CONTRACT
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
   addOraiBridgeRoute,
   buildIbcWasmHooksMemo,
+  checkBalanceChannelIbc,
+  checkBalanceIBCOraichain,
   checkFeeRelayer,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
@@ -49,6 +52,7 @@ import {
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
+import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
@@ -354,17 +358,23 @@ export class UniversalSwapHandler {
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
     // handle sign and broadcast transactions
-    // TODO: channel balance should be checked elsewhere, not this method
-    // const newToToken = this.swapData.originalToToken;
-    // const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
-    // await this.checkBalanceChannelIbc(ibcInfo, newToToken);
+    const { originalToToken, simulateAmount, sender } = this.swapData;
+    const ibcInfo = getIbcInfo("Oraichain", originalToToken.chainId);
+    if (!this.config.cosmosWallet) throw generateError("Cannot transfer and swap if cosmos wallet is not initialized");
+    // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+      { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+      {}
+    );
+    const ics20Client = new CwIcs20LatestQueryClient(client, IBC_WASM_CONTRACT);
+    await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
     return this.config.cosmosWallet.signAndBroadcast(
-      this.swapData.originalFromToken.chainId as CosmosChainId,
-      this.swapData.originalFromToken.rpc,
+      "Oraichain",
+      network.rpc,
       {
         gasPrice: this.getGasPriceFromToken()
       },
-      this.swapData.sender.cosmos,
+      sender.cosmos,
       encodedObjects
     );
   }
@@ -380,13 +390,26 @@ export class UniversalSwapHandler {
       userSlippage,
       simulatePrice,
       fromTokenBalance,
-      relayerFee
+      relayerFee,
+      simulateAmount
     } = this.swapData;
     const { evm: metamaskAddress, tron: tronAddress } = sender;
     if (!metamaskAddress && !tronAddress) throw generateError("Cannot call evm swap if the evm address is empty");
+    if (!this.config.cosmosWallet) throw generateError("Cannot transfer and swap if cosmos wallet is not initialized");
+    // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+      { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+      {}
+    );
 
-    // TODO: channel balance should be checked outside, not this method
-    // await this.checkBalanceIBCOraichain(originalToToken, originalFromToken, fromAmount);
+    await checkBalanceIBCOraichain(
+      originalToToken,
+      originalFromToken,
+      fromAmount,
+      simulateAmount,
+      client,
+      IBC_WASM_CONTRACT
+    );
 
     await checkFeeRelayer({
       originalFromToken,
