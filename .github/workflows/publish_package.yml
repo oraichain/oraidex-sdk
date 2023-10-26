@@ -49,13 +49,27 @@ jobs:
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn
       - name: Build
-        run: yarn build packages/contracts-sdk && yarn build packages/oraidex-sync && yarn --cwd packages/oraidex-server/ build
+        run: yarn build packages/contracts-sdk && yarn build packages/oraidex-sync && yarn --cwd packages/oraidex-server/ build && yarn build packages/oraidex-common && yarn build packages/universal-swap
       - name: Authenticate with private NPM package
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-      - name: Publish
+      - name: Publish Oraidex Server
         id: publish
         continue-on-error: true
         run: yarn deploy packages/oraidex-server
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish Oraidex Common
+        id: publish-common
+        continue-on-error: true
+        run: yarn deploy packages/oraidex-common
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish Universal-swap
+        id: publish-universal-swap
+        continue-on-error: true
+        run: yarn deploy packages/universal-swap
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -77,4 +91,4 @@ jobs:
           webhook_id: ${{ secrets.WEBHOOK_ID }}
           webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
           username: "GitBot"
-          message: "Repo oraidex-sdk has just published oraidex-server. result: ${{ steps.publish.outcome }}. install result: ${{ steps.install.outcome }}"
+          message: "Repo oraidex-sdk has just published oraidex-server. Result: ${{ steps.publish.outcome }}. Install result: ${{ steps.install.outcome }}. Oraidex common: ${{ steps.publish-common.outcome }}. Universal swap: ${{ steps.publish-universal-swap.outcome }}"

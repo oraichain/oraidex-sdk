@@ -10,6 +10,7 @@ import {
 } from "./network";
 import { flatten, uniqBy } from "lodash";
 import { INJECTIVE_ORAICHAIN_DENOM, KWTBSC_ORAICHAIN_DENOM, MILKYBSC_ORAICHAIN_DENOM } from "./constant";
+import { FeeCurrency } from "@keplr-wallet/types";
 
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };
@@ -38,6 +39,7 @@ export type TokenItemType = {
     readonly average: number;
     readonly high: number;
   };
+  feeCurrencies?: FeeCurrency[];
 };
 
 export type TokenInfo = TokenItemType & {
@@ -87,6 +89,7 @@ export const getTokensFromNetwork = (network: CustomChainInfo): TokenItemType[] 
     cosmosBased: network.networkType === "cosmos",
     maxGas: (network.feeCurrencies?.[0].gasPriceStep?.high ?? 0) * 20000,
     gasPriceStep: currency.gasPriceStep,
+    feeCurrencies: network.feeCurrencies,
     minAmountSwap: minAmountSwapMap[currency.coinMinimalDenom],
     evmDenoms: evmDenomsMap[currency.coinMinimalDenom],
     Icon: currency.Icon,
