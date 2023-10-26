@@ -310,8 +310,22 @@ export class UniversalSwapHandler {
   };
 
   private getGasPriceFromToken() {
+    if (!this.swapData.originalFromToken.feeCurrencies)
+      throw generateError(
+        `This token ${JSON.stringify(
+          this.swapData.originalFromToken
+        )} does not have fee currencies. getGasPriceFromToken is not called correctly`
+      );
+    if (!this.swapData.originalFromToken.feeCurrencies[0])
+      throw generateError(
+        `This token ${JSON.stringify(
+          this.swapData.originalFromToken
+        )} does not have any fee currencies. Something is wrong`
+      );
     return GasPrice.fromString(
-      `${getCosmosGasPrice(this.swapData.originalFromToken.gasPriceStep)}${this.swapData.originalFromToken.denom}`
+      `${getCosmosGasPrice(this.swapData.originalFromToken.gasPriceStep)}${
+        this.swapData.originalFromToken.feeCurrencies[0].coinMinimalDenom
+      }`
     );
   }
 
