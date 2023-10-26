@@ -264,8 +264,9 @@ export class UniversalSwapHandler {
 
     if (evmWallet.isTron(token.chainId)) {
       from = this.swapData.sender.tron;
+      if (!from) throw generateError("Tron address is not specified. Cannot transfer!");
       if (evmWallet.checkTron())
-        return await evmWallet.submitTronSmartContract(
+        return evmWallet.submitTronSmartContract(
           ethToTronAddress(gravityContractAddr),
           "sendToCosmos(address,string,uint256)",
           {},
@@ -278,11 +279,12 @@ export class UniversalSwapHandler {
         );
     } else if (evmWallet.checkEthereum()) {
       // if you call this function on evm, you have to switch network before calling. Otherwise, unexpected errors may happen
-      if (!gravityContractAddr || !from || !to) return;
+      if (!gravityContractAddr || !from || !to)
+        throw generateError("OraiBridge contract addr or from or to is not specified. Cannot transfer!");
       const gravityContract = Bridge__factory.connect(gravityContractAddr, evmWallet.getSigner());
       const result = await gravityContract.sendToCosmos(token.contractAddress, to, amountVal, { from });
-      await result.wait();
-      return { transactionHash: result.hash };
+      const res = await result.wait();
+      return { transactionHash: res.transactionHash };
     }
   }
 
