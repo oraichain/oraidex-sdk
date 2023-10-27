@@ -1,20 +1,18 @@
-import { ExecuteInstruction } from "@cosmjs/cosmwasm-stargate";
-import { Coin, EncodeObject } from "@cosmjs/proto-signing";
+import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { toUtf8 } from "@cosmjs/encoding";
-import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import Long from "long";
-import bech32 from "bech32";
-import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
-import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
-import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
-import { AVERAGE_COSMOS_GAS_PRICE, WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
-import { ethers } from "ethers";
-import { CoinGeckoId, CosmosChainId, NetworkChainId } from "./network";
+import { Coin, EncodeObject } from "@cosmjs/proto-signing";
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { StargateMsg, Tx } from "./tx";
+import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
+import bech32 from "bech32";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { toBinary } from "@cosmjs/cosmwasm-stargate";
-import { CosmosWallet } from "./wallet";
+import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
+import { ethers } from "ethers";
+import Long from "long";
+import { AVERAGE_COSMOS_GAS_PRICE, WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
+import { CoinGeckoId, NetworkChainId } from "./network";
+import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
+import { StargateMsg, Tx } from "./tx";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
