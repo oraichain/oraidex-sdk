@@ -751,7 +751,7 @@ describe("test-helper", () => {
 
       // assert
       expect(result.length).toEqual(pairs.length);
-      expect(result.every((value) => value === 1n));
+      expect(result.every((value) => value.volume === 1n));
     });
   });
 
@@ -777,7 +777,7 @@ describe("test-helper", () => {
 
       // assert
       expect(result.length).toEqual(pairs.length);
-      expect(result.every((value) => value === 1n));
+      expect(result.every((value) => value.fee === 1n));
     });
   });
 

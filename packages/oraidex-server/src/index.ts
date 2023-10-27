@@ -204,13 +204,32 @@ app.get("/v1/pools/", async (_req, res) => {
       Promise.all(liquidityPromises),
       Promise.all(poolAmountPromises)
     ]);
+
     const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
       if (!poolApr) return null;
+
+      const poolFee = allFee7Days.find((item) => {
+        const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
+        return (
+          JSON.stringify(baseAssetInfo) === pool.firstAssetInfo &&
+          JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
+        );
+      });
+
+      const poolVolume = volumes.find((item) => {
+        const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
+        return (
+          JSON.stringify(baseAssetInfo) === pool.firstAssetInfo &&
+          JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
+        );
+      });
+      if (!poolVolume) return null;
+
       return {
         ...pool,
-        volume24Hour: volumes[index]?.toString() ?? "0",
-        fee7Days: allFee7Days[index]?.toString() ?? "0",
+        volume24Hour: poolVolume.volume.toString(),
+        fee7Days: poolFee.fee.toString(),
         apr: poolApr.apr,
         totalLiquidity: allLiquidities[index],
         rewardPerSec: poolApr.rewardPerSec,

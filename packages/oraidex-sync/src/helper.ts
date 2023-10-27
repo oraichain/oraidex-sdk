@@ -1,7 +1,7 @@
 import { AssetInfo, CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
-import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, kwtCw20Address, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
@@ -403,14 +403,23 @@ export const getVolumePairByUsdt = async (
   return BigInt(Math.round(volumeInUsdt));
 };
 
-async function getAllVolume24h(): Promise<bigint[]> {
+export type PoolVolume = {
+  assetInfos: [AssetInfo, AssetInfo];
+  volume: bigint;
+};
+async function getAllVolume24h(): Promise<PoolVolume[]> {
   const tf = 24 * 60 * 60; // second of 24h
   const currentDate = new Date();
   const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allVolumes = await Promise.all(
     pairs.map((pair) => getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate))
   );
-  return allVolumes;
+  return pairs.map((pair, index) => {
+    return {
+      assetInfos: pair.asset_infos,
+      volume: allVolumes[index]
+    };
+  });
 }
 // ===== end get volume pairs =====>
 
@@ -456,12 +465,21 @@ export const getFeePair = async (
   return swapFee + liquidityFee;
 };
 
-async function getAllFees(): Promise<bigint[]> {
+export type PoolFee = {
+  assetInfos: [AssetInfo, AssetInfo];
+  fee: bigint;
+};
+async function getAllFees(): Promise<PoolFee[]> {
   const tf = 7 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
   const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));
-  return allFees;
+  return pairs.map((pair, index) => {
+    return {
+      assetInfos: pair.asset_infos,
+      fee: allFees[index]
+    };
+  });
 }
 //  ==== end get fee pair ====>
 
