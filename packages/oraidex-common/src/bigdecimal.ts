@@ -34,12 +34,31 @@ export class BigDecimal {
   };
 
   toString() {
-    const str = this.bigInt.toString();
-    let ret = str.slice(0, -this.decimals);
-    const denominator = str.slice(-this.decimals).replace(/0+$/, "");
+    let str = this.bigInt.toString();
+    let ret = "";
+    // minus
+    if (str[0] === "-") {
+      ret += "-";
+      str = str.substring(1);
+    }
+
+    const padStartLen = this.decimals - str.length;
+
+    if (padStartLen >= 0) {
+      // need padding some
+      if (padStartLen > 0) str = "0".repeat(padStartLen) + str;
+      // the nominator is 0
+      ret += "0";
+    } else {
+      // get the nominator part
+      ret += str.slice(0, -this.decimals);
+    }
+
+    let denominator = str.slice(-this.decimals).replace(/0+$/, "");
     if (denominator) {
       ret += "." + denominator;
     }
+
     return ret;
   }
 
