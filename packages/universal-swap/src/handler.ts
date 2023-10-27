@@ -422,7 +422,8 @@ export class UniversalSwapHandler {
       originalFromToken,
       fromAmount,
       relayerFee,
-      routerClient
+      routerClient,
+      isFullEvm: !originalToToken.cosmosBased && !originalFromToken.cosmosBased
     });
     if (!isSufficient)
       throw generateError(
