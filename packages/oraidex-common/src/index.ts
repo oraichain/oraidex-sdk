@@ -7,3 +7,4 @@ export * from "./pairs";
 export * from "./wallet";
 export * from "./typechain-types";
 export * from "./tx";
+export * from "./bigdecimal";
