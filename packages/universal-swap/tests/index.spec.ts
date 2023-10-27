@@ -383,15 +383,15 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  it.each<[string, string, string, boolean]>([
-    ["oraichain-token", "Oraichain", "0", true],
-    ["oraichain-token", "Oraichain", "1000000", false],
-    ["oraichain-token", "0x38", "100000", true],
-    ["airight", "0x38", "100000", true],
-    ["tether", "0x38", "10000000", false]
+  it.each<[string, string, string, boolean, boolean]>([
+    ["oraichain-token", "Oraichain", "0", true, true],
+    ["oraichain-token", "Oraichain", "1000000", false, false],
+    ["oraichain-token", "0x38", "100000", true, true],
+    ["airight", "0x38", "100000", true, true],
+    ["tether", "0x38", "10000000", false, false]
   ])(
     "test checkRelayerFee given token %s, chain id %s with from amount %d, is it sufficient for relayer fee?: %s",
-    async (fromDenom, fromChainId, relayerFeeAmount, isSufficient) => {
+    async (fromDenom, fromChainId, relayerFeeAmount, isFullEvm, isSufficient) => {
       const originalFromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
@@ -404,7 +404,8 @@ describe("test universal swap handler functions", () => {
           relayerAmount: relayerFeeAmount,
           relayerDecimals: 6
         },
-        routerClient: routerContract
+        routerClient: routerContract,
+        isFullEvm
       });
       expect(result).toEqual(isSufficient);
     }

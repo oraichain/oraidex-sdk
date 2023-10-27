@@ -457,10 +457,15 @@ export const checkFeeRelayer = async (query: {
   };
   fromAmount: number;
   routerClient: OraiswapRouterReadOnlyInterface;
+  isFullEvm?: boolean;
 }): Promise<boolean> => {
   const { originalFromToken, relayerFee, fromAmount, routerClient } = query;
-  if (!relayerFee.relayerAmount) return true;
-  const relayerDisplay = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
+  if (!relayerFee || !parseInt(relayerFee.relayerAmount)) return true;
+  let relayerDisplay = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
+
+  if (query.isFullEvm) {
+    relayerDisplay = relayerDisplay * 2;
+  }
 
   // From Token is orai
   if (originalFromToken.coinGeckoId === "oraichain-token") {
