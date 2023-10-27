@@ -11,7 +11,7 @@ export class BigDecimal {
     } else if (typeof value === "number") {
       return new BigDecimal(value.toString(), decimals);
     } else if (typeof value === "bigint") {
-      this.bigInt = value;
+      this.bigInt = value * 10n ** BigInt(decimals);
     } else {
       this.bigInt = value.bigInt;
       this.decimals = value.decimals;
