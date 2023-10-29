@@ -49,7 +49,9 @@ import {
   getBalanceIBCOraichain,
   getIbcInfo,
   handleSimulateSwap,
-  simulateSwap
+  simulateSwap,
+  checkFeeRelayer,
+  checkFeeRelayerNotOrai
 } from "../src/helper";
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
@@ -378,6 +380,52 @@ describe("test universal swap handler functions", () => {
       });
       const msg = await universalSwap.combineSwapMsgOraichain("0");
       expect(msg).toEqual(expectedTransferMsg);
+    }
+  );
+
+  it.each<[string, string, string, boolean, boolean]>([
+    ["oraichain-token", "Oraichain", "0", true, true],
+    ["oraichain-token", "Oraichain", "1000000", false, false],
+    ["oraichain-token", "0x38", "100000", true, true],
+    ["airight", "0x38", "100000", true, true],
+    ["tether", "0x38", "10000000", false, false]
+  ])(
+    "test checkRelayerFee given token %s, chain id %s with from amount %d, is it sufficient for relayer fee?: %s",
+    async (fromDenom, fromChainId, relayerFeeAmount, isFullEvm, isSufficient) => {
+      const originalFromToken = flattenTokens.find(
+        (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
+      );
+      // TODO: run tests without mocking to simulate actual swap logic
+      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
+      const result = await checkFeeRelayer({
+        originalFromToken: originalFromToken as TokenItemType,
+        fromAmount: 1,
+        relayerFee: {
+          relayerAmount: relayerFeeAmount,
+          relayerDecimals: 6
+        },
+        routerClient: routerContract,
+        isFullEvm
+      });
+      expect(result).toEqual(isSufficient);
+    }
+  );
+
+  it.each<[string, string, boolean]>([
+    ["tether", "100000", true],
+    ["tron", "10000000", false]
+  ])(
+    "test checkFeeRelayerNotOrai given denom %s with from amount %d, is it sufficient for relayer fee?: %s",
+    async (fromDenom, mockSimulateAmount, isSufficient) => {
+      const originalFromToken = oraichainTokens.find((item) => item.coinGeckoId === fromDenom);
+      // TODO: run tests without mocking to simulate actual swap
+      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
+      const result = await checkFeeRelayerNotOrai({
+        fromTokenInOrai: originalFromToken as TokenItemType,
+        fromAmount: 1,
+        routerClient: routerContract
+      });
+      expect(result).toEqual(isSufficient);
     }
   );
 

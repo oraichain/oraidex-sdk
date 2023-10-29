@@ -31,12 +31,16 @@ import {
   IUniswapV2Router02__factory,
   cosmosTokens,
   StargateMsg,
-  IBC_WASM_HOOKS_CONTRACT
+  IBC_WASM_HOOKS_CONTRACT,
+  toTokenInfo,
+  network,
+  isInPairList
 } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, SimulateResponse, SwapRoute } from "./types";
+import { OraiBridgeRouteData, SimulateResponse, SwapRoute, UniversalSwapConfig } from "./types";
 import {
   AssetInfo,
   CosmWasmClient,
+  OraiswapRouterClient,
   OraiswapRouterReadOnlyInterface,
   OraiswapTokenQueryClient
 } from "@oraichain/oraidex-contracts-sdk";
@@ -44,7 +48,8 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { toBinary } from "@cosmjs/cosmwasm-stargate";
+import { SigningCosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice } from "@cosmjs/stargate";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
@@ -184,7 +189,13 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
     return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
   }
   // TODO: support 1-step swap for kwt & injective
-  if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6" || fromToken.chainId === "injective-1") {
+  if (
+    fromToken.chainId === "kawaii_6886-1" ||
+    fromToken.chainId === "0x1ae6" ||
+    fromToken.chainId === "injective-1" ||
+    ((fromToken.coinGeckoId !== toToken.coinGeckoId || toToken.chainId !== "Oraichain") &&
+      (fromToken.chainId === "cosmoshub-4" || fromToken.chainId === "osmosis-1"))
+  ) {
     throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
   }
   // cosmos to cosmos case where from token is a cosmos token
@@ -340,6 +351,7 @@ export const simulateSwap = async (query: {
   const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
   const { info: askInfo } = parseTokenInfo(toInfo);
   const operations = generateSwapOperationMsgs(offerInfo, askInfo);
+  console.log("operations: ", operations);
   try {
     let finalAmount = amount;
     let isSimulatingRatio = false;
@@ -435,6 +447,63 @@ export const handleSimulateSwap = async (query: {
     amount,
     displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals)
   };
+};
+
+export const checkFeeRelayer = async (query: {
+  originalFromToken: TokenItemType;
+  relayerFee: {
+    relayerAmount: string;
+    relayerDecimals: number;
+  };
+  fromAmount: number;
+  routerClient: OraiswapRouterReadOnlyInterface;
+  isFullEvm?: boolean;
+}): Promise<boolean> => {
+  const { originalFromToken, relayerFee, fromAmount, routerClient } = query;
+  if (!relayerFee || !parseInt(relayerFee.relayerAmount)) return true;
+  let relayerDisplay = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
+
+  if (query.isFullEvm) {
+    relayerDisplay = relayerDisplay * 2;
+  }
+
+  // From Token is orai
+  if (originalFromToken.coinGeckoId === "oraichain-token") {
+    if (relayerDisplay >= fromAmount) return false;
+    return true;
+  }
+
+  return checkFeeRelayerNotOrai({
+    fromTokenInOrai: getTokenOnOraichain(originalFromToken.coinGeckoId),
+    fromAmount,
+    routerClient
+  });
+};
+
+export const checkFeeRelayerNotOrai = async (query: {
+  fromTokenInOrai: TokenItemType;
+  fromAmount: number;
+  routerClient: OraiswapRouterReadOnlyInterface;
+}): Promise<boolean> => {
+  const { fromTokenInOrai, fromAmount, routerClient } = query;
+  if (fromTokenInOrai.chainId !== "Oraichain")
+    throw generateError(
+      "From token on Oraichain is not on Oraichain. The developers have made a mistake. Please notify them!"
+    );
+  const oraiToken = getTokenOnOraichain("oraichain-token");
+  // estimate exchange token when From Token not orai. Only need to swap & check if it is swappable with ORAI. Otherwise, we ignore the fees
+  if (isInPairList(fromTokenInOrai.denom) || isInPairList(fromTokenInOrai.contractAddress)) {
+    const { amount } = await simulateSwap({
+      fromInfo: fromTokenInOrai,
+      toInfo: oraiToken,
+      amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
+      routerClient: routerClient
+    });
+    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    if (relayerDisplay >= fromAmount) return false;
+    return true;
+  }
+  return true;
 };
 
 // verify balance
