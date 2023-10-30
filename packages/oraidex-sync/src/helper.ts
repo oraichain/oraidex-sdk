@@ -1,7 +1,7 @@
 import { AssetInfo, CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
-import { atomic, kwtCw20Address, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";

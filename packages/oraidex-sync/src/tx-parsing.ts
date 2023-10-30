@@ -88,6 +88,7 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
       } else if (attr.key === "tax_amount") {
         taxAmounts.push(attr.value);
       } else if (attr.key === "commission_amount") {
+        // for commission_amount & spread_amount: its unit is calculated according to return amount
         commissionAmounts.push(attr.value);
       } else if (attr.key === "spread_amount") {
         spreadAmounts.push(attr.value);
