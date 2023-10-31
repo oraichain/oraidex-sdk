@@ -17,11 +17,11 @@ jobs:
 
   build:
     needs:
-        - run-unit-test
+      - run-unit-test
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        node-version: [">=16.0.0"]
+        node-version: ["18"]
 
     steps:
       - name: Cancel Previous Runs
@@ -76,7 +76,7 @@ jobs:
 
       - name: Install latest version
         id: install
-        if: steps.publish.outcome != 'failure' 
+        if: steps.publish.outcome != 'failure'
         continue-on-error: true
         uses: appleboy/ssh-action@master
         with:
@@ -91,4 +91,4 @@ jobs:
           webhook_id: ${{ secrets.WEBHOOK_ID }}
           webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
           username: "GitBot"
-          message: "Repo oraidex-sdk has just published oraidex-server. Result: ${{ steps.publish.outcome }}. Install result: ${{ steps.install.outcome }}. Oraidex common: ${{ steps.publish-common.outcome }}. Universal swap: ${{ steps.publish-universal-swap.outcome }}"
+          message: "Repo oraidex-sdk has just published oraidex-server. result: ${{ steps.publish.outcome }}. install result: ${{ steps.install.outcome }}"
