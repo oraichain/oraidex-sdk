@@ -34,7 +34,14 @@ import {
   toDisplay
 } from "../src/helper";
 import { pairs } from "../src/pairs";
-import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
+import {
+  LpOpsData,
+  PairInfoData,
+  ProvideLiquidityOperationData,
+  StakingOperationData,
+  SwapDirection,
+  SwapOperationData
+} from "../src/types";
 import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import * as helper from "../src/helper";
@@ -841,5 +848,58 @@ describe("test-helper", () => {
 
     // assertion
     expect(result).toEqual(expectedResult);
+  });
+
+  it("test-groupDuplicateStakeOps-should-return-correctly-stake-ops", () => {
+    // setup
+    const stakeOp: StakingOperationData = {
+      uniqueKey: "1",
+      stakerAddress: "1",
+      stakingAssetDenom: "1",
+      stakeAmount: 1n,
+      stakeAmountInUsdt: 1,
+      lpPrice: 1,
+      timestamp: 1,
+      txhash: "1",
+      txheight: 1
+    };
+
+    const stakeOps: StakingOperationData[] = [
+      stakeOp,
+      {
+        ...stakeOp,
+        stakeAmount: 2n,
+        stakeAmountInUsdt: 4
+      },
+      {
+        ...stakeOp,
+        stakeAmount: 4n,
+        stakeAmountInUsdt: 6
+      },
+      {
+        ...stakeOp,
+        uniqueKey: "2",
+        stakeAmount: 2n,
+        stakeAmountInUsdt: 4
+      }
+    ];
+
+    // act
+    const result = helper.groupDuplicateStakeOps(stakeOps);
+
+    // assertion
+    expect(result).toMatchObject([
+      {
+        ...stakeOp,
+        stakeAmount: 7n,
+        stakeAmountInUsdt: 11
+      },
+      {
+        ...stakeOp,
+        uniqueKey: "2",
+        stakeAmount: 2n,
+        stakeAmountInUsdt: 4
+      }
+    ]);
   });
 });

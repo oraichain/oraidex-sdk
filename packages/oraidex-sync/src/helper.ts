@@ -6,7 +6,7 @@ import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import { Ohlcv, OraiDexType, PairInfoData, SwapDirection, SwapOperationData } from "./types";
+import { Ohlcv, OraiDexType, PairInfoData, StakingOperationData, SwapDirection, SwapOperationData } from "./types";
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -232,6 +232,23 @@ export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
   let newOps: OraiDexType[] = [];
   for (let op of ops) {
     if (!newOps.some((newOp) => newOp.uniqueKey === op.uniqueKey)) newOps.push(op);
+  }
+  return newOps;
+}
+
+// check if there are more 2 ops has same unique key, mean that we have more 2 msg stake in one txs is same, so we combine to one ops.
+export function groupDuplicateStakeOps(ops: StakingOperationData[]): StakingOperationData[] {
+  let newOps: StakingOperationData[] = [];
+  for (let op of ops) {
+    const opIndex = newOps.findIndex((newOp) => newOp.uniqueKey === op.uniqueKey);
+    if (opIndex < 0) newOps.push(op);
+    else {
+      newOps[opIndex] = {
+        ...newOps[opIndex],
+        stakeAmount: newOps[opIndex].stakeAmount + op.stakeAmount,
+        stakeAmountInUsdt: newOps[opIndex].stakeAmountInUsdt + op.stakeAmountInUsdt
+      };
+    }
   }
   return newOps;
 }

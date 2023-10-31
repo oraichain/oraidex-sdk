@@ -14,6 +14,7 @@ import {
   getPairLiquidity,
   getSwapDirection,
   groupByTime,
+  groupDuplicateStakeOps,
   isAssetInfoPairReverse,
   isoToTimestampNumber,
   removeOpsDuplication,
@@ -541,6 +542,9 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   withdrawLiquidityOpsData = groupByTime(
     removeOpsDuplication(withdrawLiquidityOpsData)
   ) as WithdrawLiquidityOperationData[];
+
+  stakingOpsData = groupByTime(groupDuplicateStakeOps(stakingOpsData)) as StakingOperationData[];
+  claimOpsData = groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[];
 
   const lpOpsData = [...provideLiquidityOpsData, ...withdrawLiquidityOpsData];
   // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
