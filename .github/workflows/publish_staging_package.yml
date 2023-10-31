@@ -2,7 +2,7 @@ name: publish_staging_package
 
 # Controls when the action will run.
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
+  # Triggers the workflow on push or pull request events but only for the staging branch
   push:
     branches: [staging]
 
@@ -11,17 +11,12 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains 2 jobs called "run-unit-test" "build"
-  run-unit-test:
-    uses: ./.github/workflows/reuseable-test.yaml
-
+  # This workflow contains 1 job called "build"
   build:
-    needs:
-      - run-unit-test
     runs-on: ubuntu-20.04
     strategy:
       matrix:
-        node-version: [">=16.0.0"]
+        node-version: ["18"]
 
     steps:
       - name: Cancel Previous Runs
