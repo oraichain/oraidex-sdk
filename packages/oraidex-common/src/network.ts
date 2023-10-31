@@ -615,7 +615,10 @@ export const chainInfos: CustomChainInfo[] = [
     stakeCurrency: InjectiveToken,
     feeCurrencies: [InjectiveToken],
     currencies: [
-      InjectiveToken,
+      {
+        ...InjectiveToken,
+        bridgeTo: ["Oraichain"]
+      },
       {
         coinDenom: "ORAI",
         coinMinimalDenom: ORAIIBC_INJECTIVE_DENOM,
