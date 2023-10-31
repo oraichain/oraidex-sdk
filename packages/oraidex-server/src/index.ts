@@ -12,6 +12,7 @@ import {
   ORAI,
   OraiDexSync,
   PairInfoDataResponse,
+  PairMapping,
   TickerInfo,
   VolumeRange,
   findPairAddress,
@@ -21,6 +22,7 @@ import {
   getPairLiquidity,
   getPriceByAsset,
   getVolumePairByUsdt,
+  injAddress,
   oraiInfo,
   oraiUsdtPairOnlyDenom,
   pairWithStakingAsset,
@@ -38,6 +40,7 @@ import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
+import { AssetInfo } from "@oraichain/common-contracts-sdk";
 
 const app = express();
 app.use(cors());
@@ -88,9 +91,29 @@ app.get("/tickers", async (req, res) => {
     const pairInfos = await duckDb.queryPairInfos();
     const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
     const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
+
+    // hardcode reverse order for ORAI/INJ
+    const arrangedPairs = pairs.map((pair) => {
+      const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+      if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
+        return {
+          ...pair,
+          asset_infos: [
+            oraiInfo,
+            {
+              token: {
+                contract_addr: injAddress
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAI", "INJ"]
+        } as PairMapping;
+      return pair;
+    });
+
     const data: TickerInfo[] = (
       await Promise.allSettled(
-        pairs.map(async (pair) => {
+        arrangedPairs.map(async (pair) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
           const tickerId = parseSymbolsToTickerId(symbols);
@@ -111,9 +134,13 @@ app.get("/tickers", async (req, res) => {
             target: symbols[targetIndex]
           };
           try {
-            // reverse because in pairs, we put base info as first index
-            const price = await simulateSwapPrice(pair.asset_infos, routerContract);
-            tickerInfo.last_price = price;
+            // harcode get price quote in base for orai/inj to get price orai in inj.
+            const price = await getPriceByAsset(
+              pair.asset_infos,
+              isEqual(pair.symbols, ["ORAI", "INJ"]) ? "quote_in_base" : "base_in_quote"
+            );
+
+            tickerInfo.last_price = price.toString();
           } catch (error) {
             tickerInfo.last_price = "0";
           }

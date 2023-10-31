@@ -76,6 +76,7 @@ export const pairs: PairMapping[] = [
     asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
     symbols: ["scATOM", "ATOM"]
   },
+  // we will reverse order for this pair in api /tickers for Coingecko
   {
     asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
     symbols: ["INJ", "ORAI"]

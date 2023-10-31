@@ -2,6 +2,7 @@ import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { Connection, Database } from "duckdb-async";
 import fs from "fs";
 import { isoToTimestampNumber, renameKey } from "./helper";
+import { parseAssetInfo, replaceAllNonAlphaBetChar, toObject } from "./parse";
 import {
   EarningOperationData,
   GetCandlesQuery,
@@ -21,7 +22,6 @@ import {
   VolumeRange,
   WithdrawLiquidityOperationData
 } from "./types";
-import { toObject, parseAssetInfo, replaceAllNonAlphaBetChar } from "./parse";
 
 export class DuckDb {
   static instances: DuckDb;
@@ -378,13 +378,19 @@ export class DuckDb {
   async getPoolByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PairInfoData> {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);
-    return (
-      await this.conn.all(
+    let pool = await this.conn.all(
+      `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+      firstAssetInfo,
+      secondAssetInfo
+    );
+    if (pool.length === 0)
+      pool = await this.conn.all(
         `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
-        firstAssetInfo,
-        secondAssetInfo
-      )
-    ).map((data) => data as PairInfoData)[0];
+        secondAssetInfo,
+        firstAssetInfo
+      );
+
+    return pool.map((data) => data as PairInfoData)[0];
   }
 
   async getFeeSwap(payload: GetFeeSwap): Promise<[number, number]> {

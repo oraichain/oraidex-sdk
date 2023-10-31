@@ -20,6 +20,7 @@ import {
   recalculateTotalShare
 } from "./index";
 import { pairWithStakingAsset, pairs } from "./pairs";
+import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 import {
   fetchAllRewardPerSecInfos,
   fetchAllTokenAssetPools,
@@ -37,7 +38,6 @@ import {
   SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
-import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
 
