@@ -18,7 +18,7 @@ export class BigDecimal {
     }
   }
 
-  private processDecimal = (value: DecimalLike): BigDecimal => {
+  private processDecimal(value: DecimalLike): BigDecimal {
     if (value instanceof BigDecimal) {
       if (value.decimals > this.decimals) {
         this.bigInt *= 10n ** BigInt(value.decimals - this.decimals);
@@ -31,7 +31,7 @@ export class BigDecimal {
       return value;
     }
     return new BigDecimal(value, this.decimals);
-  };
+  }
 
   toString() {
     let str = this.bigInt.toString();
