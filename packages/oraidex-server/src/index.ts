@@ -134,12 +134,8 @@ app.get("/tickers", async (req, res) => {
             target: symbols[targetIndex]
           };
           try {
-            // harcode get price quote in base for orai/inj to get price orai in inj.
-            const price = await getPriceByAsset(
-              pair.asset_infos,
-              isEqual(pair.symbols, ["ORAI", "INJ"]) ? "quote_in_base" : "base_in_quote"
-            );
-
+            // reverse because in pairs, we put base info as first index
+            const price = await simulateSwapPrice(pair.asset_infos, routerContract);
             tickerInfo.last_price = price.toString();
           } catch (error) {
             tickerInfo.last_price = "0";
