@@ -162,6 +162,11 @@ export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "inject
       source: "transfer",
       channel: oraichain2kwt,
       timeout: IBC_TRANSFER_TIMEOUT
+    },
+    "injective-1": {
+      source: "transfer",
+      channel: oraichain2inj,
+      timeout: IBC_TRANSFER_TIMEOUT
     }
   },
   "oraibridge-subnet-2": {
