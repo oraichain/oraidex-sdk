@@ -481,13 +481,14 @@ export const checkFeeRelayerNotOrai = async (query: {
   routerClient: OraiswapRouterReadOnlyInterface;
 }): Promise<boolean> => {
   const { fromTokenInOrai, fromAmount, routerClient } = query;
+  if (!fromTokenInOrai) return true;
   if (fromTokenInOrai.chainId !== "Oraichain")
     throw generateError(
       "From token on Oraichain is not on Oraichain. The developers have made a mistake. Please notify them!"
     );
-  const oraiToken = getTokenOnOraichain("oraichain-token");
   // estimate exchange token when From Token not orai. Only need to swap & check if it is swappable with ORAI. Otherwise, we ignore the fees
   if (isInPairList(fromTokenInOrai.denom) || isInPairList(fromTokenInOrai.contractAddress)) {
+    const oraiToken = getTokenOnOraichain("oraichain-token");
     const { amount } = await simulateSwap({
       fromInfo: fromTokenInOrai,
       toInfo: oraiToken,
