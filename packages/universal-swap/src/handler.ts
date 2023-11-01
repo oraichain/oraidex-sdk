@@ -25,7 +25,6 @@ import {
   Bridge__factory,
   IUniswapV2Router02__factory,
   ethToTronAddress,
-  oraichainTokens,
   network,
   EvmResponse,
   IBC_WASM_HOOKS_CONTRACT,
@@ -34,7 +33,8 @@ import {
   getCosmosGasPrice,
   marshalEncodeObjsToStargateMsgs,
   CoinGeckoId,
-  IBC_WASM_CONTRACT
+  IBC_WASM_CONTRACT,
+  IBC_WASM_CONTRACT_TEST
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -61,6 +61,10 @@ export class UniversalSwapHandler {
     const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
     if (!fromTokenOnOrai) throw generateError(`Could not find token ${coinGeckoId} on Oraichain. Could not swap`);
     return fromTokenOnOrai;
+  }
+
+  private getCwIcs20ContractAddr() {
+    return this.config.ibcInfoTestMode ? IBC_WASM_CONTRACT_TEST : IBC_WASM_CONTRACT;
   }
 
   async getUniversalSwapToAddress(
@@ -379,7 +383,7 @@ export class UniversalSwapHandler {
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
     const ibcInfo = getIbcInfo("Oraichain", originalToToken.chainId);
-    const ics20Client = new CwIcs20LatestQueryClient(client, IBC_WASM_CONTRACT);
+    const ics20Client = new CwIcs20LatestQueryClient(client, this.getCwIcs20ContractAddr());
     await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
 
     // handle sign and broadcast transactions
@@ -414,7 +418,7 @@ export class UniversalSwapHandler {
       fromAmount,
       simulateAmount,
       client,
-      IBC_WASM_CONTRACT
+      this.getCwIcs20ContractAddr()
     );
 
     const routerClient = new OraiswapRouterQueryClient(client, network.router);

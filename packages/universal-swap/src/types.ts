@@ -49,6 +49,7 @@ export interface UniversalSwapData {
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
   readonly evmWallet?: EvmWallet;
+  readonly ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
 }
 
 export interface SwapRoute {

@@ -4,10 +4,14 @@ import {
   ATOM_ORAICHAIN_CHANNELS,
   IBC_TRANSFER_TIMEOUT,
   IBC_WASM_CONTRACT,
+  IBC_WASM_CONTRACT_TEST,
   INJECTIVE_ORAICHAIN_CHANNELS,
   KWT_ORAICHAIN_CHANNELS,
+  NOBLE_ORAICHAIN_CHANNELS,
+  NOBLE_ORAICHAIN_CHANNELS_TEST,
   ORAIB_ORAICHAIN_CHANNELS,
   ORAIB_ORAICHAIN_CHANNELS_OLD,
+  ORAIB_ORAICHAIN_CHANNELS_TEST,
   OSMOSIS_ORAICHAIN_CHANNELS
 } from "./constant";
 import { CosmosChainId, NetworkChainId } from "./network";
@@ -15,6 +19,7 @@ import { CosmosChainId, NetworkChainId } from "./network";
 export interface IBCInfo {
   source: string;
   channel: string;
+  testInfo?: Omit<IBCInfo, "testInfo">;
   timeout: number;
 }
 
@@ -26,7 +31,9 @@ export const [atom2oraichain, oraichain2atom] = ATOM_ORAICHAIN_CHANNELS.split(/\
 export const [inj2oraichain, oraichain2inj] = INJECTIVE_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [osmosis2oraichain, oraichain2osmosis] = OSMOSIS_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [oraib2oraichain, oraichain2oraib] = ORAIB_ORAICHAIN_CHANNELS.split(/\s+/);
-// export const [oraib2oraichain, oraichain2oraib] = ["channel-5", "channel-64"];
+export const [noble2oraichain, oraichain2noble] = NOBLE_ORAICHAIN_CHANNELS.split(/\s+/);
+export const [noble2oraichainTest, oraichain2nobleTest] = NOBLE_ORAICHAIN_CHANNELS_TEST.split(/\s+/);
+export const [oraib2oraichainTest, oraichain2oraibTest] = ORAIB_ORAICHAIN_CHANNELS_TEST.split(/\s+/);
 const [oraib2oraichain_old, oraichain2oraib_old] = ORAIB_ORAICHAIN_CHANNELS_OLD.split(/\s+/);
 const [kwt2oraichain, oraichain2kwt] = KWT_ORAICHAIN_CHANNELS.split(/\s+/);
 
@@ -61,6 +68,18 @@ export const ibcInfos: IBCInfoMap = {
       timeout: IBC_TRANSFER_TIMEOUT
     }
   },
+  "noble-1": {
+    Oraichain: {
+      source: "transfer",
+      channel: noble2oraichain,
+      testInfo: {
+        source: "transfer",
+        channel: noble2oraichainTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      },
+      timeout: IBC_TRANSFER_TIMEOUT
+    }
+  },
   Oraichain: {
     "cosmoshub-4": {
       source: "transfer",
@@ -80,6 +99,11 @@ export const ibcInfos: IBCInfoMap = {
     "oraibridge-subnet-2": {
       source: `wasm.${IBC_WASM_CONTRACT}`,
       channel: oraichain2oraib,
+      testInfo: {
+        source: `wasm.${IBC_WASM_CONTRACT_TEST}`,
+        channel: oraichain2oraibTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      },
       timeout: IBC_TRANSFER_TIMEOUT
     },
     "0x01": {
@@ -101,18 +125,33 @@ export const ibcInfos: IBCInfoMap = {
       source: "transfer",
       channel: oraichain2kwt,
       timeout: IBC_TRANSFER_TIMEOUT
+    },
+    "noble-1": {
+      source: `wasm.${IBC_WASM_CONTRACT}`,
+      channel: oraichain2noble,
+      testInfo: {
+        source: `wasm.${IBC_WASM_CONTRACT_TEST}`,
+        channel: oraichain2nobleTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      },
+      timeout: IBC_TRANSFER_TIMEOUT
     }
   },
   "oraibridge-subnet-2": {
     Oraichain: {
       source: "transfer",
       channel: oraib2oraichain,
+      testInfo: {
+        source: "transfer",
+        channel: oraib2oraichainTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      },
       timeout: IBC_TRANSFER_TIMEOUT
     }
   }
 };
 
-export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1"> = {
+export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1"> = {
   Oraichain: {
     "oraibridge-subnet-2": {
       source: "transfer",
