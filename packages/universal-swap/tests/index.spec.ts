@@ -18,7 +18,8 @@ import {
   ORAI_BRIDGE_EVM_DENOM_PREFIX,
   AIRI_BSC_CONTRACT,
   IBC_TRANSFER_TIMEOUT,
-  toTokenInfo
+  toTokenInfo,
+  IBC_WASM_CONTRACT_TEST
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import * as dexCommonNetwork from "@oraichain/oraidex-common/build/network"; // import like this to enable jest.spyOn & avoid redefine property error
@@ -923,6 +924,20 @@ describe("test universal swap handler functions", () => {
       routerClient: new OraiswapRouterQueryClient(client, "")
     });
     expect(simulateData.amount).toEqual(expectedSimulateAmount);
+  });
+
+  it.each<[boolean, string]>([
+    [true, IBC_WASM_CONTRACT_TEST],
+    [false, IBC_WASM_CONTRACT]
+  ])("test-getIbcInfo", (testMode, ibcWasmContract) => {
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData
+      },
+      { ibcInfoTestMode: testMode }
+    );
+    const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
+    expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
   });
 
   // it("test-swap()", async () => {
