@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-common",
-  "version": "1.0.30",
+  "version": "1.0.32",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -8,7 +8,8 @@
   "license": "MIT",
   "dependencies": {
     "@ethersproject/providers": "^5.0.10",
-    "ethers": "^5.0.15"
+    "ethers": "^5.0.15",
+    "lodash": "^4.17.21"
   },
   "devDependencies": {
     "@keplr-wallet/types": "^0.11.38"
