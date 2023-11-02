@@ -1,0 +1,19 @@
+{
+  "name": "@oraichain/oraidex-common",
+  "version": "1.0.31",
+  "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@ethersproject/providers": "^5.0.10",
+    "ethers": "^5.0.15"
+  },
+  "devDependencies": {
+    "@keplr-wallet/types": "^0.11.38"
+  },
+  "resolutions": {
+    "bech32": "1.1.4"
+  }
+}
