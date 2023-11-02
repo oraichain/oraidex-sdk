@@ -20,8 +20,8 @@ import * as txParsing from "../src/tx-parsing";
 describe("test-pool-helper", () => {
   let duckDb: DuckDb;
   beforeAll(async () => {
-    duckDb = await DuckDb.create(":memory:")
-  })
+    duckDb = await DuckDb.create(":memory:");
+  });
   afterEach(jest.restoreAllMocks);
 
   it.each<[string, [AssetInfo, AssetInfo], boolean]>([
@@ -126,7 +126,7 @@ describe("test-pool-helper", () => {
         symbols: "1",
         fromIconUrl: "1",
         toIconUrl: "1"
-      }
+      };
       const poolAmountHistory: PoolAmountHistory = {
         offerPoolAmount: 1n,
         askPoolAmount: 1n,
@@ -134,7 +134,7 @@ describe("test-pool-helper", () => {
         timestamp: 1,
         pairAddr,
         uniqueKey: "1"
-      }
+      };
       jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfoData);
       jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue(poolAmountHistory);
       jest.spyOn(helper, "calculatePriceByPool").mockReturnValue(0.5);
@@ -403,8 +403,6 @@ describe("test-pool-helper", () => {
           baseTokenDenom: ORAI,
           quoteTokenAmount: 1,
           quoteTokenDenom: usdtCw20Address,
-          baseTokenReserve: 1,
-          quoteTokenReserve: 1,
           opType: "provide",
           uniqueKey: "1",
           timestamp: 1,
@@ -419,8 +417,6 @@ describe("test-pool-helper", () => {
           baseTokenDenom: ORAI,
           quoteTokenAmount: 1,
           quoteTokenDenom: usdtCw20Address,
-          baseTokenReserve: 1,
-          quoteTokenReserve: 1,
           opType: "withdraw",
           uniqueKey: "2",
           timestamp: 1,
@@ -435,8 +431,6 @@ describe("test-pool-helper", () => {
           baseTokenDenom: ORAI,
           quoteTokenAmount: 1,
           quoteTokenDenom: atomIbcDenom,
-          baseTokenReserve: 1,
-          quoteTokenReserve: 1,
           opType: "withdraw",
           uniqueKey: "1",
           timestamp: 1,

@@ -9,7 +9,9 @@
     "build": "tsc -p",
     "postbuild": "mkdir -p packages/oraidex-common/build/tronweb && cp -r packages/oraidex-common/src/tronweb/* packages/oraidex-common/build/tronweb",
     "deploy": "yarn publish --access public",
-    "start:server": "yarn build packages/oraidex-sync/ && npx ts-node-dev packages/oraidex-server/src/index.ts"
+    "start:server": "yarn build packages/oraidex-sync/ && npx ts-node-dev packages/oraidex-server/src/index.ts",
+    "start:sync": "npx ts-node packages/oraidex-sync/src/sync-cmd.ts",
+    "prepare": "husky install"
   },
   "workspaces": [
     "packages/*"
@@ -35,6 +37,7 @@
     "@types/node": "^18.15.8",
     "cosmjs-types": "^0.8.0",
     "dotenv": "^16.3.1",
+    "husky": "^8.0.3",
     "jest": "^29.5.0",
     "lerna": "^5.6.1",
     "patch-package": "^7.0.0",

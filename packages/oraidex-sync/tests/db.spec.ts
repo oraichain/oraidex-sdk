@@ -175,11 +175,9 @@ describe("test-duckdb", () => {
           txhash: "foo",
           timestamp: new Date().getTime() / 1000,
           baseTokenAmount: "abcd" as any,
-          baseTokenReserve: 0,
           baseTokenDenom: "orai",
           uniqueKey: "1",
           quoteTokenAmount: 2,
-          quoteTokenReserve: 0,
           quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
@@ -201,12 +199,10 @@ describe("test-duckdb", () => {
         basePrice: 1,
         baseTokenAmount: 1,
         baseTokenDenom: "orai",
-        baseTokenReserve: 0,
         opType: "withdraw",
         uniqueKey: "2",
         quoteTokenAmount: 2,
         quoteTokenDenom: "atom",
-        quoteTokenReserve: 0,
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
@@ -231,12 +227,10 @@ describe("test-duckdb", () => {
         basePrice: 1,
         baseTokenAmount: 1,
         baseTokenDenom: "orai",
-        baseTokenReserve: 0,
         opType: "withdraw",
         uniqueKey: "2",
         quoteTokenAmount: 2,
         quoteTokenDenom: "atom",
-        quoteTokenReserve: 0,
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
@@ -308,7 +302,7 @@ describe("test-duckdb", () => {
     const feeSwap = await duckDb.getFeeSwap(payload);
 
     // assertion
-    expect(feeSwap).toEqual(2000000n);
+    expect(feeSwap).toEqual([1000000, 1000000]);
   });
 
   it.each([
@@ -378,12 +372,10 @@ describe("test-duckdb", () => {
           basePrice: 1,
           baseTokenAmount: 1,
           baseTokenDenom: "orai",
-          baseTokenReserve: 0,
           opType: "withdraw",
           uniqueKey: "1",
           quoteTokenAmount: 2,
           quoteTokenDenom: "atom",
-          quoteTokenReserve: 0,
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
           txhash: "foo",
@@ -394,12 +386,10 @@ describe("test-duckdb", () => {
           basePrice: 1,
           baseTokenAmount: 1,
           baseTokenDenom: "orai",
-          baseTokenReserve: 0,
           opType: "provide",
           uniqueKey: "2",
           quoteTokenAmount: 2,
           quoteTokenDenom: "atom",
-          quoteTokenReserve: 0,
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
           txhash: "foo",
@@ -486,12 +476,12 @@ describe("test-duckdb", () => {
 
     it("test-getApr-should-return-correctly-apr-for-all-pair", async () => {
       // act
-      const apr = await duckDb.getApr();
+      const apr = await duckDb.getAllAprs();
 
       // assertion
       expect(apr).toEqual([
-        { pairAddr: "orai_usdt", apr: 4 },
-        { pairAddr: "orai_atom", apr: 2 }
+        { pairAddr: "orai_usdt", apr: 4, rewardPerSec: "1", totalSupply: "1" },
+        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" }
       ]);
     });
 

@@ -1,8 +1,10 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { Connection, Database } from "duckdb-async";
 import fs from "fs";
-import { isoToTimestampNumber, parseAssetInfo, renameKey, replaceAllNonAlphaBetChar, toObject } from "./helper";
+import { isoToTimestampNumber, renameKey } from "./helper";
+import { parseAssetInfo, replaceAllNonAlphaBetChar, toObject } from "./parse";
 import {
+  EarningOperationData,
   GetCandlesQuery,
   GetFeeSwap,
   GetVolumeQuery,
@@ -11,6 +13,8 @@ import {
   PoolAmountHistory,
   PoolApr,
   PriceInfo,
+  StakeByUserResponse,
+  StakingOperationData,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
@@ -42,7 +46,7 @@ export class DuckDb {
 
   private async insertBulkData(data: any[], tableName: string, replace?: boolean, fileName?: string) {
     // we wont insert anything if the data is empty. Otherwise it would throw an error while inserting
-    if (data.length === 0) return;
+    if (!Array.isArray(data) || data.length === 0) return;
     const tableFile = fileName ?? `${tableName}.json`;
     // the file written out is temporary only. Will be deleted after insertion
     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
@@ -107,12 +111,10 @@ export class DuckDb {
         basePrice double,
         baseTokenAmount UBIGINT, 
         baseTokenDenom VARCHAR, 
-        baseTokenReserve UBIGINT, 
         opType LPOPTYPE, 
         uniqueKey VARCHAR UNIQUE,
         quoteTokenAmount UBIGINT, 
         quoteTokenDenom VARCHAR, 
-        quoteTokenReserve UBIGINT,
         timestamp UINTEGER,
         txCreator VARCHAR, 
         txhash VARCHAR,
@@ -376,16 +378,22 @@ export class DuckDb {
   async getPoolByAssetInfos(assetInfos: [AssetInfo, AssetInfo]): Promise<PairInfoData> {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);
-    return (
-      await this.conn.all(
+    let pool = await this.conn.all(
+      `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+      firstAssetInfo,
+      secondAssetInfo
+    );
+    if (pool.length === 0)
+      pool = await this.conn.all(
         `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
-        firstAssetInfo,
-        secondAssetInfo
-      )
-    ).map((data) => data as PairInfoData)[0];
+        secondAssetInfo,
+        firstAssetInfo
+      );
+
+    return pool.map((data) => data as PairInfoData)[0];
   }
 
-  async getFeeSwap(payload: GetFeeSwap): Promise<bigint> {
+  async getFeeSwap(payload: GetFeeSwap): Promise<[number, number]> {
     const { offerDenom, askDenom, startTime, endTime } = payload;
     const [feeRightDirection, feeReverseDirection] = await Promise.all([
       this.conn.all(
@@ -419,7 +427,8 @@ export class DuckDb {
         offerDenom
       )
     ]);
-    return BigInt(feeRightDirection[0]?.totalFee + feeReverseDirection[0]?.totalFee);
+
+    return [feeRightDirection[0]?.totalFee, feeReverseDirection[0]?.totalFee];
   }
 
   async getFeeLiquidity(payload: GetFeeSwap): Promise<bigint> {
@@ -487,6 +496,7 @@ export class DuckDb {
         askPoolAmount ubigint,
         height uinteger,
         timestamp uinteger,
+        totalShare varchar,
         pairAddr varchar,
         uniqueKey varchar UNIQUE)
       `
@@ -557,20 +567,129 @@ export class DuckDb {
     return result[0] as PoolApr;
   }
 
-  async getApr() {
+  async getAllAprs() {
     const result = await this.conn.all(
       `
-      SELECT p.pairAddr, p.apr
-      FROM pool_apr p
-      JOIN (
-        SELECT pairAddr, MAX(height) AS max_height
+      WITH RankedPool AS (
+        SELECT pairAddr, apr, rewardPerSec, totalSupply, height,
+               ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY height DESC) AS rn
         FROM pool_apr
-        GROUP BY pairAddr
-      ) max_heights
-      ON p.pairAddr = max_heights.pairAddr AND p.height = max_heights.max_height
-      ORDER BY p.height DESC
+    )
+    SELECT pairAddr, apr, rewardPerSec, totalSupply
+    FROM RankedPool
+    WHERE rn = 1;
       `
     );
-    return result as Pick<PoolApr, "apr" | "pairAddr">[];
+    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
+  }
+
+  async getAprPool(pairAddr: string) {
+    const result = await this.conn.all(
+      `
+      SELECT * FROM pool_apr
+      WHERE pairAddr = ?
+      ORDER BY height DESC
+      `,
+      pairAddr
+    );
+    return result[0] as PoolApr;
+  }
+
+  async createStakingHistoryTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS staking_history (
+          uniqueKey varchar UNIQUE,
+          stakerAddress varchar,
+          stakingAssetDenom varchar,
+          stakeAmount bigint,
+          timestamp uinteger,
+          txhash varchar,
+          txheight uinteger,
+          stakeAmountInUsdt double,
+          lpPrice double
+        )
+      `
+    );
+  }
+
+  async getMyStakedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
+    let query = ` SELECT stakingAssetDenom, SUM(stakeAmountInUsdt) as stakeAmountInUsdt
+                  FROM staking_history
+                  WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
+                `;
+    const queryParams = [stakerAddress, startTime, endTime];
+    if (stakingAssetDenom) {
+      query += ` AND stakingAssetDenom = ?`;
+      queryParams.push(stakingAssetDenom);
+    }
+
+    query += ` GROUP BY stakingAssetDenom`;
+
+    const result = await this.conn.all(query, ...queryParams);
+    return result as Pick<StakingOperationData, "stakingAssetDenom" | "stakeAmountInUsdt">[];
+  }
+
+  async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
+    let query = ` SELECT stakingAssetDenom, SUM(earnAmountInUsdt) as earnAmountInUsdt
+    FROM earning_history
+    WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
+  `;
+    const queryParams = [stakerAddress, startTime, endTime];
+    if (stakingAssetDenom) {
+      query += ` AND stakingAssetDenom = ?`;
+      queryParams.push(stakingAssetDenom);
+    }
+
+    query += ` GROUP BY stakingAssetDenom`;
+
+    const result = await this.conn.all(query, ...queryParams);
+    return result as StakeByUserResponse[];
+  }
+
+  async insertStakingHistories(stakingHistories: StakingOperationData[]) {
+    await this.insertBulkData(stakingHistories, "staking_history");
+  }
+
+  async createEarningHistoryTable() {
+    await this.conn.exec(
+      `CREATE TABLE IF NOT EXISTS earning_history (
+          uniqueKey varchar UNIQUE,
+          txheight uinteger,
+          txhash varchar,
+          timestamp uinteger,
+          stakerAddress varchar,
+          stakingAssetDenom varchar,
+          stakingAssetPrice double,
+          earnAmount bigint,
+          earnAmountInUsdt double,
+          rewardAssetDenom varchar
+        )
+      `
+    );
+  }
+
+  async insertEarningHistories(earningHistories: EarningOperationData[]) {
+    await this.insertBulkData(earningHistories, "earning_history");
+  }
+
+  async getStakingHistoriesByStaker(stakerAddress: string): Promise<number> {
+    const result = await this.conn.all(
+      `SELECT count(*) as count from staking_history WHERE stakerAddress = ?`,
+      stakerAddress
+    );
+    return result[0].count;
+  }
+
+  async getEarningHistoriesByStaker(stakerAddress: string): Promise<number> {
+    const result = await this.conn.all(
+      `SELECT count(*) as count from earning_history WHERE stakerAddress = ?`,
+      stakerAddress
+    );
+    return result[0].count;
+  }
+
+  async getLpAmountHistory(): Promise<number> {
+    const result = await this.conn.all(`SELECT count(*) as count from lp_amount_history`);
+    return result[0].count;
   }
 }
