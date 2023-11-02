@@ -1,13 +1,18 @@
 #!/usr/bin/env node
 
+import { isEqual } from "lodash";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
   DuckDb,
   GetCandlesQuery,
+  GetPoolDetailQuery,
+  GetPricePairQuery,
+  GetStakedByUserQuery,
   ORAI,
   OraiDexSync,
   PairInfoDataResponse,
+  PairMapping,
   TickerInfo,
   VolumeRange,
   findPairAddress,
@@ -15,11 +20,15 @@ import {
   getAllVolume24h,
   getOraiPrice,
   getPairLiquidity,
+  getPriceByAsset,
   getVolumePairByUsdt,
+  injAddress,
   oraiInfo,
   oraiUsdtPairOnlyDenom,
+  pairWithStakingAsset,
   pairs,
   pairsOnlyDenom,
+  pairsWithDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
   toDisplay,
@@ -31,6 +40,7 @@ import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
+import { AssetInfo } from "@oraichain/common-contracts-sdk";
 
 const app = express();
 app.use(cors());
@@ -81,9 +91,29 @@ app.get("/tickers", async (req, res) => {
     const pairInfos = await duckDb.queryPairInfos();
     const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
     const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
+
+    // hardcode reverse order for ORAI/INJ
+    const arrangedPairs = pairs.map((pair) => {
+      const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+      if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
+        return {
+          ...pair,
+          asset_infos: [
+            oraiInfo,
+            {
+              token: {
+                contract_addr: injAddress
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAI", "INJ"]
+        } as PairMapping;
+      return pair;
+    });
+
     const data: TickerInfo[] = (
       await Promise.allSettled(
-        pairs.map(async (pair) => {
+        arrangedPairs.map(async (pair) => {
           const symbols = pair.symbols;
           const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
           const tickerId = parseSymbolsToTickerId(symbols);
@@ -106,7 +136,7 @@ app.get("/tickers", async (req, res) => {
           try {
             // reverse because in pairs, we put base info as first index
             const price = await simulateSwapPrice(pair.asset_infos, routerContract);
-            tickerInfo.last_price = price;
+            tickerInfo.last_price = price.toString();
           } catch (error) {
             tickerInfo.last_price = "0";
           }
@@ -170,63 +200,6 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
   res.status(200).send(result);
 });
 
-// app.get("/liquidity/v2/historical/chart", async (req, res) => {
-//   let { start, end, tf } = req.query;
-//   // start, end time is timestamp in ms. tf is the in sec
-//   let timeframe: number;
-//   console.log(start, end, tf);
-
-//   try {
-//     start = new Date(parseInt(start as string)).toISOString();
-//     end = new Date(parseInt(end as string)).toISOString();
-//     timeframe = parseInt(tf as string);
-//   } catch (error) {
-//     console.log("input error /liquidity/v2/historical/chart: ", error);
-//     res.status(400).send(error);
-//     return;
-//   }
-
-//   try {
-//     const result = await duckDb.queryTotalLpTimeFrame(timeframe, start as string, end as string);
-//     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-//     cosmwasmClient.setQueryClientWithHeight(result[0].height);
-//     const multicall = new MulticallQueryClient(
-//       cosmwasmClient,
-//       process.env.MULTICALL_CONTRACT_ADDRES || "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd"
-//     );
-//     const pairInfos = await duckDb.queryPairInfos();
-//     const poolInfos = await getPoolInfos(
-//       pairInfos.map(
-//         (info) =>
-//           ({
-//             asset_infos: [JSON.parse(info.firstAssetInfo), JSON.parse(info.secondAssetInfo)],
-//             commission_rate: info.commissionRate,
-//             contract_addr: info.pairAddr,
-//             liquidity_token: info.liquidityAddr,
-//             oracle_addr: info.oracleAddr
-//           } as PairInfo)
-//       ),
-//       multicall
-//     );
-//     let totalInitialLp = 0;
-//     for (let info of poolInfos) {
-//       totalInitialLp += parseInt(info.total_share);
-//     }
-//     console.log("total init lp: ", totalInitialLp);
-//     const prefixSum = calculatePrefixSum(
-//       totalInitialLp,
-//       result.map((res) => ({ ...res, denom: "", amount: res.liquidity }))
-//     );
-//     console.log("prefix sum: ", prefixSum);
-//     res.status(200).send("hello world");
-//   } catch (error) {
-//     console.log("server error /liquidity/v2/historical/chart: ",  error);
-//     res.status(500).send(JSON.stringify(error));
-//   } finally {
-//     return;
-//   }
-// });
-
 app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) => {
   try {
     if (!req.query.pair || !req.query.tf || !req.query.startTime || !req.query.endTime)
@@ -245,29 +218,101 @@ app.get("/v1/pools/", async (_req, res) => {
       getAllVolume24h(),
       getAllFees(),
       duckDb.getPools(),
-      duckDb.getApr()
+      duckDb.getAllAprs()
     ]);
-    const allLiquidities = await Promise.all(pools.map((pair) => getPairLiquidity(pair)));
+    const liquidityPromises = pools.map((pair) => getPairLiquidity(pair));
+    const poolAmountPromises = pools.map((pair) => duckDb.getLatestLpPoolAmount(pair.pairAddr));
 
-    res.status(200).send(
-      pools.map((pool, index) => {
-        const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
-        return {
-          ...pool,
-          volume24Hour: volumes[index]?.toString() ?? "0",
-          fee7Days: allFee7Days[index]?.toString() ?? "0",
-          apr: poolApr?.apr ?? 0,
-          totalLiquidity: allLiquidities[index]
-        } as PairInfoDataResponse;
-      })
-    );
+    const [allLiquidities, allPoolAmounts] = await Promise.all([
+      Promise.all(liquidityPromises),
+      Promise.all(poolAmountPromises)
+    ]);
+
+    const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
+      const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
+      if (!poolApr) return null;
+
+      const poolFee = allFee7Days.find((item) => {
+        const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
+        return (
+          JSON.stringify(baseAssetInfo) === pool.firstAssetInfo &&
+          JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
+        );
+      });
+
+      const poolVolume = volumes.find((item) => {
+        const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
+        return (
+          JSON.stringify(baseAssetInfo) === pool.firstAssetInfo &&
+          JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
+        );
+      });
+      if (!poolVolume) return null;
+
+      return {
+        ...pool,
+        volume24Hour: poolVolume.volume.toString(),
+        fee7Days: poolFee.fee.toString(),
+        apr: poolApr.apr,
+        totalLiquidity: allLiquidities[index],
+        rewardPerSec: poolApr.rewardPerSec,
+        offerPoolAmount: allPoolAmounts[index].offerPoolAmount,
+        askPoolAmount: allPoolAmounts[index].askPoolAmount,
+        totalSupply: poolApr.totalSupply
+      } as PairInfoDataResponse;
+    });
+
+    res.status(200).send(allPoolInfoResponse);
   } catch (error) {
     console.log({ error });
     res.status(500).send(error.message);
   }
 });
 
-// get price & volume ORAI in latest 24h
+app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, res) => {
+  if (!req.query.pairDenoms) return res.status(400).send("Not enough query params: pairDenoms");
+
+  try {
+    const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
+    const pair = pairWithStakingAsset.find((pair) =>
+      isEqual(
+        pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
+        [baseDenom, quoteDenom]
+      )
+    );
+    const tf = 24 * 60 * 60; // second of 24h
+    const currentDate = new Date();
+    const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const twoDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf * 2);
+    const [poolVolume, poolVolumeOnedayBefore, pool] = await Promise.all([
+      getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate),
+      getVolumePairByUsdt(pair.asset_infos, twoDayBeforeNow, oneDayBeforeNow),
+      duckDb.getPoolByAssetInfos(pair.asset_infos)
+    ]);
+
+    let percentVolumeChange = 0;
+    if (poolVolumeOnedayBefore !== 0n) {
+      percentVolumeChange = (Number(poolVolume - poolVolumeOnedayBefore) / Number(poolVolumeOnedayBefore)) * 100;
+    }
+
+    const poolApr = await duckDb.getAprPool(pool.pairAddr);
+    const poolLiquidity = await getPairLiquidity(pool);
+    const poolDetailResponse = {
+      ...pool,
+      volume24Hour: poolVolume?.toString() ?? "0",
+      volume24hChange: percentVolumeChange,
+      apr: poolApr?.apr ?? 0,
+      totalLiquidity: poolLiquidity,
+      rewardPerSec: poolApr?.rewardPerSec
+    };
+    res.status(200).send(poolDetailResponse);
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(error.message);
+  }
+});
+
+// get price & volume ORAI in specific time (default: 24h).
 app.get("/orai-info", async (req, res) => {
   try {
     // query tf is in minute unit.
@@ -276,11 +321,13 @@ app.get("/orai-info", async (req, res) => {
     const currentDate = new Date();
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
-    const volume24h = await getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate);
-
     const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
-    const oraiPriceByTime = await getOraiPrice(timestamp);
-    const currenOraiPrice = await getOraiPrice();
+
+    const [volume24h, oraiPriceByTime, currenOraiPrice] = await Promise.all([
+      getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate),
+      getOraiPrice(timestamp),
+      getOraiPrice()
+    ]);
 
     let percentPriceChange = 0;
     if (oraiPriceByTime !== 0) {
@@ -292,6 +339,115 @@ app.get("/orai-info", async (req, res) => {
       volume_24h: toDisplay(volume24h),
       price_change: percentPriceChange
     });
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
+});
+
+// get price base asset & volume of specific pair in specific time (default: 24h)
+app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
+  try {
+    if (!req.query.base_denom || !req.query.quote_denom) {
+      return res.status(400).send("Not enough query params: base_denom, quote_denom, tf");
+    }
+
+    // query tf is in minute unit
+    const SECONDS_PER_DAY = 24 * 60 * 60;
+    let tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
+    const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
+    const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
+
+    const pair = pairsWithDenom.find(
+      (pair) => pair.asset_denoms[0] === req.query.base_denom && pair.asset_denoms[1] === req.query.quote_denom
+    );
+    if (!pair)
+      return res.status(400).send(`Not found pair with assets: ${req.query.base_denom}-${req.query.quote_denom}`);
+
+    const [baseAssetPriceByTime, currentBaseAssetPrice] = await Promise.all([
+      getPriceByAsset(pair.asset_infos, "base_in_quote", timestamp),
+      getPriceByAsset(pair.asset_infos, "base_in_quote")
+    ]);
+
+    let percentPriceChange = 0;
+    if (baseAssetPriceByTime !== 0) {
+      percentPriceChange = ((currentBaseAssetPrice - baseAssetPriceByTime) / baseAssetPriceByTime) * 100;
+    }
+
+    res.status(200).send({
+      price: currentBaseAssetPrice,
+      price_change: percentPriceChange
+    });
+  } catch (error) {
+    console.log({ error });
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
+});
+
+app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>, res) => {
+  if (!req.query.stakerAddress) {
+    return res.status(400).send("Not enough query params: stakerAddress");
+  }
+
+  try {
+    const DEFAULT_TIME_FRAME = 30 * 24 * 60 * 60; // 30 days in second unit.
+    const tf = +req.query.tf || DEFAULT_TIME_FRAME;
+    const now = new Date();
+    const startTime = Math.round(getSpecificDateBeforeNow(now, tf).getTime() / 1000);
+    const endTime = Math.round(now.getTime() / 1000);
+
+    let stakingAssetDenom;
+    if (req.query.pairDenoms) {
+      const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
+      const pair = pairWithStakingAsset.find((pair) =>
+        isEqual(
+          pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
+          [baseDenom, quoteDenom]
+        )
+      );
+      stakingAssetDenom = pair && parseAssetInfoOnlyDenom(pair.stakingAssetInfo);
+    }
+
+    const [staked, earned] = await Promise.all([
+      duckDb.getMyStakedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom),
+      duckDb.getMyEarnedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom)
+    ]);
+    const stakedWithKey = staked.reduce((accumulator, item) => {
+      accumulator[item.stakingAssetDenom] = item.stakeAmountInUsdt;
+      return accumulator;
+    }, {});
+    const earnedWithKey = earned.reduce((accumulator, item) => {
+      accumulator[item.stakingAssetDenom] = item.earnAmountInUsdt;
+      return accumulator;
+    }, {});
+
+    const result = pairWithStakingAsset.reduce(
+      (result, item) => {
+        const stakingAssetDenom = parseAssetInfoOnlyDenom(item.stakingAssetInfo);
+        result[stakingAssetDenom] = {
+          stakingAmountInUsdt: stakedWithKey[stakingAssetDenom] || 0,
+          earnAmountInUsdt: earnedWithKey[stakingAssetDenom] || 0
+        };
+        return result;
+      },
+      {} as {
+        [key: string]: {
+          stakingAmountInUsdt: number;
+          earnAmountInUsdt: number;
+        };
+      }
+    );
+
+    let finalResult = Object.entries(result).map(([denom, values]) => ({
+      stakingAssetDenom: denom,
+      stakingAmountInUsdt: values.stakingAmountInUsdt,
+      earnAmountInUsdt: values.earnAmountInUsdt
+    }));
+
+    if (stakingAssetDenom)
+      return res.status(200).send([finalResult.find((stakeItem) => stakeItem.stakingAssetDenom === stakingAssetDenom)]);
+
+    res.status(200).send(finalResult);
   } catch (error) {
     console.log({ error });
     res.status(500).send(`Error: ${JSON.stringify(error)}`);

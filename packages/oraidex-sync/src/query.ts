@@ -1,25 +1,20 @@
+import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { Addr, Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import {
+  AssetInfo,
   OraiswapFactoryReadOnlyInterface,
   OraiswapRouterReadOnlyInterface,
+  OraiswapStakingQueryClient,
   OraiswapStakingTypes,
   OraiswapTokenTypes,
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
-import { Asset, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { Addr, Call, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { pairs } from "./pairs";
-import {
-  findAssetInfoPathToUsdt,
-  generateSwapOperations,
-  getCosmwasmClient,
-  parseAssetInfoOnlyDenom,
-  toDisplay
-} from "./helper";
-import { network, tenAmountInDecimalSix, usdtCw20Address } from "./constants";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
-import { PairInfoData } from "./types";
+import { network, tenAmountInDecimalSix } from "./constants";
+import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
+import { pairWithStakingAsset, pairs } from "./pairs";
+import { parseAssetInfoOnlyDenom, parseStakingDenomToAssetInfo } from "./parse";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -53,14 +48,6 @@ async function queryAllPairInfos(
     })
     .filter(Boolean);
   return liquidityResults;
-}
-
-async function simulateSwapPriceWithUsdt(info: AssetInfo, router: OraiswapRouterReadOnlyInterface): Promise<Asset> {
-  // adjust the query height to get data from the past
-  if (parseAssetInfoOnlyDenom(info) === usdtCw20Address) return { info, amount: "1" };
-  const infoPath = findAssetInfoPathToUsdt(info);
-  const amount = await simulateSwapPrice(infoPath, router);
-  return { info, amount };
 }
 
 /**
@@ -133,13 +120,49 @@ async function fetchAllRewardPerSecInfos(
   return await aggregateMulticall(queries);
 }
 
+type RewardInfoResponseWithStakingAsset = OraiswapStakingTypes.RewardInfoResponse & { stakingAssetInfo: AssetInfo };
+async function fetchAllRewardInfo(
+  stakerAddr: string,
+  wantedHeight?: number
+): Promise<RewardInfoResponseWithStakingAsset[]> {
+  const stakingAssetDenoms = pairWithStakingAsset.map((pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo));
+  const allRewardInfoOfUser = await Promise.all(
+    stakingAssetDenoms.map(async (stakingAssetDenom) => {
+      return fetchRewardInfo(stakerAddr, stakingAssetDenom, wantedHeight);
+    })
+  );
+  const allRewardInfoOfUserWithStakingAsset = allRewardInfoOfUser.map((item, index) => {
+    return {
+      ...item,
+      stakingAssetInfo: pairWithStakingAsset[index].stakingAssetInfo
+    };
+  });
+  return allRewardInfoOfUserWithStakingAsset;
+}
+
+async function fetchRewardInfo(
+  stakerAddr: string,
+  stakingAssetDenom: string,
+  wantedHeight?: number
+): Promise<OraiswapStakingTypes.RewardInfoResponse> {
+  const stakingAssetInfo = parseStakingDenomToAssetInfo(stakingAssetDenom);
+
+  const client = await getCosmwasmClient();
+  client.setQueryClientWithHeight(wantedHeight);
+
+  const stakingContract = new OraiswapStakingQueryClient(client, network.staking);
+  const data = await stakingContract.rewardInfo({ assetInfo: stakingAssetInfo, stakerAddr });
+  return data;
+}
+
 export {
+  aggregateMulticall,
+  fetchAllRewardPerSecInfos,
+  fetchAllTokenAssetPools,
+  fetchTokenInfos,
   queryAllPairInfos,
   queryPoolInfos,
-  simulateSwapPriceWithUsdt,
   simulateSwapPrice,
-  aggregateMulticall,
-  fetchTokenInfos,
-  fetchAllTokenAssetPools,
-  fetchAllRewardPerSecInfos
+  fetchRewardInfo,
+  fetchAllRewardInfo
 };
