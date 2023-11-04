@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-common",
-  "version": "1.0.31",
+  "version": "1.0.34",
   "main": "build/index.js",
   "files": [
     "build/"
