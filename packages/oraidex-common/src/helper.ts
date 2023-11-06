@@ -13,6 +13,7 @@ import { AVERAGE_COSMOS_GAS_PRICE, WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic,
 import { CoinGeckoId, NetworkChainId } from "./network";
 import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
 import { StargateMsg, Tx } from "./tx";
+import { BigDecimal } from "./bigdecimal";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -154,8 +155,11 @@ export const calculateMinReceive = (
   userSlippage: number,
   decimals: number
 ): Uint128 => {
-  const amount = BigInt(simulateAverage) * BigInt(fromAmount);
-  return ((BigInt(Math.trunc(toDisplay(amount, decimals))) * (100n - BigInt(userSlippage))) / 100n).toString();
+  return new BigDecimal(simulateAverage)
+    .mul(fromAmount)
+    .mul((100 - userSlippage) / 100)
+    .div(10n ** BigInt(decimals))
+    .toString();
 };
 
 export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string): { fund?: Coin; info: AssetInfo } => {

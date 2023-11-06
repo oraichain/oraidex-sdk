@@ -131,7 +131,9 @@ describe("should helper functions in helper run exactly", () => {
   it.each([
     ["1000000", "1000000", 1, 6, "990000"],
     ["1800000", "100000", 1, 6, "178200"],
-    ["1000000000000000000", "1000000000000000000", 1, 18, "990000000000000000"]
+    ["1000000000000000000", "1000000000000000000", 1, 18, "990000000000000000"],
+    ["1800000", "100000", 1.25, 6, "177750"],
+    ["1000000000000000000", "1000000000000000000", 1.5, 18, "985000000000000000"]
   ])(
     "calculateMinReceive should return correctly minimum receive",
     (simulateAverage: string, fromAmount: string, userSlippage: number, decimals: number, expectedResult) => {
