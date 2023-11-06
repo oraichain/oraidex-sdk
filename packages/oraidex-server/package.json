@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-server",
-  "version": "1.0.15",
+  "version": "1.0.16",
   "main": "dist/index.js",
   "bin": "dist/index.js",
   "license": "MIT",

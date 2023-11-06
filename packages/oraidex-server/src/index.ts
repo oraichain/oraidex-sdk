@@ -454,14 +454,18 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
   }
 });
 
-app.listen(port, hostname, async () => {
-  // sync data for the service to read
-  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
-  const oraidexSync = await OraiDexSync.create(
-    duckDb,
-    process.env.RPC_URL || "https://rpc.orai.io",
-    process.env as any
-  );
-  oraidexSync.sync();
-  console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
-});
+app
+  .listen(port, hostname, async () => {
+    // sync data for the service to read
+    duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
+    const oraidexSync = await OraiDexSync.create(
+      duckDb,
+      process.env.RPC_URL || "https://rpc.orai.io",
+      process.env as any
+    );
+    oraidexSync.sync();
+    console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
+  })
+  .on("error", () => {
+    process.exit(1);
+  });
