@@ -2,36 +2,58 @@ type DecimalLike = string | number | bigint | BigDecimal;
 
 export class BigDecimal {
   private bigInt: bigint;
+  private _decimals: number;
 
-  constructor(value: DecimalLike, protected decimals: number = 6) {
-    if (typeof value === "string") {
-      const [ints, decis] = value.split(".");
-      const padding = decis ? decis.padEnd(decimals, "0").substring(0, decimals) : "0".repeat(decimals);
-      this.bigInt = BigInt(ints + padding);
-    } else if (typeof value === "number") {
-      return new BigDecimal(value.toString(), decimals);
-    } else if (typeof value === "bigint") {
-      this.bigInt = value * 10n ** BigInt(decimals);
-    } else {
+  constructor(value: DecimalLike, decimals?: number) {
+    if (value instanceof BigDecimal) {
       this.bigInt = value.bigInt;
-      this.decimals = value.decimals;
+      this._decimals = value._decimals;
+      return;
     }
+
+    // default is 6
+    this._decimals = decimals ?? 6;
+
+    if (typeof value === "bigint") {
+      this.bigInt = value * 10n ** BigInt(this._decimals);
+      return;
+    }
+
+    if (typeof value !== "string" && typeof value !== "number") {
+      throw new Error("value is not `DecimalLike`");
+    }
+
+    const [ints, decis] = value.toString().split(".");
+
+    // when decis > 6 and not set, we use it to remain the precision
+    if (decis?.length > this._decimals && !decimals) {
+      this.bigInt = BigInt(ints + decis);
+      this._decimals = decis.length;
+      return;
+    }
+
+    const padding = decis ? decis.padEnd(this._decimals, "0").substring(0, this._decimals) : "0".repeat(this._decimals);
+    this.bigInt = BigInt(ints + padding);
   }
 
-  private processDecimal = (value: DecimalLike): BigDecimal => {
+  public get decimals() {
+    return this._decimals;
+  }
+
+  private processDecimal(value: DecimalLike): BigDecimal {
     if (value instanceof BigDecimal) {
-      if (value.decimals > this.decimals) {
-        this.bigInt *= 10n ** BigInt(value.decimals - this.decimals);
-        this.decimals = value.decimals;
-      } else if (this.decimals > value.decimals) {
-        value.bigInt *= 10n ** BigInt(this.decimals - value.decimals);
-        value.decimals = this.decimals;
+      if (value._decimals > this._decimals) {
+        this.bigInt *= 10n ** BigInt(value._decimals - this._decimals);
+        this._decimals = value._decimals;
+      } else if (this._decimals > value._decimals) {
+        value.bigInt *= 10n ** BigInt(this._decimals - value._decimals);
+        value._decimals = this._decimals;
       }
       // same decimal
       return value;
     }
-    return new BigDecimal(value, this.decimals);
-  };
+    return new BigDecimal(value, this._decimals);
+  }
 
   toString() {
     let str = this.bigInt.toString();
@@ -42,7 +64,7 @@ export class BigDecimal {
       str = str.substring(1);
     }
 
-    const padStartLen = this.decimals - str.length;
+    const padStartLen = this._decimals - str.length;
 
     if (padStartLen >= 0) {
       // need padding some
@@ -51,10 +73,10 @@ export class BigDecimal {
       ret += "0";
     } else {
       // get the nominator part
-      ret += str.slice(0, -this.decimals);
+      ret += str.slice(0, -this._decimals);
     }
 
-    let denominator = str.slice(-this.decimals).replace(/0+$/, "");
+    let denominator = str.slice(-this._decimals).replace(/0+$/, "");
     if (denominator) {
       ret += "." + denominator;
     }
@@ -84,14 +106,13 @@ export class BigDecimal {
 
   private idiv(other: DecimalLike) {
     const otherDecimal = this.processDecimal(other);
-    this.bigInt = (this.bigInt * 10n ** BigInt(this.decimals)) / otherDecimal.bigInt;
+    this.bigInt = (this.bigInt * 10n ** BigInt(this._decimals)) / otherDecimal.bigInt;
     return this;
   }
 
   private imul(other: DecimalLike) {
     const otherDecimal = this.processDecimal(other);
-    this.bigInt *= otherDecimal.bigInt;
-    this.bigInt /= 10n ** BigInt(this.decimals);
+    this.bigInt = (this.bigInt * otherDecimal.bigInt) / 10n ** BigInt(this._decimals);
     return this;
   }
 

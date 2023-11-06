@@ -18,7 +18,8 @@ import {
   ORAI_BRIDGE_EVM_DENOM_PREFIX,
   AIRI_BSC_CONTRACT,
   IBC_TRANSFER_TIMEOUT,
-  toTokenInfo
+  toTokenInfo,
+  IBC_WASM_CONTRACT_TEST
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import * as dexCommonNetwork from "@oraichain/oraidex-common/build/network"; // import like this to enable jest.spyOn & avoid redefine property error
@@ -383,15 +384,15 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  it.each<[string, string, string, boolean, boolean]>([
-    ["oraichain-token", "Oraichain", "0", true, true],
-    ["oraichain-token", "Oraichain", "1000000", false, false],
-    ["oraichain-token", "0x38", "100000", true, true],
-    ["airight", "0x38", "100000", true, true],
-    ["tether", "0x38", "10000000", false, false]
+  it.each<[string, string, string, boolean]>([
+    ["oraichain-token", "Oraichain", "0", true],
+    ["oraichain-token", "Oraichain", "1000000", false],
+    ["oraichain-token", "0x38", "100000", true],
+    ["airight", "0x38", "100000", true],
+    ["tether", "0x38", "10000000", false]
   ])(
     "test checkRelayerFee given token %s, chain id %s with from amount %d, is it sufficient for relayer fee?: %s",
-    async (fromDenom, fromChainId, relayerFeeAmount, isFullEvm, isSufficient) => {
+    async (fromDenom, fromChainId, relayerFeeAmount, isSufficient) => {
       const originalFromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
@@ -404,8 +405,7 @@ describe("test universal swap handler functions", () => {
           relayerAmount: relayerFeeAmount,
           relayerDecimals: 6
         },
-        routerClient: routerContract,
-        isFullEvm
+        routerClient: routerContract
       });
       expect(result).toEqual(isSufficient);
     }
@@ -924,6 +924,20 @@ describe("test universal swap handler functions", () => {
       routerClient: new OraiswapRouterQueryClient(client, "")
     });
     expect(simulateData.amount).toEqual(expectedSimulateAmount);
+  });
+
+  it.each<[boolean, string]>([
+    [true, IBC_WASM_CONTRACT_TEST],
+    [false, IBC_WASM_CONTRACT]
+  ])("test-getIbcInfo", (testMode, ibcWasmContract) => {
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData
+      },
+      { ibcInfoTestMode: testMode }
+    );
+    const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
+    expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
   });
 
   // it("test-swap()", async () => {

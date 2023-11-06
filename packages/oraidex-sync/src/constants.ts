@@ -18,11 +18,12 @@ export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
 export const oraiInfo: AssetInfo = { native_token: { denom: ORAI } };
 export const usdtInfo: AssetInfo = { token: { contract_addr: usdtCw20Address } };
-export const ORAIXOCH_INFO: AssetInfo = {
+export const ORAIXOCH_INFO = {
   token: {
     contract_addr: "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt"
   }
 };
+export const OCH_PRICE = 0.4; // usdt
 
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 export const network = {

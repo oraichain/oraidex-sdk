@@ -25,7 +25,6 @@ import {
   Bridge__factory,
   IUniswapV2Router02__factory,
   ethToTronAddress,
-  oraichainTokens,
   network,
   EvmResponse,
   IBC_WASM_HOOKS_CONTRACT,
@@ -34,7 +33,8 @@ import {
   getCosmosGasPrice,
   marshalEncodeObjsToStargateMsgs,
   CoinGeckoId,
-  IBC_WASM_CONTRACT
+  IBC_WASM_CONTRACT,
+  IBC_WASM_CONTRACT_TEST
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -61,6 +61,16 @@ export class UniversalSwapHandler {
     const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
     if (!fromTokenOnOrai) throw generateError(`Could not find token ${coinGeckoId} on Oraichain. Could not swap`);
     return fromTokenOnOrai;
+  }
+
+  private getCwIcs20ContractAddr() {
+    return this.config.ibcInfoTestMode ? IBC_WASM_CONTRACT_TEST : IBC_WASM_CONTRACT;
+  }
+
+  public getIbcInfo(fromChainId: CosmosChainId, toChainId: NetworkChainId) {
+    const ibcInfo = getIbcInfo(fromChainId, toChainId);
+    if (!this.config.ibcInfoTestMode || !ibcInfo.testInfo) return ibcInfo;
+    return ibcInfo.testInfo;
   }
 
   async getUniversalSwapToAddress(
@@ -91,7 +101,7 @@ export class UniversalSwapHandler {
       const msgSwap = this.generateMsgsSwap();
       return getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
     }
-    const ibcInfo: IBCInfo = getIbcInfo("Oraichain", this.swapData.originalToToken.chainId);
+    const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", this.swapData.originalToToken.chainId);
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(
       this.swapData.originalToToken.chainId as CosmosChainId
     );
@@ -165,7 +175,7 @@ export class UniversalSwapHandler {
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
     if (!toAddress) throw generateError("Please login keplr!");
 
-    const ibcInfo = getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    const ibcInfo = this.getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
     const ibcMemo = this.getIbcMemo(metamaskAddress, tronAddress, ibcInfo.channel, {
       chainId: newToToken.chainId,
       prefix: newToToken.prefix
@@ -378,8 +388,8 @@ export class UniversalSwapHandler {
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
-    const ibcInfo = getIbcInfo("Oraichain", originalToToken.chainId);
-    const ics20Client = new CwIcs20LatestQueryClient(client, IBC_WASM_CONTRACT);
+    const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
+    const ics20Client = new CwIcs20LatestQueryClient(client, this.getCwIcs20ContractAddr());
     await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
 
     // handle sign and broadcast transactions
@@ -414,7 +424,7 @@ export class UniversalSwapHandler {
       fromAmount,
       simulateAmount,
       client,
-      IBC_WASM_CONTRACT
+      this.getCwIcs20ContractAddr()
     );
 
     const routerClient = new OraiswapRouterQueryClient(client, network.router);
@@ -422,8 +432,7 @@ export class UniversalSwapHandler {
       originalFromToken,
       fromAmount,
       relayerFee,
-      routerClient,
-      isFullEvm: !originalToToken.cosmosBased && !originalFromToken.cosmosBased
+      routerClient
     });
     if (!isSufficient)
       throw generateError(
@@ -487,7 +496,7 @@ export class UniversalSwapHandler {
     );
     const amount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
     // we will be sending to our proxy contract
-    const ibcInfo = getIbcInfo(originalFromToken.chainId as CosmosChainId, "Oraichain");
+    const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, "Oraichain");
     if (!ibcInfo)
       throw generateError(
         `Could not find the ibc info given the from token with coingecko id ${originalFromToken.coinGeckoId}`

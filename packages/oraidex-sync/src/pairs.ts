@@ -76,39 +76,22 @@ export const pairs: PairMapping[] = [
     asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
     symbols: ["scATOM", "ATOM"]
   },
+  // we will reverse order for this pair in api /tickers for Coingecko
   {
     asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
     symbols: ["INJ", "ORAI"]
   }
 ];
 
-export function extractUniqueAndFlatten(data: PairMapping[]): AssetInfo[] {
-  const uniqueItems = new Set();
-
-  data.forEach((item) => {
-    item.asset_infos.forEach((info) => {
-      const stringValue = JSON.stringify(info);
-
-      if (!uniqueItems.has(stringValue)) {
-        uniqueItems.add(stringValue);
-      }
-    });
-  });
-
-  const uniqueFlattenedArray = Array.from(uniqueItems).map((item) => JSON.parse(item as string));
-
-  return uniqueFlattenedArray;
-}
-
 export const pairsOnlyDenom = pairs.map((pair) => ({
   ...pair,
-  asset_infos: pair.asset_infos.map((info) => {
-    if ("native_token" in info) return info.native_token.denom;
-    return info.token.contract_addr;
-  })
+  asset_infos: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom1(info))
 }));
 
-export const uniqueInfos = extractUniqueAndFlatten(pairs);
+export const pairsWithDenom = pairs.map((pair) => ({
+  ...pair,
+  asset_denoms: pair.asset_infos.map((info) => parseAssetInfoOnlyDenom1(info))
+}));
 
 export const oraiUsdtPairOnlyDenom = pairsOnlyDenom.find(
   (pair) => JSON.stringify(pair.asset_infos) === JSON.stringify([ORAI, usdtCw20Address])

@@ -55,7 +55,8 @@ export type NetworkName =
   | "Kawaiiverse"
   | "Kawaiiverse EVM"
   | "Tron Network"
-  | "Injective";
+  | "Injective"
+  | "Noble";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -63,7 +64,8 @@ export type CosmosChainId =
   | "osmosis-1" // osmosis
   | "cosmoshub-4" // cosmos hub
   | "injective-1" // injective network
-  | "kawaii_6886-1"; // kawaii subnetwork
+  | "kawaii_6886-1" // kawaii subnetwork
+  | "noble-1";
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -229,6 +231,19 @@ export const AtomToken: BridgeAppCurrency = {
     low: 0,
     average: 0.025,
     high: 0.04
+  }
+};
+
+export const NativeUsdcNobleToken: BridgeAppCurrency = {
+  coinDenom: "USDC",
+  coinMinimalDenom: "uusdc",
+  coinDecimals: 6,
+  coinGeckoId: "usd-coin",
+  coinImageUrl: "https://raw.githubusercontent.com/cosmos/chain-registry/master/noble/images/USDCoin.png",
+  gasPriceStep: {
+    low: 0,
+    average: 0.025,
+    high: 0.03
   }
 };
 
@@ -615,7 +630,10 @@ export const chainInfos: CustomChainInfo[] = [
     stakeCurrency: InjectiveToken,
     feeCurrencies: [InjectiveToken],
     currencies: [
-      InjectiveToken,
+      {
+        ...InjectiveToken,
+        bridgeTo: ["Oraichain"]
+      },
       {
         coinDenom: "ORAI",
         coinMinimalDenom: ORAIIBC_INJECTIVE_DENOM,
@@ -654,6 +672,36 @@ export const chainInfos: CustomChainInfo[] = [
     txExplorer: {
       name: "Mintscan",
       txUrl: "https://www.mintscan.io/cosmos/txs/{txHash}"
+    }
+  },
+  {
+    rpc: "https://noble-rpc.polkachu.com",
+    rest: "https://noble-api.polkachu.com",
+    chainId: "noble-1",
+    chainName: "Noble",
+    networkType: "cosmos",
+    bip44: {
+      coinType: 118
+    },
+    bech32Config: defaultBech32Config("noble"),
+    features: ["stargate", "ibc-transfer", "no-legacy-stdTx", "ibc-go"],
+    currencies: [
+      {
+        ...NativeUsdcNobleToken,
+        bridgeTo: ["Oraichain"]
+      }
+    ],
+    feeCurrencies: [NativeUsdcNobleToken],
+    stakeCurrency: {
+      coinDecimals: 6,
+      coinDenom: "STAKE",
+      coinMinimalDenom: "ustake",
+      coinImageUrl: "https://raw.githubusercontent.com/cosmos/chain-registry/master/noble/images/stake.png"
+    },
+    chainSymbolImageUrl: "https://raw.githubusercontent.com/cosmos/chain-registry/master/noble/images/stake.png",
+    txExplorer: {
+      name: "Mintscan",
+      txUrl: "https://www.mintscan.io/noble/txs/{txHash}"
     }
   },
 

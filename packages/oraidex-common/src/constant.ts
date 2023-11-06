@@ -68,10 +68,12 @@ export const ATOM_ORAICHAIN_CHANNELS = "channel-301 channel-15";
 // export const ATOM_ORAICHAIN_CHANNELS="channel-642 channel-124"
 export const OSMOSIS_ORAICHAIN_CHANNELS = "channel-216 channel-13";
 export const ORAIB_ORAICHAIN_CHANNELS = "channel-1 channel-29";
-// export const ORAIB_ORAICHAIN_CHANNELS="channel-5 channel-64"
+export const ORAIB_ORAICHAIN_CHANNELS_TEST = "channel-5 channel-64";
 export const ORAIB_ORAICHAIN_CHANNELS_OLD = "channel-0 channel-20";
 export const KWT_ORAICHAIN_CHANNELS = "channel-0 channel-21";
 export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
+export const NOBLE_ORAICHAIN_CHANNELS = "channel-34 channel-147";
+export const NOBLE_ORAICHAIN_CHANNELS_TEST = "channel-35 channel-148";
 
 // config for ibc denom
 export const ATOM_ORAICHAIN_DENOM = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
@@ -116,7 +118,7 @@ export const GRAVITY_TRON_CONTRACT = "0x73Ddc880916021EFC4754Cb42B53db6EAB1f9D64
 
 // IBC Wasm contract
 export const IBC_WASM_CONTRACT = "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm";
-// export const IBC_WASM_CONTRACT=orai1jtt8c2lz8emh8s708y0aeduh32xef2rxyg8y78lyvxn806cu7q0sjtxsnv
+export const IBC_WASM_CONTRACT_TEST = "orai1jtt8c2lz8emh8s708y0aeduh32xef2rxyg8y78lyvxn806cu7q0sjtxsnv";
 
 // Utiliti contract
 export const MULTICALL_CONTRACT = "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd";
