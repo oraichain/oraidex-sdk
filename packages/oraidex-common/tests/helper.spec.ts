@@ -133,11 +133,14 @@ describe("should helper functions in helper run exactly", () => {
     ["1800000", "100000", 1, 6, "178200"],
     ["1000000000000000000", "1000000000000000000", 1, 18, "990000000000000000"],
     ["1800000", "100000", 1.25, 6, "177750"],
-    ["1000000000000000000", "1000000000000000000", 1.5, 18, "985000000000000000"]
+    ["1000000000000000000", "1000000000000000000", 1.5, 18, "985000000000000000"],
+    ["180000.5", "10000.5", 1.25, 6, "1777.593812"],
+    ["100000000000000000.5", "100000000000000000.5", 1.5, 18, "9850000000000000.0985"]
   ])(
     "calculateMinReceive should return correctly minimum receive",
     (simulateAverage: string, fromAmount: string, userSlippage: number, decimals: number, expectedResult) => {
       const result = calculateMinReceive(simulateAverage, fromAmount, userSlippage, decimals);
+      console.log({ resultcalculateMinReceive: result });
       expect(result).toEqual(expectedResult);
     }
   );
