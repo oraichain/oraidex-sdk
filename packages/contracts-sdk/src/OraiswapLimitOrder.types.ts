@@ -4,6 +4,7 @@ export interface InstantiateMsg {
   commission_rate?: string | null;
   name?: string | null;
   reward_address?: Addr | null;
+  spread_address?: Addr | null;
   version?: string | null;
 }
 export type ExecuteMsg = {
@@ -16,6 +17,7 @@ export type ExecuteMsg = {
   update_config: {
     commission_rate?: string | null;
     reward_address?: Addr | null;
+    spread_address?: Addr | null;
   };
 } | {
   create_order_book_pair: {
@@ -97,10 +99,7 @@ export type OrderFilter = ("tick" | "none") | {
   bidder: string;
 } | {
   price: Decimal;
-} | {
-  status: OrderStatus;
 };
-export type OrderStatus = "open" | "partial_filled" | "fulfilled" | "cancel";
 export interface MigrateMsg {}
 export interface ContractInfoResponse {
   admin: Addr;
@@ -110,6 +109,7 @@ export interface ContractInfoResponse {
 export interface LastOrderIdResponse {
   last_order_id: number;
 }
+export type OrderStatus = "open" | "partial_filled" | "fulfilled" | "cancel";
 export interface OrderResponse {
   ask_asset: Asset;
   bidder_addr: string;
