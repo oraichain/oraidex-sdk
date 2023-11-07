@@ -186,6 +186,7 @@ class OraiDexSync {
       }).pipe(new WriteOrders(this.duckDb));
     } catch (error) {
       console.log("error in start: ", error);
+      process.exit(1);
     }
   }
 }
