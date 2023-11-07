@@ -3,7 +3,7 @@ import { DuckDB } from "./db";
 import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
-import { oraiBridgeAutoForwardEventType } from "./constants";
+import { invokableMachineStateKeys, oraiBridgeAutoForwardEventType } from "./constants";
 import { convertTxHashToHex } from "./helpers";
 
 // TODO: add more cases for each state to make the machine more resistent
@@ -27,7 +27,7 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
       evm: {
         on: {
           // listen to event sent elsewhere. Once received 'STORE' type event, then it will move to 'storeDb' state
-          STORE_SEND_TO_COSMOS: "sendToCosmosEvm"
+          [invokableMachineStateKeys.STORE_SEND_TO_COSMOS]: "sendToCosmosEvm"
         }
       },
       sendToCosmosEvm: {
@@ -70,7 +70,7 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
       SendToCosmosEvmFailure: {},
       oraibridge: {
         on: {
-          STORE_AUTO_FORWARD: "checkAutoForward"
+          [invokableMachineStateKeys.STORE_AUTO_FORWARD]: "checkAutoForward"
         }
       },
       checkAutoForward: {
@@ -168,7 +168,7 @@ export const createEvmToEvmIntepreter = (db: DuckDB) => {
       storeAutoForwardFailure: {},
       oraichain: {
         on: {
-          STORE_ON_RECV_PACKET: "checkOnRecvPacketOraichain"
+          [invokableMachineStateKeys.STORE_ON_RECV_PACKET]: "checkOnRecvPacketOraichain"
         }
       },
       checkOnRecvPacketOraichain: {

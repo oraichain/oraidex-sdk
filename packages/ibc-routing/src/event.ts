@@ -1,12 +1,12 @@
 import { ethers } from "ethers";
-import { Gravity__factory, Gravity, generateError, parseRpcEvents } from "@oraichain/oraidex-common";
+import { Gravity__factory, Gravity, generateError } from "@oraichain/oraidex-common";
 import { DuckDB } from "./db";
 import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
 import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
-import { AnyInterpreter, interpret } from "xstate";
+import { AnyInterpreter } from "xstate";
 import { createEvmToEvmIntepreter } from "./machine";
-import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { NetworkEventType, evmGravityEvents, sendToCosmosEvent } from "./constants";
+import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { NetworkEventType, evmGravityEvents, invokableMachineStateKeys, sendToCosmosEvent } from "./constants";
 
 export const keccak256HashString = (data: string): string => {
   return ethers.utils.keccak256(Buffer.from(data));
@@ -15,6 +15,14 @@ export const keccak256HashString = (data: string): string => {
 export class EventHandler {
   public intepreters: AnyInterpreter[] = [];
   constructor(public readonly db: DuckDB) {}
+
+  public transitionIntepreters(type: string, payload: any) {
+    for (let i = 0; i < this.intepreters.length; i++) {
+      const currentState = this.intepreters[i].send({ type, payload });
+      // this means that the entire state machine has reached the final state => done, we can remove the intepreter from the list (it is also stopped automatically as well)
+      if (currentState.done) this.intepreters.splice(i, 1);
+    }
+  }
 
   handleEvent(networkEventType: NetworkEventType, eventData: any[]) {
     switch (networkEventType) {
@@ -34,7 +42,7 @@ export class EventHandler {
           this.intepreters.push(intepreter);
           intepreter.start();
           // we wont need to loop through the intepreter list because we know this event starts a new machine already
-          intepreter.send({ type: "STORE_SEND_TO_COSMOS", payload: eventData });
+          intepreter.send({ type: invokableMachineStateKeys.STORE_SEND_TO_COSMOS, payload: eventData });
         } else {
           console.log("unrelated event data: ", eventData);
         }
@@ -43,19 +51,11 @@ export class EventHandler {
         if (eventData.length === 0)
           throw generateError(`malformed OraiBridge event data: ${JSON.stringify(eventData)}`);
         // for intermediate states like OraiBridge, we will send the event to all intepreters. If the event matches then they will move on to the next state based on their logic
-        for (let i = 0; i < this.intepreters.length; i++) {
-          const currentState = this.intepreters[i].send({ type: "STORE_AUTO_FORWARD", payload: eventData[0] });
-          // this means that the entire state machine has reached the final state => done, we can remove the intepreter from the list (it is also stopped automatically as well)
-          if (currentState.done) this.intepreters.splice(i, 1);
-        }
+        this.transitionIntepreters(invokableMachineStateKeys.STORE_AUTO_FORWARD, eventData[0]);
         break;
       case NetworkEventType.ORAICHAIN:
         // TODO: we also have the transfer_back_to_remote_chain case where we need to create a new intepreter
-        for (let i = 0; i < this.intepreters.length; i++) {
-          const currentState = this.intepreters[i].send({ type: "STORE_ON_RECV_PACKET", payload: eventData[0] });
-          // this means that the entire state machine has reached the final state => done, we can remove the intepreter from the list (it is also stopped automatically as well)
-          if (currentState.done) this.intepreters.splice(i, 1);
-        }
+        this.transitionIntepreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET, eventData[0]);
         break;
       default:
         break;
@@ -82,7 +82,7 @@ export abstract class CosmosEvent {
   constructor(public readonly db: DuckDB, protected readonly handler: EventHandler, public readonly baseUrl: string) {}
 
   // this function handles the websocket event after receiving. Each cosmos network has a different set of events needed to handle => this should be abstract
-  abstract callback(eventData: unknown): void;
+  abstract callback(eventData: TxEvent): void;
 
   connectCosmosSocket = async (tags: QueryTag[]) => {
     const client = await Tendermint37Client.create(new WebsocketClient(this.baseUrl));

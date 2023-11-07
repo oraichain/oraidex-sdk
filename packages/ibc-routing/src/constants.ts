@@ -14,3 +14,10 @@ export enum NetworkEventType {
   ORAICHAIN,
   COSMOS
 }
+
+// this keys can be invoked to trigger events for our state machines
+export const invokableMachineStateKeys = {
+  STORE_SEND_TO_COSMOS: "STORE_SEND_TO_COSMOS",
+  STORE_AUTO_FORWARD: "STORE_AUTO_FORWARD",
+  STORE_ON_RECV_PACKET: "STORE_ON_RECV_PACKET"
+};

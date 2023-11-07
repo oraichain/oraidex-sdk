@@ -1,6 +1,6 @@
 import { resolve } from "path";
 import { DuckDbWasm } from "../src/db";
-import { ContextHandler, EthEvent } from "../src/event";
+import { EventHandler, EthEvent } from "../src/event";
 import { ethers, getSigners } from "hardhat";
 import { BigNumber } from "ethers";
 
@@ -47,7 +47,7 @@ describe("test-eth-ws", () => {
     const duckDb: DuckDbWasm = await DuckDbWasm.create(resolve(__dirname, "../../../"));
     await duckDb.createTable();
 
-    const eventHandler = new ContextHandler(duckDb);
+    const eventHandler = new EventHandler(duckDb);
     const ethEvent = new EthEvent(eventHandler);
     const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
     gravity.emit("SendToCosmosEvent", ...testSendToCosmosData);
