@@ -5760,15 +5760,6 @@ duckdb@0.8.1:
     node-addon-api "*"
     node-gyp "^9.3.0"
 
-duckdb@^0.9.1:
-  version "0.9.1"
-  resolved "https://registry.yarnpkg.com/duckdb/-/duckdb-0.9.1.tgz#7e2d32c3f3ee56ce8e733b95435e6387f931c240"
-  integrity sha512-mYfQXKADGUoBVOfy6OordgEkPlY6EtEIgrwRbFgVDoen2iQRVymr4RcDGhA2QTrniwgK+GnhszCu0vqrZJ1sFQ==
-  dependencies:
-    "@mapbox/node-pre-gyp" "^1.0.0"
-    node-addon-api "^7.0.0"
-    node-gyp "^9.3.0"
-
 duplexer@^0.1.1:
   version "0.1.2"
   resolved "https://registry.yarnpkg.com/duplexer/-/duplexer-0.1.2.tgz#3abe43aef3835f8ae077d136ddce0f276b0400e6"
@@ -8803,7 +8794,7 @@ newrelic@^11.2.1:
     "@newrelic/native-metrics" "^10.0.0"
     "@prisma/prisma-fmt-wasm" "^4.17.0-16.27eb2449f178cd9fe1a4b892d732cc4795f75085"
 
-node-addon-api@*, node-addon-api@^7.0.0:
+node-addon-api@*:
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-7.0.0.tgz#8136add2f510997b3b94814f4af1cce0b0e3962e"
   integrity sha512-vgbBJTS4m5/KkE16t5Ly0WW9hz46swAstv0hYYwMtbG7AznRhNyfLRe8HZAiWIpcHzoO7HxhLuBQj9rJ/Ho0ZA==
