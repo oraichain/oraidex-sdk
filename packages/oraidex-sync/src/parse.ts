@@ -1,6 +1,5 @@
-import { AssetInfo } from "@oraichain/common-contracts-sdk";
 import { pairWithStakingAsset, pairs } from "./pairs";
-import { OraiswapPairTypes } from "@oraichain/oraidex-contracts-sdk";
+import { OraiswapPairTypes, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { isEqual } from "lodash";
 
 export function replaceAllNonAlphaBetChar(columnName: string): string {
