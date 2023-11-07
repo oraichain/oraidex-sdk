@@ -155,11 +155,13 @@ export const calculateMinReceive = (
   userSlippage: number,
   decimals: number
 ): Uint128 => {
-  return new BigDecimal(simulateAverage)
-    .mul(fromAmount)
-    .mul((100 - userSlippage) / 100)
-    .div(10n ** BigInt(decimals))
-    .toString();
+  return Math.trunc(
+    new BigDecimal(simulateAverage)
+      .mul(fromAmount)
+      .mul((100 - userSlippage) / 100)
+      .div(10n ** BigInt(decimals))
+      .toNumber()
+  ).toString();
 };
 
 export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string): { fund?: Coin; info: AssetInfo } => {
