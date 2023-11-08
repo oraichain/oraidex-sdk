@@ -562,7 +562,7 @@ export class DuckDb {
       `
         SELECT * FROM pool_apr
         WHERE pairAddr = ?
-        ORDER BY height DESC
+        ORDER BY timestamp DESC
         LIMIT 1
       `,
       pairAddr
@@ -585,18 +585,6 @@ export class DuckDb {
       `
     );
     return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
-  }
-
-  async getAprPool(pairAddr: string) {
-    const result = await this.conn.all(
-      `
-      SELECT * FROM pool_apr
-      WHERE pairAddr = ?
-      ORDER BY timestamp DESC
-      `,
-      pairAddr
-    );
-    return result[0] as PoolApr;
   }
 
   async createStakingHistoryTable() {

@@ -298,7 +298,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
       percentVolumeChange = (Number(poolVolume - poolVolumeOnedayBefore) / Number(poolVolumeOnedayBefore)) * 100;
     }
 
-    const poolApr = await duckDb.getAprPool(pool.pairAddr);
+    const poolApr = await duckDb.getLatestPoolApr(pool.pairAddr);
     const poolLiquidity = await getPairLiquidity(pool);
     const poolDetailResponse = {
       ...pool,

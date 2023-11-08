@@ -434,6 +434,7 @@ describe("test-duckdb", () => {
       // setup
       duckDb = await DuckDb.create(":memory:");
       await duckDb.createPoolAprTable();
+      await duckDb.addTimestampColToPoolAprTable();
       await duckDb.insertPoolAprs([
         {
           uniqueKey: "orai_usdt_2",
@@ -446,6 +447,16 @@ describe("test-duckdb", () => {
           timestamp: 1234
         },
         {
+          uniqueKey: "orai_usdt_1",
+          pairAddr: "orai_usdt",
+          height: 2,
+          totalSupply: "1",
+          totalBondAmount: "1",
+          rewardPerSec: "1",
+          apr: 2.5,
+          timestamp: 1236
+        },
+        {
           uniqueKey: "orai_usdt_4",
           pairAddr: "orai_usdt",
           height: 4,
@@ -453,7 +464,7 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 4,
-          timestamp: 1234
+          timestamp: 1235
         },
         {
           uniqueKey: "orai_usdt_3",
@@ -463,7 +474,7 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 3,
-          timestamp: 1234
+          timestamp: 1233
         },
         {
           uniqueKey: "orai_atom",
@@ -484,7 +495,7 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(apr).toEqual([
-        { pairAddr: "orai_usdt", apr: 4, rewardPerSec: "1", totalSupply: "1" },
+        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" },
         { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" }
       ]);
     });
@@ -495,13 +506,14 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(result).toMatchObject({
-        uniqueKey: "orai_usdt_4",
+        uniqueKey: "orai_usdt_1",
         pairAddr: "orai_usdt",
-        height: 4,
+        height: 2,
         totalSupply: "1",
         totalBondAmount: "1",
         rewardPerSec: "1",
-        apr: 4
+        apr: 2.5,
+        timestamp: 1236
       });
     });
   });
