@@ -40,7 +40,7 @@ import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
-import { AssetInfo } from "@oraichain/common-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 const app = express();
 app.use(cors());
@@ -270,16 +270,19 @@ app.get("/v1/pools/", async (_req, res) => {
 });
 
 app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, res) => {
-  if (!req.query.pairDenoms) return res.status(400).send("Not enough query params: pairDenoms");
+  const { pairDenoms } = req.query;
+  if (!pairDenoms) return res.status(400).send("Not enough query params: pairDenoms");
 
   try {
-    const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
+    const [baseDenom, quoteDenom] = pairDenoms && pairDenoms.split("_");
     const pair = pairWithStakingAsset.find((pair) =>
       isEqual(
         pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
         [baseDenom, quoteDenom]
       )
     );
+    if (!pair) throw new Error(`Cannot find pair with denoms: ${pairDenoms}`);
+
     const tf = 24 * 60 * 60; // second of 24h
     const currentDate = new Date();
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
