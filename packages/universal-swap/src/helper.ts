@@ -39,7 +39,6 @@ import {
 import { OraiBridgeRouteData, SimulateResponse, SwapRoute, UniversalSwapConfig } from "./types";
 import {
   AssetInfo,
-  CosmWasmClient,
   OraiswapRouterClient,
   OraiswapRouterReadOnlyInterface,
   OraiswapTokenQueryClient
@@ -48,8 +47,7 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { SigningCosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { GasPrice } from "@cosmjs/stargate";
+import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
