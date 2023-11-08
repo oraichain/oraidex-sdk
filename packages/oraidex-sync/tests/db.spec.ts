@@ -433,7 +433,7 @@ describe("test-duckdb", () => {
     beforeEach(async () => {
       // setup
       duckDb = await DuckDb.create(":memory:");
-      await duckDb.createAprInfoPair();
+      await duckDb.createPoolAprTable();
       await duckDb.insertPoolAprs([
         {
           uniqueKey: "orai_usdt_2",
@@ -442,7 +442,8 @@ describe("test-duckdb", () => {
           totalSupply: "1",
           totalBondAmount: "1",
           rewardPerSec: "1",
-          apr: 2
+          apr: 2,
+          timestamp: 1234
         },
         {
           uniqueKey: "orai_usdt_4",
@@ -451,7 +452,8 @@ describe("test-duckdb", () => {
           totalSupply: "1",
           totalBondAmount: "1",
           rewardPerSec: "1",
-          apr: 4
+          apr: 4,
+          timestamp: 1234
         },
         {
           uniqueKey: "orai_usdt_3",
@@ -460,7 +462,8 @@ describe("test-duckdb", () => {
           totalSupply: "1",
           totalBondAmount: "1",
           rewardPerSec: "1",
-          apr: 3
+          apr: 3,
+          timestamp: 1234
         },
         {
           uniqueKey: "orai_atom",
@@ -469,7 +472,8 @@ describe("test-duckdb", () => {
           totalSupply: "1",
           totalBondAmount: "1",
           rewardPerSec: "1",
-          apr: 2
+          apr: 2,
+          timestamp: 1234
         }
       ]);
     });

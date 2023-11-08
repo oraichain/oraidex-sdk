@@ -326,7 +326,8 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
         reward: allRewardPerSecs[index],
         apr: APRs[index],
         pairAddr: pools[index].pairAddr
-      })
+      }),
+      timestamp: Date.now()
     };
   });
   await duckDb.insertPoolAprs(newPoolAprs);
@@ -367,7 +368,8 @@ export const refetchInfoApr = async (
     return {
       ...poolApr,
       height,
-      [type]: newInfos[index]
+      [type]: newInfos[index],
+      timestamp: Date.now()
     };
   });
   await duckDb.insertPoolAprs(newPoolAprs);
@@ -415,7 +417,7 @@ export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: Provide
     .filter(Boolean);
 
   if (isTriggerRewardPerSec) {
-    // update_reward_per_sec trigger refetch all info
+    // update_reward_per_sec trigger refetch all info, so we clear listAssetInfosPoolShouldRefetch then add all assetInfo from pairs.
     listAssetInfosPoolShouldRefetch.clear();
     pairs.map((pair) => pair.asset_infos).forEach((assetInfos) => listAssetInfosPoolShouldRefetch.add(assetInfos));
   } else {
