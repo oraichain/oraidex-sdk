@@ -3079,12 +3079,7 @@
   dependencies:
     "@oraichain/common-contracts-sdk" "1.0.31"
 
-"@oraichain/common-contracts-sdk@1.0.13":
-  version "1.0.13"
-  resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-sdk/-/common-contracts-sdk-1.0.13.tgz#5a6cd9320b995e184b5d484313e4b4e8ecd4b4bb"
-  integrity sha512-XfDDaggu7WcM/vxRxIn0ipLq6+c9+5FBqK/qzWh5HRHxn4e71OvNKVAxXoLOIATscAXkrkOimv55s1CD+hZGmw==
-
-"@oraichain/common-contracts-sdk@1.0.31":
+"@oraichain/common-contracts-sdk@1.0.31", "@oraichain/common-contracts-sdk@^1.0.31":
   version "1.0.31"
   resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-sdk/-/common-contracts-sdk-1.0.31.tgz#595f93b168438d69d64896909b37855c9afc92fb"
   integrity sha512-s8H20RXy5gCnu3DnM7L5ClQyj2mdQpbSBpZrXCpIAX9qY0LKsDdZG3sYaDQ8+VN333jz9Pp/qGWdFSYD+6PBsg==

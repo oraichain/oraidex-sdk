@@ -562,7 +562,8 @@ export class UniversalSwapHandler {
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
 
-      if (!this.swapData.simulatePrice || !this.swapData.userSlippage)
+      const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
+      if (!this.swapData.simulatePrice || !isValidSlippage)
         throw generateError(
           "Could not calculate the minimum receive value because there is no simulate price or user slippage"
         );
