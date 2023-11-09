@@ -270,6 +270,7 @@ export type PoolApr = {
   totalBondAmount: string;
   rewardPerSec: string;
   apr: number;
+  timestamp: number;
 };
 
 export type GetPricePairQuery = {
