@@ -327,7 +327,7 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
         apr: APRs[index],
         pairAddr: pools[index].pairAddr
       }),
-      timestamp: Date.now()
+      timestamp: Date.now() // use timestamp date.now() because we just need to have a order of apr.
     };
   });
   await duckDb.insertPoolAprs(newPoolAprs);
@@ -450,6 +450,8 @@ export const handleEventApr = async (
     refetchInfoApr("totalBondAmount", assetInfosTriggerTotalBond, newOffset)
   ]);
 
+  // after refetchInfoApr above, we updated infos can impact to APR: totalSupply, rewardPerSec, totalBondAmount
+  // so we re-calculate APR and accumulate to pool_apr table.
   await triggerCalculateApr(Array.from(listAssetInfosPoolShouldRefetch), newOffset);
 };
 
