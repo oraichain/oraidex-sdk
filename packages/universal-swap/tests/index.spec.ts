@@ -19,18 +19,19 @@ import {
   AIRI_BSC_CONTRACT,
   IBC_TRANSFER_TIMEOUT,
   toTokenInfo,
-  IBC_WASM_CONTRACT_TEST
+  IBC_WASM_CONTRACT_TEST,
+  USDC_CONTRACT
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import * as dexCommonNetwork from "@oraichain/oraidex-common/build/network"; // import like this to enable jest.spyOn & avoid redefine property error
 import * as universalHelper from "../src/helper";
 import { UniversalSwapHandler } from "../src/index";
-import { AccountData, DirectSecp256k1HdWallet, OfflineSigner } from "@cosmjs/proto-signing";
+import { AccountData, DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 import TronWeb from "tronweb";
 import Long from "long";
 import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
-import { toUtf8 } from "@cosmjs/encoding";
+import { fromUtf8, toUtf8 } from "@cosmjs/encoding";
 import { SigningCosmWasmClient, SigningCosmWasmClientOptions, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
 import {
@@ -222,7 +223,15 @@ describe("test universal swap handler functions", () => {
   });
   class StubCosmosWallet extends CosmosWallet {
     getKeplrAddr(chainId?: NetworkChainId | undefined): Promise<string> {
-      return new Promise((resolve) => resolve("orai1234"));
+      let addr: string = "orai1234";
+      switch (chainId) {
+        case "noble-1":
+          addr = "noble1234";
+          break;
+        default:
+          break;
+      }
+      return new Promise((resolve) => resolve(addr));
     }
     createCosmosSigner(chainId: string): Promise<OfflineSigner> {
       return DirectSecp256k1HdWallet.generate();
@@ -286,7 +295,7 @@ describe("test universal swap handler functions", () => {
     }
   }
 
-  it.each([
+  it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, EncodeObject[]]>([
     [
       "from-and-to-is-have-same-coingecko-id",
       "osmosis",
@@ -309,6 +318,35 @@ describe("test universal swap handler functions", () => {
       ]
     ],
     [
+      "to-uses-ibc-wasm-instead-of-transfer-module",
+      "usd-coin",
+      "usd-coin",
+      "noble-1",
+      [
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: testSenderAddress,
+            contract: USDC_CONTRACT,
+            msg: JSON.stringify({
+              send: {
+                contract: IBC_WASM_CONTRACT,
+                amount: simulateAmount,
+                msg: toBinary({
+                  local_channel_id: getIbcInfo("Oraichain", "noble-1").channel,
+                  remote_address: "noble1234",
+                  remote_denom: "uusdc",
+                  timeout: IBC_TRANSFER_TIMEOUT,
+                  memo: ""
+                })
+              }
+            }),
+            funds: []
+          }
+        }
+      ]
+    ],
+    [
       "from-and-to-is-have-dont-have-same-coingecko-id",
       "tether",
       "osmosis",
@@ -319,39 +357,37 @@ describe("test universal swap handler functions", () => {
           value: {
             sender: testSenderAddress,
             contract: USDT_CONTRACT,
-            msg: toUtf8(
-              JSON.stringify({
-                send: {
-                  contract: ROUTER_V2_CONTRACT,
-                  amount: fromAmount,
-                  msg: toBinary({
-                    execute_swap_operations: {
-                      operations: [
-                        {
-                          orai_swap: {
-                            offer_asset_info: {
-                              token: { contract_addr: USDT_CONTRACT }
-                            },
-                            ask_asset_info: { native_token: { denom: "orai" } }
-                          }
-                        },
-                        {
-                          orai_swap: {
-                            offer_asset_info: { native_token: { denom: "orai" } },
-                            ask_asset_info: {
-                              native_token: {
-                                denom: OSMOSIS_ORAICHAIN_DENOM
-                              }
+            msg: JSON.stringify({
+              send: {
+                contract: ROUTER_V2_CONTRACT,
+                amount: fromAmount,
+                msg: toBinary({
+                  execute_swap_operations: {
+                    operations: [
+                      {
+                        orai_swap: {
+                          offer_asset_info: {
+                            token: { contract_addr: USDT_CONTRACT }
+                          },
+                          ask_asset_info: { native_token: { denom: "orai" } }
+                        }
+                      },
+                      {
+                        orai_swap: {
+                          offer_asset_info: { native_token: { denom: "orai" } },
+                          ask_asset_info: {
+                            native_token: {
+                              denom: OSMOSIS_ORAICHAIN_DENOM
                             }
                           }
                         }
-                      ],
-                      minimum_receive: minimumReceive
-                    }
-                  })
-                }
-              })
-            ),
+                      }
+                    ],
+                    minimum_receive: minimumReceive
+                  }
+                })
+              }
+            }),
             funds: []
           }
         },
@@ -380,7 +416,14 @@ describe("test universal swap handler functions", () => {
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
       });
       const msg = await universalSwap.combineSwapMsgOraichain("0");
-      expect(msg).toEqual(expectedTransferMsg);
+      expect(
+        msg.map((m) => {
+          if (m.value.msg) {
+            return { typeUrl: m.typeUrl, value: { ...m.value, msg: fromUtf8(m.value.msg) } };
+          }
+          return m;
+        })
+      ).toEqual(expectedTransferMsg);
     }
   );
 
@@ -749,7 +792,7 @@ describe("test universal swap handler functions", () => {
       { funds: [] }
     ]
   ])(
-    "test-generateMsgsTransferOraiToEvm-with-%s",
+    "test-generateMsgsIbcWasm-with-%s",
     (_name: string, toCoingeckoId, expectedTransferMsg, expectedContractAddr, expectedFunds) => {
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
@@ -758,7 +801,7 @@ describe("test universal swap handler functions", () => {
       const ibcInfo = getIbcInfo("Oraichain", "oraibridge-subnet-2");
       const toAddress = "foobar";
       const ibcMemo = "";
-      const msg = universalSwap.generateMsgsTransferOraiToEvm(ibcInfo, toAddress, "john doe", ibcMemo)!;
+      const msg = universalSwap.generateMsgsIbcWasm(ibcInfo, toAddress, "john doe", ibcMemo)!;
       expect(msg[0].contractAddress.toString()).toEqual(expectedContractAddr);
       expect(msg[0].msg).toEqual(expectedTransferMsg);
       expect(msg[0].funds).toEqual(expectedFunds.funds);

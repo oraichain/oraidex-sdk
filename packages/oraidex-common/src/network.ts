@@ -322,7 +322,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "usdc",
       type: "cw20",
       contractAddress: USDC_CONTRACT,
-      bridgeTo: ["0x01"],
+      bridgeTo: ["0x01", "noble-1"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png"
     },
