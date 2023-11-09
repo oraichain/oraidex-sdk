@@ -17,7 +17,7 @@
     "packages/*"
   ],
   "engines": {
-    "node": ">=16 <=18"
+    "node": ">=16"
   },
   "dependencies": {
     "@cosmjs/amino": "^0.31.0",
