@@ -1,4 +1,5 @@
-import { AssetInfo, CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
 import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";

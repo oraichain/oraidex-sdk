@@ -568,7 +568,7 @@ export const processEventApr = (txs: Tx[]) => {
     isTriggerRewardPerSec: false
   };
   for (let tx of txs) {
-    // guard code. Should refetch all token info if match event update_rewards_per_sec or length ofstaking asset equal to pairs length.
+    // guard code. Should refetch all token info if match event update_rewards_per_sec or length of staking asset equal to pairs length.
     if (assets.isTriggerRewardPerSec || assets.infoTokenAssetPools.size === pairs.length) break;
 
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);

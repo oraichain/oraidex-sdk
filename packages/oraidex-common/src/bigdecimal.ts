@@ -112,8 +112,7 @@ export class BigDecimal {
 
   private imul(other: DecimalLike) {
     const otherDecimal = this.processDecimal(other);
-    this.bigInt *= otherDecimal.bigInt;
-    this.bigInt /= 10n ** BigInt(this._decimals);
+    this.bigInt = (this.bigInt * otherDecimal.bigInt) / 10n ** BigInt(this._decimals);
     return this;
   }
 
