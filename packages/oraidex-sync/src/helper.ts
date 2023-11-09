@@ -390,23 +390,14 @@ export const getVolumePairByAsset = async (
 ): Promise<bigint> => {
   const duckDb = DuckDb.instances;
   const pair = `${baseDenom}-${quoteDenom}`;
-  const [volumeSwapPairInBaseAsset, volumeLiquidityPairInBaseAsset] = await Promise.all([
-    duckDb.getVolumeSwap({
-      pair,
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    }),
-    duckDb.getVolumeLiquidity({
-      offerDenom: baseDenom,
-      askDenom: quoteDenom,
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    })
-  ]);
 
-  // sum of base & quote asset volume.
-  const totalVolumeLiquidityPair = volumeLiquidityPairInBaseAsset * 2n;
-  return volumeSwapPairInBaseAsset + totalVolumeLiquidityPair;
+  const volumeSwapPairInBaseAsset = await duckDb.getVolumeSwap({
+    pair,
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
+
+  return volumeSwapPairInBaseAsset;
 };
 
 export const getVolumePairByUsdt = async (

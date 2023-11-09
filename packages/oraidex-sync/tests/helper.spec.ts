@@ -723,13 +723,12 @@ describe("test-helper", () => {
     it("test-getVolumePairByAsset-should-return-correctly-sum-volume-swap-&-liquidity", async () => {
       // setup mock
       jest.spyOn(duckDb, "getVolumeSwap").mockResolvedValue(1n);
-      jest.spyOn(duckDb, "getVolumeLiquidity").mockResolvedValue(1n);
 
       // act
       const result = await getVolumePairByAsset(["orai", "usdt"], new Date(1693394183), new Date(1693394183));
 
       // assert
-      expect(result).toEqual(3n);
+      expect(result).toEqual(1n);
     });
 
     it("test-getVolumePairByUsdt-should-return-correctly-volume-pair-in-USDT", async () => {

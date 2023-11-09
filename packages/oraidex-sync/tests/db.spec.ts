@@ -413,20 +413,6 @@ describe("test-duckdb", () => {
       // assertion
       expect(feeSwap).toEqual(3n);
     });
-
-    it("test-getVolumeLiquidity-should-return-correctly-volume-liquidity-in-base-asset", async () => {
-      // act
-      const payload: GetFeeSwap = {
-        offerDenom: "orai",
-        askDenom: "atom",
-        startTime: 1589610068000 / 1000,
-        endTime: 1689610068000 / 1000
-      };
-      const volumeByBaseAsset = await duckDb.getVolumeLiquidity(payload);
-
-      // assertion
-      expect(volumeByBaseAsset).toEqual(2n);
-    });
   });
 
   describe("test-apr", () => {
