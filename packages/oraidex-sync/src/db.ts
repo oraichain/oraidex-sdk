@@ -469,26 +469,6 @@ export class DuckDb {
     return BigInt(result[0]?.totalVolume ?? 0);
   }
 
-  async getVolumeLiquidity(payload: GetFeeSwap): Promise<bigint> {
-    const { offerDenom, askDenom, startTime, endTime } = payload;
-    const result = await this.conn.all(
-      `
-      SELECT 
-        sum(baseTokenAmount) as totalVolume,
-        FROM lp_ops_data
-        WHERE timestamp >= ? 
-        AND timestamp <= ?
-        AND baseTokenDenom = ?
-        AND quoteTokenDenom = ?
-      `,
-      startTime,
-      endTime,
-      offerDenom,
-      askDenom
-    );
-    return BigInt(result[0]?.totalVolume ?? 0);
-  }
-
   async createLpAmountHistoryTable() {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS lp_amount_history (
