@@ -1,4 +1,4 @@
-import { EvmChainId } from "./network";
+import { CosmosChainId, EvmChainId } from "./network";
 
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
@@ -131,6 +131,17 @@ export const WEBSOCKET_RECONNECT_INTERVAL = 20000;
 
 export const UNISWAP_ROUTER_DEADLINE = 15000; // swap deadline in ms
 export const EVM_BALANCE_RETRY_COUNT = 5;
+
+export const EVM_CHAIN_ID: EvmChainId[] = ["0x38", "0x01", "0x1ae6", "0x2b6653dc"];
+export const COSMOS_CHAIN_ID: CosmosChainId[] = [
+  "Oraichain",
+  "oraibridge-subnet-2",
+  "osmosis-1",
+  "cosmoshub-4",
+  "injective-1",
+  "kawaii_6886-1",
+  "noble-1"
+];
 
 // asset info token
 export const ORAI_INFO = {

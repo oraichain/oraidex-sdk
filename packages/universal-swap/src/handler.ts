@@ -10,7 +10,7 @@ import {
   generateError,
   getEncodedExecuteContractMsgs,
   toAmount,
-  buildMultipleExecuteMessages,
+  // buildMultipleExecuteMessages,
   parseTokenInfo,
   calculateMinReceive,
   handleSentFunds,
@@ -34,7 +34,8 @@ import {
   marshalEncodeObjsToStargateMsgs,
   CoinGeckoId,
   IBC_WASM_CONTRACT,
-  IBC_WASM_CONTRACT_TEST
+  IBC_WASM_CONTRACT_TEST,
+  cosmosTokens
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -97,38 +98,47 @@ export class UniversalSwapHandler {
    */
   async combineSwapMsgOraichain(timeoutTimestamp?: string): Promise<EncodeObject[]> {
     // if to token is on Oraichain then we wont need to transfer IBC to the other chain
-    if (this.swapData.originalToToken.chainId === "Oraichain") {
+    const { chainId: toChainId } = this.swapData.originalToToken;
+    const { cosmos: sender } = this.swapData.sender;
+    if (toChainId === "Oraichain") {
       const msgSwap = this.generateMsgsSwap();
       return getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
     }
-    const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", this.swapData.originalToToken.chainId);
-    const toAddress = await this.config.cosmosWallet.getKeplrAddr(
-      this.swapData.originalToToken.chainId as CosmosChainId
-    );
-    if (!toAddress) throw generateError("Please login keplr!");
-
+    const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
+    const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
+    if (!ibcReceiveAddr) throw generateError("Please login keplr!");
     const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
-    const amount = coin(this.swapData.simulateAmount, toTokenInOrai.denom);
-    const msgTransfer = {
-      typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
-      value: MsgTransfer.fromPartial({
-        sourcePort: ibcInfo.source,
-        sourceChannel: ibcInfo.channel,
-        token: amount,
-        sender: this.swapData.sender.cosmos,
-        receiver: toAddress,
-        memo: "",
-        timeoutTimestamp: timeoutTimestamp ?? calculateTimeoutTimestamp(ibcInfo.timeout)
-      })
-    };
+    let msgTransfer: EncodeObject[];
+    // if ibc info source has wasm in it, it means we need to transfer IBC using IBC wasm contract, not normal ibc transfer
+    if (ibcInfo.source.includes("wasm")) {
+      msgTransfer = getEncodedExecuteContractMsgs(
+        sender,
+        this.generateMsgsIbcWasm(ibcInfo, ibcReceiveAddr, this.swapData.originalToToken.denom, "")
+      );
+    } else {
+      msgTransfer = [
+        {
+          typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
+          value: MsgTransfer.fromPartial({
+            sourcePort: ibcInfo.source,
+            sourceChannel: ibcInfo.channel,
+            token: coin(this.swapData.simulateAmount, toTokenInOrai.denom),
+            sender: sender,
+            receiver: ibcReceiveAddr,
+            memo: "",
+            timeoutTimestamp: timeoutTimestamp ?? calculateTimeoutTimestamp(ibcInfo.timeout)
+          })
+        }
+      ];
+    }
 
     // if not same coingeckoId, swap first then transfer token that have same coingeckoid.
     if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
-      const msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
-      return [...msgExecuteSwap, msgTransfer];
+      const msgExecuteSwap = getEncodedExecuteContractMsgs(sender, msgSwap);
+      return [...msgExecuteSwap, ...msgTransfer];
     }
-    return [msgTransfer];
+    return msgTransfer;
   }
 
   getTranferAddress(metamaskAddress: string, tronAddress: string, channel: string) {
@@ -182,7 +192,7 @@ export class UniversalSwapHandler {
     });
 
     // create bridge msg
-    const msgTransfer = this.generateMsgsTransferOraiToEvm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
+    const msgTransfer = this.generateMsgsIbcWasm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
     const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgTransfer);
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
@@ -558,11 +568,12 @@ export class UniversalSwapHandler {
     const { originalFromToken, originalToToken, fromAmount } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
-    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
+    const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
 
-      if (!this.swapData.simulatePrice || !this.swapData.userSlippage)
+      const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
+      if (!this.swapData.simulatePrice || !isValidSlippage)
         throw generateError(
           "Could not calculate the minimum receive value because there is no simulate price or user slippage"
         );
@@ -600,21 +611,21 @@ export class UniversalSwapHandler {
         funds
       };
 
-      return buildMultipleExecuteMessages(msg);
+      return [msg];
     } catch (error) {
       throw generateError(`Error generateMsgsSwap: ${error}`);
     }
   }
 
   /**
-   * Generate message to transfer token from Oraichain to EVM networks.
+   * Generate message to transfer token from Oraichain to EVM / Cosmos networks using IBC Wasm contract.
    * Example: AIRI/Oraichain -> AIRI/BSC
    * @param ibcInfo
-   * @param toAddress
+   * @param ibcReceiveAddr
    * @param ibcMemo
    * @returns
    */
-  generateMsgsTransferOraiToEvm(ibcInfo: IBCInfo, toAddress: string, remoteDenom: string, ibcMemo: string) {
+  generateMsgsIbcWasm(ibcInfo: IBCInfo, ibcReceiveAddr: string, remoteDenom: string, ibcMemo: string) {
     const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     try {
       const { info: assetInfo } = parseTokenInfo(toTokenInOrai);
@@ -625,7 +636,7 @@ export class UniversalSwapHandler {
 
       const msg: TransferBackMsg = {
         local_channel_id: ibcInfo.channel,
-        remote_address: toAddress,
+        remote_address: ibcReceiveAddr,
         remote_denom: remoteDenom,
         timeout: ibcInfo.timeout,
         memo: ibcMemo
@@ -647,7 +658,7 @@ export class UniversalSwapHandler {
             }
           ]
         };
-        return buildMultipleExecuteMessages(msgs);
+        return [msgs];
       }
 
       const executeMsgSend = {
@@ -660,12 +671,12 @@ export class UniversalSwapHandler {
 
       // generate contract message for CW20 token in Oraichain.
       // Example: tranfer USDT/Oraichain -> AIRI/BSC. _toTokenInOrai is AIRI in Oraichain.
-      const msgs: ExecuteInstruction = {
+      const instruction: ExecuteInstruction = {
         contractAddress: toTokenInOrai.contractAddress,
         msg: executeMsgSend,
         funds: []
       };
-      return buildMultipleExecuteMessages(msgs);
+      return [instruction];
     } catch (error) {
       console.log({ error });
     }

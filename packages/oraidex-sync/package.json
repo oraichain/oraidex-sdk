@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@cosmjs/tendermint-rpc": "^0.31.0",
-    "@oraichain/common-contracts-sdk": "1.0.13",
+    "@oraichain/common-contracts-sdk": "^1.0.31",
     "@oraichain/cosmos-rpc-sync": "^1.0.7",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.13",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.24",
     "duckdb-async": "^0.8.1",
     "apache-arrow": "^12.0.1",
     "lodash": "^4.17.21"

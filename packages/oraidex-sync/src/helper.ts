@@ -1,4 +1,5 @@
-import { AssetInfo, CosmWasmClient } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
 import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
@@ -389,23 +390,14 @@ export const getVolumePairByAsset = async (
 ): Promise<bigint> => {
   const duckDb = DuckDb.instances;
   const pair = `${baseDenom}-${quoteDenom}`;
-  const [volumeSwapPairInBaseAsset, volumeLiquidityPairInBaseAsset] = await Promise.all([
-    duckDb.getVolumeSwap({
-      pair,
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    }),
-    duckDb.getVolumeLiquidity({
-      offerDenom: baseDenom,
-      askDenom: quoteDenom,
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    })
-  ]);
 
-  // sum of base & quote asset volume.
-  const totalVolumeLiquidityPair = volumeLiquidityPairInBaseAsset * 2n;
-  return volumeSwapPairInBaseAsset + totalVolumeLiquidityPair;
+  const volumeSwapPairInBaseAsset = await duckDb.getVolumeSwap({
+    pair,
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
+
+  return volumeSwapPairInBaseAsset;
 };
 
 export const getVolumePairByUsdt = async (

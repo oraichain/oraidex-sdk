@@ -469,26 +469,6 @@ export class DuckDb {
     return BigInt(result[0]?.totalVolume ?? 0);
   }
 
-  async getVolumeLiquidity(payload: GetFeeSwap): Promise<bigint> {
-    const { offerDenom, askDenom, startTime, endTime } = payload;
-    const result = await this.conn.all(
-      `
-      SELECT 
-        sum(baseTokenAmount) as totalVolume,
-        FROM lp_ops_data
-        WHERE timestamp >= ? 
-        AND timestamp <= ?
-        AND baseTokenDenom = ?
-        AND quoteTokenDenom = ?
-      `,
-      startTime,
-      endTime,
-      offerDenom,
-      askDenom
-    );
-    return BigInt(result[0]?.totalVolume ?? 0);
-  }
-
   async createLpAmountHistoryTable() {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS lp_amount_history (
@@ -534,7 +514,7 @@ export class DuckDb {
     await this.insertBulkData(ops, "lp_amount_history");
   }
 
-  async createAprInfoPair() {
+  async createPoolAprTable() {
     await this.conn.exec(
       `CREATE TABLE IF NOT EXISTS pool_apr (
           uniqueKey varchar UNIQUE,
@@ -543,10 +523,14 @@ export class DuckDb {
           totalSupply varchar,
           totalBondAmount varchar,
           rewardPerSec varchar,
-          apr double,
+          apr double
         )
       `
     );
+  }
+
+  async addTimestampColToPoolAprTable() {
+    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0`);
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
@@ -558,7 +542,7 @@ export class DuckDb {
       `
         SELECT * FROM pool_apr
         WHERE pairAddr = ?
-        ORDER BY height DESC
+        ORDER BY timestamp DESC
         LIMIT 1
       `,
       pairAddr
@@ -572,7 +556,7 @@ export class DuckDb {
       `
       WITH RankedPool AS (
         SELECT pairAddr, apr, rewardPerSec, totalSupply, height,
-               ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY height DESC) AS rn
+               ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY timestamp DESC) AS rn
         FROM pool_apr
     )
     SELECT pairAddr, apr, rewardPerSec, totalSupply
@@ -581,18 +565,6 @@ export class DuckDb {
       `
     );
     return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
-  }
-
-  async getAprPool(pairAddr: string) {
-    const result = await this.conn.all(
-      `
-      SELECT * FROM pool_apr
-      WHERE pairAddr = ?
-      ORDER BY height DESC
-      `,
-      pairAddr
-    );
-    return result[0] as PoolApr;
   }
 
   async createStakingHistoryTable() {
