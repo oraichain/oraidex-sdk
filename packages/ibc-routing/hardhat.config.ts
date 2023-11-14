@@ -32,7 +32,7 @@ const config: HardhatUserConfig = {
       }
     },
     bnb: {
-      url: `https://1rpc.io/bnb`,
+      url: "https://1rpc.io/bnb",
       accounts
     }
   },
