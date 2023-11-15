@@ -196,13 +196,14 @@ export const proxyContractInfo: { [x: string]: { wrapNativeAddr: string; routerA
   }
 };
 
-export const findToTokenOnOraiBridge = (fromToken: TokenItemType, toNetwork: NetworkChainId) => {
-  const toToken = cosmosTokens.find((t) =>
-    t.chainId === "oraibridge-subnet-2" && t.coinGeckoId === fromToken.coinGeckoId && t?.bridgeNetworkIdentifier
-      ? t.bridgeNetworkIdentifier === toNetwork
-      : t.chainId === toNetwork
+export const findToTokenOnOraiBridge = (fromCoingeckoId: CoinGeckoId, toNetwork: NetworkChainId) => {
+  return cosmosTokens.find(
+    (t) =>
+      t.chainId === "oraibridge-subnet-2" &&
+      t.coinGeckoId === fromCoingeckoId &&
+      t.bridgeNetworkIdentifier &&
+      t.bridgeNetworkIdentifier === toNetwork
   );
-  return toToken;
 };
 
 export const parseAssetInfo = (assetInfo: AssetInfo): string => {

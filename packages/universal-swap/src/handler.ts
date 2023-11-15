@@ -171,21 +171,19 @@ export class UniversalSwapHandler {
    */
   async combineMsgEvm(metamaskAddress: string, tronAddress: string) {
     let msgExecuteSwap: EncodeObject[] = [];
+    const { originalFromToken, originalToToken, sender } = this.swapData;
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
-    if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
+    if (originalFromToken.coinGeckoId !== originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
-      msgExecuteSwap = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
+      msgExecuteSwap = getEncodedExecuteContractMsgs(sender.cosmos, msgSwap);
     }
 
-    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
-    const newToToken = findToTokenOnOraiBridge(toTokenInOrai, this.swapData.originalToToken.chainId);
-    // this.swapData.originalToToken = findToTokenOnOraiBridge(this.toTokenInOrai, this.swapData.originalToToken.chainId);
-
+    const newToToken = findToTokenOnOraiBridge(originalToToken.coinGeckoId, originalToToken.chainId);
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
     if (!toAddress) throw generateError("Please login keplr!");
 
-    const ibcInfo = this.getIbcInfo(this.swapData.originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, newToToken.chainId);
     const ibcMemo = this.getIbcMemo(metamaskAddress, tronAddress, ibcInfo.channel, {
       chainId: newToToken.chainId,
       prefix: newToToken.prefix
