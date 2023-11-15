@@ -322,7 +322,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "usdc",
       type: "cw20",
       contractAddress: USDC_CONTRACT,
-      bridgeTo: ["0x01"],
+      bridgeTo: ["0x01", "noble-1"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/3408.png"
     },
@@ -596,8 +596,8 @@ export const chainInfos: CustomChainInfo[] = [
 
   /// popular networks already included
   {
-    rpc: "https://osmosis-rpc.polkachu.com",
-    rest: "https://osmosis-api.polkachu.com",
+    rpc: "https://rpc.cosmos.directory/osmosis",
+    rest: "https://rest.cosmos.directory/osmosis",
     chainId: "osmosis-1",
     chainName: "Osmosis",
     networkType: "cosmos",
@@ -617,8 +617,8 @@ export const chainInfos: CustomChainInfo[] = [
   },
   /// popular networks already included
   {
-    rpc: "https://sentry.tm.injective.network",
-    rest: "https://sentry.lcd.injective.network",
+    rpc: "https://rpc.cosmos.directory/injective",
+    rest: "https://rest.cosmos.directory/injective",
     chainId: "injective-1",
     chainName: "Injective",
     networkType: "cosmos",
@@ -650,8 +650,8 @@ export const chainInfos: CustomChainInfo[] = [
     beta: true
   },
   {
-    rpc: "https://rpc-cosmos.oraidex.io",
-    rest: "https://lcd-cosmos.oraidex.io",
+    rpc: "https://rpc.cosmos.directory/cosmoshub",
+    rest: "https://rest.cosmos.directory/cosmoshub",
     chainId: "cosmoshub-4",
     chainName: "Cosmos Hub",
     networkType: "cosmos",
@@ -675,8 +675,8 @@ export const chainInfos: CustomChainInfo[] = [
     }
   },
   {
-    rpc: "https://noble-rpc.polkachu.com",
-    rest: "https://noble-api.polkachu.com",
+    rpc: "https://rpc.cosmos.directory/noble",
+    rest: "https://rest.cosmos.directory/noble",
     chainId: "noble-1",
     chainName: "Noble",
     networkType: "cosmos",

@@ -1,4 +1,4 @@
-import { AssetInfo } from "@oraichain/common-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export const ORAI = "orai";
 export const airiCw20Adress = "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg";

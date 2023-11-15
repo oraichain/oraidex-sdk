@@ -3,7 +3,8 @@
   "version": "1.0.24",
   "main": "build/index.js",
   "files": [
-    "build/"
+    "build/",
+    "@types"
   ],
   "license": "MIT"
 }
