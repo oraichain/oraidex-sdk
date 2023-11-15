@@ -179,7 +179,7 @@ export class UniversalSwapHandler {
     }
 
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
-    const newToToken = findToTokenOnOraiBridge(originalToToken.coinGeckoId, originalToToken.chainId);
+    const newToToken = findToTokenOnOraiBridge(originalToToken, originalToToken.chainId);
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
     if (!toAddress) throw generateError("Please login keplr!");
 
