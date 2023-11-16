@@ -5,6 +5,9 @@
   "files": [
     "build/"
   ],
+  "scripts": {
+    "build":"tsc -p tsconfig.json"
+  },
   "license": "MIT",
   "dependencies": {
     "@ethersproject/providers": "^5.0.10",

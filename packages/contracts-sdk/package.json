@@ -6,5 +6,8 @@
     "build/",
     "@types"
   ],
+  "scripts": {
+    "build":"tsc -p tsconfig.json"
+  },
   "license": "MIT"
 }
