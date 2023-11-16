@@ -5,6 +5,9 @@
   "files": [
     "build/"
   ],
+  "scripts": {
+    "build":"tsc -p tsconfig.json"
+  },
   "license": "MIT",
   "dependencies": {
     "@oraichain/oraidex-common": "^1.0.34",

@@ -3,5 +3,6 @@ module.exports = {
   transform: {
     "^.+\\.ts?$": ["ts-jest", { isolatedModules: true }]
   },
-  testEnvironment: "node"
+  testEnvironment: "node",
+  modulePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/packages/ibc-routing"]
 };
