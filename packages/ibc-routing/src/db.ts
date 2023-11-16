@@ -59,8 +59,8 @@ export const sqlCommands = {
     )`
   },
   query: {
-    evmStateByHash: `SELECT * from EvmState where txHash = ?`,
-    evmStateByNonce: `SELECT * from EvmState where eventNonce = ?`,
+    evmStateByHash: "SELECT * from EvmState where txHash = ?",
+    evmStateByNonce: "SELECT * from EvmState where eventNonce = ?",
     oraiBridgeStateByNonce: `
       SELECT * from OraiBridgeState where eventNonce = ?
       `,
@@ -105,7 +105,7 @@ export class DuckDbNode extends DuckDB {
   }
 
   async createTable() {
-    for (let createCommand of Object.values(sqlCommands.create)) {
+    for (const createCommand of Object.values(sqlCommands.create)) {
       await this.conn.exec(createCommand);
     }
   }
@@ -141,7 +141,7 @@ export class DuckDbNode extends DuckDB {
   }
 
   async findStateByPacketSequence(packetSequence: number): Promise<any> {
-    for (let tableName of Object.keys(sqlCommands.create)) {
+    for (const tableName of Object.keys(sqlCommands.create)) {
       try {
         const result = await this.conn.all(sqlCommands.query.stateDataByPacketSequence(tableName), packetSequence);
         if (result.length > 0) return { tableName, state: result[0] };
@@ -196,7 +196,7 @@ export class DuckDbWasm extends DuckDB {
   }
 
   async createTable() {
-    for (let createCommand of Object.values(sqlCommands.create)) {
+    for (const createCommand of Object.values(sqlCommands.create)) {
       await this.conn.send(createCommand);
     }
   }
