@@ -89,6 +89,8 @@ export type QueryMsg = {
     staking_token: Addr;
     start_after?: Addr | null;
   };
+} | {
+  total_pool_asset_keys: {};
 };
 export interface MigrateMsg {}
 export interface ConfigResponse {
@@ -121,3 +123,4 @@ export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {
   assets: Asset[];
 }
+export type ArrayOfAddr = Addr[];
