@@ -62,6 +62,11 @@ export type ExecuteMsg = {
     stakers: Addr[];
     staking_token: Addr;
   };
+} | {
+  migrate_store: {
+    asset_info: AssetInfo;
+    limit?: number | null;
+  };
 };
 export interface RewardMsg {
   staking_token: Addr;
@@ -123,4 +128,4 @@ export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {
   assets: Asset[];
 }
-export type ArrayOfAddr = Addr[];
+export type ArrayOfString = string[];
