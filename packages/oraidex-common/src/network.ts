@@ -8,6 +8,7 @@ import {
   FACTORY_V2_CONTRACT,
   INJECTIVE_CONTRACT,
   INJECTIVE_ORAICHAIN_DENOM,
+  KWTBSC_ORAICHAIN_DENOM,
   KWT_BSC_CONTRACT,
   KWT_CONTRACT,
   KWT_DENOM,
@@ -337,7 +338,7 @@ export const oraichainNetwork: CustomChainInfo = {
     {
       coinDenom: "BEP20 KWT",
       coinGeckoId: "kawaii-islands",
-      coinMinimalDenom: KWT_BSC_CONTRACT,
+      coinMinimalDenom: KWTBSC_ORAICHAIN_DENOM,
       coinDecimals: 18,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/12313.png"
     },
