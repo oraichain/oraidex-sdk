@@ -548,7 +548,13 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
 
   const lpOpsData = [...provideLiquidityOpsData, ...withdrawLiquidityOpsData];
   // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
-  const poolAmountHistories = await accumulatePoolAmount(lpOpsData, [...swapOpsData]);
+  // const poolAmountHistories = await accumulatePoolAmount(lpOpsData, [...swapOpsData]);
+  const [poolAmountHistoriesViaLpOps, poolAmountHistoriesViaSwapOps] = await Promise.all([
+    accumulatePoolAmount(lpOpsData, []),
+    accumulatePoolAmount([], [...swapOpsData])
+  ]);
+
+  console.dir({ swapLenght: swapOpsData.length, poolLength: poolAmountHistoriesViaSwapOps.length }, { depth: null });
 
   return {
     swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
@@ -558,7 +564,7 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
     withdrawLiquidityOpsData,
     stakingOpsData: groupByTime(removeOpsDuplication(stakingOpsData)) as StakingOperationData[],
     claimOpsData: groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[],
-    poolAmountHistories
+    poolAmountHistories: [...poolAmountHistoriesViaLpOps, ...poolAmountHistoriesViaSwapOps]
   };
 }
 
