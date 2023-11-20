@@ -1,10 +1,13 @@
 {
   "name": "@oraichain/oraidex-common",
-  "version": "1.0.35",
+  "version": "1.0.37",
   "main": "build/index.js",
   "files": [
     "build/"
   ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
   "license": "MIT",
   "dependencies": {
     "@ethersproject/providers": "^5.0.10",

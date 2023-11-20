@@ -1,0 +1,18 @@
+{
+  "tasksRunnerOptions": {
+    "default": {
+      "options": {
+        "cacheableOperations": ["build", "test"],
+        "cacheDirectory": "node_modules/.cache"
+      }
+    }
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"]
+    },
+    "cli": {
+      "packageManager": "yarn"
+    }
+  }
+}
