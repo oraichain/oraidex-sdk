@@ -314,10 +314,8 @@ export const calculateBasePriceFromSwapOp = (op: SwapOperationData): number => {
   if (!op || !op.offerAmount || !op.returnAmount) {
     return 0;
   }
-  const offerAmount = op.offerAmount;
-  const askAmount = op.returnAmount;
-  // const offerAmount = op.basePoolAmount;
-  // const askAmount = op.quotePoolAmount;
+  const offerAmount = op.quotePoolAmount;
+  const askAmount = op.basePoolAmount;
   return op.direction === "Buy" ? Number(offerAmount) / Number(askAmount) : Number(askAmount) / Number(offerAmount);
 };
 

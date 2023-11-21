@@ -22,7 +22,13 @@ import {
 } from "./helper";
 import { pairWithStakingAsset, pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
-import { accumulatePoolAmount, calculateLiquidityFee, getPriceAssetByUsdt, isPoolHasFee } from "./pool-helper";
+import {
+  accumulatePoolAmount,
+  calculateLiquidityFee,
+  getPoolInfos,
+  getPriceAssetByUsdt,
+  isPoolHasFee
+} from "./pool-helper";
 import { fetchAllRewardInfo } from "./query";
 import {
   AccountTx,
@@ -34,12 +40,15 @@ import {
   MsgType,
   OraiswapPairCw20HookMsg,
   OraiswapRouterCw20HookMsg,
+  PoolInfo,
   ProvideLiquidityOperationData,
   StakingOperationData,
   SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -150,6 +159,84 @@ async function calculateLpPrice(stakingAssetDenom: string): Promise<number> {
     return 0;
   }
 }
+
+export const getBaseQuoteAmountFromSwapOps = (swapOp: SwapOperationData) => {
+  // Sell: offer is ORAI, return is USDT
+  // Buy: offer is USDT, return is ORAI
+  let baseAmount = swapOp.direction === "Sell" ? swapOp.offerAmount : swapOp.returnAmount;
+  let quoteAmount = -(swapOp.direction === "Sell" ? swapOp.returnAmount : swapOp.offerAmount);
+  if (swapOp.direction === "Buy") {
+    baseAmount = -baseAmount;
+    quoteAmount = -quoteAmount;
+  }
+  return [BigInt(baseAmount), BigInt(quoteAmount)];
+};
+
+export const getPoolFromSwapDenom = (swapOp: SwapOperationData, poolInfos: PoolResponse[]) => {
+  const baseDenom = swapOp.direction === "Sell" ? swapOp.offerDenom : swapOp.askDenom;
+  const quoteDenom = swapOp.direction === "Sell" ? swapOp.askDenom : swapOp.offerDenom;
+  const pool = poolInfos.find(
+    (info) =>
+      info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === baseDenom) &&
+      info.assets.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo.info) === quoteDenom)
+  );
+  return pool;
+};
+
+export const calculateSwapOpsWithPoolAmount = async (swapOps: SwapOperationData[]): Promise<SwapOperationData[]> => {
+  try {
+    if (swapOps.length === 0) return [];
+    const duckDb = DuckDb.instances;
+    const pairInfos = await duckDb.queryPairInfos();
+
+    const minTxHeight = swapOps[0].txheight;
+    const poolInfos = await getPoolInfos(
+      pairInfos.map((pair) => pair.pairAddr),
+      minTxHeight - 1 // assume data is sorted by height and timestamp
+    );
+    let accumulatePoolAmount: {
+      [key: string]: PoolInfo;
+    } = {};
+
+    let updatedSwapOps = JSON.parse(JSON.stringify(swapOps)) as SwapOperationData[];
+    for (const swapOp of updatedSwapOps) {
+      const pool = getPoolFromSwapDenom(swapOp, poolInfos);
+
+      // get pair addr to combine by address
+      let assetInfos = pool.assets.map((asset) => asset.info) as [AssetInfo, AssetInfo];
+      if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
+      const pairInfo = await duckDb.getPoolByAssetInfos(assetInfos);
+      if (!pairInfo) throw new Error("cannot find pair info when collectAccumulateLpAndSwapData");
+      const { pairAddr } = pairInfo;
+
+      const [baseAmount, quoteAmount] = getBaseQuoteAmountFromSwapOps(swapOp);
+      // accumulate pool amount by pair addr
+      if (!accumulatePoolAmount[pairAddr]) {
+        let initialFirstTokenAmount = BigInt(
+          pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === parseAssetInfoOnlyDenom(assetInfos[0]))
+            .amount
+        );
+        let initialSecondTokenAmount = BigInt(
+          pool.assets.find((asset) => parseAssetInfoOnlyDenom(asset.info) === parseAssetInfoOnlyDenom(assetInfos[1]))
+            .amount
+        );
+        accumulatePoolAmount[pairAddr] = {
+          offerPoolAmount: initialFirstTokenAmount + baseAmount,
+          askPoolAmount: initialSecondTokenAmount + quoteAmount
+        };
+      } else {
+        accumulatePoolAmount[pairAddr].offerPoolAmount += baseAmount;
+        accumulatePoolAmount[pairAddr].askPoolAmount += quoteAmount;
+      }
+      // update pool amount for swap ops
+      swapOp.basePoolAmount = accumulatePoolAmount[pairAddr].offerPoolAmount;
+      swapOp.quotePoolAmount = accumulatePoolAmount[pairAddr].askPoolAmount;
+    }
+    return updatedSwapOps;
+  } catch (error) {
+    console.log("error in calculateSwapOpsWithPoolAmount: ", error.message);
+  }
+};
 
 async function extractStakingOperations(
   txData: BasicTxData,
@@ -548,23 +635,18 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
 
   const lpOpsData = [...provideLiquidityOpsData, ...withdrawLiquidityOpsData];
   // accumulate liquidity pool amount via provide/withdraw liquidity and swap ops
-  // const poolAmountHistories = await accumulatePoolAmount(lpOpsData, [...swapOpsData]);
-  const [poolAmountHistoriesViaLpOps, poolAmountHistoriesViaSwapOps] = await Promise.all([
-    accumulatePoolAmount(lpOpsData, []),
-    accumulatePoolAmount([], [...swapOpsData])
-  ]);
+  const poolAmountHistories = await accumulatePoolAmount(lpOpsData, [...swapOpsData]);
 
-  console.dir({ swapLenght: swapOpsData.length, poolLength: poolAmountHistoriesViaSwapOps.length }, { depth: null });
-
+  const swapOpsWithPoolAmount = await calculateSwapOpsWithPoolAmount(swapOpsData);
   return {
     swapOpsData: groupByTime(swapOpsData) as SwapOperationData[],
-    ohlcv: buildOhlcv(swapOpsData),
+    ohlcv: buildOhlcv(swapOpsWithPoolAmount),
     accountTxs,
     provideLiquidityOpsData,
     withdrawLiquidityOpsData,
     stakingOpsData: groupByTime(removeOpsDuplication(stakingOpsData)) as StakingOperationData[],
     claimOpsData: groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[],
-    poolAmountHistories: [...poolAmountHistoriesViaLpOps, ...poolAmountHistoriesViaSwapOps]
+    poolAmountHistories
   };
 }
 

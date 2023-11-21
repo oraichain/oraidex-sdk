@@ -598,7 +598,9 @@ describe("test-helper", () => {
       txheight: 1,
       spreadAmount: 1,
       taxAmount: 1,
-      commissionAmount: 1
+      commissionAmount: 1,
+      basePoolAmount: 100n,
+      quotePoolAmount: 200n
     } as SwapOperationData;
     // first case undefined, return 0
     expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
