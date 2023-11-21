@@ -45,7 +45,7 @@ jobs:
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn
       - name: Build
-        run: yarn build
+        run: yarn build && yarn build-tsc packages/oraidex-sync && yarn --cwd packages/oraidex-server/ build
       - name: Authenticate with private NPM package
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - name: Publish Oraidex Server

@@ -22,6 +22,8 @@ export type SwapOperationData = {
   returnAmount: number | bigint;
   spreadAmount: number;
   taxAmount: number;
+  basePoolAmount?: number | bigint;
+  quotePoolAmount?: number | bigint;
 } & BasicTxData;
 
 export type StakingOperationData = {

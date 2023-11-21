@@ -2,8 +2,11 @@ import * as parse from "../src/tx-parsing";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { parseTxToMsgExecuteContractMsgs } from "../src/tx-parsing";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { DuckDb, usdtCw20Address } from "../src";
+import { DuckDb, ORAI, SwapDirection, SwapOperationData, oraiInfo, usdtCw20Address, usdtInfo } from "../src";
 import * as helper from "../src/helper";
+import * as poolHelper from "../src/pool-helper";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 describe("test-tx-parsing", () => {
   it.each<[string, string[]]>([
     [
@@ -131,5 +134,147 @@ describe("test-tx-parsing", () => {
 
     // assertion
     expect(LPPrice).toEqual(expectedResult);
+  });
+
+  it.each([
+    ["Sell" as SwapDirection, 2n, -1n],
+    ["Buy" as SwapDirection, -1n, 2n]
+  ])("test-getBaseQuoteAmountFromSwapOps", (direction: SwapDirection, expectedBaseAmount, expectedQuoteAmount) => {
+    // setup
+    const swapOp: SwapOperationData = {
+      offerAmount: 2,
+      returnAmount: 1,
+      offerDenom: ORAI,
+      askDenom: usdtCw20Address,
+      direction,
+      uniqueKey: "1",
+      timestamp: 1,
+      txhash: "a",
+      txheight: 1,
+      spreadAmount: 1,
+      taxAmount: 1,
+      commissionAmount: 1
+    };
+
+    // act
+    const [baseAmount, quoteAmount] = parse.getBaseQuoteAmountFromSwapOps(swapOp);
+
+    // assertion
+    expect(Number(baseAmount)).toEqual(Number(expectedBaseAmount));
+    expect(Number(quoteAmount)).toEqual(Number(expectedQuoteAmount));
+  });
+
+  it.each([
+    ["Sell" as SwapDirection, 2n, -1n],
+    ["Buy" as SwapDirection, -1n, 2n]
+  ])("test-getPoolFromSwapDenom", (direction: SwapDirection, expectedBaseAmount, expectedQuoteAmount) => {
+    // setup
+    const swapOp: SwapOperationData = {
+      offerAmount: 2,
+      returnAmount: 1,
+      offerDenom: ORAI,
+      askDenom: usdtCw20Address,
+      direction,
+      uniqueKey: "1",
+      timestamp: 1,
+      txhash: "a",
+      txheight: 1,
+      spreadAmount: 1,
+      taxAmount: 1,
+      commissionAmount: 1
+    };
+
+    const poolInfos: PoolResponse[] = [
+      {
+        assets: [
+          {
+            amount: "1",
+            info: oraiInfo
+          },
+          {
+            amount: "1",
+            info: usdtInfo
+          }
+        ],
+        total_share: "1"
+      }
+    ];
+
+    // act
+    const pool = parse.getPoolFromSwapDenom(swapOp, poolInfos);
+
+    // assertion
+    expect(pool).toBeDefined();
+    expect(pool?.total_share).toBe("1");
+  });
+
+  it("test-calculateSwapOpsWithPoolAmount-with-empty-array-swap-ops-should-return-empty-array", async () => {
+    const result = await parse.calculateSwapOpsWithPoolAmount([]);
+    expect(result.length).toEqual(0);
+  });
+
+  it("test-calculateSwapOpsWithPoolAmount", async () => {
+    // setup
+    const swapOps: SwapOperationData[] = [
+      {
+        offerAmount: 2,
+        returnAmount: 1,
+        offerDenom: usdtCw20Address,
+        askDenom: ORAI,
+        direction: "Buy",
+        uniqueKey: "1",
+        timestamp: 1,
+        txhash: "a",
+        txheight: 1,
+        spreadAmount: 1,
+        taxAmount: 1,
+        commissionAmount: 1
+      }
+    ];
+
+    // mock queryPairInfos
+    const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt";
+    const pairInfos = [
+      {
+        firstAssetInfo: JSON.stringify({ native_token: { denom: ORAI } } as AssetInfo),
+        secondAssetInfo: JSON.stringify({ token: { contract_addr: usdtCw20Address } } as AssetInfo),
+        commissionRate: "1",
+        pairAddr,
+        liquidityAddr: "1",
+        oracleAddr: "1",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1"
+      }
+    ];
+    const duckDb = await DuckDb.create(":memory:");
+    jest.spyOn(duckDb, "queryPairInfos").mockResolvedValue(pairInfos);
+    jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfos[0]);
+
+    // mock poolInfos
+    const poolInfos: PoolResponse[] = [
+      {
+        assets: [
+          {
+            amount: "100", // base pool amount
+            info: oraiInfo
+          },
+          {
+            amount: "200", // quote pool amount
+            info: usdtInfo
+          }
+        ],
+        total_share: "1"
+      }
+    ];
+    jest.spyOn(poolHelper, "getPoolInfos").mockResolvedValue(poolInfos);
+
+    // act
+    const updatedSwapOps = await parse.calculateSwapOpsWithPoolAmount(swapOps);
+
+    // assertion
+    console.dir({ updatedSwapOps }, { depth: null });
+    expect(updatedSwapOps[0].basePoolAmount).toEqual(99n); // 100n - 1n
+    expect(updatedSwapOps[0].quotePoolAmount).toEqual(202n); // 200n + 2n
   });
 });

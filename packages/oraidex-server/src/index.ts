@@ -469,6 +469,7 @@ app
     oraidexSync.sync();
     console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
   })
-  .on("error", () => {
+  .on("error", (err) => {
+    console.log("error when start oraiDEX server", err);
     process.exit(1);
   });
