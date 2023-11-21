@@ -311,12 +311,8 @@ export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
 }
 
 export const calculateBasePriceFromSwapOp = (op: SwapOperationData): number => {
-  if (!op || !op.offerAmount || !op.returnAmount) {
-    return 0;
-  }
-  const offerAmount = op.quotePoolAmount;
-  const askAmount = op.basePoolAmount;
-  return op.direction === "Buy" ? Number(offerAmount) / Number(askAmount) : Number(askAmount) / Number(offerAmount);
+  if (!op || !op.quotePoolAmount || !op.basePoolAmount) return 0;
+  return Number(op.quotePoolAmount) / Number(op.basePoolAmount);
 };
 
 export function getSwapDirection(offerDenom: string, askDenom: string): SwapDirection {

@@ -582,32 +582,35 @@ describe("test-helper", () => {
   });
 
   it.each([
-    ["Buy" as SwapDirection, 2],
-    ["Sell" as SwapDirection, 0.5]
-  ])("test-calculateBasePriceFromSwapOp", (direction: SwapDirection, expectedPrice: number) => {
-    const swapOp = {
-      offerAmount: 2,
-      offerDenom: ORAI,
-      returnAmount: 1,
-      askDenom: usdtCw20Address,
-      direction,
-      uniqueKey: "1",
-      timestamp: 1,
-      txCreator: "a",
-      txhash: "a",
-      txheight: 1,
-      spreadAmount: 1,
-      taxAmount: 1,
-      commissionAmount: 1,
-      basePoolAmount: 100n,
-      quotePoolAmount: 200n
-    } as SwapOperationData;
-    // first case undefined, return 0
-    expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
-    // other cases
-    const price = calculateBasePriceFromSwapOp(swapOp);
-    expect(price).toEqual(expectedPrice);
-  });
+    ["Buy" as SwapDirection, 100n, 200n, 2],
+    ["Sell" as SwapDirection, 105n, 214n, 2.038095238095238]
+  ])(
+    "test-calculateBasePriceFromSwapOp",
+    (direction: SwapDirection, basePoolAmount, quotePoolAmount, expectedPrice: number) => {
+      const swapOp = {
+        offerAmount: 2,
+        offerDenom: ORAI,
+        returnAmount: 1,
+        askDenom: usdtCw20Address,
+        direction,
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1,
+        spreadAmount: 1,
+        taxAmount: 1,
+        commissionAmount: 1,
+        basePoolAmount,
+        quotePoolAmount
+      } as SwapOperationData;
+      // first case undefined, return 0
+      expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
+      // other cases
+      const price = calculateBasePriceFromSwapOp(swapOp);
+      expect(price).toEqual(expectedPrice);
+    }
+  );
 
   it.each([
     [usdtCw20Address, "orai", "Buy" as SwapDirection],
