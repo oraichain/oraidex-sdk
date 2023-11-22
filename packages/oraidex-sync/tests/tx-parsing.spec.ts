@@ -22,6 +22,16 @@ describe("test-tx-parsing", () => {
     expect(result).toEqual(expectedParsing);
   });
 
+  it.each<[string, string[]]>([
+    ["foo", []],
+    ["2591orai", ["2591", "orai"]]
+  ])("test-parseClaimNativeAsset", (assets, expectedParsing) => {
+    // act
+    const result = parse.parseClaimNativeAsset(assets);
+    // assert
+    expect(result).toEqual(expectedParsing);
+  });
+
   it.each<[number, number]>([
     [1, 0],
     [0, 1]
