@@ -136,9 +136,11 @@ export interface OraiswapStakingInterface extends OraiswapStakingReadOnlyInterfa
     sender: string;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
+    migrateStoreStatus,
     owner,
     rewarder
   }: {
+    migrateStoreStatus?: boolean;
     owner?: Addr;
     rewarder?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
@@ -201,19 +203,10 @@ export interface OraiswapStakingInterface extends OraiswapStakingReadOnlyInterfa
     stakerAddr: Addr;
     stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateListStakers: ({
-    stakers,
-    stakingToken
-  }: {
-    stakers: Addr[];
-    stakingToken: Addr;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   migrateStore: ({
-    assetInfo,
-    limit
+    assetInfo
   }: {
     assetInfo: AssetInfo;
-    limit?: number;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapStakingClient extends OraiswapStakingQueryClient implements OraiswapStakingInterface {
@@ -237,7 +230,6 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
     this.withdrawOthers = this.withdrawOthers.bind(this);
     this.autoStake = this.autoStake.bind(this);
     this.autoStakeHook = this.autoStakeHook.bind(this);
-    this.updateListStakers = this.updateListStakers.bind(this);
     this.migrateStore = this.migrateStore.bind(this);
   }
 
@@ -259,14 +251,17 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
     }, _fee, _memo, _funds);
   };
   updateConfig = async ({
+    migrateStoreStatus,
     owner,
     rewarder
   }: {
+    migrateStoreStatus?: boolean;
     owner?: Addr;
     rewarder?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
+        migrate_store_status: migrateStoreStatus,
         owner,
         rewarder
       }
@@ -392,31 +387,14 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
       }
     }, _fee, _memo, _funds);
   };
-  updateListStakers = async ({
-    stakers,
-    stakingToken
-  }: {
-    stakers: Addr[];
-    stakingToken: Addr;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      update_list_stakers: {
-        stakers,
-        staking_token: stakingToken
-      }
-    }, _fee, _memo, _funds);
-  };
   migrateStore = async ({
-    assetInfo,
-    limit
+    assetInfo
   }: {
     assetInfo: AssetInfo;
-    limit?: number;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       migrate_store: {
-        asset_info: assetInfo,
-        limit
+        asset_info: assetInfo
       }
     }, _fee, _memo, _funds);
   };

@@ -11,6 +11,7 @@ export type ExecuteMsg = {
   receive: Cw20ReceiveMsg;
 } | {
   update_config: {
+    migrate_store_status?: boolean | null;
     owner?: Addr | null;
     rewarder?: Addr | null;
   };
@@ -58,14 +59,8 @@ export type ExecuteMsg = {
     staking_token: Addr;
   };
 } | {
-  update_list_stakers: {
-    stakers: Addr[];
-    staking_token: Addr;
-  };
-} | {
   migrate_store: {
     asset_info: AssetInfo;
-    limit?: number | null;
   };
 };
 export interface RewardMsg {
