@@ -90,7 +90,28 @@ export type QueryMsg = {
     start_after?: Addr | null;
   };
 } | {
-  total_pool_asset_keys: {};
+  get_pools_information: {};
+} | {
+  query_old_store: {
+    store_type: OldStoreType;
+  };
+};
+export type OldStoreType = {
+  pools: {};
+} | {
+  stakers: {
+    asset_info: AssetInfo;
+  };
+} | {
+  rewards: {
+    staker: string;
+  };
+} | {
+  is_migrated: {
+    staker: string;
+  };
+} | {
+  rewards_per_sec: {};
 };
 export interface MigrateMsg {}
 export interface ConfigResponse {
@@ -99,6 +120,11 @@ export interface ConfigResponse {
   oracle_addr: Addr;
   owner: Addr;
   rewarder: Addr;
+}
+export type ArrayOfQueryPoolInfoResponse = QueryPoolInfoResponse[];
+export interface QueryPoolInfoResponse {
+  asset_key: string;
+  pool_info: PoolInfoResponse;
 }
 export interface PoolInfoResponse {
   migration_deprecated_staking_token?: Addr | null;
@@ -123,4 +149,3 @@ export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {
   assets: Asset[];
 }
-export type ArrayOfString = string[];

@@ -7,7 +7,7 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, RewardMsg, QueryMsg, MigrateMsg, ConfigResponse, PoolInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse, ArrayOfString} from "./OraiswapStaking.types";
+import {InstantiateMsg, ExecuteMsg, RewardMsg, QueryMsg, OldStoreType, MigrateMsg, ConfigResponse, ArrayOfQueryPoolInfoResponse, QueryPoolInfoResponse, PoolInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse} from "./OraiswapStaking.types";
 export interface OraiswapStakingReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -39,7 +39,12 @@ export interface OraiswapStakingReadOnlyInterface {
     stakingToken: Addr;
     startAfter?: Addr;
   }) => Promise<ArrayOfRewardInfoResponse>;
-  totalPoolAssetKeys: () => Promise<ArrayOfString>;
+  getPoolsInformation: () => Promise<ArrayOfQueryPoolInfoResponse>;
+  queryOldStore: ({
+    storeType
+  }: {
+    storeType: OldStoreType;
+  }) => Promise<Binary>;
 }
 export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterface {
   client: CosmWasmClient;
@@ -53,7 +58,8 @@ export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterf
     this.rewardsPerSec = this.rewardsPerSec.bind(this);
     this.rewardInfo = this.rewardInfo.bind(this);
     this.rewardInfos = this.rewardInfos.bind(this);
-    this.totalPoolAssetKeys = this.totalPoolAssetKeys.bind(this);
+    this.getPoolsInformation = this.getPoolsInformation.bind(this);
+    this.queryOldStore = this.queryOldStore.bind(this);
   }
 
   config = async (): Promise<ConfigResponse> => {
@@ -117,9 +123,20 @@ export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterf
       }
     });
   };
-  totalPoolAssetKeys = async (): Promise<ArrayOfString> => {
+  getPoolsInformation = async (): Promise<ArrayOfQueryPoolInfoResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
-      total_pool_asset_keys: {}
+      get_pools_information: {}
+    });
+  };
+  queryOldStore = async ({
+    storeType
+  }: {
+    storeType: OldStoreType;
+  }): Promise<Binary> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      query_old_store: {
+        store_type: storeType
+      }
     });
   };
 }

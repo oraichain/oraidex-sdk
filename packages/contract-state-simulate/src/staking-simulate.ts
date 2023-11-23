@@ -1,7 +1,7 @@
 import { DownloadState } from "@oraichain/cw-simulate";
 import { SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { AIRI_CONTRACT, REWARDER_CONTRACT, STAKING_CONTRACT, parseAssetInfo } from "@oraichain/oraidex-common";
-import { OraiswapRewarderClient, OraiswapStakingClient } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, OraiswapRewarderClient, OraiswapStakingClient } from "@oraichain/oraidex-contracts-sdk";
 import assert from "assert";
 import { readFileSync } from "fs";
 import path from "path";
@@ -9,6 +9,11 @@ import path from "path";
 // download state
 const download = new DownloadState("https://lcd.orai.io", path.join(__dirname, "wasm"));
 // await download.saveState(STAKING_CONTRACT);
+
+const toAssetInfo = (info: string): AssetInfo => {
+  if (info[0] === "i") return { native_token: { denom: info } };
+  return { token: { contract_addr: info } };
+};
 
 const oldAssetKeys = [
   "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq",
@@ -30,10 +35,7 @@ const oldAssetKeys = [
   "orai1llsm2ly9lchj006cw2mmlu8wmhr0sa988sp3m5"
 ];
 
-const oldAssetInfos = oldAssetKeys.map((key) => {
-  if (key[0] === "i") return { native_token: { denom: key } };
-  return { token: { contract_addr: key } };
-});
+const oldAssetInfos = oldAssetKeys.map(toAssetInfo);
 
 const senderAddress = "orai1gkr56hlnx9vc7vncln2dkd896zfsqjn300kfq0";
 const owner = "orai1fs25usz65tsryf0f8d5cpfmqgr0xwup4kjqpa0";
@@ -41,10 +43,13 @@ const client = new SimulateCosmWasmClient({ chainId: "Oraichain", bech32Prefix: 
 
 await download.loadState(client, senderAddress, STAKING_CONTRACT, "mainnet staking contract");
 
-const pool = await client.queryContractSmart(STAKING_CONTRACT, {
-  pool_info: { asset_info: oldAssetInfos[5] }
-});
-console.log("pool: ", pool);
+let oldPools = [];
+for (let oldInfo of oldAssetInfos) {
+  const pool = await client.queryContractSmart(STAKING_CONTRACT, {
+    pool_info: { asset_info: oldInfo }
+  });
+  oldPools.push(pool);
+}
 
 const rewardsInfo = await client.queryContractSmart(STAKING_CONTRACT, {
   reward_infos: { asset_info: { token: { contract_addr: AIRI_CONTRACT } } }
@@ -85,9 +90,37 @@ console.log("config: ", config);
 const unlockContractResult = await newStakingInstance.updateConfig({ migrateStoreStatus: true });
 console.log("unlock contract status: ", unlockContractResult);
 
+// assert if old pool stores = new pool stores
+const newPoolResults = await newStakingInstance.getPoolsInformation();
+assert(oldPools.length === newPoolResults.length);
+console.log("old pool result: ", oldPools);
+
+// assert stakers & their rewards
+for (let oldPool of oldPools) {
+  const oldStakersGivenKey = await newStakingInstance.queryOldStore({
+    storeType: { stakers: { asset_info: oldPool.asset_info } }
+  });
+  for (let oldStaker of oldStakersGivenKey) {
+    const oldRewardsOfStaker = await newStakingInstance.queryOldStore({
+      storeType: { rewards: { staker: oldStaker[0] } }
+    });
+    const newRewardsStaker = (
+      await Promise.all(
+        oldPools.map((oldPool) =>
+          newStakingInstance.rewardInfo({
+            stakingToken: oldPool.staking_token,
+            stakerAddr: oldStaker[0]
+          })
+        )
+      )
+    ).filter((reward) => reward.reward_infos.length > 0);
+
+    assert(newRewardsStaker.length === oldRewardsOfStaker.length);
+  }
+}
+
 const rewarderContract = new OraiswapRewarderClient(client, owner, REWARDER_CONTRACT);
-const distributeResult = await rewarderContract.distribute({ stakingTokens: [pool.staking_token] });
-console.log("distribute result: ", distributeResult);
+const distributeResult = await rewarderContract.distribute({ stakingTokens: [oldPools[5].staking_token] });
 
 // confirm that the distribute transaction has been executed successfully
 assert(
