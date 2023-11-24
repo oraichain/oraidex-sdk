@@ -11,7 +11,7 @@ export type ExecuteMsg = {
   };
 } | {
   distribute: {
-    asset_infos: AssetInfo[];
+    staking_tokens: Addr[];
   };
 };
 export type QueryMsg = {
@@ -22,7 +22,7 @@ export type QueryMsg = {
   };
 } | {
   reward_amount_per_sec: {
-    asset_info: AssetInfo;
+    staking_token: Addr;
   };
 };
 export interface MigrateMsg {}

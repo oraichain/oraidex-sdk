@@ -17,9 +17,9 @@ export interface OraiswapRewarderReadOnlyInterface {
     assetInfo: AssetInfo;
   }) => Promise<DistributionInfoResponse>;
   rewardAmountPerSec: ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }) => Promise<RewardAmountPerSecondResponse>;
 }
 export class OraiswapRewarderQueryClient implements OraiswapRewarderReadOnlyInterface {
@@ -51,13 +51,13 @@ export class OraiswapRewarderQueryClient implements OraiswapRewarderReadOnlyInte
     });
   };
   rewardAmountPerSec = async ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }): Promise<RewardAmountPerSecondResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       reward_amount_per_sec: {
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     });
   };
@@ -75,9 +75,9 @@ export interface OraiswapRewarderInterface extends OraiswapRewarderReadOnlyInter
     stakingContract?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   distribute: ({
-    assetInfos
+    stakingTokens
   }: {
-    assetInfos: AssetInfo[];
+    stakingTokens: Addr[];
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapRewarderClient extends OraiswapRewarderQueryClient implements OraiswapRewarderInterface {
@@ -112,13 +112,13 @@ export class OraiswapRewarderClient extends OraiswapRewarderQueryClient implemen
     }, _fee, _memo, _funds);
   };
   distribute = async ({
-    assetInfos
+    stakingTokens
   }: {
-    assetInfos: AssetInfo[];
+    stakingTokens: Addr[];
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       distribute: {
-        asset_infos: assetInfos
+        staking_tokens: stakingTokens
       }
     }, _fee, _memo, _funds);
   };
