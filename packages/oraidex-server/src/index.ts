@@ -2,7 +2,7 @@
 
 import { isEqual } from "lodash";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
   DuckDb,
   GetCandlesQuery,
@@ -32,7 +32,8 @@ import {
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
   toDisplay,
-  usdtInfo
+  usdtInfo,
+  getMigrateStakingV3Client
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import "dotenv/config";
@@ -40,12 +41,11 @@ import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 const app = express();
 app.use(cors());
 
-let duckDb: DuckDb;
+export let duckDb: DuckDb;
 
 const port = parseInt(process.env.PORT) || 2024;
 const hostname = process.env.HOSTNAME || "0.0.0.0";
@@ -122,7 +122,7 @@ app.get("/tickers", async (req, res) => {
           const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
           const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
           const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
-          let tickerInfo: TickerInfo = {
+          const tickerInfo: TickerInfo = {
             ticker_id: tickerId,
             base_currency: symbols[baseIndex],
             target_currency: symbols[targetIndex],
@@ -168,15 +168,15 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
     })
   );
   // console.log("volume infos: ", volumeInfos);
-  let volumeRanges: { [time: string]: VolumeRange[] } = {};
-  for (let volumePair of volumeInfos) {
-    for (let volume of volumePair) {
+  const volumeRanges: { [time: string]: VolumeRange[] } = {};
+  for (const volumePair of volumeInfos) {
+    for (const volume of volumePair) {
       if (!volumeRanges[volume.time]) volumeRanges[volume.time] = [{ ...volume }];
       else volumeRanges[volume.time].push({ ...volume });
     }
   }
-  let result = [];
-  for (let [time, volumeData] of Object.entries(volumeRanges)) {
+  const result = [];
+  for (const [time, volumeData] of Object.entries(volumeRanges)) {
     const oraiUsdtVolumeData = volumeData.find((data) => data.pair === pairToString(oraiUsdtPairOnlyDenom));
     if (!oraiUsdtVolumeData) {
       res.status(500).send("Cannot find ORAI_USDT volume data in the volume list");
@@ -320,7 +320,7 @@ app.get("/orai-info", async (req, res) => {
   try {
     // query tf is in minute unit.
     const SECONDS_PER_DAY = 24 * 60 * 60;
-    let tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
+    const tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
     const currentDate = new Date();
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
@@ -357,7 +357,7 @@ app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
 
     // query tf is in minute unit
     const SECONDS_PER_DAY = 24 * 60 * 60;
-    let tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
+    const tf = req.query.tf ? Number(req.query.tf) * 60 : SECONDS_PER_DAY;
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
     const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
 
@@ -441,7 +441,7 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
       }
     );
 
-    let finalResult = Object.entries(result).map(([denom, values]) => ({
+    const finalResult = Object.entries(result).map(([denom, values]) => ({
       stakingAssetDenom: denom,
       stakingAmountInUsdt: values.stakingAmountInUsdt,
       earnAmountInUsdt: values.earnAmountInUsdt
@@ -459,8 +459,12 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
 
 app
   .listen(port, hostname, async () => {
+    if (process.env.SIMULATE_CLIENT) {
+      await getMigrateStakingV3Client();
+    }
     // sync data for the service to read
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
+
     const oraidexSync = await OraiDexSync.create(
       duckDb,
       process.env.RPC_URL || "https://rpc.orai.io",

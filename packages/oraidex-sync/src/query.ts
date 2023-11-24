@@ -15,7 +15,7 @@ import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/Oraisw
 import { network, tenAmountInDecimalSix } from "./constants";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
 import { pairWithStakingAsset, pairs } from "./pairs";
-import { parseAssetInfoOnlyDenom, parseStakingDenomToAssetInfo } from "./parse";
+import { parseAssetInfoOnlyDenom } from "./parse";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -90,13 +90,13 @@ async function fetchTokenInfos(liquidityAddrs: Addr[]): Promise<TokenInfoRespons
   return await aggregateMulticall(queries);
 }
 
-async function fetchAllTokenAssetPools(assetInfos: AssetInfo[]): Promise<OraiswapStakingTypes.PoolInfoResponse[]> {
-  const queries = assetInfos.map((assetInfo) => {
+async function fetchAllTokenAssetPools(assetInfos: Addr[]): Promise<OraiswapStakingTypes.PoolInfoResponse[]> {
+  const queries = assetInfos.map((staking_token) => {
     return {
       address: network.staking,
       data: toBinary({
         pool_info: {
-          asset_info: assetInfo
+          staking_token
         }
       } as OraiswapStakingTypes.QueryMsg)
     };
@@ -105,15 +105,13 @@ async function fetchAllTokenAssetPools(assetInfos: AssetInfo[]): Promise<Oraiswa
   return await aggregateMulticall(queries);
 }
 
-async function fetchAllRewardPerSecInfos(
-  assetInfos: AssetInfo[]
-): Promise<OraiswapStakingTypes.RewardsPerSecResponse[]> {
-  const queries = assetInfos.map((assetInfo) => {
+async function fetchAllRewardPerSecInfos(assetInfos: Addr[]): Promise<OraiswapStakingTypes.RewardsPerSecResponse[]> {
+  const queries = assetInfos.map((staking_token) => {
     return {
       address: network.staking,
       data: toBinary({
         rewards_per_sec: {
-          asset_info: assetInfo
+          staking_token
         }
       } as OraiswapStakingTypes.QueryMsg)
     };
@@ -146,13 +144,11 @@ async function fetchRewardInfo(
   stakingAssetDenom: string,
   wantedHeight?: number
 ): Promise<OraiswapStakingTypes.RewardInfoResponse> {
-  const stakingAssetInfo = parseStakingDenomToAssetInfo(stakingAssetDenom);
-
   const client = await getCosmwasmClient();
   client.setQueryClientWithHeight(wantedHeight);
 
   const stakingContract = new OraiswapStakingQueryClient(client, network.staking);
-  const data = await stakingContract.rewardInfo({ assetInfo: stakingAssetInfo, stakerAddr });
+  const data = await stakingContract.rewardInfo({ stakingToken: stakingAssetDenom, stakerAddr });
   return data;
 }
 

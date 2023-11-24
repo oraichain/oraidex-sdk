@@ -57,7 +57,11 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) {}
+  protected constructor(
+    private readonly duckDb: DuckDb,
+    private readonly rpcUrl: string,
+    private readonly env: Env
+  ) {}
 
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     return new OraiDexSync(duckDb, rpcUrl, env);
@@ -103,6 +107,7 @@ class OraiDexSync {
         pairInfos.map((pair) => pair.pairAddr),
         currentHeight
       );
+      console.log({poolInfos});
       const INITIAL_TIMESTAMP = 1;
       await this.duckDb.insertPoolAmountHistory(
         // we check if poolInfos[index] is available because in currentHeight we query, maybe it has some pools are not created yet
@@ -215,3 +220,4 @@ export * from "./parse";
 export * from "./pool-helper";
 export * from "./query";
 export * from "./types";
+export * from "./wasm-client/112023.migrate-staking-v3";
