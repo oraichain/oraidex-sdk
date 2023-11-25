@@ -1,6 +1,5 @@
 import { CHART_PERIODS } from "./constants";
 import { Bar } from "./types";
-import { pairsChart } from "../config";
 
 export function getObjectKeyFromValue(value, object) {
   return Object.keys(object).find((key) => object[key] === value);
@@ -68,14 +67,15 @@ export function parseFullSymbol(fullSymbol) {
   };
 }
 
-export function parseChannelFromPair(pair: string): string {
-  try {
-    const pairInfo = pairsChart.find((p) => p.info === pair);
-    return pairInfo?.symbol;
-  } catch (error) {
-    console.error("error parse channel from pair", error);
-  }
-}
+// DEBT: remove later to get pair symbol not need this func
+// export function parseChannelFromPair(pair: string): string {
+//   try {
+//     const pairInfo = pairsChart.find((p) => p.info === pair);
+//     return pairInfo?.symbol;
+//   } catch (error) {
+//     console.error("error parse channel from pair", error);
+//   }
+// }
 
 export function roundTime(timeIn: Date, interval: number): number {
   const roundTo = interval * 60 * 1000;

@@ -31,11 +31,13 @@ export type TVChartContainerProsp = {
   libraryUrl?: string;
   theme: "dark" | "light";
   currentPair: PairToken;
+  pairsChart: PairToken[];
 };
 export default function TVChartContainer({
   libraryUrl = DEFAULT_LIBRARY_URL,
   theme,
-  currentPair
+  currentPair,
+  pairsChart
 }: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
@@ -44,7 +46,8 @@ export default function TVChartContainer({
   const { datafeed, resetCache } = useTVDatafeed({
     dataProvider: new TVDataProvider(),
     currentPair,
-    setChartDataLength
+    setChartDataLength,
+    pairsChart
   });
   const isMobile = useMedia("(max-width: 550px)");
   const [chartReady, setChartReady] = useState(false);

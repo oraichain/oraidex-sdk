@@ -6,7 +6,6 @@ import {
   ResolutionString,
   SubscribeBarsCallback
 } from "../charting_library";
-import { pairsChart } from "../config";
 import { TVDataProvider } from "./TVDataProvider";
 import { SUPPORTED_RESOLUTIONS } from "./constants";
 
@@ -27,11 +26,12 @@ type Props = {
   dataProvider?: TVDataProvider;
   currentPair: PairToken;
   setChartDataLength: any;
+  pairsChart: PairToken[]
 };
 
 export const EXCHANGE_NAME = "OraiDEX";
 
-export default function useTVDatafeed({ dataProvider, currentPair, setChartDataLength }: Props) {
+export default function useTVDatafeed({ dataProvider, currentPair, setChartDataLength, pairsChart }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>();
   const resetCacheRef = useRef<() => void | undefined>();
   const activeTicker = useRef<string | undefined>();
