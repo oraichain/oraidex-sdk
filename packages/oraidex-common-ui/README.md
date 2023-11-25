@@ -25,6 +25,12 @@ function App() {
             symbol: 'ORAI/USDT',
             info: 'orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh'
         }}
+        pairsChart={[
+          {
+            symbol: 'ORAI/USDT',
+            info: 'orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh'
+          }
+        ]}
       />
     </div>
   );
