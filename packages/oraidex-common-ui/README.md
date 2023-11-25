@@ -2,7 +2,7 @@
 
 ## Installation
 
-You can install this demo UI library using npm:
+You can install this demo UI library using yarn:
 
 ```
 yarn add @oraichain/oraidex-common-ui
