@@ -13,6 +13,7 @@ import {
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { network, tenAmountInDecimalSix } from "./constants";
+import { DuckDb } from "./db";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
 import { pairWithStakingAsset, pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom } from "./parse";
@@ -124,7 +125,9 @@ async function fetchAllRewardInfo(
   stakerAddr: string,
   wantedHeight?: number
 ): Promise<RewardInfoResponseWithStakingAsset[]> {
-  const stakingAssetDenoms = pairWithStakingAsset.map((pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo));
+  const duckDB = DuckDb.instances;
+  const poolInfo = await duckDB.getPools();
+  const stakingAssetDenoms = poolInfo.map((pair) => pair.liquidityAddr);
   const allRewardInfoOfUser = await Promise.all(
     stakingAssetDenoms.map(async (stakingAssetDenom) => {
       return fetchRewardInfo(stakerAddr, stakingAssetDenom, wantedHeight);
