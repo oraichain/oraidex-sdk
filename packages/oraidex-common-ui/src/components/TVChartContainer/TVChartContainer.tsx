@@ -32,7 +32,11 @@ export type TVChartContainerProsp = {
   theme: "dark" | "light";
   currentPair: PairToken;
 };
-export default function TVChartContainer({ libraryUrl = DEFAULT_LIBRARY_URL, theme, currentPair }) {
+export default function TVChartContainer({
+  libraryUrl = DEFAULT_LIBRARY_URL,
+  theme,
+  currentPair
+}: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
   const [tvCharts, setTvCharts] = useLocalStorage<ChartData[] | undefined>("TV_SAVE_LOAD_CHARTS_KEY", []);
@@ -113,12 +117,12 @@ export default function TVChartContainer({ libraryUrl = DEFAULT_LIBRARY_URL, the
       tvWidgetRef.current = new window.TradingView.widget(widgetOptions as any as ChartingLibraryWidgetOptions);
       tvWidgetRef.current.onChartReady(function () {
         setChartReady(true);
-        tvWidgetRef.current.applyOverrides({
+        tvWidgetRef.current!.applyOverrides({
           "paneProperties.background": theme === "dark" ? DARK_BACKGROUND_CHART : LIGHT_BACKGROUND_CHART,
           "paneProperties.backgroundType": "solid"
         });
 
-        const activeChart = tvWidgetRef.current.activeChart();
+        const activeChart = tvWidgetRef.current!.activeChart();
         activeChart.onIntervalChanged().subscribe(null, (interval) => {
           if (SUPPORTED_RESOLUTIONS[interval]) {
             const period = SUPPORTED_RESOLUTIONS[interval];

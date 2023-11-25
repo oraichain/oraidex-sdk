@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef } from "react";
-import { useDispatch } from "react-redux";
 import {
   HistoryCallback,
   LibrarySymbolInfo,
@@ -39,7 +38,6 @@ export default function useTVDatafeed({ dataProvider, currentPair, setChartDataL
   const tvDataProvider = useRef<TVDataProvider>();
   const shouldRefetchBars = useRef<boolean>(false);
   const lastBarsCache = new Map();
-  const dispatch = useDispatch();
 
   useEffect(() => {
     if (dataProvider && tvDataProvider.current !== dataProvider) {

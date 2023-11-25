@@ -9,7 +9,7 @@ export const SUPPORTED_RESOLUTIONS = {
   360: "6h",
   480: "8h",
   1440: "1d"
-};
+}
 
 export const FAVORITES_INTERVAL = ["5", "15", "60", "240", "1440"];
 

@@ -1,31 +1,35 @@
 import { FAVORITES_INTERVAL } from "./helpers/constants";
 import { PairMapping } from "./helpers/types";
-import {
-  AIRI_CONTRACT,
-  ATOM_ORAICHAIN_DENOM,
-  INJECTIVE_CONTRACT,
-  KWT_CONTRACT,
-  MILKY_CONTRACT,
-  ORAI,
-  ORAIX_CONTRACT,
-  OSMOSIS_ORAICHAIN_DENOM,
-  SCATOM_CONTRACT,
-  SCORAI_CONTRACT,
-  TRX_CONTRACT,
-  USDC_CONTRACT,
-  USDT_CONTRACT
-} from "@oraichain/oraidex-common";
+
+// config for oraichain token
+export const AIRI_CONTRACT = "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg";
+export const ORAIX_CONTRACT = "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge";
+export const USDT_CONTRACT = "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh";
+export const USDC_CONTRACT = "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
+export const KWT_CONTRACT = "orai1nd4r053e3kgedgld2ymen8l9yrw8xpjyaal7j5";
+export const MILKY_CONTRACT = "orai1gzvndtzceqwfymu2kqhta2jn6gmzxvzqwdgvjw";
+export const SCORAI_CONTRACT = "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5h5mphd0qlcs47pclp";
+export const TRX_CONTRACT = "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40xs3ugd0es5encn0";
+export const SCATOM_CONTRACT = "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq";
+export const XOCH_CONTRACT = "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt";
+export const INJECTIVE_CONTRACT = "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49";
+
+export const ORAI = "orai";
+export const ATOM_ORAICHAIN_DENOM =
+  "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
+export const OSMOSIS_ORAICHAIN_DENOM =
+  "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
   month: "short",
-  day: "2-digit"
+  day: "2-digit",
 });
 
 const timeFormat = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
-  second: "2-digit"
+  second: "2-digit",
 });
 
 // extend formatToJson
@@ -82,7 +86,7 @@ const chartOverrides = {
   "mainSeriesProperties.priceLineColor": "#3a3e5e",
   "scalesProperties.textColor": "#fff",
   "scalesProperties.lineColor": "#16182e",
-  ...chartStyleOverrides
+  ...chartStyleOverrides,
 };
 
 export const disabledFeaturesOnMobile = ["header_saveload", "header_fullscreen_button"];
@@ -100,7 +104,7 @@ const disabledFeatures = [
   "header_in_fullscreen_mode",
   "right_bar_stays_on_scroll",
   "symbol_info",
-  "volume_force_overlay"
+  "volume_force_overlay",
 ];
 
 const enabledFeatures = [
@@ -111,7 +115,7 @@ const enabledFeatures = [
   "hide_left_toolbar_by_default",
   "create_volume_indicator_by_default",
   "use_localstorage_for_settings",
-  "save_chart_properties_to_local_storage"
+  "save_chart_properties_to_local_storage",
 ];
 
 export const defaultChartProps = {
@@ -125,76 +129,88 @@ export const defaultChartProps = {
   overrides: chartOverrides,
   enabled_features: enabledFeatures,
   disabled_features: disabledFeatures,
-  custom_css_url: "/charting_library/style.css",
+  custom_css_url: "/charting_library/custom.css",
   favorites: {
-    intervals: FAVORITES_INTERVAL
+    intervals: FAVORITES_INTERVAL,
   },
   custom_formatters: {
     timeFormatter: {
-      format: (date) => formatTVTime(date)
+      format: (date) => formatTVTime(date),
     },
     dateFormatter: {
-      format: (date) => formatTVDate(date)
-    }
-  }
+      format: (date) => formatTVDate(date),
+    },
+  },
 };
 
 // the orders are important! Do not change the order of the asset_infos.
 export const pairs: PairMapping[] = [
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDT_CONTRACT } }],
-    symbols: ["ORAI", "USDT"]
+    symbols: ["ORAI", "USDT"],
   },
   {
     asset_infos: [{ token: { contract_addr: AIRI_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["AIRI", "ORAI"]
+    symbols: ["AIRI", "ORAI"],
   },
   {
     asset_infos: [{ token: { contract_addr: ORAIX_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["ORAIX", "ORAI"]
+    symbols: ["ORAIX", "ORAI"],
   },
   {
     asset_infos: [{ token: { contract_addr: SCORAI_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["scORAI", "ORAI"]
+    symbols: ["scORAI", "ORAI"],
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
-    symbols: ["ORAI", "ATOM"]
+    asset_infos: [
+      { native_token: { denom: ORAI } },
+      { native_token: { denom: ATOM_ORAICHAIN_DENOM } },
+    ],
+    symbols: ["ORAI", "ATOM"],
   },
 
   {
     asset_infos: [{ token: { contract_addr: KWT_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["KWT", "ORAI"]
+    symbols: ["KWT", "ORAI"],
   },
   {
     asset_infos: [
       { native_token: { denom: ORAI } },
       {
-        native_token: { denom: OSMOSIS_ORAICHAIN_DENOM }
-      }
+        native_token: { denom: OSMOSIS_ORAICHAIN_DENOM },
+      },
     ],
-    symbols: ["ORAI", "OSMO"]
+    symbols: ["ORAI", "OSMO"],
   },
   {
-    asset_infos: [{ token: { contract_addr: MILKY_CONTRACT } }, { token: { contract_addr: USDT_CONTRACT } }],
-    symbols: ["MILKY", "USDT"]
+    asset_infos: [
+      { token: { contract_addr: MILKY_CONTRACT } },
+      { token: { contract_addr: USDT_CONTRACT } },
+    ],
+    symbols: ["MILKY", "USDT"],
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDC_CONTRACT } }],
-    symbols: ["ORAI", "USDC"]
+    symbols: ["ORAI", "USDC"],
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: TRX_CONTRACT } }],
-    symbols: ["ORAI", "wTRX"]
+    symbols: ["ORAI", "wTRX"],
   },
   {
-    asset_infos: [{ token: { contract_addr: SCATOM_CONTRACT } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
-    symbols: ["scATOM", "ATOM"]
+    asset_infos: [
+      { token: { contract_addr: SCATOM_CONTRACT } },
+      { native_token: { denom: ATOM_ORAICHAIN_DENOM } },
+    ],
+    symbols: ["scATOM", "ATOM"],
   },
   {
-    asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["INJ", "ORAI"]
-  }
+    asset_infos: [
+      { token: { contract_addr: INJECTIVE_CONTRACT } },
+      { native_token: { denom: ORAI } },
+    ],
+    symbols: ["INJ", "ORAI"],
+  },
 ];
 
 export const pairsChart = pairs.map((pair) => {
@@ -207,6 +223,6 @@ export const pairsChart = pairs.map((pair) => {
     ...pair,
     assets,
     info: `${assets[0]}-${assets[1]}`,
-    symbol: `${pair.symbols[0]}/${pair.symbols[1]}`
+    symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
   };
 });

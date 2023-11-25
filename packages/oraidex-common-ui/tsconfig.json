@@ -1,19 +1,122 @@
+// // {
+// //   "extends": "../../tsconfig.json",
+// //   "compilerOptions": {
+// //     "baseUrl": ".",
+// //     "outDir": "build",
+// //     "declaration": true,
+// //     "rootDir": "src",
+// //     "jsx": "react",
+// //     "sourceMap": true
+// //   },
+// //   "include": ["src/**/*.ts|tsx", "src/index.ts", "src/components/**/*.tsx"],
+// //   "exclude": ["node_modules/", "../../node_modules/"]
+// // }
+
+// // {
+// //   "extends": "../../tsconfig.json",
+// //   "compilerOptions": {
+// //     "allowJs": true,
+// //     "esModuleInterop": true,
+// //     "allowSyntheticDefaultImports": true,
+// //     "strict": false,
+// //     "forceConsistentCasingInFileNames": true,
+// //     "noFallthroughCasesInSwitch": true,
+// //     "module": "esnext",
+// //     "moduleResolution": "node",
+// //     "resolveJsonModule": true,
+// //     "isolatedModules": true,
+// //     "jsx": "react"
+// //   },
+// //   "include": ["src"],
+// //   "exclude": ["src/**/*.stories.@(mdx,tsx)", "node_modules/", "../../node_modules/"]
+// // }
+
+// {
+//   "compilerOptions": {
+//     "target": "es2015",
+//     "esModuleInterop": true,
+//     "strict": false,
+//     "skipLibCheck": true,
+//     "jsx": "react",
+//     "module": "ESNext",
+//     "declaration": true,
+//     "declarationDir": "build/types",
+//     "sourceMap": true,
+//     "outDir": "build",
+//     "moduleResolution": "node",
+//     "emitDeclarationOnly": true,
+//     "allowSyntheticDefaultImports": true,
+//     "forceConsistentCasingInFileNames": true
+//   },
+//   "exclude": ["build", "node_modules", "lib", "es", "src/**/*.test.tsx", "src/**/*.stories.tsx"]
+// }
+
+// // {
+// //   "compilerOptions": {
+// //     // "target": "es5",
+// //     "target": "es2015",
+
+// //     // "lib": ["dom", "es2015", "es2017"],
+// //     "esModuleInterop": true,
+// //     "jsx": "react",
+// //     "sourceMap": true,
+// //     "module": "ESNext",
+// //     "moduleResolution": "node",
+// //     "declaration": true,
+// //     "declarationDir": "dist/types",
+// //     "outDir": "./dist",
+// //     "rootDir": "./src",
+// //     "strict": false,
+// //     "emitDeclarationOnly": true,
+// //     "allowSyntheticDefaultImports": true,
+// //     "forceConsistentCasingInFileNames": true,
+// //     "skipLibCheck": true
+// //     // ... other options
+// //   },
+// //   "include": ["src/**/*.ts", "src/**/*.tsx"],
+// //   "exclude": ["dist", "node_modules", "lib", "es", "src/**/*.test.tsx", "src/**/*.stories.tsx"]
+// // }
+// {
+//   "include": ["src"],
+//   "exclude": ["lib", "node_modules"],
+//   "compilerOptions": {
+//     "module": "esnext",
+//     "target": "esnext",
+//     "sourceMap": true,
+//     "declaration": true,
+//     "declarationMap": true,
+//     "noEmitOnError": true,
+//     "skipLibCheck": true,
+//     "esModuleInterop": true,
+//     "strict": false,
+//     "forceConsistentCasingInFileNames": true,
+//     "moduleResolution": "node",
+//     "jsx": "react",
+//     "lib": ["esnext", "dom"],
+//     "types": ["jest", "@types/jest"],
+//     "baseUrl": "src"
+//   }
+// }
+
 {
-  "extends": "../../tsconfig.json",
+  "exclude": ["node_modules"],
   "compilerOptions": {
-    "baseUrl": ".",
-    "outDir": "build",
-    "declaration": true,
-    "rootDir": "src",
-    "jsx": "react",
+    "module": "esnext",
+    "target": "esnext",
     "sourceMap": true,
-    "moduleResolution": "node",
-    "emitDeclarationOnly": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "noEmitOnError": true,
     "skipLibCheck": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "jsx": "react",
+    "lib": ["esnext", "dom"],
+    "types": ["jest", "@types/jest"],
+    "baseUrl": "src",
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts", "src/index.tsx", "src/components/**/*.tsx"],
-  "exclude": ["node_modules/"]
+  "include": ["./src"]
 }
