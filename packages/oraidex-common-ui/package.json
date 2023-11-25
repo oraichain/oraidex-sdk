@@ -4,11 +4,11 @@
   "files": [
     "dist/"
   ],
-  "main": "dist/index.js",
-  "module": "dist/index.js",
-  "typings": "dist/index.d.ts",
+  "main": "dist/umd/main.js",
+  "module": "dist/umd/main.js",
+  "types": "dist/umd/types/index.d.ts",
   "scripts": {
-    "build": "tsc",
+    "build": "rimraf dist/umd && webpack && tsc",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -26,9 +26,14 @@
     "@storybook/addon-links": "7.0.8",
     "@storybook/react": "7.0.8",
     "@storybook/react-webpack5": "7.0.8",
+    "@types/ramda": "^0.29.9",
     "@types/react": "^18.2.2",
-    "rollup": "^4.5.2",
-    "storybook": "7.0.8"
+    "css-minimizer-webpack-plugin": "^4.1.0",
+    "mini-css-extract-plugin": "^2.6.1",
+    "storybook": "7.0.8",
+    "terser-webpack-plugin": "^5.3.6",
+    "webpack": "^5.89.0",
+    "webpack-cli": "^5.1.4"
   },
   "peerDependencies": {
     "react": "^18.2.0",

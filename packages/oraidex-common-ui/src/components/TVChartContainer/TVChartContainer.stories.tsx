@@ -10,7 +10,11 @@ const meta: Meta<typeof TVChartContainer> = {
 export default meta;
 
 type Story = StoryObj<typeof TVChartContainer>;
-export const OraiUsdtChart: Story = (args: TVChartContainerProsp) => <TVChartContainer {...args} />;
+export const OraiUsdtChart: Story = (args: TVChartContainerProsp) => (
+  <div style={{ height: "80vh" }}>
+    <TVChartContainer {...args} />;
+  </div>
+);
 OraiUsdtChart.args = {
   theme: "dark",
   currentPair: {
@@ -19,7 +23,11 @@ OraiUsdtChart.args = {
   }
 };
 
-export const OraiAtomChart: Story = (args: TVChartContainerProsp) => <TVChartContainer {...args} />;
+export const OraiAtomChart: Story = (args: TVChartContainerProsp) => (
+  <div style={{ height: "80vh" }}>
+    <TVChartContainer {...args} />;
+  </div>
+);
 OraiAtomChart.args = {
   theme: "dark",
   currentPair: {
