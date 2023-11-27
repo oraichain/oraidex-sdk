@@ -940,6 +940,7 @@ export const network: CustomChainInfo & NetworkConfig = {
 
 // exclude kawaiverse subnet and other special evm that has different cointype
 export const evmChains = chainInfos.filter((c) => c.networkType === "evm");
+export const cosmosChains = chainInfos.filter((c) => c.networkType === "cosmos");
 
 // evm network
 export enum Networks {
