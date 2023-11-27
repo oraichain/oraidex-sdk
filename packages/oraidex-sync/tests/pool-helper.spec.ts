@@ -17,6 +17,7 @@ import { PairInfoData, PairMapping, PoolAmountHistory, ProvideLiquidityOperation
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import * as txParsing from "../src/tx-parsing";
+import { pairLpTokens } from "@oraichain/oraidex-common";
 describe("test-pool-helper", () => {
   let duckDb: DuckDb;
   beforeAll(async () => {
@@ -71,6 +72,7 @@ describe("test-pool-helper", () => {
       [usdtInfo, oraiInfo],
       {
         asset_infos: [oraiInfo, usdtInfo],
+        lp_token: pairLpTokens.USDT_ORAI,
         symbols: ["ORAI", "USDT"],
         factoryV1: true
       }
@@ -442,7 +444,7 @@ describe("test-pool-helper", () => {
       ];
       jest.spyOn(txParsing, "processEventApr").mockReturnValue({
         isTriggerRewardPerSec,
-        infoTokenAssetPools: new Set<string>([airiCw20Adress, scAtomCw20Address])
+        infoTokenAssetPools: new Set<string>([pairLpTokens.AIRI_ORAI, pairLpTokens.SCATOM_ATOM])
       });
 
       const result = await poolHelper.getListAssetInfoShouldRefetchApr(txs, ops);

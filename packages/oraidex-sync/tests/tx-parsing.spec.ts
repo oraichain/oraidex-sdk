@@ -7,6 +7,7 @@ import * as helper from "../src/helper";
 import * as poolHelper from "../src/pool-helper";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { pairLpTokens } from "@oraichain/oraidex-common";
 describe("test-tx-parsing", () => {
   it.each<[string, string[]]>([
     [
@@ -101,7 +102,7 @@ describe("test-tx-parsing", () => {
 
   it.each<[string, string, number]>([
     ["invalid-staking-asset-denom-should-return-0", "invalid-staking-asset-denom", 0],
-    ["valid-staking-asset-denom-should-return-correctly-price", usdtCw20Address, 5]
+    ["valid-staking-asset-denom-should-return-correctly-price", pairLpTokens.USDT_ORAI, 5]
   ])("test-calculateLpPrice-WITH-%p", async (_caseName, stakingAssetDenom, expectedResult) => {
     // setup
     const MOCK_TOTAL_SHARE = "2";

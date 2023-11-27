@@ -19,7 +19,7 @@ import {
   getPairLiquidity,
   recalculateTotalShare
 } from "./index";
-import { pairWithStakingAsset, pairs } from "./pairs";
+import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 import {
   fetchAllRewardPerSecInfos,
@@ -405,11 +405,7 @@ export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: Provide
   const { infoTokenAssetPools, isTriggerRewardPerSec } = processEventApr(txs);
   // bond/unbond trigger refetch info token asset pools
   const assetInfosTriggerTotalBond = Array.from(infoTokenAssetPools)
-    .map(
-      (stakingDenom) =>
-        pairWithStakingAsset.find((pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo) === stakingDenom)
-          ?.asset_infos
-    )
+    .map((stakingDenom) => pairs.find((pair) => pair.lp_token === stakingDenom)?.asset_infos)
     .filter(Boolean);
 
   if (isTriggerRewardPerSec) {

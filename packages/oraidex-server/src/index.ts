@@ -25,7 +25,6 @@ import {
   injAddress,
   oraiInfo,
   oraiUsdtPairOnlyDenom,
-  pairWithStakingAsset,
   pairs,
   pairsOnlyDenom,
   pairsWithDenom,
@@ -275,7 +274,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
 
   try {
     const [baseDenom, quoteDenom] = pairDenoms && pairDenoms.split("_");
-    const pair = pairWithStakingAsset.find((pair) =>
+    const pair = pairs.find((pair) =>
       isEqual(
         pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
         [baseDenom, quoteDenom]
@@ -402,13 +401,13 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
     let stakingAssetDenom;
     if (req.query.pairDenoms) {
       const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
-      const pair = pairWithStakingAsset.find((pair) =>
+      const pair = pairs.find((pair) =>
         isEqual(
           pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
           [baseDenom, quoteDenom]
         )
       );
-      stakingAssetDenom = pair && parseAssetInfoOnlyDenom(pair.stakingAssetInfo);
+      stakingAssetDenom = pair && pair.lp_token;
     }
 
     const [staked, earned] = await Promise.all([
@@ -424,9 +423,9 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
       return accumulator;
     }, {});
 
-    const result = pairWithStakingAsset.reduce(
+    const result = pairs.reduce(
       (result, item) => {
-        const stakingAssetDenom = parseAssetInfoOnlyDenom(item.stakingAssetInfo);
+        const stakingAssetDenom = item.lp_token;
         result[stakingAssetDenom] = {
           stakingAmountInUsdt: stakedWithKey[stakingAssetDenom] || 0,
           earnAmountInUsdt: earnedWithKey[stakingAssetDenom] || 0

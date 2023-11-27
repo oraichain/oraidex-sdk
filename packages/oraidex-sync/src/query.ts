@@ -15,8 +15,7 @@ import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/Oraisw
 import { network, tenAmountInDecimalSix } from "./constants";
 import { DuckDb } from "./db";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
-import { pairWithStakingAsset, pairs } from "./pairs";
-import { parseAssetInfoOnlyDenom } from "./parse";
+import { pairs } from "./pairs";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -120,7 +119,8 @@ async function fetchAllRewardPerSecInfos(assetInfos: Addr[]): Promise<OraiswapSt
   return await aggregateMulticall(queries);
 }
 
-type RewardInfoResponseWithStakingAsset = OraiswapStakingTypes.RewardInfoResponse & { stakingAssetInfo: AssetInfo };
+type RewardInfoResponseWithStakingAsset = OraiswapStakingTypes.RewardInfoResponse & { stakingToken: string };
+
 async function fetchAllRewardInfo(
   stakerAddr: string,
   wantedHeight?: number
@@ -136,7 +136,7 @@ async function fetchAllRewardInfo(
   const allRewardInfoOfUserWithStakingAsset = allRewardInfoOfUser.map((item, index) => {
     return {
       ...item,
-      stakingAssetInfo: pairWithStakingAsset[index].stakingAssetInfo
+      stakingToken: pairs[index].lp_token
     };
   });
   return allRewardInfoOfUserWithStakingAsset;

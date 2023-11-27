@@ -20,7 +20,7 @@ import {
   removeOpsDuplication,
   toDecimal
 } from "./helper";
-import { pairWithStakingAsset, pairs } from "./pairs";
+import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
 import {
   accumulatePoolAmount,
@@ -136,13 +136,11 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   return swapData;
 }
 
-async function calculateLpPrice(stakingAssetDenom: string): Promise<number> {
+async function calculateLpPrice(stakingToken: string): Promise<number> {
   try {
     const duckDb = DuckDb.instances;
-    const pair = pairWithStakingAsset.find(
-      (pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo) === stakingAssetDenom
-    );
-    if (!pair) throw new Error(`Cannot find pair with staking asset denom: ${stakingAssetDenom}`);
+    const pair = pairs.find((pair) => pair.lp_token === stakingToken);
+    if (!pair) throw new Error(`Cannot find pair with staking token: ${stakingToken}`);
 
     const pairInfo = await duckDb.getPoolByAssetInfos(pair.asset_infos);
     if (!pairInfo) throw new Error(`Cannot find pair with asset_infos: ${pair.asset_infos}`);
@@ -244,7 +242,7 @@ async function extractStakingOperations(
 ): Promise<StakingOperationData[]> {
   let stakingData: StakingOperationData[] = [];
   let stakerAddresses: string[] = [];
-  let stakingAssetDenoms: string[] = [];
+  let stakingTokens: string[] = [];
   let stakeAmounts: number[] = [];
   for (let attrs of wasmAttributes) {
     const stakingAction = attrs.find(
@@ -254,8 +252,8 @@ async function extractStakingOperations(
     for (let attr of attrs) {
       if (attr.key === "staker_addr") {
         stakerAddresses.push(attr.value);
-      } else if (attr.key === "asset_info") {
-        stakingAssetDenoms.push(attr.value);
+      } else if (attr.key === "staking_token") {
+        stakingTokens.push(attr.value);
       } else if (attr.key === "amount") {
         const stakeAmount = stakingAction.value === "bond" ? parseInt(attr.value) : -parseInt(attr.value);
         stakeAmounts.push(stakeAmount);
@@ -265,7 +263,7 @@ async function extractStakingOperations(
 
   for (let i = 0; i < stakerAddresses.length; i++) {
     const wantedHeight = txData.txheight - 1;
-    const lpPrice = await calculateLpPrice(stakingAssetDenoms[i]);
+    const lpPrice = await calculateLpPrice(stakingTokens[i]);
 
     let newStakedAmount = 0;
     // check if staker has staked before or not.
@@ -283,10 +281,10 @@ async function extractStakingOperations(
             txheight: txData.txheight,
             stakeAmount,
             stakerAddress: stakerAddresses[i],
-            stakeAssetDenom: parseAssetInfoOnlyDenom(item.stakingAssetInfo)
+            stakeAssetDenom: item.stakingToken
           }),
           stakerAddress: stakerAddresses[i],
-          stakingAssetDenom: parseAssetInfoOnlyDenom(item.stakingAssetInfo),
+          stakingAssetDenom: item.stakingToken,
           stakeAmount: BigInt(stakeAmount),
           timestamp: txData.timestamp,
           txhash: txData.txhash,
@@ -303,10 +301,10 @@ async function extractStakingOperations(
           txheight: txData.txheight,
           stakeAmount: stakeAmounts[i],
           stakerAddress: stakerAddresses[i],
-          stakeAssetDenom: stakingAssetDenoms[i]
+          stakeAssetDenom: stakingTokens[i]
         }),
         stakerAddress: stakerAddresses[i],
-        stakingAssetDenom: stakingAssetDenoms[i],
+        stakingAssetDenom: stakingTokens[i],
         stakeAmount: BigInt(stakeAmounts[i]),
         timestamp: txData.timestamp,
         txhash: txData.txhash,
@@ -665,7 +663,7 @@ export const processEventApr = (txs: Tx[]) => {
       const wasmAttributes = parseWasmEvents(msg.logs.events);
       for (let attrs of wasmAttributes) {
         if (attrs.find((attr) => attr.key === "action" && (attr.value === "bond" || attr.value === "unbond"))) {
-          const stakingAssetDenom = attrs.find((attr) => attr.key === "asset_info")?.value;
+          const stakingAssetDenom = attrs.find((attr) => attr.key === "staking_token")?.value;
           assets.infoTokenAssetPools.add(stakingAssetDenom);
         }
 
