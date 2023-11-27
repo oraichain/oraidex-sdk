@@ -22,30 +22,36 @@ import { PairMapping } from "./types";
 export const pairs: PairMapping[] = [
   {
     asset_infos: [{ token: { contract_addr: airiCw20Adress } }, { native_token: { denom: ORAI } }],
+    lp_token: "",
     symbols: ["AIRI", "ORAI"],
     factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: oraixCw20Address } }, { native_token: { denom: ORAI } }],
+    lp_token: "",
     symbols: ["ORAIX", "ORAI"],
     factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+    lp_token: "",
     symbols: ["scORAI", "ORAI"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
+    lp_token: "",
     symbols: ["ORAI", "ATOM"],
     factoryV1: true
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
+    lp_token: "",
     symbols: ["ORAI", "USDT"],
     factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: kwtCw20Address } }, { native_token: { denom: ORAI } }],
+    lp_token: "",
     symbols: ["KWT", "ORAI"],
     factoryV1: true
   },
@@ -56,29 +62,35 @@ export const pairs: PairMapping[] = [
         native_token: { denom: osmosisIbcDenom }
       }
     ],
+    lp_token: "",
     symbols: ["ORAI", "OSMO"],
     factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: milkyCw20Address } }, { token: { contract_addr: usdtCw20Address } }],
+    lp_token: "",
     symbols: ["MILKY", "USDT"],
     factoryV1: true
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
+    lp_token: "",
     symbols: ["ORAI", "USDC"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: tronCw20Address } }],
+    lp_token: "",
     symbols: ["ORAI", "WTRX"]
   },
   {
     asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
+    lp_token: "",
     symbols: ["scATOM", "ATOM"]
   },
   // we will reverse order for this pair in api /tickers for Coingecko
   {
     asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
+    lp_token: "",
     symbols: ["INJ", "ORAI"]
   }
 ];

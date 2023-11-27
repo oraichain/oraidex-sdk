@@ -180,6 +180,7 @@ export type OraiswapPairCw20HookMsg = {
 };
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
+  lp_token: string;
   symbols: [string, string];
   factoryV1?: boolean;
 };

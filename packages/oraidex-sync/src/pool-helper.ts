@@ -405,10 +405,11 @@ export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: Provide
   const { infoTokenAssetPools, isTriggerRewardPerSec } = processEventApr(txs);
   // bond/unbond trigger refetch info token asset pools
   const assetInfosTriggerTotalBond = Array.from(infoTokenAssetPools)
-    .map((stakingDenom) => {
-      return pairWithStakingAsset.find((pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo) === stakingDenom)
-        ?.asset_infos;
-    })
+    .map(
+      (stakingDenom) =>
+        pairWithStakingAsset.find((pair) => parseAssetInfoOnlyDenom(pair.stakingAssetInfo) === stakingDenom)
+          ?.asset_infos
+    )
     .filter(Boolean);
 
   if (isTriggerRewardPerSec) {
