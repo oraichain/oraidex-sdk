@@ -1,4 +1,4 @@
-import { CosmosChainId, EvmChainId } from "./network";
+import { CosmosChainId, EvmChainId, chainInfos, cosmosChains, evmChains } from "./network";
 
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
@@ -132,16 +132,23 @@ export const WEBSOCKET_RECONNECT_INTERVAL = 20000;
 export const UNISWAP_ROUTER_DEADLINE = 15000; // swap deadline in ms
 export const EVM_BALANCE_RETRY_COUNT = 5;
 
-export const EVM_CHAIN_ID: EvmChainId[] = ["0x38", "0x01", "0x1ae6", "0x2b6653dc"];
-export const COSMOS_CHAIN_ID: CosmosChainId[] = [
-  "Oraichain",
-  "oraibridge-subnet-2",
-  "osmosis-1",
-  "cosmoshub-4",
-  "injective-1",
-  "kawaii_6886-1",
-  "noble-1"
-];
+// evm chainID
+export enum EVM_CHAIN_ID_COMMON {
+  ETH_CHAIN_ID = "0x01",
+  BSC_CHAIN_ID = "0x38",
+  KAWAII_EVM_CHAIN_ID = "0x1ae6",
+  TRON_CHAIN_ID = "0x2b6653dc"
+}
+// cosmos chainId
+export enum COSMOS_CHAIN_ID_COMMON {
+  ORAICHAIN_CHAIN_ID = "Oraichain",
+  ORAIBRIDGE_CHAIN_ID = "oraibridge-subnet-2",
+  OSMOSIS_CHAIN_ID = "osmosis-1",
+  COSMOSHUB_CHAIN_ID = "cosmoshub-4",
+  INJECTVE_CHAIN_ID = "injective-1",
+  KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1",
+  NOBLE_CHAIN_ID = "noble-1"
+}
 
 // asset info token
 export const ORAI_INFO = {
