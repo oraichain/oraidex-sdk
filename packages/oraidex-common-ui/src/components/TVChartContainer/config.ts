@@ -3,13 +3,13 @@ import { FAVORITES_INTERVAL } from "./helpers/constants";
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
   month: "short",
-  day: "2-digit",
+  day: "2-digit"
 });
 
 const timeFormat = new Intl.DateTimeFormat("en-US", {
   hour: "numeric",
   minute: "2-digit",
-  second: "2-digit",
+  second: "2-digit"
 });
 
 // extend formatToJson
@@ -66,7 +66,7 @@ const chartOverrides = {
   "mainSeriesProperties.priceLineColor": "#3a3e5e",
   "scalesProperties.textColor": "#fff",
   "scalesProperties.lineColor": "#16182e",
-  ...chartStyleOverrides,
+  ...chartStyleOverrides
 };
 
 export const disabledFeaturesOnMobile = ["header_saveload", "header_fullscreen_button"];
@@ -84,7 +84,7 @@ const disabledFeatures = [
   "header_in_fullscreen_mode",
   "right_bar_stays_on_scroll",
   "symbol_info",
-  "volume_force_overlay",
+  "volume_force_overlay"
 ];
 
 const enabledFeatures = [
@@ -95,7 +95,7 @@ const enabledFeatures = [
   "hide_left_toolbar_by_default",
   "create_volume_indicator_by_default",
   "use_localstorage_for_settings",
-  "save_chart_properties_to_local_storage",
+  "save_chart_properties_to_local_storage"
 ];
 
 export const defaultChartProps = {
@@ -109,16 +109,16 @@ export const defaultChartProps = {
   overrides: chartOverrides,
   enabled_features: enabledFeatures,
   disabled_features: disabledFeatures,
-  custom_css_url: "/charting_library/custom.css",
+  custom_css_url: "/custom.css",
   favorites: {
-    intervals: FAVORITES_INTERVAL,
+    intervals: FAVORITES_INTERVAL
   },
   custom_formatters: {
     timeFormatter: {
-      format: (date) => formatTVTime(date),
+      format: (date) => formatTVTime(date)
     },
     dateFormatter: {
-      format: (date) => formatTVDate(date),
-    },
-  },
+      format: (date) => formatTVDate(date)
+    }
+  }
 };
