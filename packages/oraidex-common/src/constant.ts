@@ -133,19 +133,22 @@ export const UNISWAP_ROUTER_DEADLINE = 15000; // swap deadline in ms
 export const EVM_BALANCE_RETRY_COUNT = 5;
 
 // evm chainID
-export const ETH_CHAIN_ID = "0x01";
-export const BSC_CHAIN_ID = "0x38";
-export const KAWAII_EVM_CHAIN_ID = "0x1ae6";
-export const TRON_CHAIN_ID = "0x2b6653dc";
-
+export enum EVM_CHAIN_ID_COMMON {
+  ETH_CHAIN_ID = "0x01",
+  BSC_CHAIN_ID = "0x38",
+  KAWAII_EVM_CHAIN_ID = "0x1ae6",
+  TRON_CHAIN_ID = "0x2b6653dc"
+}
 // cosmos chainId
-export const ORAICHAIN_CHAIN_ID = "Oraichain";
-export const ORAIBRIDGE_CHAIN_ID = "oraibridge-subnet-2";
-export const OSMOSIS_CHAIN_ID = "osmosis-1";
-export const COSMOSHUB_CHAIN_ID = "cosmoshub-4";
-export const INJECTVE_CHAIN_ID = "injective-1";
-export const KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1";
-export const NOBLE_CHAIN_ID = "noble-1";
+export enum COSMOS_CHAIN_ID_COMMON {
+  ORAICHAIN_CHAIN_ID = "Oraichain",
+  ORAIBRIDGE_CHAIN_ID = "oraibridge-subnet-2",
+  OSMOSIS_CHAIN_ID = "osmosis-1",
+  COSMOSHUB_CHAIN_ID = "cosmoshub-4",
+  INJECTVE_CHAIN_ID = "injective-1",
+  KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1",
+  NOBLE_CHAIN_ID = "noble-1"
+}
 
 // asset info token
 export const ORAI_INFO = {
