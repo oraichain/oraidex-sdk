@@ -32,12 +32,15 @@ export type TVChartContainerProsp = {
   theme: "dark" | "light";
   currentPair: PairToken;
   pairsChart: PairToken[];
+  setChartTimeFrame?: (tf: number) => void;
 };
+
 export default function TVChartContainer({
   libraryUrl = DEFAULT_LIBRARY_URL,
   theme,
   currentPair,
-  pairsChart
+  pairsChart,
+  setChartTimeFrame
 }: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
@@ -47,7 +50,8 @@ export default function TVChartContainer({
     dataProvider: new TVDataProvider(),
     currentPair,
     setChartDataLength,
-    pairsChart
+    pairsChart,
+    setChartTimeFrame
   });
   const isMobile = useMedia("(max-width: 550px)");
   const [chartReady, setChartReady] = useState(false);

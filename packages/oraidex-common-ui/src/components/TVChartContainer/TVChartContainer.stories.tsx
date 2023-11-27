@@ -20,6 +20,15 @@ OraiUsdtChart.args = {
   currentPair: {
     symbol: "ORAI/USDT",
     info: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+  },
+  pairsChart: [
+    {
+      symbol: "ORAI/USDT",
+      info: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+    }
+  ],
+  setChartTimeFrame: (resolution) => {
+    console.log({ resolutionUpdate: resolution });
   }
 };
 
@@ -33,5 +42,11 @@ OraiAtomChart.args = {
   currentPair: {
     symbol: "ORAI/ATOM",
     info: "orai-ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
-  }
+  },
+  pairsChart: [
+    {
+      symbol: "ORAI/ATOM",
+      info: "orai-ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
+    }
+  ]
 };

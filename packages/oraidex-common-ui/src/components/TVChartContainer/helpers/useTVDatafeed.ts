@@ -25,13 +25,20 @@ const configurationData = {
 type Props = {
   dataProvider?: TVDataProvider;
   currentPair: PairToken;
-  setChartDataLength: any;
-  pairsChart: PairToken[]
+  setChartDataLength: React.Dispatch<React.SetStateAction<number>>;
+  pairsChart: PairToken[];
+  setChartTimeFrame?: (tf: number) => void;
 };
 
 export const EXCHANGE_NAME = "OraiDEX";
 
-export default function useTVDatafeed({ dataProvider, currentPair, setChartDataLength, pairsChart }: Props) {
+export default function useTVDatafeed({
+  dataProvider,
+  currentPair,
+  setChartDataLength,
+  pairsChart,
+  setChartTimeFrame
+}: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>();
   const resetCacheRef = useRef<() => void | undefined>();
   const activeTicker = useRef<string | undefined>();
@@ -97,6 +104,7 @@ export default function useTVDatafeed({ dataProvider, currentPair, setChartDataL
               return;
             }
             const pair = pairsChart.find((p) => p.symbol === symbolInfo.ticker);
+            if (setChartTimeFrame) setChartTimeFrame(+resolution);
 
             const bars = await tvDataProvider.current?.getBars(
               pair?.info,
