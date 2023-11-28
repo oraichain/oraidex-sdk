@@ -11,14 +11,11 @@ import {
   calculatePriceByPool,
   concatDataToUniqueKey,
   concatStakingpHistoryToUniqueKey,
-  getPairLiquidity,
   getSwapDirection,
   groupByTime,
-  groupDuplicateStakeOps,
   isAssetInfoPairReverse,
   isoToTimestampNumber,
-  removeOpsDuplication,
-  toDecimal
+  removeOpsDuplication
 } from "./helper";
 import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
@@ -29,7 +26,6 @@ import {
   getPriceAssetByUsdt,
   isPoolHasFee
 } from "./pool-helper";
-import { fetchAllRewardInfo } from "./query";
 import {
   AccountTx,
   BasicTxData,
@@ -42,7 +38,6 @@ import {
   OraiswapRouterCw20HookMsg,
   PoolInfo,
   ProvideLiquidityOperationData,
-  StakingOperationData,
   SwapOperationData,
   TxAnlysisResult,
   WithdrawLiquidityOperationData
@@ -136,28 +131,6 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   return swapData;
 }
 
-async function calculateLpPrice(stakingToken: string): Promise<number> {
-  try {
-    const duckDb = DuckDb.instances;
-    const pair = pairs.find((pair) => pair.lp_token === stakingToken);
-    if (!pair) throw new Error(`Cannot find pair with staking token: ${stakingToken}`);
-
-    const pairInfo = await duckDb.getPoolByAssetInfos(pair.asset_infos);
-    if (!pairInfo) throw new Error(`Cannot find pair with asset_infos: ${pair.asset_infos}`);
-
-    const latestLpPoolHistory = await duckDb.getLatestLpPoolAmount(pairInfo.pairAddr);
-
-    const totalLiquidityInUsdt = await getPairLiquidity(pairInfo);
-    const totalShare = BigInt(latestLpPoolHistory.totalShare);
-    // == total LP in usdt / total LP
-    const lpPrice = toDecimal(BigInt(Math.trunc(totalLiquidityInUsdt).toString()), totalShare);
-    return lpPrice;
-  } catch (error) {
-    console.log("error in calculateLpPrice: ", error.message);
-    return 0;
-  }
-}
-
 export const getBaseQuoteAmountFromSwapOps = (swapOp: SwapOperationData) => {
   // Sell: offer is ORAI, return is USDT
   // Buy: offer is USDT, return is ORAI
@@ -235,87 +208,6 @@ export const calculateSwapOpsWithPoolAmount = async (swapOps: SwapOperationData[
     console.log("error in calculateSwapOpsWithPoolAmount: ", error.message);
   }
 };
-
-async function extractStakingOperations(
-  txData: BasicTxData,
-  wasmAttributes: (readonly Attribute[])[]
-): Promise<StakingOperationData[]> {
-  let stakingData: StakingOperationData[] = [];
-  let stakerAddresses: string[] = [];
-  let stakingTokens: string[] = [];
-  let stakeAmounts: number[] = [];
-  for (let attrs of wasmAttributes) {
-    const stakingAction = attrs.find(
-      (attr) => attr.key === "action" && (attr.value === "bond" || attr.value === "unbond")
-    );
-    if (!stakingAction) continue;
-    for (let attr of attrs) {
-      if (attr.key === "staker_addr") {
-        stakerAddresses.push(attr.value);
-      } else if (attr.key === "staking_token") {
-        stakingTokens.push(attr.value);
-      } else if (attr.key === "amount") {
-        const stakeAmount = stakingAction.value === "bond" ? parseInt(attr.value) : -parseInt(attr.value);
-        stakeAmounts.push(stakeAmount);
-      }
-    }
-  }
-
-  for (let i = 0; i < stakerAddresses.length; i++) {
-    const wantedHeight = txData.txheight - 1;
-    const lpPrice = await calculateLpPrice(stakingTokens[i]);
-
-    let newStakedAmount = 0;
-    // check if staker has staked before or not.
-    const duckDb = DuckDb.instances;
-    const countHistories = await duckDb.getStakingHistoriesByStaker(stakerAddresses[i]);
-    if (countHistories === 0) {
-      // get from contract with wanted height is txheight - 1 because we want to get bond amount before user bond/unbond.
-      // in this case, we fetch all reward info of all pair from contract to save initial data for user.
-      const currentAllStaking = await fetchAllRewardInfo(stakerAddresses[i], wantedHeight);
-      const newStakingDatas = currentAllStaking.map((item) => {
-        const stakeAmount = Number(item?.reward_infos[0]?.bond_amount || "0");
-        const stakeAmountInUsdt = lpPrice * stakeAmount;
-        return {
-          uniqueKey: concatStakingpHistoryToUniqueKey({
-            txheight: txData.txheight,
-            stakeAmount,
-            stakerAddress: stakerAddresses[i],
-            stakeAssetDenom: item.stakingToken
-          }),
-          stakerAddress: stakerAddresses[i],
-          stakingAssetDenom: item.stakingToken,
-          stakeAmount: BigInt(stakeAmount),
-          timestamp: txData.timestamp,
-          txhash: txData.txhash,
-          txheight: wantedHeight,
-          stakeAmountInUsdt,
-          lpPrice
-        } as StakingOperationData;
-      });
-      stakingData.push(...newStakingDatas);
-    } else {
-      newStakedAmount = lpPrice * stakeAmounts[i];
-      stakingData.push({
-        uniqueKey: concatStakingpHistoryToUniqueKey({
-          txheight: txData.txheight,
-          stakeAmount: stakeAmounts[i],
-          stakerAddress: stakerAddresses[i],
-          stakeAssetDenom: stakingTokens[i]
-        }),
-        stakerAddress: stakerAddresses[i],
-        stakingAssetDenom: stakingTokens[i],
-        stakeAmount: BigInt(stakeAmounts[i]),
-        timestamp: txData.timestamp,
-        txhash: txData.txhash,
-        txheight: txData.txheight,
-        stakeAmountInUsdt: newStakedAmount,
-        lpPrice
-      });
-    }
-  }
-  return stakingData;
-}
 
 async function extractClaimOperations(
   txData: BasicTxData,
@@ -590,7 +482,6 @@ function parseExecuteContractToOraidexMsgs(msgs: MsgExecuteContractWithLogs[]): 
 async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
   let transactions: Tx[] = [];
   let swapOpsData: SwapOperationData[] = [];
-  let stakingOpsData: StakingOperationData[] = [];
   let claimOpsData: EarningOperationData[] = [];
   let accountTxs: AccountTx[] = [];
   let provideLiquidityOpsData: ProvideLiquidityOperationData[] = [];
@@ -610,7 +501,6 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
       const wasmAttributes = parseWasmEvents(msg.logs.events);
 
       swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
-      stakingOpsData.push(...(await extractStakingOperations(basicTxData, wasmAttributes)));
       claimOpsData.push(...(await extractClaimOperations(basicTxData, wasmAttributes, msg.msg)));
       const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
@@ -628,7 +518,6 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
     removeOpsDuplication(withdrawLiquidityOpsData)
   ) as WithdrawLiquidityOperationData[];
 
-  stakingOpsData = groupByTime(groupDuplicateStakeOps(stakingOpsData)) as StakingOperationData[];
   claimOpsData = groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[];
 
   const lpOpsData = [...provideLiquidityOpsData, ...withdrawLiquidityOpsData];
@@ -642,7 +531,6 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
     accountTxs,
     provideLiquidityOpsData,
     withdrawLiquidityOpsData,
-    stakingOpsData: groupByTime(removeOpsDuplication(stakingOpsData)) as StakingOperationData[],
     claimOpsData: groupByTime(removeOpsDuplication(claimOpsData)) as EarningOperationData[],
     poolAmountHistories
   };
@@ -677,4 +565,4 @@ export const processEventApr = (txs: Tx[]) => {
   return assets;
 };
 
-export { parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets, calculateLpPrice };
+export { parseTxToMsgExecuteContractMsgs, parseTxs, parseWasmEvents, parseWithdrawLiquidityAssets };

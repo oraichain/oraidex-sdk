@@ -22,7 +22,6 @@ class WriteOrders extends WriteData {
       this.duckDb.insertSwapOps(txs.swapOpsData),
       this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
       this.duckDb.insertOhlcv(txs.ohlcv),
-      this.duckDb.insertStakingHistories(txs.stakingOpsData),
       this.duckDb.insertEarningHistories(txs.claimOpsData),
       this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
     ]);
@@ -57,11 +56,7 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(
-    private readonly duckDb: DuckDb,
-    private readonly rpcUrl: string,
-    private readonly env: Env
-  ) {}
+  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) {}
 
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     return new OraiDexSync(duckDb, rpcUrl, env);
@@ -107,7 +102,6 @@ class OraiDexSync {
         pairInfos.map((pair) => pair.pairAddr),
         currentHeight
       );
-      console.log({poolInfos});
       const INITIAL_TIMESTAMP = 1;
       await this.duckDb.insertPoolAmountHistory(
         // we check if poolInfos[index] is available because in currentHeight we query, maybe it has some pools are not created yet
@@ -176,7 +170,8 @@ class OraiDexSync {
         this.duckDb.createPoolAprTable(),
         this.duckDb.createStakingHistoryTable(),
         this.duckDb.createEarningHistoryTable(),
-        this.duckDb.addTimestampColToPoolAprTable()
+        this.duckDb.addTimestampColToPoolAprTable(),
+        this.duckDb.dropStakingHistoryTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
