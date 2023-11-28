@@ -47,4 +47,3 @@ export interface PairInfo {
   liquidity_token: Addr;
   oracle_addr: Addr;
 }
-export { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";

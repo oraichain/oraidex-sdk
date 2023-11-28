@@ -13,6 +13,7 @@ import { AVERAGE_COSMOS_GAS_PRICE, WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic,
 import { CoinGeckoId, NetworkChainId } from "./network";
 import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
 import { StargateMsg, Tx } from "./tx";
+import { BigDecimal } from "./bigdecimal";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -154,8 +155,13 @@ export const calculateMinReceive = (
   userSlippage: number,
   decimals: number
 ): Uint128 => {
-  const amount = BigInt(simulateAverage) * BigInt(fromAmount);
-  return ((BigInt(Math.trunc(toDisplay(amount, decimals))) * (100n - BigInt(userSlippage))) / 100n).toString();
+  return Math.trunc(
+    new BigDecimal(simulateAverage)
+      .mul(fromAmount)
+      .mul((100 - userSlippage) / 100)
+      .div(10n ** BigInt(decimals))
+      .toNumber()
+  ).toString();
 };
 
 export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string): { fund?: Coin; info: AssetInfo } => {
@@ -190,13 +196,14 @@ export const proxyContractInfo: { [x: string]: { wrapNativeAddr: string; routerA
   }
 };
 
-export const findToTokenOnOraiBridge = (fromToken: TokenItemType, toNetwork: NetworkChainId) => {
-  const toToken = cosmosTokens.find((t) =>
-    t.chainId === "oraibridge-subnet-2" && t.coinGeckoId === fromToken.coinGeckoId && t?.bridgeNetworkIdentifier
-      ? t.bridgeNetworkIdentifier === toNetwork
-      : t.chainId === toNetwork
+export const findToTokenOnOraiBridge = (fromCoingeckoId: CoinGeckoId, toNetwork: NetworkChainId) => {
+  return cosmosTokens.find(
+    (t) =>
+      t.chainId === "oraibridge-subnet-2" &&
+      t.coinGeckoId === fromCoingeckoId &&
+      t.bridgeNetworkIdentifier &&
+      t.bridgeNetworkIdentifier === toNetwork
   );
-  return toToken;
 };
 
 export const parseAssetInfo = (assetInfo: AssetInfo): string => {

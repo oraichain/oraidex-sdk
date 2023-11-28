@@ -5,17 +5,19 @@ import { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 export const swapOraichainToOraichain = async (data: {
   cosmosWallet: CosmosWallet;
   fromAmount: number;
+  simulateAmount: string;
   fromToken: TokenItemType;
   toToken: TokenItemType;
   simulatePrice: string;
   userSlippage: number;
 }): Promise<ExecuteResult> => {
-  const { cosmosWallet, fromAmount, fromToken, toToken, simulatePrice, userSlippage } = data;
+  const { cosmosWallet, fromAmount, fromToken, toToken, simulatePrice, userSlippage, simulateAmount } = data;
   const sender = await cosmosWallet.getKeplrAddr("Oraichain");
   const handler = new UniversalSwapHandler(
     {
       sender: { cosmos: sender },
       fromAmount,
+      simulateAmount,
       originalFromToken: fromToken,
       originalToToken: toToken,
       simulatePrice,

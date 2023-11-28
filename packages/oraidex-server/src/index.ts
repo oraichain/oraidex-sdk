@@ -40,7 +40,7 @@ import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
 import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
-import { AssetInfo } from "@oraichain/common-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 const app = express();
 app.use(cors());
@@ -270,16 +270,19 @@ app.get("/v1/pools/", async (_req, res) => {
 });
 
 app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, res) => {
-  if (!req.query.pairDenoms) return res.status(400).send("Not enough query params: pairDenoms");
+  const { pairDenoms } = req.query;
+  if (!pairDenoms) return res.status(400).send("Not enough query params: pairDenoms");
 
   try {
-    const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
+    const [baseDenom, quoteDenom] = pairDenoms && pairDenoms.split("_");
     const pair = pairWithStakingAsset.find((pair) =>
       isEqual(
         pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
         [baseDenom, quoteDenom]
       )
     );
+    if (!pair) throw new Error(`Cannot find pair with denoms: ${pairDenoms}`);
+
     const tf = 24 * 60 * 60; // second of 24h
     const currentDate = new Date();
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
@@ -295,7 +298,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
       percentVolumeChange = (Number(poolVolume - poolVolumeOnedayBefore) / Number(poolVolumeOnedayBefore)) * 100;
     }
 
-    const poolApr = await duckDb.getAprPool(pool.pairAddr);
+    const poolApr = await duckDb.getLatestPoolApr(pool.pairAddr);
     const poolLiquidity = await getPairLiquidity(pool);
     const poolDetailResponse = {
       ...pool,
@@ -454,14 +457,19 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
   }
 });
 
-app.listen(port, hostname, async () => {
-  // sync data for the service to read
-  duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
-  const oraidexSync = await OraiDexSync.create(
-    duckDb,
-    process.env.RPC_URL || "https://rpc.orai.io",
-    process.env as any
-  );
-  oraidexSync.sync();
-  console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
-});
+app
+  .listen(port, hostname, async () => {
+    // sync data for the service to read
+    duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
+    const oraidexSync = await OraiDexSync.create(
+      duckDb,
+      process.env.RPC_URL || "https://rpc.orai.io",
+      process.env as any
+    );
+    oraidexSync.sync();
+    console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
+  })
+  .on("error", (err) => {
+    console.log("error when start oraiDEX server", err);
+    process.exit(1);
+  });

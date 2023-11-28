@@ -3,7 +3,11 @@
   "version": "1.0.24",
   "main": "build/index.js",
   "files": [
-    "build/"
+    "build/",
+    "@types"
   ],
+  "scripts": {
+    "build":"tsc -p tsconfig.json"
+  },
   "license": "MIT"
 }

@@ -7,7 +7,7 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, OrderStatus, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
+import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
 export interface OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
   contractInfo: () => Promise<ContractInfoResponse>;
@@ -248,10 +248,12 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
     commissionRate,
-    rewardAddress
+    rewardAddress,
+    spreadAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
+    spreadAddress?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   createOrderBookPair: ({
     baseCoinInfo,
@@ -341,15 +343,18 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
   };
   updateConfig = async ({
     commissionRate,
-    rewardAddress
+    rewardAddress,
+    spreadAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
+    spreadAddress?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
         commission_rate: commissionRate,
-        reward_address: rewardAddress
+        reward_address: rewardAddress,
+        spread_address: spreadAddress
       }
     }, _fee, _memo, _funds);
   };

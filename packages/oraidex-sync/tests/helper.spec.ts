@@ -582,30 +582,35 @@ describe("test-helper", () => {
   });
 
   it.each([
-    ["Buy" as SwapDirection, 2],
-    ["Sell" as SwapDirection, 0.5]
-  ])("test-calculateBasePriceFromSwapOp", (direction: SwapDirection, expectedPrice: number) => {
-    const swapOp = {
-      offerAmount: 2,
-      offerDenom: ORAI,
-      returnAmount: 1,
-      askDenom: usdtCw20Address,
-      direction,
-      uniqueKey: "1",
-      timestamp: 1,
-      txCreator: "a",
-      txhash: "a",
-      txheight: 1,
-      spreadAmount: 1,
-      taxAmount: 1,
-      commissionAmount: 1
-    } as SwapOperationData;
-    // first case undefined, return 0
-    expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
-    // other cases
-    const price = calculateBasePriceFromSwapOp(swapOp);
-    expect(price).toEqual(expectedPrice);
-  });
+    ["Buy" as SwapDirection, 100n, 200n, 2],
+    ["Sell" as SwapDirection, 105n, 214n, 2.038095238095238]
+  ])(
+    "test-calculateBasePriceFromSwapOp",
+    (direction: SwapDirection, basePoolAmount, quotePoolAmount, expectedPrice: number) => {
+      const swapOp = {
+        offerAmount: 2,
+        offerDenom: ORAI,
+        returnAmount: 1,
+        askDenom: usdtCw20Address,
+        direction,
+        uniqueKey: "1",
+        timestamp: 1,
+        txCreator: "a",
+        txhash: "a",
+        txheight: 1,
+        spreadAmount: 1,
+        taxAmount: 1,
+        commissionAmount: 1,
+        basePoolAmount,
+        quotePoolAmount
+      } as SwapOperationData;
+      // first case undefined, return 0
+      expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
+      // other cases
+      const price = calculateBasePriceFromSwapOp(swapOp);
+      expect(price).toEqual(expectedPrice);
+    }
+  );
 
   it.each([
     [usdtCw20Address, "orai", "Buy" as SwapDirection],
@@ -723,13 +728,12 @@ describe("test-helper", () => {
     it("test-getVolumePairByAsset-should-return-correctly-sum-volume-swap-&-liquidity", async () => {
       // setup mock
       jest.spyOn(duckDb, "getVolumeSwap").mockResolvedValue(1n);
-      jest.spyOn(duckDb, "getVolumeLiquidity").mockResolvedValue(1n);
 
       // act
       const result = await getVolumePairByAsset(["orai", "usdt"], new Date(1693394183), new Date(1693394183));
 
       // assert
-      expect(result).toEqual(3n);
+      expect(result).toEqual(1n);
     });
 
     it("test-getVolumePairByUsdt-should-return-correctly-volume-pair-in-USDT", async () => {

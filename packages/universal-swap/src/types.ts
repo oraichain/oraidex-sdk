@@ -43,7 +43,7 @@ export interface UniversalSwapData {
   readonly originalFromToken: TokenItemType;
   readonly originalToToken: TokenItemType;
   readonly fromAmount: number;
-  readonly simulateAmount?: string; // toAmount given fromAmount. TODO: auto simulate if not passed
+  readonly simulateAmount: string; // toAmount given fromAmount. TODO: auto simulate if not passed
   readonly userSlippage?: number;
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;

@@ -19,59 +19,66 @@ import { oraichainTokens } from "./token";
 
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
+  symbols: [string, string];
   factoryV1?: boolean;
 };
 
 export const PAIRS: PairMapping[] = [
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: AIRI_CONTRACT } }],
+    asset_infos: [{ token: { contract_addr: AIRI_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["AIRI", "ORAI"],
     factoryV1: true
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: ORAIX_CONTRACT } }],
+    asset_infos: [{ token: { contract_addr: ORAIX_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["ORAIX", "ORAI"],
     factoryV1: true
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: SCORAI_CONTRACT } }]
+    asset_infos: [{ token: { contract_addr: SCORAI_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["scORAI", "ORAI"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
+    symbols: ["ORAI", "ATOM"],
     factoryV1: true
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDT_CONTRACT } }],
+    symbols: ["ORAI", "USDT"],
     factoryV1: true
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: KWT_CONTRACT } }],
+    asset_infos: [{ token: { contract_addr: KWT_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["KWT", "ORAI"],
     factoryV1: true
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: OSMOSIS_ORAICHAIN_DENOM } }],
+    symbols: ["ORAI", "OSMO"],
     factoryV1: true
   },
   {
     asset_infos: [{ token: { contract_addr: MILKY_CONTRACT } }, { token: { contract_addr: USDT_CONTRACT } }],
+    symbols: ["MILKY", "USDT"],
     factoryV1: true
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDC_CONTRACT } }]
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["ORAI", "USDC"]
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: TRX_CONTRACT } }]
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: TRX_CONTRACT } }],
+    symbols: ["ORAI", "WTRX"]
   },
   {
-    asset_infos: [{ native_token: { denom: ATOM_ORAICHAIN_DENOM } }, { token: { contract_addr: SCATOM_CONTRACT } }]
+    asset_infos: [{ token: { contract_addr: SCATOM_CONTRACT } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
+    symbols: ["scATOM", "ATOM"]
   },
   {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: INJECTIVE_CONTRACT } }]
+    asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["INJ", "ORAI"]
   }
-  // {
-  //   asset_infos: [
-  //     { native_token: { denom: ORAI } }, // or your ibc native / cw20 token pair
-  //     { token: { contract_addr: 'orai17l2zk3arrx0a0fyuneyx8raln68622a2lrsz8ph75u7gw9tgz3esayqryf' } }
-  //   ]
-  // }
 ];
 
 // token identifier can be denom or contract addr

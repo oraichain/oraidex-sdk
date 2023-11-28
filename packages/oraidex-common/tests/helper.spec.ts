@@ -131,7 +131,11 @@ describe("should helper functions in helper run exactly", () => {
   it.each([
     ["1000000", "1000000", 1, 6, "990000"],
     ["1800000", "100000", 1, 6, "178200"],
-    ["1000000000000000000", "1000000000000000000", 1, 18, "990000000000000000"]
+    ["1000000000000000000", "1000000000000000000", 1, 18, "990000000000000000"],
+    ["1800000", "100000", 1.25, 6, "177750"],
+    ["1000000000000000000", "1000000000000000000", 1.5, 18, "985000000000000000"],
+    ["180000.5", "10000.5", 1.25, 6, "1777"],
+    ["100000000000000000.5", "100000000000000000.5", 1.5, 18, "9850000000000000"]
   ])(
     "calculateMinReceive should return correctly minimum receive",
     (simulateAverage: string, fromAmount: string, userSlippage: number, decimals: number, expectedResult) => {
@@ -291,21 +295,28 @@ describe("should helper functions in helper run exactly", () => {
     expect(calculateTimeoutTimestamp(10, now)).toEqual((11000000000).toString());
   });
 
-  it.each<[CoinGeckoId, NetworkChainId, CoinGeckoId, NetworkChainId]>([
-    ["cosmos", "cosmoshub-4", "cosmos", "cosmoshub-4"],
-    ["osmosis", "osmosis-1", "osmosis", "osmosis-1"],
+  it.each<[CoinGeckoId, NetworkChainId, CoinGeckoId, NetworkChainId | undefined]>([
+    // ["cosmos", "cosmoshub-4", "cosmos", undefined],
+    // ["osmosis", "osmosis-1", "osmosis", undefined],
     ["airight", "0x38", "airight", "oraibridge-subnet-2"],
     ["usd-coin", "0x01", "usd-coin", "oraibridge-subnet-2"],
     ["tron", "0x2b6653dc", "tron", "oraibridge-subnet-2"]
   ])(
     "test-findToTokenOnOraiBridge-when-universalSwap-from-Oraichain-to%s",
     (fromCoingeckoId, toChainId, expectedToCoinGeckoId, expectedToChainId) => {
-      const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
-      const toTokenTransfer = findToTokenOnOraiBridge(fromToken!, toChainId);
+      const toTokenTransfer = findToTokenOnOraiBridge(fromCoingeckoId, toChainId);
       expect(toTokenTransfer!.coinGeckoId).toEqual(expectedToCoinGeckoId);
       expect(toTokenTransfer!.chainId).toEqual(expectedToChainId);
     }
   );
+
+  it.each<[CoinGeckoId, NetworkChainId, undefined]>([
+    ["cosmos", "cosmoshub-4", undefined],
+    ["osmosis", "osmosis-1", undefined]
+  ])("test-findToTokenOnOraiBridge-expect-undefined", (fromCoingeckoId, toChainId) => {
+    const toTokenTransfer = findToTokenOnOraiBridge(fromCoingeckoId, toChainId);
+    expect(toTokenTransfer).toEqual(undefined);
+  });
 
   it.each<[AssetInfo, string]>([
     [{ native_token: { denom: ORAI } }, ORAI],

@@ -92,6 +92,3 @@ export interface TaxCapResponse {
 export interface TaxRateResponse {
   rate: Decimal;
 }
-export type TreasuryResponse = TaxRateResponse | TaxCapResponse;
-export type ExchangeResponse = ExchangeRateResponse | ExchangeRatesResponse;
-export type ContractResponse = ContractInfoResponse | Coin;

@@ -1,0 +1,10 @@
+node_modules
+bin
+pkg
+target
+coverage
+dist
+build
+packages/contracts-{build,sdk}
+packages/oraidex-common-ui
+

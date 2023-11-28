@@ -1,7 +1,12 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { concatLpHistoryToUniqueKey, getPairLiquidity, getSymbolFromAsset } from "./helper";
+import {
+  concatAprHistoryToUniqueKey,
+  concatLpHistoryToUniqueKey,
+  getPairLiquidity,
+  getSymbolFromAsset
+} from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import { fetchAprResult, getAllPairInfos, getPairByAssetInfos, getPoolInfos, handleEventApr } from "./pool-helper";
 import { parseTxs } from "./tx-parsing";
@@ -133,13 +138,21 @@ class OraiDexSync {
 
     const poolAprs = allAprs.map((apr, index) => {
       return {
-        uniqueKey: concatLpHistoryToUniqueKey({ timestamp: height, pairAddr: pools[index].pairAddr }),
+        uniqueKey: concatAprHistoryToUniqueKey({
+          timestamp: Date.now(),
+          supply: allTotalSupplies[index],
+          bond: allBondAmounts[index],
+          reward: JSON.stringify(allRewardPerSec[index]),
+          apr,
+          pairAddr: pools[index].pairAddr
+        }),
         pairAddr: pools[index].pairAddr,
         height,
         totalSupply: allTotalSupplies[index],
         totalBondAmount: allBondAmounts[index],
         rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-        apr
+        apr,
+        timestamp: Date.now()
       } as PoolApr;
     });
     await this.duckDb.insertPoolAprs(poolAprs);
@@ -155,9 +168,10 @@ class OraiDexSync {
         this.duckDb.createPairInfosTable(),
         this.duckDb.createSwapOhlcv(),
         this.duckDb.createLpAmountHistoryTable(),
-        this.duckDb.createAprInfoPair(),
+        this.duckDb.createPoolAprTable(),
         this.duckDb.createStakingHistoryTable(),
-        this.duckDb.createEarningHistoryTable()
+        this.duckDb.createEarningHistoryTable(),
+        this.duckDb.addTimestampColToPoolAprTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
@@ -186,6 +200,7 @@ class OraiDexSync {
       }).pipe(new WriteOrders(this.duckDb));
     } catch (error) {
       console.log("error in start: ", error);
+      process.exit(1);
     }
   }
 }
