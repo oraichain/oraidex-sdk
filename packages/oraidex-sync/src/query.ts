@@ -5,7 +5,6 @@ import {
   AssetInfo,
   OraiswapFactoryReadOnlyInterface,
   OraiswapRouterReadOnlyInterface,
-  OraiswapStakingQueryClient,
   OraiswapStakingTypes,
   OraiswapTokenTypes,
   PairInfo
@@ -13,7 +12,6 @@ import {
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { network, tenAmountInDecimalSix } from "./constants";
-import { DuckDb } from "./db";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
 import { pairs } from "./pairs";
 
@@ -119,42 +117,6 @@ async function fetchAllRewardPerSecInfos(assetInfos: Addr[]): Promise<OraiswapSt
   return await aggregateMulticall(queries);
 }
 
-type RewardInfoResponseWithStakingAsset = OraiswapStakingTypes.RewardInfoResponse & { stakingToken: string };
-
-async function fetchAllRewardInfo(
-  stakerAddr: string,
-  wantedHeight?: number
-): Promise<RewardInfoResponseWithStakingAsset[]> {
-  const duckDB = DuckDb.instances;
-  const poolInfo = await duckDB.getPools();
-  const stakingAssetDenoms = poolInfo.map((pair) => pair.liquidityAddr);
-  const allRewardInfoOfUser = await Promise.all(
-    stakingAssetDenoms.map(async (stakingAssetDenom) => {
-      return fetchRewardInfo(stakerAddr, stakingAssetDenom, wantedHeight);
-    })
-  );
-  const allRewardInfoOfUserWithStakingAsset = allRewardInfoOfUser.map((item, index) => {
-    return {
-      ...item,
-      stakingToken: pairs[index].lp_token
-    };
-  });
-  return allRewardInfoOfUserWithStakingAsset;
-}
-
-async function fetchRewardInfo(
-  stakerAddr: string,
-  stakingAssetDenom: string,
-  wantedHeight?: number
-): Promise<OraiswapStakingTypes.RewardInfoResponse> {
-  const client = await getCosmwasmClient();
-  client.setQueryClientWithHeight(wantedHeight);
-
-  const stakingContract = new OraiswapStakingQueryClient(client, network.staking);
-  const data = await stakingContract.rewardInfo({ stakingToken: stakingAssetDenom, stakerAddr });
-  return data;
-}
-
 export {
   aggregateMulticall,
   fetchAllRewardPerSecInfos,
@@ -162,7 +124,5 @@ export {
   fetchTokenInfos,
   queryAllPairInfos,
   queryPoolInfos,
-  simulateSwapPrice,
-  fetchRewardInfo,
-  fetchAllRewardInfo
+  simulateSwapPrice
 };

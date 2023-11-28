@@ -114,7 +114,3 @@ function parseAssetInfoOnlyDenom1(info: AssetInfo): string {
   if ("native_token" in info) return info.native_token.denom;
   return info.token.contract_addr;
 }
-
-const getStakingAssetInfo = (assetInfos: AssetInfo[]): AssetInfo => {
-  return parseAssetInfoOnlyDenom1(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
-};

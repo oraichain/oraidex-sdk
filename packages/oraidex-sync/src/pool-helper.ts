@@ -258,11 +258,6 @@ export const calculateAprResult = async (
   return aprResult;
 };
 
-export const getStakingAssetInfo = (assetInfos: AssetInfo[]): AssetInfo => {
-  if (isAssetInfoPairReverse(assetInfos)) assetInfos.reverse();
-  return parseAssetInfoOnlyDenom(assetInfos[0]) === ORAI ? assetInfos[1] : assetInfos[0];
-};
-
 export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]) => {
   const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
   try {

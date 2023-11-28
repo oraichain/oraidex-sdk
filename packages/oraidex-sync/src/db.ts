@@ -14,7 +14,6 @@ import {
   PoolApr,
   PriceInfo,
   StakeByUserResponse,
-  StakingOperationData,
   SwapOperationData,
   TokenVolumeData,
   TotalLiquidity,
@@ -584,21 +583,8 @@ export class DuckDb {
     );
   }
 
-  async getMyStakedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
-    let query = ` SELECT stakingAssetDenom, SUM(stakeAmountInUsdt) as stakeAmountInUsdt
-                  FROM staking_history
-                  WHERE stakerAddress = ? AND timestamp >= ? AND timestamp <= ?
-                `;
-    const queryParams = [stakerAddress, startTime, endTime];
-    if (stakingAssetDenom) {
-      query += ` AND stakingAssetDenom = ?`;
-      queryParams.push(stakingAssetDenom);
-    }
-
-    query += ` GROUP BY stakingAssetDenom`;
-
-    const result = await this.conn.all(query, ...queryParams);
-    return result as Pick<StakingOperationData, "stakingAssetDenom" | "stakeAmountInUsdt">[];
+  async dropStakingHistoryTable() {
+    await this.conn.exec("DROP TABLE IF EXISTS staking_history");
   }
 
   async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
@@ -608,18 +594,14 @@ export class DuckDb {
   `;
     const queryParams = [stakerAddress, startTime, endTime];
     if (stakingAssetDenom) {
-      query += ` AND stakingAssetDenom = ?`;
+      query += " AND stakingAssetDenom = ?";
       queryParams.push(stakingAssetDenom);
     }
 
-    query += ` GROUP BY stakingAssetDenom`;
+    query += " GROUP BY stakingAssetDenom";
 
     const result = await this.conn.all(query, ...queryParams);
     return result as StakeByUserResponse[];
-  }
-
-  async insertStakingHistories(stakingHistories: StakingOperationData[]) {
-    await this.insertBulkData(stakingHistories, "staking_history");
   }
 
   async createEarningHistoryTable() {
@@ -644,24 +626,16 @@ export class DuckDb {
     await this.insertBulkData(earningHistories, "earning_history");
   }
 
-  async getStakingHistoriesByStaker(stakerAddress: string): Promise<number> {
-    const result = await this.conn.all(
-      `SELECT count(*) as count from staking_history WHERE stakerAddress = ?`,
-      stakerAddress
-    );
-    return result[0].count;
-  }
-
   async getEarningHistoriesByStaker(stakerAddress: string): Promise<number> {
     const result = await this.conn.all(
-      `SELECT count(*) as count from earning_history WHERE stakerAddress = ?`,
+      "SELECT count(*) as count from earning_history WHERE stakerAddress = ?",
       stakerAddress
     );
     return result[0].count;
   }
 
   async getLpAmountHistory(): Promise<number> {
-    const result = await this.conn.all(`SELECT count(*) as count from lp_amount_history`);
+    const result = await this.conn.all("SELECT count(*) as count from lp_amount_history");
     return result[0].count;
   }
 }

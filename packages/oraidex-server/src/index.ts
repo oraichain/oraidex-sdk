@@ -410,14 +410,7 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
       stakingAssetDenom = pair && pair.lp_token;
     }
 
-    const [staked, earned] = await Promise.all([
-      duckDb.getMyStakedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom),
-      duckDb.getMyEarnedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom)
-    ]);
-    const stakedWithKey = staked.reduce((accumulator, item) => {
-      accumulator[item.stakingAssetDenom] = item.stakeAmountInUsdt;
-      return accumulator;
-    }, {});
+    const earned = await duckDb.getMyEarnedAmount(req.query.stakerAddress, startTime, endTime, stakingAssetDenom);
     const earnedWithKey = earned.reduce((accumulator, item) => {
       accumulator[item.stakingAssetDenom] = item.earnAmountInUsdt;
       return accumulator;
@@ -427,14 +420,12 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
       (result, item) => {
         const stakingAssetDenom = item.lp_token;
         result[stakingAssetDenom] = {
-          stakingAmountInUsdt: stakedWithKey[stakingAssetDenom] || 0,
           earnAmountInUsdt: earnedWithKey[stakingAssetDenom] || 0
         };
         return result;
       },
       {} as {
         [key: string]: {
-          stakingAmountInUsdt: number;
           earnAmountInUsdt: number;
         };
       }
@@ -442,7 +433,6 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
 
     const finalResult = Object.entries(result).map(([denom, values]) => ({
       stakingAssetDenom: denom,
-      stakingAmountInUsdt: values.stakingAmountInUsdt,
       earnAmountInUsdt: values.earnAmountInUsdt
     }));
 
