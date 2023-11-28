@@ -153,7 +153,7 @@ export type MsgType =
   | OraiswapPairCw20HookMsg
   | {
       withdraw: {
-        asset_info: AssetInfo;
+        staking_token: Addr;
       };
     };
 export type OraiswapRouterCw20HookMsg = {

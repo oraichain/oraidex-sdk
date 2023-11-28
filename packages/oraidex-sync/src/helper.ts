@@ -70,13 +70,13 @@ export const concatLpHistoryToUniqueKey = (data: { timestamp: number; pairAddr: 
   return `${data.timestamp}-${data.pairAddr}`;
 };
 
-export const concatStakingpHistoryToUniqueKey = (data: {
+export const concatEarnedHistoryToUniqueKey = (data: {
   txheight: number;
   stakerAddress: string;
-  stakeAmount: number;
-  stakeAssetDenom: string;
+  earnAmount: number;
+  rewardAssetDenom: string;
 }): string => {
-  return `${data.txheight}-${data.stakerAddress}-${data.stakeAmount}-${data.stakeAssetDenom}`;
+  return `${data.txheight}-${data.stakerAddress}-${data.earnAmount}-${data.rewardAssetDenom}`;
 };
 
 export const concatAprHistoryToUniqueKey = (data: {

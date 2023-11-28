@@ -10,7 +10,7 @@ import {
   buildOhlcv,
   calculatePriceByPool,
   concatDataToUniqueKey,
-  concatStakingpHistoryToUniqueKey,
+  concatEarnedHistoryToUniqueKey,
   getSwapDirection,
   groupByTime,
   isAssetInfoPairReverse,
@@ -214,20 +214,19 @@ async function extractClaimOperations(
   wasmAttributes: (readonly Attribute[])[],
   msg: MsgType
 ): Promise<EarningOperationData[]> {
-  let claimData: EarningOperationData[] = [];
-  let stakerAddresses: string[] = [];
-  let rewardAssetDenoms: string[] = [];
-  let earnAmounts: number[] = [];
-  let stakingAssetDenom: string;
-  for (let attrs of wasmAttributes) {
+  const claimData: EarningOperationData[] = [];
+  const stakerAddresses: string[] = [];
+  const rewardAssetDenoms: string[] = [];
+  const earnAmounts: number[] = [];
+  let stakingToken: string;
+  for (const attrs of wasmAttributes) {
     const stakingAction = attrs.find((attr) => attr.key === "action" && attr.value === "withdraw_reward");
     if (!stakingAction) continue;
 
-    const stakingAssetInfo = "withdraw" in msg ? msg.withdraw.asset_info : undefined;
-    if (!stakingAssetInfo) continue;
-    stakingAssetDenom = parseAssetInfoOnlyDenom(stakingAssetInfo);
+    const stakingToken = "withdraw" in msg ? msg.withdraw.staking_token : undefined;
+    if (!stakingToken) continue;
 
-    attrs.reduce((_accumulator, attr, index) => {
+    attrs.forEach((attr, index) => {
       if (attr.key === "to") stakerAddresses.push(attr.value);
       if (attr.key === "amount") {
         earnAmounts.push(parseInt(attr.value));
@@ -241,34 +240,34 @@ async function extractClaimOperations(
         const rewardAsset = attrs[index - 2];
         rewardAssetDenoms.push(rewardAsset.value);
       }
-      return _accumulator;
-    }, null);
+    });
   }
+
   for (let i = 0; i < stakerAddresses.length; i++) {
-    let stakingAssetPrice = 0;
+    let rewardAssetPrice = 0;
     // hardcode price for reward OCH
-    if (rewardAssetDenoms[i] === ORAIXOCH_INFO.token.contract_addr) stakingAssetPrice = OCH_PRICE;
+    if (rewardAssetDenoms[i] === ORAIXOCH_INFO.token.contract_addr) rewardAssetPrice = OCH_PRICE;
     else {
-      const assetInfo = parseCw20DenomToAssetInfo(rewardAssetDenoms[i]);
-      stakingAssetPrice = await getPriceAssetByUsdt(assetInfo);
+      const rewardAssetInfo = parseCw20DenomToAssetInfo(rewardAssetDenoms[i]);
+      rewardAssetPrice = await getPriceAssetByUsdt(rewardAssetInfo);
     }
 
-    const newEarnAmount = stakingAssetPrice * earnAmounts[i];
+    const earnAmountInUsdt = rewardAssetPrice * earnAmounts[i];
     claimData.push({
-      uniqueKey: concatStakingpHistoryToUniqueKey({
+      uniqueKey: concatEarnedHistoryToUniqueKey({
         txheight: txData.txheight,
-        stakeAmount: earnAmounts[i],
+        earnAmount: earnAmounts[i],
         stakerAddress: stakerAddresses[i],
-        stakeAssetDenom: rewardAssetDenoms[i]
+        rewardAssetDenom: rewardAssetDenoms[i]
       }),
       txheight: txData.txheight,
       txhash: txData.txhash,
       timestamp: txData.timestamp,
       stakerAddress: stakerAddresses[i],
-      stakingAssetDenom,
-      stakingAssetPrice,
+      stakingAssetDenom: stakingToken,
+      stakingAssetPrice: rewardAssetPrice,
       earnAmount: BigInt(earnAmounts[i]),
-      earnAmountInUsdt: newEarnAmount,
+      earnAmountInUsdt,
       rewardAssetDenom: rewardAssetDenoms[i]
     });
   }
