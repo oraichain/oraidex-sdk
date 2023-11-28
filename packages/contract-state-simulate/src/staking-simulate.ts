@@ -1,10 +1,26 @@
 import { DownloadState } from "@oraichain/cw-simulate";
 import { SimulateCosmWasmClient } from "@oraichain/cw-simulate";
-import { AIRI_CONTRACT, REWARDER_CONTRACT, STAKING_CONTRACT, parseAssetInfo } from "@oraichain/oraidex-common";
+import {
+  AIRI_CONTRACT,
+  ATOM_ORAICHAIN_DENOM,
+  INJECTIVE_CONTRACT,
+  KWT_CONTRACT,
+  MILKY_CONTRACT,
+  ORAIX_CONTRACT,
+  OSMOSIS_ORAICHAIN_DENOM,
+  REWARDER_CONTRACT,
+  SCATOM_CONTRACT,
+  SCORAI_CONTRACT,
+  STAKING_CONTRACT,
+  TRX_CONTRACT,
+  USDC_CONTRACT,
+  parseAssetInfo
+} from "@oraichain/oraidex-common";
 import { AssetInfo, OraiswapRewarderClient, OraiswapStakingClient } from "@oraichain/oraidex-contracts-sdk";
 import assert from "assert";
 import { readFileSync } from "fs";
 import path from "path";
+import { exit } from "process";
 
 // download state
 const download = new DownloadState("https://lcd.orai.io", path.join(__dirname, "wasm"));
@@ -37,6 +53,69 @@ const oldAssetKeys = [
 
 const oldAssetInfos = oldAssetKeys.map(toAssetInfo);
 
+const oldProductionAssetInfos = [
+  {
+    native_token: {
+      denom: ATOM_ORAICHAIN_DENOM
+    }
+  },
+  {
+    native_token: {
+      denom: OSMOSIS_ORAICHAIN_DENOM
+    }
+  },
+  {
+    token: {
+      contract_addr: AIRI_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: USDC_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: ORAIX_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: KWT_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: MILKY_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: SCORAI_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: USDC_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: TRX_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: SCATOM_CONTRACT
+    }
+  },
+  {
+    token: {
+      contract_addr: INJECTIVE_CONTRACT
+    }
+  }
+];
+
 const senderAddress = "orai1gkr56hlnx9vc7vncln2dkd896zfsqjn300kfq0";
 const owner = "orai1fs25usz65tsryf0f8d5cpfmqgr0xwup4kjqpa0";
 const client = new SimulateCosmWasmClient({ chainId: "Oraichain", bech32Prefix: "orai" });
@@ -44,12 +123,15 @@ const client = new SimulateCosmWasmClient({ chainId: "Oraichain", bech32Prefix: 
 await download.loadState(client, senderAddress, STAKING_CONTRACT, "mainnet staking contract");
 
 let oldPools = [];
-for (let oldInfo of oldAssetInfos) {
+let stakingTokens = [];
+for (let oldInfo of oldProductionAssetInfos) {
   const pool = await client.queryContractSmart(STAKING_CONTRACT, {
     pool_info: { asset_info: oldInfo }
   });
   oldPools.push(pool);
+  stakingTokens.push(pool.staking_token);
 }
+console.log(stakingTokens);
 
 const rewardsInfo = await client.queryContractSmart(STAKING_CONTRACT, {
   reward_infos: { asset_info: { token: { contract_addr: AIRI_CONTRACT } } }
