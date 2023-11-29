@@ -11,41 +11,41 @@ export type ExecuteMsg = {
   receive: Cw20ReceiveMsg;
 } | {
   update_config: {
+    migrate_store_status?: boolean | null;
     owner?: Addr | null;
     rewarder?: Addr | null;
   };
 } | {
   register_asset: {
-    asset_info: AssetInfo;
     staking_token: Addr;
   };
 } | {
   deprecate_staking_token: {
-    asset_info: AssetInfo;
     new_staking_token: Addr;
+    staking_token: Addr;
   };
 } | {
   update_rewards_per_sec: {
-    asset_info: AssetInfo;
     assets: Asset[];
+    staking_token: Addr;
   };
 } | {
   deposit_reward: {
-    rewards: Asset[];
+    rewards: RewardMsg[];
   };
 } | {
   unbond: {
     amount: Uint128;
-    asset_info: AssetInfo;
+    staking_token: Addr;
   };
 } | {
   withdraw: {
-    asset_info?: AssetInfo | null;
+    staking_token?: Addr | null;
   };
 } | {
   withdraw_others: {
-    asset_info?: AssetInfo | null;
     staker_addrs: Addr[];
+    staking_token?: Addr | null;
   };
 } | {
   auto_stake: {
@@ -54,43 +54,66 @@ export type ExecuteMsg = {
   };
 } | {
   auto_stake_hook: {
-    asset_info: AssetInfo;
     prev_staking_token_amount: Uint128;
     staker_addr: Addr;
     staking_token: Addr;
   };
 } | {
-  update_list_stakers: {
+  migrate_store: {
     asset_info: AssetInfo;
-    stakers: Addr[];
   };
 };
+export interface RewardMsg {
+  staking_token: Addr;
+  total_accumulation_amount: Uint128;
+}
 export type QueryMsg = {
   config: {};
 } | {
   pool_info: {
-    asset_info: AssetInfo;
+    staking_token: Addr;
   };
 } | {
   rewards_per_sec: {
-    asset_info: AssetInfo;
+    staking_token: Addr;
   };
 } | {
   reward_info: {
-    asset_info?: AssetInfo | null;
     staker_addr: Addr;
+    staking_token?: Addr | null;
   };
 } | {
   reward_infos: {
-    asset_info: AssetInfo;
     limit?: number | null;
     order?: number | null;
+    staking_token: Addr;
     start_after?: Addr | null;
   };
+} | {
+  get_pools_information: {};
+} | {
+  query_old_store: {
+    store_type: OldStoreType;
+  };
 };
-export interface MigrateMsg {
-  staker_addrs: Addr[];
-}
+export type OldStoreType = {
+  pools: {};
+} | {
+  stakers: {
+    asset_info: AssetInfo;
+  };
+} | {
+  rewards: {
+    staker: string;
+  };
+} | {
+  is_migrated: {
+    staker: string;
+  };
+} | {
+  rewards_per_sec: {};
+};
+export interface MigrateMsg {}
 export interface ConfigResponse {
   base_denom: string;
   factory_addr: Addr;
@@ -98,8 +121,12 @@ export interface ConfigResponse {
   owner: Addr;
   rewarder: Addr;
 }
+export type ArrayOfQueryPoolInfoResponse = QueryPoolInfoResponse[];
+export interface QueryPoolInfoResponse {
+  asset_key: string;
+  pool_info: PoolInfoResponse;
+}
 export interface PoolInfoResponse {
-  asset_info: AssetInfo;
   migration_deprecated_staking_token?: Addr | null;
   migration_index_snapshot?: Decimal | null;
   pending_reward: Uint128;
@@ -112,11 +139,11 @@ export interface RewardInfoResponse {
   staker_addr: Addr;
 }
 export interface RewardInfoResponseItem {
-  asset_info: AssetInfo;
   bond_amount: Uint128;
   pending_reward: Uint128;
   pending_withdraw: Asset[];
   should_migrate?: boolean | null;
+  staking_token: Addr;
 }
 export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {

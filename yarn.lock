@@ -3789,6 +3789,22 @@
     ts-results "^3.3.0"
     tslib "^2.6.1"
 
+"@oraichain/cw-simulate@^2.8.72":
+  version "2.8.72"
+  resolved "https://registry.yarnpkg.com/@oraichain/cw-simulate/-/cw-simulate-2.8.72.tgz#c8191e824c2e5b49a983812e16cef192fa867270"
+  integrity sha512-RsyBmkAbZIuxPbHqPWjqCrP+GpFi/tIXr4CPSKtVlv5HqEPwVGuvnZVycoB0A+s6T4xZsxUCOXID1DAoGC449A==
+  dependencies:
+    "@cosmjs/amino" "^0.31.0"
+    "@cosmjs/cosmwasm-stargate" "^0.31.0"
+    "@cosmjs/crypto" "^0.31.0"
+    "@cosmjs/encoding" "^0.31.0"
+    "@kiruse/serde" "^0.8.0-rc.6"
+    "@oraichain/cosmwasm-vm-js" "^0.2.77"
+    eventemitter3 "^5.0.0"
+    protobufjs "^7.2.3"
+    ts-results "^3.3.0"
+    tslib "^2.6.1"
+
 "@oraichain/immutable@^4.3.9":
   version "4.3.9"
   resolved "https://registry.yarnpkg.com/@oraichain/immutable/-/immutable-4.3.9.tgz#ff8d5a7b39b5b01f3f72a902cffbfea32ccb20c3"

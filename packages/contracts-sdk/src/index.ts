@@ -1,5 +1,3 @@
-export * as OraidexListingContractTypes from './OraidexListingContract.types';
-export * from './OraidexListingContract.client';
 export * as OraiswapConverterTypes from './OraiswapConverter.types';
 export * from './OraiswapConverter.client';
 export * as OraiswapFactoryTypes from './OraiswapFactory.types';

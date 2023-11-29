@@ -1,7 +1,13 @@
 {
-    "prettier.singleQuote": false,
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": false,
+    "prettier.useEditorConfig": false,
+    "prettier.useTabs": false,
     "prettier.trailingComma": "none",
-    "prettier.jsxSingleQuote": false,
+    "prettier.tabWidth": 2,
     "prettier.printWidth": 120,
+    "prettier.semi": true,
+    "prettier.singleQuote": true,
     "typescript.tsdk": "node_modules/typescript/lib"
 }

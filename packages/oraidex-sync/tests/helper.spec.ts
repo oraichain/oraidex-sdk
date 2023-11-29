@@ -34,19 +34,13 @@ import {
   toDisplay
 } from "../src/helper";
 import { pairs } from "../src/pairs";
-import {
-  LpOpsData,
-  PairInfoData,
-  ProvideLiquidityOperationData,
-  StakingOperationData,
-  SwapDirection,
-  SwapOperationData
-} from "../src/types";
+import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
 import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import * as helper from "../src/helper";
 import * as parse from "../src/parse";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { pairLpTokens } from "@oraichain/oraidex-common";
 
 describe("test-helper", () => {
   let duckDb: DuckDb;
@@ -196,30 +190,36 @@ describe("test-helper", () => {
     expect(pairs).toEqual([
       {
         asset_infos: [{ token: { contract_addr: airiCw20Adress } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.AIRI_ORAI,
         symbols: ["AIRI", "ORAI"],
         factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: oraixCw20Address } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.ORAIX_ORAI,
         symbols: ["ORAIX", "ORAI"],
         factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.SCORAI_ORAI,
         symbols: ["scORAI", "ORAI"]
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
+        lp_token: pairLpTokens.ATOM_ORAI,
         symbols: ["ORAI", "ATOM"],
         factoryV1: true
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdtCw20Address } }],
+        lp_token: pairLpTokens.USDT_ORAI,
         symbols: ["ORAI", "USDT"],
         factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: kwtCw20Address } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.KWT_ORAI,
         symbols: ["KWT", "ORAI"],
         factoryV1: true
       },
@@ -230,28 +230,35 @@ describe("test-helper", () => {
             native_token: { denom: osmosisIbcDenom }
           }
         ],
+        lp_token: pairLpTokens.OSMO_ORAI,
         symbols: ["ORAI", "OSMO"],
         factoryV1: true
       },
       {
         asset_infos: [{ token: { contract_addr: milkyCw20Address } }, { token: { contract_addr: usdtCw20Address } }],
+        lp_token: pairLpTokens.MILKY_USDT,
         symbols: ["MILKY", "USDT"],
         factoryV1: true
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
+        lp_token: pairLpTokens.USDC_ORAI,
         symbols: ["ORAI", "USDC"]
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: tronCw20Address } }],
+        lp_token: pairLpTokens.TRX_ORAI,
         symbols: ["ORAI", "WTRX"]
       },
       {
         asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
+        lp_token: pairLpTokens.SCATOM_ATOM,
         symbols: ["scATOM", "ATOM"]
       },
+      // we will reverse order for this pair in api /tickers for Coingecko
       {
         asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.INJ_ORAI,
         symbols: ["INJ", "ORAI"]
       }
     ]);
@@ -852,58 +859,5 @@ describe("test-helper", () => {
 
     // assertion
     expect(result).toEqual(expectedResult);
-  });
-
-  it("test-groupDuplicateStakeOps-should-return-correctly-stake-ops", () => {
-    // setup
-    const stakeOp: StakingOperationData = {
-      uniqueKey: "1",
-      stakerAddress: "1",
-      stakingAssetDenom: "1",
-      stakeAmount: 1n,
-      stakeAmountInUsdt: 1,
-      lpPrice: 1,
-      timestamp: 1,
-      txhash: "1",
-      txheight: 1
-    };
-
-    const stakeOps: StakingOperationData[] = [
-      stakeOp,
-      {
-        ...stakeOp,
-        stakeAmount: 2n,
-        stakeAmountInUsdt: 4
-      },
-      {
-        ...stakeOp,
-        stakeAmount: 4n,
-        stakeAmountInUsdt: 6
-      },
-      {
-        ...stakeOp,
-        uniqueKey: "2",
-        stakeAmount: 2n,
-        stakeAmountInUsdt: 4
-      }
-    ];
-
-    // act
-    const result = helper.groupDuplicateStakeOps(stakeOps);
-
-    // assertion
-    expect(result).toMatchObject([
-      {
-        ...stakeOp,
-        stakeAmount: 7n,
-        stakeAmountInUsdt: 11
-      },
-      {
-        ...stakeOp,
-        uniqueKey: "2",
-        stakeAmount: 2n,
-        stakeAmountInUsdt: 4
-      }
-    ]);
   });
 });

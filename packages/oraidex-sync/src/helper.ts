@@ -1,13 +1,14 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import simulateClient from "./wasm-client/112023.migrate-staking-v3";
 import { maxBy, minBy } from "lodash";
 import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import { Ohlcv, OraiDexType, PairInfoData, StakingOperationData, SwapDirection, SwapOperationData } from "./types";
+import { Ohlcv, OraiDexType, PairInfoData, SwapDirection, SwapOperationData } from "./types";
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -69,13 +70,13 @@ export const concatLpHistoryToUniqueKey = (data: { timestamp: number; pairAddr: 
   return `${data.timestamp}-${data.pairAddr}`;
 };
 
-export const concatStakingpHistoryToUniqueKey = (data: {
+export const concatEarnedHistoryToUniqueKey = (data: {
   txheight: number;
   stakerAddress: string;
-  stakeAmount: number;
-  stakeAssetDenom: string;
+  earnAmount: number;
+  rewardAssetDenom: string;
 }): string => {
-  return `${data.txheight}-${data.stakerAddress}-${data.stakeAmount}-${data.stakeAssetDenom}`;
+  return `${data.txheight}-${data.stakerAddress}-${data.earnAmount}-${data.rewardAssetDenom}`;
 };
 
 export const concatAprHistoryToUniqueKey = (data: {
@@ -139,7 +140,7 @@ function findAssetInfoPathToUsdt(info: AssetInfo): AssetInfo[] {
 }
 
 function generateSwapOperations(infoPath: AssetInfo[]): SwapOperation[] {
-  let swapOps: SwapOperation[] = [];
+  const swapOps: SwapOperation[] = [];
   for (let i = 0; i < infoPath.length - 1; i++) {
     swapOps.push({ orai_swap: { offer_asset_info: infoPath[i], ask_asset_info: infoPath[i + 1] } } as SwapOperation);
   }
@@ -161,14 +162,14 @@ export const calculatePriceByPool = (
   offerAmount?: number
 ): number => {
   const finalOfferAmount = offerAmount || tenAmountInDecimalSix;
-  let bigIntAmount =
+  const bigIntAmount =
     Number(offerPool - (askPool * offerPool) / (askPool + BigInt(finalOfferAmount))) * (1 - commissionRate || 0);
 
   return bigIntAmount / finalOfferAmount;
 };
 
 export function groupDataByTime(data: any[], timeframe?: number): { [key: string]: any[] } {
-  let ops: { [k: number]: any[] } = {};
+  const ops: { [k: number]: any[] } = {};
   for (const op of data) {
     const roundedTime = roundTime(op.timestamp * 1000, timeframe || 60); // op timestamp is sec
     if (!ops[roundedTime]) {
@@ -230,26 +231,9 @@ export const recalculateTotalShare = ({
 };
 
 export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
-  let newOps: OraiDexType[] = [];
-  for (let op of ops) {
+  const newOps: OraiDexType[] = [];
+  for (const op of ops) {
     if (!newOps.some((newOp) => newOp.uniqueKey === op.uniqueKey)) newOps.push(op);
-  }
-  return newOps;
-}
-
-// check if there are more 2 ops has same unique key, mean that we have more 2 msg stake in one txs is same, so we combine to one ops.
-export function groupDuplicateStakeOps(ops: StakingOperationData[]): StakingOperationData[] {
-  let newOps: StakingOperationData[] = [];
-  for (let op of ops) {
-    const opIndex = newOps.findIndex((newOp) => newOp.uniqueKey === op.uniqueKey);
-    if (opIndex < 0) newOps.push(op);
-    else {
-      newOps[opIndex] = {
-        ...newOps[opIndex],
-        stakeAmount: newOps[opIndex].stakeAmount + op.stakeAmount,
-        stakeAmountInUsdt: newOps[opIndex].stakeAmountInUsdt + op.stakeAmountInUsdt
-      };
-    }
   }
   return newOps;
 }
@@ -260,7 +244,7 @@ export function groupDuplicateStakeOps(ops: StakingOperationData[]): StakingOper
  * @returns
  */
 export const groupSwapOpsByPair = (ops: SwapOperationData[]): { [key: string]: SwapOperationData[] } => {
-  let opsByPair = {};
+  const opsByPair = {};
   for (const op of ops) {
     const pairIndex = findPairIndexFromDenoms(op.offerDenom, op.askDenom);
     if (pairIndex === -1) continue;
@@ -301,7 +285,7 @@ export const calculateSwapOhlcv = (ops: SwapOperationData[], pair: string): Ohlc
 };
 
 export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
-  let ohlcv: Ohlcv[] = [];
+  const ohlcv: Ohlcv[] = [];
   for (const [pair, opsByPair] of Object.entries(groupSwapOpsByPair(ops))) {
     const opsByTime = groupDataByTime(opsByPair);
     const ticks = Object.values(opsByTime).map((value) => calculateSwapOhlcv(value, pair));
@@ -350,6 +334,9 @@ function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
 }
 
 async function getCosmwasmClient(): Promise<CosmWasmClient> {
+  if (process.env.SIMULATE_CLIENT) {
+    return simulateClient;
+  }
   const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
   const client = await CosmWasmClient.connect(rpcUrl);
   return client;

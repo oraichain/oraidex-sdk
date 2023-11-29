@@ -1,10 +1,10 @@
 {
   "name": "@oraichain/oraidex-contracts-build",
-  "version": "1.0.20",
+  "version": "1.0.22",
   "main": "build/index.js",
   "license": "MIT",
   "scripts": {
-    "build":"tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json"
   },
   "files": [
     "build/",

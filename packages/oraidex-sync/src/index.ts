@@ -22,7 +22,6 @@ class WriteOrders extends WriteData {
       this.duckDb.insertSwapOps(txs.swapOpsData),
       this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
       this.duckDb.insertOhlcv(txs.ohlcv),
-      this.duckDb.insertStakingHistories(txs.stakingOpsData),
       this.duckDb.insertEarningHistories(txs.claimOpsData),
       this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
     ]);
@@ -171,7 +170,8 @@ class OraiDexSync {
         this.duckDb.createPoolAprTable(),
         this.duckDb.createStakingHistoryTable(),
         this.duckDb.createEarningHistoryTable(),
-        this.duckDb.addTimestampColToPoolAprTable()
+        this.duckDb.addTimestampColToPoolAprTable(),
+        this.duckDb.dropStakingHistoryTable()
       ]);
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
@@ -215,3 +215,4 @@ export * from "./parse";
 export * from "./pool-helper";
 export * from "./query";
 export * from "./types";
+export * from "./wasm-client/112023.migrate-staking-v3";
