@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "start": "npx ts-node src/index.ts",
-    "build": "tsc -p tsconfig.json"
+    "build": "ncc build build/index.js --no-source-map-register -t"
   },
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
@@ -17,13 +17,14 @@
     "@cosmjs/tendermint-rpc": "^0.31.0",
     "@oraichain/common-contracts-sdk": "^1.0.31",
     "@oraichain/oraidex-sync": "^1.0.1",
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17",
-    "@vercel/ncc": "=0.34.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "newrelic": "^11.2.1",
     "typescript": "^4.8.3",
     "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.13",
+    "@types/express": "^4.17.17"
   }
 }
