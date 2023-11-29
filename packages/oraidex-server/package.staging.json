@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-server-staging",
-  "version": "1.0.27",
+  "version": "1.0.28",
   "main": "build/index.js",
   "bin": "build/index.js",
   "license": "MIT",
