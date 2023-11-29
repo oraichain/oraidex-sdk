@@ -1,10 +1,10 @@
 {
   "name": "@oraichain/oraidex-server-staging",
-  "version": "1.0.24",
-  "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "version": "1.0.25",
+  "main": "build/index.js",
+  "bin": "build/index.js",
   "license": "MIT",
-  "files": ["dist/"],
+  "files": ["build/"],
   "scripts": {
     "build": "tsc -p tsconfig.json"
   },

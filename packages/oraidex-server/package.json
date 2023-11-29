@@ -1,11 +1,11 @@
 {
   "name": "@oraichain/oraidex-server",
   "version": "1.0.19",
-  "main": "dist/index.js",
-  "bin": "dist/index.js",
+  "main": "build/index.js",
+  "bin": "build/index.js",
   "license": "MIT",
   "files": [
-    "dist/"
+    "build/"
   ],
   "scripts": {
     "start": "npx ts-node src/index.ts",
