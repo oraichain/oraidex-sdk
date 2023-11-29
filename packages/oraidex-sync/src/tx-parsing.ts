@@ -222,8 +222,7 @@ async function extractClaimOperations(
   for (const attrs of wasmAttributes) {
     const stakingAction = attrs.find((attr) => attr.key === "action" && attr.value === "withdraw_reward");
     if (!stakingAction) continue;
-
-    const stakingToken = "withdraw" in msg ? msg.withdraw.staking_token : undefined;
+    stakingToken = "withdraw" in msg ? msg.withdraw.staking_token : undefined;
     if (!stakingToken) continue;
 
     attrs.forEach((attr, index) => {
