@@ -11,7 +11,7 @@
     "start": "npx ts-node src/index.ts",
     "build": "tsc -p tsconfig.json"
   },
-  "devDependencies": {
+  "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "^0.31.0",
