@@ -7,38 +7,44 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, PoolInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse} from "./OraiswapStaking.types";
+import {InstantiateMsg, ExecuteMsg, RewardMsg, QueryMsg, OldStoreType, MigrateMsg, ConfigResponse, ArrayOfQueryPoolInfoResponse, QueryPoolInfoResponse, PoolInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse} from "./OraiswapStaking.types";
 export interface OraiswapStakingReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
   poolInfo: ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }) => Promise<PoolInfoResponse>;
   rewardsPerSec: ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }) => Promise<RewardsPerSecResponse>;
   rewardInfo: ({
-    assetInfo,
-    stakerAddr
+    stakerAddr,
+    stakingToken
   }: {
-    assetInfo?: AssetInfo;
     stakerAddr: Addr;
+    stakingToken?: Addr;
   }) => Promise<RewardInfoResponse>;
   rewardInfos: ({
-    assetInfo,
     limit,
     order,
+    stakingToken,
     startAfter
   }: {
-    assetInfo: AssetInfo;
     limit?: number;
     order?: number;
+    stakingToken: Addr;
     startAfter?: Addr;
   }) => Promise<ArrayOfRewardInfoResponse>;
+  getPoolsInformation: () => Promise<ArrayOfQueryPoolInfoResponse>;
+  queryOldStore: ({
+    storeType
+  }: {
+    storeType: OldStoreType;
+  }) => Promise<Binary>;
 }
 export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterface {
   client: CosmWasmClient;
@@ -52,6 +58,8 @@ export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterf
     this.rewardsPerSec = this.rewardsPerSec.bind(this);
     this.rewardInfo = this.rewardInfo.bind(this);
     this.rewardInfos = this.rewardInfos.bind(this);
+    this.getPoolsInformation = this.getPoolsInformation.bind(this);
+    this.queryOldStore = this.queryOldStore.bind(this);
   }
 
   config = async (): Promise<ConfigResponse> => {
@@ -60,58 +68,74 @@ export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterf
     });
   };
   poolInfo = async ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }): Promise<PoolInfoResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       pool_info: {
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     });
   };
   rewardsPerSec = async ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }): Promise<RewardsPerSecResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       rewards_per_sec: {
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     });
   };
   rewardInfo = async ({
-    assetInfo,
-    stakerAddr
+    stakerAddr,
+    stakingToken
   }: {
-    assetInfo?: AssetInfo;
     stakerAddr: Addr;
+    stakingToken?: Addr;
   }): Promise<RewardInfoResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       reward_info: {
-        asset_info: assetInfo,
-        staker_addr: stakerAddr
+        staker_addr: stakerAddr,
+        staking_token: stakingToken
       }
     });
   };
   rewardInfos = async ({
-    assetInfo,
     limit,
     order,
+    stakingToken,
     startAfter
   }: {
-    assetInfo: AssetInfo;
     limit?: number;
     order?: number;
+    stakingToken: Addr;
     startAfter?: Addr;
   }): Promise<ArrayOfRewardInfoResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       reward_infos: {
-        asset_info: assetInfo,
         limit,
         order,
+        staking_token: stakingToken,
         start_after: startAfter
+      }
+    });
+  };
+  getPoolsInformation = async (): Promise<ArrayOfQueryPoolInfoResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      get_pools_information: {}
+    });
+  };
+  queryOldStore = async ({
+    storeType
+  }: {
+    storeType: OldStoreType;
+  }): Promise<Binary> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      query_old_store: {
+        store_type: storeType
       }
     });
   };
@@ -129,56 +153,56 @@ export interface OraiswapStakingInterface extends OraiswapStakingReadOnlyInterfa
     sender: string;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
+    migrateStoreStatus,
     owner,
     rewarder
   }: {
+    migrateStoreStatus?: boolean;
     owner?: Addr;
     rewarder?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   registerAsset: ({
-    assetInfo,
     stakingToken
   }: {
-    assetInfo: AssetInfo;
     stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   deprecateStakingToken: ({
-    assetInfo,
-    newStakingToken
+    newStakingToken,
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
     newStakingToken: Addr;
+    stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateRewardsPerSec: ({
-    assetInfo,
-    assets
+    assets,
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
     assets: Asset[];
+    stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   depositReward: ({
     rewards
   }: {
-    rewards: Asset[];
+    rewards: RewardMsg[];
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   unbond: ({
     amount,
-    assetInfo
+    stakingToken
   }: {
     amount: Uint128;
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   withdraw: ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo?: AssetInfo;
+    stakingToken?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   withdrawOthers: ({
-    assetInfo,
-    stakerAddrs
+    stakerAddrs,
+    stakingToken
   }: {
-    assetInfo?: AssetInfo;
     stakerAddrs: Addr[];
+    stakingToken?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   autoStake: ({
     assets,
@@ -188,22 +212,18 @@ export interface OraiswapStakingInterface extends OraiswapStakingReadOnlyInterfa
     slippageTolerance?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   autoStakeHook: ({
-    assetInfo,
     prevStakingTokenAmount,
     stakerAddr,
     stakingToken
   }: {
-    assetInfo: AssetInfo;
     prevStakingTokenAmount: Uint128;
     stakerAddr: Addr;
     stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateListStakers: ({
-    assetInfo,
-    stakers
+  migrateStore: ({
+    assetInfo
   }: {
     assetInfo: AssetInfo;
-    stakers: Addr[];
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapStakingClient extends OraiswapStakingQueryClient implements OraiswapStakingInterface {
@@ -227,7 +247,7 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
     this.withdrawOthers = this.withdrawOthers.bind(this);
     this.autoStake = this.autoStake.bind(this);
     this.autoStakeHook = this.autoStakeHook.bind(this);
-    this.updateListStakers = this.updateListStakers.bind(this);
+    this.migrateStore = this.migrateStore.bind(this);
   }
 
   receive = async ({
@@ -248,65 +268,65 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
     }, _fee, _memo, _funds);
   };
   updateConfig = async ({
+    migrateStoreStatus,
     owner,
     rewarder
   }: {
+    migrateStoreStatus?: boolean;
     owner?: Addr;
     rewarder?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
+        migrate_store_status: migrateStoreStatus,
         owner,
         rewarder
       }
     }, _fee, _memo, _funds);
   };
   registerAsset = async ({
-    assetInfo,
     stakingToken
   }: {
-    assetInfo: AssetInfo;
     stakingToken: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       register_asset: {
-        asset_info: assetInfo,
         staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
   deprecateStakingToken = async ({
-    assetInfo,
-    newStakingToken
+    newStakingToken,
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
     newStakingToken: Addr;
+    stakingToken: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       deprecate_staking_token: {
-        asset_info: assetInfo,
-        new_staking_token: newStakingToken
+        new_staking_token: newStakingToken,
+        staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
   updateRewardsPerSec = async ({
-    assetInfo,
-    assets
+    assets,
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
     assets: Asset[];
+    stakingToken: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_rewards_per_sec: {
-        asset_info: assetInfo,
-        assets
+        assets,
+        staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
   depositReward = async ({
     rewards
   }: {
-    rewards: Asset[];
+    rewards: RewardMsg[];
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       deposit_reward: {
@@ -316,40 +336,40 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
   };
   unbond = async ({
     amount,
-    assetInfo
+    stakingToken
   }: {
     amount: Uint128;
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       unbond: {
         amount,
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
   withdraw = async ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo?: AssetInfo;
+    stakingToken?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       withdraw: {
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
   withdrawOthers = async ({
-    assetInfo,
-    stakerAddrs
+    stakerAddrs,
+    stakingToken
   }: {
-    assetInfo?: AssetInfo;
     stakerAddrs: Addr[];
+    stakingToken?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       withdraw_others: {
-        asset_info: assetInfo,
-        staker_addrs: stakerAddrs
+        staker_addrs: stakerAddrs,
+        staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
@@ -368,36 +388,30 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
     }, _fee, _memo, _funds);
   };
   autoStakeHook = async ({
-    assetInfo,
     prevStakingTokenAmount,
     stakerAddr,
     stakingToken
   }: {
-    assetInfo: AssetInfo;
     prevStakingTokenAmount: Uint128;
     stakerAddr: Addr;
     stakingToken: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       auto_stake_hook: {
-        asset_info: assetInfo,
         prev_staking_token_amount: prevStakingTokenAmount,
         staker_addr: stakerAddr,
         staking_token: stakingToken
       }
     }, _fee, _memo, _funds);
   };
-  updateListStakers = async ({
-    assetInfo,
-    stakers
+  migrateStore = async ({
+    assetInfo
   }: {
     assetInfo: AssetInfo;
-    stakers: Addr[];
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
-      update_list_stakers: {
-        asset_info: assetInfo,
-        stakers
+      migrate_store: {
+        asset_info: assetInfo
       }
     }, _fee, _memo, _funds);
   };
