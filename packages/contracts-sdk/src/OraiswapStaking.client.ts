@@ -220,11 +220,6 @@ export interface OraiswapStakingInterface extends OraiswapStakingReadOnlyInterfa
     stakerAddr: Addr;
     stakingToken: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  migrateStore: ({
-    assetInfo
-  }: {
-    assetInfo: AssetInfo;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapStakingClient extends OraiswapStakingQueryClient implements OraiswapStakingInterface {
   client: SigningCosmWasmClient;
@@ -247,7 +242,6 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
     this.withdrawOthers = this.withdrawOthers.bind(this);
     this.autoStake = this.autoStake.bind(this);
     this.autoStakeHook = this.autoStakeHook.bind(this);
-    this.migrateStore = this.migrateStore.bind(this);
   }
 
   receive = async ({
@@ -401,17 +395,6 @@ export class OraiswapStakingClient extends OraiswapStakingQueryClient implements
         prev_staking_token_amount: prevStakingTokenAmount,
         staker_addr: stakerAddr,
         staking_token: stakingToken
-      }
-    }, _fee, _memo, _funds);
-  };
-  migrateStore = async ({
-    assetInfo
-  }: {
-    assetInfo: AssetInfo;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      migrate_store: {
-        asset_info: assetInfo
       }
     }, _fee, _memo, _funds);
   };
