@@ -1,12 +1,12 @@
 {
   "name": "@oraichain/oraidex-server-staging",
-  "version": "1.0.29",
-  "main": "build/index.js",
-  "bin": "build/index.js",
+  "version": "1.0.33",
+  "main": "dist/index.js",
+  "bin": "dist/index.js",
   "license": "MIT",
-  "files": ["build/"],
+  "files": ["dist/"],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "ncc build src/index.ts --no-source-map-register -t -m"
   },
   "dependencies": {
     "@types/cors": "^2.8.13",
@@ -15,7 +15,7 @@
     "@cosmjs/stargate": "^0.31.0",
     "@oraichain/common-contracts-sdk": "^1.0.31",
     "@cosmjs/tendermint-rpc": "^0.31.0",
-    "@oraichain/oraidex-sync": "^1.0.1",
+    "@oraichain/oraidex-sync": "1.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2"
   },

@@ -7,7 +7,6 @@
     "build/"
   ],
   "scripts": {
-    "postinstall": "patch-package",
     "start": "npx ts-node src/index.ts",
     "build": "tsc -p tsconfig.json && yarn copy-files",
     "copy-files": "cp -r ./src/wasm-client/migrate ./build/wasm-client &&  cp -r ./src/wasm-client/wasm ./build/wasm-client"
