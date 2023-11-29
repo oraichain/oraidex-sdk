@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-server-staging",
-  "version": "1.0.26",
+  "version": "1.0.27",
   "main": "build/index.js",
   "bin": "build/index.js",
   "license": "MIT",
@@ -15,7 +15,7 @@
     "@cosmjs/stargate": "^0.31.0",
     "@oraichain/common-contracts-sdk": "^1.0.31",
     "@cosmjs/tendermint-rpc": "^0.31.0",
-    "@oraichain/oraidex-sync": "1.0.0",
+    "@oraichain/oraidex-sync": "^1.0.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "@vercel/ncc": "=0.34.0"

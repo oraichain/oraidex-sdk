@@ -51,6 +51,16 @@ jobs:
         run: yarn build && yarn --cwd packages/oraidex-server-staging/ build
       - name: Authenticate with private NPM package
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish Oraidex sync
+        id: publish-sync
+        continue-on-error: true
+        run: yarn deploy packages/oraidex-sync
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish
         id: publish
         continue-on-error: true
