@@ -9,7 +9,7 @@
   ],
   "scripts": {
     "start": "npx ts-node src/index.ts",
-    "build": "ncc build build/index.js --no-source-map-register -t"
+    "build": "ncc build src/index.ts --no-source-map-register -t"
   },
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
