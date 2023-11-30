@@ -81,7 +81,7 @@ export const PAIRS: PairMapping[] = [
   },
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
-    symbols: ["ORAIX", "USDC"]
+    symbols: ["USDC", "ORAIX"]
   }
 ];
 
