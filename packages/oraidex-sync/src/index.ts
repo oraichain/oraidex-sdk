@@ -67,7 +67,7 @@ class OraiDexSync {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
       const allPools = await this.duckDb.getPools();
-      if (allPools.length > 0 && pairInfos.length === allPools.length) return;
+      if (allPools.length > 0 && pairInfos.length === allPools.length) return false;
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
@@ -86,18 +86,18 @@ class OraiDexSync {
         })
       );
       console.timeEnd("timer-updateLatestPairInfos");
+      return true;
     } catch (error) {
       console.log("error in updateLatestPairInfos: ", error);
     }
   }
 
-  private async updateLatestLpAmountHistory(currentHeight: number) {
+  private async updateLatestLpAmountHistory(currentHeight: number, isNewPool: boolean) {
     try {
       console.time("timer-updateLatestLpAmountHistory");
       const countLpAmounts = await this.duckDb.getLpAmountHistory();
-      if (countLpAmounts > 0) return;
-      const pairInfos = await this.duckDb.getPools();
-
+      if (countLpAmounts > 0 && !isNewPool && !process.env.IS_MIGRATE_POOL) return;
+      const pairInfos = await this.duckDb.getPools(); // 13 pools
       const poolInfos = await getPoolInfos(
         pairInfos.map((pair) => pair.pairAddr),
         currentHeight
@@ -181,10 +181,10 @@ class OraiDexSync {
       }
       console.log("current ind: ", currentInd);
 
-      await this.updateLatestPairInfos();
+      const isNewPool = await this.updateLatestPairInfos();
 
       // update offer & ask, total share of pool history in the first time
-      await this.updateLatestLpAmountHistory(currentInd);
+      await this.updateLatestLpAmountHistory(currentInd, isNewPool);
 
       // NOTE: need to updateLatestLpAmountHistory before update apr in the first time
       // to get the offerAmount, askAmount from lp amount history table.
