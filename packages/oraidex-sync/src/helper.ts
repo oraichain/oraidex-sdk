@@ -110,35 +110,6 @@ async function delay(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 }
 
-function findMappedTargetedAssetInfo(targetedAssetInfo: AssetInfo): AssetInfo[] {
-  const mappedAssetInfos = [];
-
-  for (const pair of pairs) {
-    const infos = pair.asset_infos;
-    if (parseAssetInfo(infos[0]) === parseAssetInfo(targetedAssetInfo)) mappedAssetInfos.push(infos[1]);
-    else if (parseAssetInfo(infos[1]) === parseAssetInfo(targetedAssetInfo)) mappedAssetInfos.push(infos[0]);
-    else continue;
-  }
-
-  return mappedAssetInfos;
-}
-
-function findAssetInfoPathToUsdt(info: AssetInfo): AssetInfo[] {
-  // first, check usdt mapped target infos because if we the info pairs with usdt directly then we can easily calculate its price
-  // otherwise, we find orai mapped target infos, which can lead to usdt.
-  // finally, if not paired with orai, then we find recusirvely to find a path leading to usdt token
-  if (parseAssetInfo(info) === parseAssetInfo(usdtInfo)) return [info]; // means there's no path, the price should be 1
-  const mappedUsdtInfoList = findMappedTargetedAssetInfo(usdtInfo);
-  if (mappedUsdtInfoList.find((assetInfo) => parseAssetInfo(assetInfo) === parseAssetInfo(info)))
-    return [info, usdtInfo];
-  const mappedOraiInfoList = findMappedTargetedAssetInfo(oraiInfo);
-  if (mappedOraiInfoList.find((assetInfo) => parseAssetInfo(assetInfo) === parseAssetInfo(info)))
-    return [info, oraiInfo, usdtInfo];
-  const pairedInfo = findMappedTargetedAssetInfo(info);
-  if (pairedInfo.length === 0) return []; // cannot find any mapped target pair
-  return [info, ...findAssetInfoPathToUsdt(pairedInfo[0])]; // only need the first found paired token with the one we are matching
-}
-
 function generateSwapOperations(infoPath: AssetInfo[]): SwapOperation[] {
   const swapOps: SwapOperation[] = [];
   for (let i = 0; i < infoPath.length - 1; i++) {
@@ -483,8 +454,6 @@ export function getDate24hBeforeNow(time: Date) {
 
 export {
   delay,
-  findAssetInfoPathToUsdt,
-  findMappedTargetedAssetInfo,
   findPairAddress,
   generateSwapOperations,
   getAllFees,

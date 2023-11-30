@@ -78,6 +78,10 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
     symbols: ["INJ", "ORAI"]
+  },
+  {
+    asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
+    symbols: ["ORAIX", "USDC"]
   }
 ];
 
@@ -94,7 +98,8 @@ export enum pairLpTokens {
   USDC_ORAI = "orai1e0x87w9ezwq2sdmvv5dq5ngzy98lt47tqfaf2m7zpkg49g5dj6fqred5d7",
   TRX_ORAI = "orai1wgywgvumt5dxhm7vjpwx5es9ecrtl85qaqdspjqwx2lugy7vmw5qlwrn88",
   SCATOM_ATOM = "orai1hcjne0hmdj6pjrc3xuksucr0yplsa9ny7v047c34y8k8hfflq6yqyjapnn",
-  INJ_ORAI = "orai1slqw6gfvs6l2jgvh5ryjayf4g77d7sgfv6fumtyzcr06a6g9gnrq6c4rgg"
+  INJ_ORAI = "orai1slqw6gfvs6l2jgvh5ryjayf4g77d7sgfv6fumtyzcr06a6g9gnrq6c4rgg",
+  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3"
 }
 
 // token identifier can be denom or contract addr
@@ -107,47 +112,6 @@ export const isInPairList = (tokenIdentifier: string) => {
       return info.token.contract_addr === tokenIdentifier;
     })
   );
-};
-
-/**
- * Get list contract_addr | denom that make a pair when combined with input
- * @param contractAddress
- * @returns
- */
-export const getPairSwapV2 = (contractAddress: string) => {
-  let arr = [];
-  let arrDenom = ORAI;
-  if (!contractAddress) return { arrLength: 0 };
-
-  const pairMapping = PAIRS.filter((p) =>
-    p.asset_infos.find(
-      (asset: {
-        token: {
-          contract_addr: string;
-        };
-      }) => asset?.token?.contract_addr === contractAddress
-    )
-  );
-
-  if (pairMapping.length) {
-    for (const info of pairMapping) {
-      const assets0 = parseAssetInfo(info?.asset_infos?.[0]);
-      const assets1 = parseAssetInfo(info?.asset_infos?.[1]);
-      if (assets0 !== contractAddress) arr.push(assets0);
-      if (assets1 !== contractAddress) arr.push(assets1);
-    }
-  }
-
-  if (arr.length) {
-    arrDenom = oraichainTokens.find((e) => e.contractAddress === arr[0])?.denom ?? arr[0];
-  }
-
-  return {
-    arr,
-    arrLength: arr.length,
-    arrDenom,
-    arrIncludesOrai: arr.includes(ORAI)
-  };
 };
 
 export const isFactoryV1 = (assetInfos: [AssetInfo, AssetInfo]): boolean => {

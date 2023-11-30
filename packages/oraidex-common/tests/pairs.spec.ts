@@ -1,18 +1,7 @@
 import { MILKY_CONTRACT, OSMOSIS_ORAICHAIN_DENOM, USDC_CONTRACT, USDT_CONTRACT } from "../src/constant";
-import { getPairSwapV2, isFactoryV1, isInPairList } from "../src/pairs";
+import { isFactoryV1, isInPairList } from "../src/pairs";
 
 describe("test pairs functions should behave correctly", () => {
-  it.each<[string, string[], string, boolean]>([
-    [MILKY_CONTRACT, [USDT_CONTRACT], "usdt", false],
-    [USDC_CONTRACT, ["orai"], "orai", true]
-  ])("test-getPairSwapV2", (contractAddress, expectedArr, exprectArrDenom, expectedArrIncludesOrai) => {
-    const { arr, arrLength, arrIncludesOrai, arrDenom } = getPairSwapV2(contractAddress);
-    expect(arr).toEqual(expectedArr);
-    expect(arrLength).toEqual(arr!.length);
-    expect(arrDenom).toEqual(exprectArrDenom);
-    expect(arrIncludesOrai).toEqual(expectedArrIncludesOrai);
-  });
-
   it("test-isFactoryV1", () => {
     const oraiToken = { native_token: { denom: "orai" } };
     expect(

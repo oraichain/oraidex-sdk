@@ -21,8 +21,6 @@ import {
   calculateBasePriceFromSwapOp,
   calculatePriceByPool,
   concatDataToUniqueKey,
-  findAssetInfoPathToUsdt,
-  findMappedTargetedAssetInfo,
   findPairAddress,
   findPairIndexFromDenoms,
   getSwapDirection,
@@ -33,13 +31,14 @@ import {
   toDecimal,
   toDisplay
 } from "../src/helper";
-import { pairs, pairLpTokens } from "../src/pairs";
+import { pairs } from "../src/pairs";
 import { LpOpsData, PairInfoData, ProvideLiquidityOperationData, SwapDirection, SwapOperationData } from "../src/types";
 import { DuckDb, collectAccumulateLpAndSwapData, getVolumePairByAsset, getVolumePairByUsdt } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import * as helper from "../src/helper";
 import * as parse from "../src/parse";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { pairLpTokens } from "@oraichain/oraidex-common";
 
 describe("test-helper", () => {
   let duckDb: DuckDb;
@@ -124,37 +123,6 @@ describe("test-helper", () => {
         }
       );
     });
-  });
-
-  it.each<[AssetInfo, number]>([
-    [{ token: { contract_addr: usdtCw20Address } }, 2],
-    [{ token: { contract_addr: usdcCw20Address } }, 1],
-    [{ native_token: { denom: "orai" } }, 10],
-    [{ token: { contract_addr: airiCw20Adress } }, 1]
-  ])("test-findMappedTargetedAssetInfo", (info, expectedListLength) => {
-    // setup
-
-    // act
-    const result = findMappedTargetedAssetInfo(info);
-
-    // assert
-    expect(result.length).toEqual(expectedListLength);
-  });
-
-  it.each<[AssetInfo, number]>([
-    [{ token: { contract_addr: usdtCw20Address } }, 1],
-    [{ native_token: { denom: "orai" } }, 2],
-    [{ token: { contract_addr: airiCw20Adress } }, 3],
-    [{ token: { contract_addr: milkyCw20Address } }, 2],
-    [{ token: { contract_addr: scAtomCw20Address } }, 4]
-  ])("test-findAssetInfoPathToUsdt", (info, expectedListLength) => {
-    // setup
-
-    // act
-    const result = findAssetInfoPathToUsdt(info);
-
-    // assert
-    expect(result.length).toEqual(expectedListLength);
   });
 
   it.each<[AssetInfo, string | undefined]>([
@@ -259,6 +227,11 @@ describe("test-helper", () => {
         asset_infos: [{ token: { contract_addr: injAddress } }, { native_token: { denom: ORAI } }],
         lp_token: pairLpTokens.INJ_ORAI,
         symbols: ["INJ", "ORAI"]
+      },
+      {
+        asset_infos: [{ token: { contract_addr: usdcCw20Address } }, { token: { contract_addr: oraixCw20Address } }],
+        lp_token: pairLpTokens.USDC_ORAIX,
+        symbols: ["ORAIX", "USDC"]
       }
     ]);
   });
