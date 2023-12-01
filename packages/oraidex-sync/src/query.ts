@@ -11,9 +11,10 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
-import { network, tenAmountInDecimalSix } from "./constants";
+import { network, oraixCw20Address, tenAmountInDecimalSix, usdcCw20Address } from "./constants";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
 import { pairs } from "./pairs";
+import { parseAssetInfoOnlyDenom } from "./parse";
 
 async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
   // adjust the query height to get data from the past
@@ -59,12 +60,20 @@ async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterRe
   // usdt case, price is always 1
   const operations = generateSwapOperations(pairPath);
   if (operations.length === 0) return "0"; // error case. Will be handled by the caller function
+
+  // TECH DEBT: hardcode simulate for pair oraix/usdc
+  const isSimulateOraixUsdc =
+    pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === oraixCw20Address) &&
+    pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === usdcCw20Address);
+  const THOUDAND_AMOUNT_IN_DECIMAL_SIX = 1000000000;
+  const offerAmount = isSimulateOraixUsdc ? THOUDAND_AMOUNT_IN_DECIMAL_SIX : tenAmountInDecimalSix;
+  const sourceDecimals = isSimulateOraixUsdc ? 9 : 6;
   try {
     const data = await router.simulateSwapOperations({
-      offerAmount: tenAmountInDecimalSix.toString(),
+      offerAmount: offerAmount.toString(),
       operations
     });
-    return toDisplay(data.amount, 7).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+    return toDisplay(data.amount, sourceDecimals).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
   } catch (error) {
     console.log(`Error when trying to simulate swap with pair: ${JSON.stringify(pairPath)} using router: ${error}`);
     return "0"; // error case. Will be handled by the caller function

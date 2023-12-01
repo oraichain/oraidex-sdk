@@ -231,7 +231,7 @@ describe("test-helper", () => {
       {
         asset_infos: [{ token: { contract_addr: usdcCw20Address } }, { token: { contract_addr: oraixCw20Address } }],
         lp_token: pairLpTokens.USDC_ORAIX,
-        symbols: ["ORAIX", "USDC"]
+        symbols: ["USDC", "ORAIX"]
       }
     ]);
   });
