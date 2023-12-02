@@ -18,13 +18,11 @@ class WriteOrders extends WriteData {
   }
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
-    await Promise.all([
-      this.duckDb.insertSwapOps(txs.swapOpsData),
-      this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
-      this.duckDb.insertOhlcv(txs.ohlcv),
-      this.duckDb.insertEarningHistories(txs.claimOpsData),
-      this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
-    ]);
+    await this.duckDb.insertSwapOps(txs.swapOpsData);
+    await this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]);
+    await this.duckDb.insertOhlcv(txs.ohlcv);
+    await this.duckDb.insertEarningHistories(txs.claimOpsData);
+    await this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories);
   }
 
   async process(chunk: any): Promise<boolean> {
