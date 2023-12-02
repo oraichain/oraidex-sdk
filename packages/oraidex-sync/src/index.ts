@@ -196,7 +196,7 @@ class OraiDexSync {
         queryTags: [],
         limit: parseInt(process.env.LIMIT) || 1000,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
-        interval: 5000
+        interval: 7000
       }).pipe(new WriteOrders(this.duckDb));
     } catch (error) {
       console.log("error in start: ", error);
