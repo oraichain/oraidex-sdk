@@ -160,19 +160,15 @@ class OraiDexSync {
   public async sync() {
     try {
       // create tables
-      await Promise.all([
-        this.duckDb.createHeightSnapshot(),
-        this.duckDb.createLiquidityOpsTable(),
-        this.duckDb.createSwapOpsTable(),
-        this.duckDb.createPairInfosTable(),
-        this.duckDb.createSwapOhlcv(),
-        this.duckDb.createLpAmountHistoryTable(),
-        this.duckDb.createPoolAprTable(),
-        this.duckDb.createStakingHistoryTable(),
-        this.duckDb.createEarningHistoryTable(),
-        this.duckDb.addTimestampColToPoolAprTable(),
-        this.duckDb.dropStakingHistoryTable()
-      ]);
+      await this.duckDb.createHeightSnapshot();
+      await this.duckDb.createLiquidityOpsTable();
+      await this.duckDb.createSwapOpsTable();
+      await this.duckDb.createPairInfosTable();
+      await this.duckDb.createSwapOhlcv();
+      await this.duckDb.createLpAmountHistoryTable();
+      await this.duckDb.createPoolAprTable();
+      await this.duckDb.createEarningHistoryTable();
+      await this.duckDb.addTimestampColToPoolAprTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic

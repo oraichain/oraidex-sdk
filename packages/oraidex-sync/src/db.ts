@@ -566,27 +566,6 @@ export class DuckDb {
     return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
   }
 
-  async createStakingHistoryTable() {
-    await this.conn.exec(
-      `CREATE TABLE IF NOT EXISTS staking_history (
-          uniqueKey varchar UNIQUE,
-          stakerAddress varchar,
-          stakingAssetDenom varchar,
-          stakeAmount bigint,
-          timestamp uinteger,
-          txhash varchar,
-          txheight uinteger,
-          stakeAmountInUsdt double,
-          lpPrice double
-        )
-      `
-    );
-  }
-
-  async dropStakingHistoryTable() {
-    await this.conn.exec("DROP TABLE IF EXISTS staking_history");
-  }
-
   async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
     let query = ` SELECT stakingAssetDenom, SUM(earnAmountInUsdt) as earnAmountInUsdt
     FROM earning_history
