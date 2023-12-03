@@ -67,7 +67,7 @@ async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterRe
     pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === usdcCw20Address);
   const THOUDAND_AMOUNT_IN_DECIMAL_SIX = 1000000000;
   const offerAmount = isSimulateOraixUsdc ? THOUDAND_AMOUNT_IN_DECIMAL_SIX : tenAmountInDecimalSix;
-  const sourceDecimals = isSimulateOraixUsdc ? 9 : 6;
+  const sourceDecimals = isSimulateOraixUsdc ? 9 : 7;
   try {
     const data = await router.simulateSwapOperations({
       offerAmount: offerAmount.toString(),
