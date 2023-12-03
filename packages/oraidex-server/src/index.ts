@@ -158,9 +158,6 @@ app.get("/tickers", async (req, res) => {
           try {
             // reverse because in pairs, we put base info as first index
             const price = await simulateSwapPrice(pair.asset_infos, routerContract);
-            if (pairAddr === "orai1n4edv5h86rawzrvhy8lmrmnnmmherxnhuwqnk3yuvt0wgclh75usyn3md6") {
-              console.log({ price });
-            }
             tickerInfo.last_price = price.toString();
           } catch (error) {
             tickerInfo.last_price = "0";
