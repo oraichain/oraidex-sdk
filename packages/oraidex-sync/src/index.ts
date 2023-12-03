@@ -18,13 +18,11 @@ class WriteOrders extends WriteData {
   }
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
-    await Promise.all([
-      this.duckDb.insertSwapOps(txs.swapOpsData),
-      this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
-      this.duckDb.insertOhlcv(txs.ohlcv),
-      this.duckDb.insertEarningHistories(txs.claimOpsData),
-      this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
-    ]);
+    await this.duckDb.insertSwapOps(txs.swapOpsData);
+    await this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]);
+    await this.duckDb.insertOhlcv(txs.ohlcv);
+    await this.duckDb.insertEarningHistories(txs.claimOpsData);
+    await this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories);
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -40,7 +38,8 @@ class WriteOrders extends WriteData {
       await handleEventApr(txs, lpOpsData, newOffset);
 
       // hash to be promise all because if inserting height pass and txs fail then we will have duplications
-      await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
+      await this.duckDb.insertHeightSnapshot(newOffset);
+      await this.insertParsedTxs(result);
       console.log("new offset: ", newOffset);
 
       const lpOps = await this.duckDb.queryLpOps();
@@ -160,19 +159,15 @@ class OraiDexSync {
   public async sync() {
     try {
       // create tables
-      await Promise.all([
-        this.duckDb.createHeightSnapshot(),
-        this.duckDb.createLiquidityOpsTable(),
-        this.duckDb.createSwapOpsTable(),
-        this.duckDb.createPairInfosTable(),
-        this.duckDb.createSwapOhlcv(),
-        this.duckDb.createLpAmountHistoryTable(),
-        this.duckDb.createPoolAprTable(),
-        this.duckDb.createStakingHistoryTable(),
-        this.duckDb.createEarningHistoryTable(),
-        this.duckDb.addTimestampColToPoolAprTable(),
-        this.duckDb.dropStakingHistoryTable()
-      ]);
+      await this.duckDb.createHeightSnapshot();
+      await this.duckDb.createLiquidityOpsTable();
+      await this.duckDb.createSwapOpsTable();
+      await this.duckDb.createPairInfosTable();
+      await this.duckDb.createSwapOhlcv();
+      await this.duckDb.createLpAmountHistoryTable();
+      await this.duckDb.createPoolAprTable();
+      await this.duckDb.createEarningHistoryTable();
+      await this.duckDb.addTimestampColToPoolAprTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic

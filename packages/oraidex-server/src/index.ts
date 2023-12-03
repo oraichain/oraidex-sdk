@@ -448,11 +448,9 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
 
 app
   .listen(port, hostname, async () => {
-    if (process.env.SIMULATE_CLIENT) {
-      await getMigrateStakingV3Client();
-    }
     // sync data for the service to read
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
+    duckDb.conn.exec("SET memory_limit='1000MB'");
 
     const oraidexSync = await OraiDexSync.create(
       duckDb,
