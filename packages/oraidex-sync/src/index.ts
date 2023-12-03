@@ -38,7 +38,8 @@ class WriteOrders extends WriteData {
       await handleEventApr(txs, lpOpsData, newOffset);
 
       // hash to be promise all because if inserting height pass and txs fail then we will have duplications
-      await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
+      await this.duckDb.insertHeightSnapshot(newOffset);
+      await this.insertParsedTxs(result);
       console.log("new offset: ", newOffset);
 
       const lpOps = await this.duckDb.queryLpOps();
