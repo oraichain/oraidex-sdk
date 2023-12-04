@@ -32,7 +32,9 @@ import {
   simulateSwapPrice,
   toDisplay,
   usdtInfo,
-  getMigrateStakingV3Client
+  getMigrateStakingV3Client,
+  oraixCw20Address,
+  usdcCw20Address
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import "dotenv/config";
@@ -91,7 +93,7 @@ app.get("/tickers", async (req, res) => {
     const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
     const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
 
-    // hardcode reverse order for ORAI/INJ
+    // hardcode reverse order for ORAI/INJ, USDC/ORAIX
     const arrangedPairs = pairs.map((pair) => {
       const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
       if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
@@ -106,6 +108,27 @@ app.get("/tickers", async (req, res) => {
             } as AssetInfo
           ],
           symbols: ["ORAI", "INJ"]
+        } as PairMapping;
+
+      if (
+        pairDenoms.some((denom) => denom === oraixCw20Address) &&
+        pairDenoms.some((denom) => denom === usdcCw20Address)
+      )
+        return {
+          ...pair,
+          asset_infos: [
+            {
+              token: {
+                contract_addr: oraixCw20Address
+              }
+            } as AssetInfo,
+            {
+              token: {
+                contract_addr: usdcCw20Address
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAIX", "USDC"]
         } as PairMapping;
       return pair;
     });
