@@ -305,9 +305,6 @@ function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
 }
 
 async function getCosmwasmClient(): Promise<CosmWasmClient> {
-  if (process.env.SIMULATE_CLIENT) {
-    return simulateClient;
-  }
   const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
   const client = await CosmWasmClient.connect(rpcUrl);
   return client;
