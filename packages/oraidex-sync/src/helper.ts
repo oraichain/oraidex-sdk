@@ -374,15 +374,17 @@ async function getAllVolume24h(): Promise<PoolVolume[]> {
   const tf = 24 * 60 * 60; // second of 24h
   const currentDate = new Date();
   const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-  const allVolumes = await Promise.all(
-    pairs.map((pair) => getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate))
-  );
-  return pairs.map((pair, index) => {
-    return {
-      assetInfos: pair.asset_infos,
-      volume: allVolumes[index]
-    };
-  });
+
+  const poolVolumes = [];
+  for (const { asset_infos } of pairs) {
+    const volume = await getVolumePairByUsdt(asset_infos, oneDayBeforeNow, currentDate);
+    poolVolumes.push({
+      assetInfos: asset_infos,
+      volume
+    });
+  }
+
+  return poolVolumes;
 }
 // ===== end get volume pairs =====>
 
@@ -401,10 +403,8 @@ export const getFeeSwapInUsdt = async (
     endTime: convertDateToSecond(endTime)
   });
 
-  const [baseAssetPrice, quoteAssetPrice] = await Promise.all([
-    getPriceAssetByUsdt(baseAsset),
-    getPriceAssetByUsdt(quoteAsset)
-  ]);
+  const baseAssetPrice = await getPriceAssetByUsdt(baseAsset);
+  const quoteAssetPrice = await getPriceAssetByUsdt(quoteAsset);
 
   const totalFeeInUsdt = baseAssetPrice * feeInBaseAsset + quoteAssetPrice * feeInQuoteAsset;
   return BigInt(Math.trunc(totalFeeInUsdt));
@@ -416,15 +416,14 @@ export const getFeePair = async (
   endTime: Date
 ): Promise<bigint> => {
   const duckDb = DuckDb.instances;
-  const [swapFee, liquidityFee] = await Promise.all([
-    getFeeSwapInUsdt(asset_infos, startTime, endTime),
-    duckDb.getFeeLiquidity({
-      offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
-      askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    })
-  ]);
+
+  const swapFee = await getFeeSwapInUsdt(asset_infos, startTime, endTime);
+  const liquidityFee = await duckDb.getFeeLiquidity({
+    offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
+    askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
   return swapFee + liquidityFee;
 };
 
@@ -436,13 +435,17 @@ async function getAllFees(): Promise<PoolFee[]> {
   const tf = 7 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-  const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));
-  return pairs.map((pair, index) => {
-    return {
-      assetInfos: pair.asset_infos,
-      fee: allFees[index]
-    };
-  });
+
+  const poolFees = [];
+  for (const { asset_infos } of pairs) {
+    const fee = await getFeePair(asset_infos, oneWeekBeforeNow, currentDate);
+    poolFees.push({
+      assetInfos: asset_infos,
+      fee
+    });
+  }
+
+  return poolFees;
 }
 //  ==== end get fee pair ====>
 

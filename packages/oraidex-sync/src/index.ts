@@ -1,14 +1,16 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import {
-  concatAprHistoryToUniqueKey,
-  concatLpHistoryToUniqueKey,
-  getPairLiquidity,
-  getSymbolFromAsset
-} from "./helper";
+import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
-import { fetchAprResult, getAllPairInfos, getPairByAssetInfos, getPoolInfos, handleEventApr } from "./pool-helper";
+import {
+  fetchAprResult,
+  getAllPairInfos,
+  getPairByAssetInfos,
+  getPoolInfos,
+  getPoolLiquidities,
+  handleEventApr
+} from "./pool-helper";
 import { parseTxs } from "./tx-parsing";
 import { Env, PairInfoData, PoolAmountHistory, PoolApr, TxAnlysisResult } from "./types";
 
@@ -18,11 +20,13 @@ class WriteOrders extends WriteData {
   }
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
-    await this.duckDb.insertSwapOps(txs.swapOpsData);
-    await this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]);
-    await this.duckDb.insertOhlcv(txs.ohlcv);
-    await this.duckDb.insertEarningHistories(txs.claimOpsData);
-    await this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories);
+    await Promise.all([
+      this.duckDb.insertSwapOps(txs.swapOpsData),
+      this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
+      this.duckDb.insertOhlcv(txs.ohlcv),
+      this.duckDb.insertEarningHistories(txs.claimOpsData),
+      this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
+    ]);
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -128,10 +132,8 @@ class OraiDexSync {
 
   private async updateLatestPoolApr(height: number) {
     const pools = await this.duckDb.getPools();
-    const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
-      if (result.status === "fulfilled") return result.value;
-      else console.error("error get allLiquidities: ", result.reason);
-    });
+    const allLiquidities = await getPoolLiquidities(pools);
+
     const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
 
     const poolAprs = allAprs.map((apr, index) => {
