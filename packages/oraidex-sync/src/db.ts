@@ -168,36 +168,6 @@ export class DuckDb {
     return volumeData;
   }
 
-  async queryAllVolume(offerDenom: string, askDenom: string): Promise<TokenVolumeData> {
-    const modifiedOfferDenom = replaceAllNonAlphaBetChar(offerDenom);
-    const modifiedAskDenom = replaceAllNonAlphaBetChar(askDenom);
-    const volume = (
-      await Promise.all([
-        this.conn.all(
-          `SELECT sum(offerAmount) as ${modifiedOfferDenom}, sum(returnAmount) as ${modifiedAskDenom} 
-          from swap_ops_data 
-          where offerDenom = ? 
-          and askDenom = ?`,
-          offerDenom,
-          askDenom
-        ),
-        this.conn.all(
-          `SELECT sum(offerAmount) as ${modifiedAskDenom}, sum(returnAmount) as ${modifiedOfferDenom} 
-          from swap_ops_data 
-          where offerDenom = ? 
-          and askDenom = ?`,
-          askDenom,
-          offerDenom
-        )
-      ])
-    ).flat();
-    return {
-      offerDenom,
-      askDenom,
-      volume: this.reduceVolume(volume, { offerDenom, modifiedOfferDenom, askDenom, modifiedAskDenom })
-    };
-  }
-
   async queryAllVolumeRange(
     offerDenom: string, // eg: orai
     askDenom: string, // usdt
@@ -207,34 +177,32 @@ export class DuckDb {
     // need to replace because the denom can contain numbers and other figures. We replace for temporary only, will be reverted once finish reducing
     const modifiedOfferDenom = replaceAllNonAlphaBetChar(offerDenom);
     const modifiedAskDenom = replaceAllNonAlphaBetChar(askDenom);
-    const volume = (
-      await Promise.all([
-        this.conn.all(
-          `SELECT sum(offerAmount) as ${modifiedOfferDenom}, sum(returnAmount) as ${modifiedAskDenom}
-        from swap_ops_data 
-        where offerDenom = ? 
-        and askDenom = ? 
-        and timestamp >= ? 
-        and timestamp <= ?`,
-          offerDenom,
-          askDenom,
-          startTime,
-          endTime
-        ),
-        this.conn.all(
-          `SELECT sum(offerAmount) as ${modifiedAskDenom}, sum(returnAmount) as ${modifiedOfferDenom}
-        from swap_ops_data 
-        where offerDenom = ? 
-        and askDenom = ? 
-        and timestamp >= ? 
-        and timestamp <= ?`,
-          askDenom,
-          offerDenom,
-          startTime,
-          endTime
-        )
-      ])
-    ).flat();
+    const volumeByOfferDenom = await this.conn.all(
+      `SELECT sum(offerAmount) as ${modifiedOfferDenom}, sum(returnAmount) as ${modifiedAskDenom}
+    from swap_ops_data 
+    where offerDenom = ? 
+    and askDenom = ? 
+    and timestamp >= ? 
+    and timestamp <= ?`,
+      offerDenom,
+      askDenom,
+      startTime,
+      endTime
+    );
+    const volumeByAskDenom = await this.conn.all(
+      `SELECT sum(offerAmount) as ${modifiedAskDenom}, sum(returnAmount) as ${modifiedOfferDenom}
+    from swap_ops_data 
+    where offerDenom = ? 
+    and askDenom = ? 
+    and timestamp >= ? 
+    and timestamp <= ?`,
+      askDenom,
+      offerDenom,
+      startTime,
+      endTime
+    );
+    const volume = [volumeByOfferDenom, volumeByAskDenom].flat();
+
     return {
       offerDenom,
       askDenom,
@@ -394,9 +362,8 @@ export class DuckDb {
 
   async getFeeSwap(payload: GetFeeSwap): Promise<[number, number]> {
     const { offerDenom, askDenom, startTime, endTime } = payload;
-    const [feeRightDirection, feeReverseDirection] = await Promise.all([
-      this.conn.all(
-        `
+    const feeRightDirection = await this.conn.all(
+      `
       SELECT 
         sum(commissionAmount + taxAmount) as totalFee,
         FROM swap_ops_data
@@ -405,13 +372,14 @@ export class DuckDb {
         AND offerDenom = ?
         AND askDenom = ?
       `,
-        startTime,
-        endTime,
-        offerDenom,
-        askDenom
-      ),
-      this.conn.all(
-        `
+      startTime,
+      endTime,
+      offerDenom,
+      askDenom
+    );
+
+    const feeReverseDirection = await this.conn.all(
+      `
       SELECT 
         sum(commissionAmount + taxAmount) as totalFee,
         FROM swap_ops_data
@@ -420,12 +388,11 @@ export class DuckDb {
         AND offerDenom = ?
         AND askDenom = ?
       `,
-        startTime,
-        endTime,
-        askDenom,
-        offerDenom
-      )
-    ]);
+      startTime,
+      endTime,
+      askDenom,
+      offerDenom
+    );
 
     return [feeRightDirection[0]?.totalFee, feeReverseDirection[0]?.totalFee];
   }

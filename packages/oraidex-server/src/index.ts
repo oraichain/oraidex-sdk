@@ -32,9 +32,10 @@ import {
   simulateSwapPrice,
   toDisplay,
   usdtInfo,
-  getMigrateStakingV3Client,
   oraixCw20Address,
-  usdcCw20Address
+  usdcCw20Address,
+  getPoolLiquidities,
+  getPoolAmounts
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import "dotenv/config";
@@ -133,42 +134,36 @@ app.get("/tickers", async (req, res) => {
       return pair;
     });
 
-    const data: TickerInfo[] = (
-      await Promise.allSettled(
-        arrangedPairs.map(async (pair) => {
-          const symbols = pair.symbols;
-          const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
-          const tickerId = parseSymbolsToTickerId(symbols);
-          const baseIndex = 0;
-          const targetIndex = 1;
-          const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
-          const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
-          const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
-          const tickerInfo: TickerInfo = {
-            ticker_id: tickerId,
-            base_currency: symbols[baseIndex],
-            target_currency: symbols[targetIndex],
-            last_price: "",
-            base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(),
-            target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
-            pool_id: pairAddr ?? "",
-            base: symbols[baseIndex],
-            target: symbols[targetIndex]
-          };
-          try {
-            // reverse because in pairs, we put base info as first index
-            const price = await simulateSwapPrice(pair.asset_infos, routerContract);
-            tickerInfo.last_price = price.toString();
-          } catch (error) {
-            tickerInfo.last_price = "0";
-          }
-          return tickerInfo;
-        })
-      )
-    ).map((result) => {
-      if (result.status === "fulfilled") return result.value;
-      else console.log("result: ", result.reason);
-    });
+    const data: TickerInfo[] = [];
+    for (const pair of arrangedPairs) {
+      const symbols = pair.symbols;
+      const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
+      const tickerId = parseSymbolsToTickerId(symbols);
+      const baseIndex = 0;
+      const targetIndex = 1;
+      const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
+      const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
+      const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
+      const tickerInfo: TickerInfo = {
+        ticker_id: tickerId,
+        base_currency: symbols[baseIndex],
+        target_currency: symbols[targetIndex],
+        last_price: "",
+        base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(),
+        target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
+        pool_id: pairAddr ?? "",
+        base: symbols[baseIndex],
+        target: symbols[targetIndex]
+      };
+      try {
+        // reverse because in pairs, we put base info as first index
+        const price = await simulateSwapPrice(pair.asset_infos, routerContract);
+        tickerInfo.last_price = price.toString();
+      } catch (error) {
+        tickerInfo.last_price = "0";
+      }
+      data.push(tickerInfo);
+    }
     res.status(200).send(data);
   } catch (error) {
     console.log("error: ", error);
@@ -184,12 +179,13 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
   const then = startTime
     ? parseInt(startTime as string)
     : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 259200).getTime() / 1000;
-  const volumeInfos = await Promise.all(
-    pairsOnlyDenom.map((pair) => {
-      return duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(pair.asset_infos));
-    })
-  );
-  // console.log("volume infos: ", volumeInfos);
+
+  const volumeInfos = [];
+  for (const { asset_infos } of pairsOnlyDenom) {
+    const volume = await duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(asset_infos));
+    volumeInfos.push(volume);
+  }
+
   const volumeRanges: { [time: string]: VolumeRange[] } = {};
   for (const volumePair of volumeInfos) {
     for (const volume of volumePair) {
@@ -236,19 +232,12 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (_req, res) => {
   try {
-    const [volumes, allFee7Days, pools, allPoolApr] = await Promise.all([
-      getAllVolume24h(),
-      getAllFees(),
-      duckDb.getPools(),
-      duckDb.getAllAprs()
-    ]);
-    const liquidityPromises = pools.map((pair) => getPairLiquidity(pair));
-    const poolAmountPromises = pools.map((pair) => duckDb.getLatestLpPoolAmount(pair.pairAddr));
-
-    const [allLiquidities, allPoolAmounts] = await Promise.all([
-      Promise.all(liquidityPromises),
-      Promise.all(poolAmountPromises)
-    ]);
+    const volumes = await getAllVolume24h();
+    const allFee7Days = await getAllFees();
+    const pools = await duckDb.getPools();
+    const allPoolApr = await duckDb.getAllAprs();
+    const allLiquidities = await getPoolLiquidities(pools);
+    const allPoolAmounts = await getPoolAmounts(pools);
 
     const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
@@ -309,11 +298,9 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
     const currentDate = new Date();
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
     const twoDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf * 2);
-    const [poolVolume, poolVolumeOnedayBefore, pool] = await Promise.all([
-      getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate),
-      getVolumePairByUsdt(pair.asset_infos, twoDayBeforeNow, oneDayBeforeNow),
-      duckDb.getPoolByAssetInfos(pair.asset_infos)
-    ]);
+    const poolVolume = await getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate);
+    const poolVolumeOnedayBefore = await getVolumePairByUsdt(pair.asset_infos, twoDayBeforeNow, oneDayBeforeNow);
+    const pool = await duckDb.getPoolByAssetInfos(pair.asset_infos);
 
     let percentVolumeChange = 0;
     if (poolVolumeOnedayBefore !== 0n) {
@@ -347,12 +334,9 @@ app.get("/orai-info", async (req, res) => {
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
     const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
     const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
-
-    const [volume24h, oraiPriceByTime, currenOraiPrice] = await Promise.all([
-      getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate),
-      getOraiPrice(timestamp),
-      getOraiPrice()
-    ]);
+    const volume24h = await getVolumePairByUsdt([oraiInfo, usdtInfo], oneDayBeforeNow, currentDate);
+    const oraiPriceByTime = await getOraiPrice(timestamp);
+    const currenOraiPrice = await getOraiPrice();
 
     let percentPriceChange = 0;
     if (oraiPriceByTime !== 0) {
@@ -389,10 +373,8 @@ app.get("/price", async (req: Request<{}, {}, {}, GetPricePairQuery>, res) => {
     if (!pair)
       return res.status(400).send(`Not found pair with assets: ${req.query.base_denom}-${req.query.quote_denom}`);
 
-    const [baseAssetPriceByTime, currentBaseAssetPrice] = await Promise.all([
-      getPriceByAsset(pair.asset_infos, "base_in_quote", timestamp),
-      getPriceByAsset(pair.asset_infos, "base_in_quote")
-    ]);
+    const baseAssetPriceByTime = await getPriceByAsset(pair.asset_infos, "base_in_quote", timestamp);
+    const currentBaseAssetPrice = await getPriceByAsset(pair.asset_infos, "base_in_quote");
 
     let percentPriceChange = 0;
     if (baseAssetPriceByTime !== 0) {
