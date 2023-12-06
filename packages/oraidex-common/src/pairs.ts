@@ -69,7 +69,7 @@ export const PAIRS: PairMapping[] = [
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: TRX_CONTRACT } }],
-    symbols: ["ORAI", "WTRX"]
+    symbols: ["ORAI", "wTRX"]
   },
   {
     asset_infos: [{ token: { contract_addr: SCATOM_CONTRACT } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
