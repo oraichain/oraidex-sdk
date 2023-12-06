@@ -215,7 +215,7 @@ describe("test-helper", () => {
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: tronCw20Address } }],
         lp_token: pairLpTokens.TRX_ORAI,
-        symbols: ["ORAI", "WTRX"]
+        symbols: ["ORAI", "wTRX"]
       },
       {
         asset_infos: [{ token: { contract_addr: scAtomCw20Address } }, { native_token: { denom: atomIbcDenom } }],
