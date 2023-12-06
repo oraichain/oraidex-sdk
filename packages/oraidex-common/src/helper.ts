@@ -28,8 +28,11 @@ export const getEvmAddress = (bech32Address: string) => {
   }
 };
 
-export const tronToEthAddress = (base58: string) =>
-  "0x" + Buffer.from(ethers.utils.base58.decode(base58)).subarray(1, -4).toString("hex");
+export const tronToEthAddress = (base58: string) => {
+  const buffer = Buffer.from(ethers.utils.base58.decode(base58)).subarray(1, -4);
+  const hexString = Array.prototype.map.call(buffer, byte => ("0" + byte.toString(16)).slice(-2)).join("");
+  return "0x" + hexString;
+};
 
 export const ethToTronAddress = (address: string) => {
   const evmAddress = "0x41" + address.substring(2);
@@ -83,7 +86,7 @@ export const toDisplay = (amount: string | bigint, sourceDecimals: number = 6, d
 export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItemType): AmountDetails => {
   if (!tokenInfo.evmDenoms) return {};
   return Object.fromEntries(
-    tokenInfo.evmDenoms.map((denom) => {
+    tokenInfo.evmDenoms.map(denom => {
       return [denom, amounts[denom]];
     })
   );
@@ -146,7 +149,7 @@ export const buildMultipleExecuteMessages = (
 };
 
 export const marshalEncodeObjsToStargateMsgs = (messages: EncodeObject[]): StargateMsg[] => {
-  return messages.map((msg) => ({ stargate: { type_url: msg.typeUrl, value: toBinary(msg.value) } }));
+  return messages.map(msg => ({ stargate: { type_url: msg.typeUrl, value: toBinary(msg.value) } }));
 };
 
 export const calculateMinReceive = (
@@ -215,14 +218,14 @@ export const getTokenOnSpecificChainId = (
   coingeckoId: CoinGeckoId,
   chainId: NetworkChainId
 ): TokenItemType | undefined => {
-  return flattenTokens.find((t) => t.coinGeckoId === coingeckoId && t.chainId === chainId);
+  return flattenTokens.find(t => t.coinGeckoId === coingeckoId && t.chainId === chainId);
 };
 
 export const getTokenOnOraichain = (coingeckoId: CoinGeckoId) => {
   if (coingeckoId === "kawaii-islands" || coingeckoId === "milky-token") {
     throw new Error("KWT and MILKY not supported in this function");
   }
-  return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId);
+  return oraichainTokens.find(token => token.coinGeckoId === coingeckoId);
 };
 
 export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {
@@ -240,9 +243,9 @@ export const isEthAddress = (address: string): boolean => {
 };
 
 export const parseRpcEvents = (events: readonly Event[]): Event[] => {
-  return events.map((ev) => ({
+  return events.map(ev => ({
     ...ev,
-    attributes: ev.attributes.map((attr) => ({
+    attributes: ev.attributes.map(attr => ({
       key: Buffer.from(attr.key, "base64").toString("utf-8"),
       value: Buffer.from(attr.value, "base64").toString("utf-8")
     }))
