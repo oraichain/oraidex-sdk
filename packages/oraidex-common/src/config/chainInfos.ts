@@ -216,6 +216,7 @@ export const mapListWithIcon = (list: any[], listIcon: ChainIcon[] | TokenIcon[]
     let Icon = OraiIcon;
     let IconLight = OraiLightIcon;
 
+    //@ts-ignore
     const findedItem = listIcon.find((icon) => icon[key] === item[key]);
     if (findedItem) {
       Icon = findedItem.Icon;
