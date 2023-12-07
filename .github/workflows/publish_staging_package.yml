@@ -65,12 +65,12 @@ jobs:
         id: install
         if: steps.publish.outcome != 'failure'
         continue-on-error: true
-        uses: appleboy/ssh-action@master
+        uses: peter-evans/repository-dispatch@v2
         with:
-          host: ${{ secrets.DOCKER_SWARM_MANAGER_ONE }}
-          username: root
-          key: ${{ secrets.DOCKER_SWARM_MANAGER_ONE_KEY }}
-          script: docker exec ${{ secrets.DOCKER_SWARM_MANAGER_ONE_NODE_16_ID}} sh -c 'yarn global add @oraichain/oraidex-server-staging@latest --ignore-scripts'
+          token: ${{ secrets.GIT_PAT }}
+          repository: oraichain/infra
+          event-type: install-package
+          client-payload: '{"libname": "oraidex-server-staging", "node_version": "16"}'
 
       - name: send result via discord
         uses: appleboy/discord-action@master
@@ -78,4 +78,4 @@ jobs:
           webhook_id: ${{ secrets.WEBHOOK_ID }}
           webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
           username: "GitBot [oraidex-server-staging]"
-          message: "Repo oraidex-sdk has just published oraidex-server-staging. result: ${{ steps.publish.outcome }}. install result: ${{ steps.install.outcome }}. ${{ github.event.head_commit.author.name }}"
+          message: "Repo oraidex-sdk has just published oraidex-server-staging. result: ${{ steps.publish.outcome }}. ${{ github.event.head_commit.author.name }}"
