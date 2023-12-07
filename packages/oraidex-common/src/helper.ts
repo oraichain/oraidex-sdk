@@ -9,11 +9,34 @@ import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { ethers } from "ethers";
 import Long from "long";
-import { AVERAGE_COSMOS_GAS_PRICE, WRAP_BNB_CONTRACT, WRAP_ETH_CONTRACT, atomic, truncDecimals } from "./constant";
+import {
+  AVERAGE_COSMOS_GAS_PRICE,
+  WRAP_BNB_CONTRACT,
+  WRAP_ETH_CONTRACT,
+  atomic,
+  truncDecimals,
+  GAS_ESTIMATION_BRIDGE_DEFAULT,
+  MULTIPLIER
+} from "./constant";
 import { CoinGeckoId, NetworkChainId } from "./network";
-import { AmountDetails, TokenInfo, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "./token";
+import {
+  AmountDetails,
+  TokenInfo,
+  TokenItemType,
+  cosmosTokens,
+  flattenTokens,
+  oraichainTokens,
+  CoinGeckoPrices
+} from "./token";
 import { StargateMsg, Tx } from "./tx";
 import { BigDecimal } from "./bigdecimal";
+import {
+  isEvmNetworkNativeSwapSupported,
+  isSupportedNoPoolSwapEvm,
+  SwapDirection,
+  swapEvmRoutes
+} from "@oraichain/oraidex-universal-swap";
+import { swapFromTokens, swapToTokens, tokenMap } from "./config/bridgeTokens";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -30,7 +53,7 @@ export const getEvmAddress = (bech32Address: string) => {
 
 export const tronToEthAddress = (base58: string) => {
   const buffer = Buffer.from(ethers.utils.base58.decode(base58)).subarray(1, -4);
-  const hexString = Array.prototype.map.call(buffer, byte => ("0" + byte.toString(16)).slice(-2)).join("");
+  const hexString = Array.prototype.map.call(buffer, (byte) => ("0" + byte.toString(16)).slice(-2)).join("");
   return "0x" + hexString;
 };
 
@@ -86,7 +109,7 @@ export const toDisplay = (amount: string | bigint, sourceDecimals: number = 6, d
 export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItemType): AmountDetails => {
   if (!tokenInfo.evmDenoms) return {};
   return Object.fromEntries(
-    tokenInfo.evmDenoms.map(denom => {
+    tokenInfo.evmDenoms.map((denom) => {
       return [denom, amounts[denom]];
     })
   );
@@ -149,7 +172,7 @@ export const buildMultipleExecuteMessages = (
 };
 
 export const marshalEncodeObjsToStargateMsgs = (messages: EncodeObject[]): StargateMsg[] => {
-  return messages.map(msg => ({ stargate: { type_url: msg.typeUrl, value: toBinary(msg.value) } }));
+  return messages.map((msg) => ({ stargate: { type_url: msg.typeUrl, value: toBinary(msg.value) } }));
 };
 
 export const calculateMinReceive = (
@@ -218,14 +241,14 @@ export const getTokenOnSpecificChainId = (
   coingeckoId: CoinGeckoId,
   chainId: NetworkChainId
 ): TokenItemType | undefined => {
-  return flattenTokens.find(t => t.coinGeckoId === coingeckoId && t.chainId === chainId);
+  return flattenTokens.find((t) => t.coinGeckoId === coingeckoId && t.chainId === chainId);
 };
 
 export const getTokenOnOraichain = (coingeckoId: CoinGeckoId) => {
   if (coingeckoId === "kawaii-islands" || coingeckoId === "milky-token") {
     throw new Error("KWT and MILKY not supported in this function");
   }
-  return oraichainTokens.find(token => token.coinGeckoId === coingeckoId);
+  return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId);
 };
 
 export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {
@@ -243,9 +266,9 @@ export const isEthAddress = (address: string): boolean => {
 };
 
 export const parseRpcEvents = (events: readonly Event[]): Event[] => {
-  return events.map(ev => ({
+  return events.map((ev) => ({
     ...ev,
-    attributes: ev.attributes.map(attr => ({
+    attributes: ev.attributes.map((attr) => ({
       key: Buffer.from(attr.key, "base64").toString("utf-8"),
       value: Buffer.from(attr.value, "base64").toString("utf-8")
     }))
@@ -283,3 +306,147 @@ export function toObject(data: any) {
     )
   );
 }
+export const AMOUNT_BALANCE_ENTRIES: [number, string, string][] = [
+  [0.25, "25%", "one-quarter"],
+  [0.5, "50%", "half"],
+  [0.75, "75%", "three-quarters"],
+  [1, "100%", "max"]
+];
+
+export type SwapType = "Swap" | "Bridge" | "Universal Swap";
+export const getSwapType = ({
+  fromChainId,
+  toChainId,
+  fromCoingeckoId,
+  toCoingeckoId
+}: {
+  fromChainId: NetworkChainId;
+  toChainId: NetworkChainId;
+  fromCoingeckoId: CoinGeckoId;
+  toCoingeckoId: CoinGeckoId;
+}): SwapType => {
+  if (fromChainId === "Oraichain" && toChainId === "Oraichain") return "Swap";
+
+  if (fromCoingeckoId === toCoingeckoId) return "Bridge";
+
+  return "Universal Swap";
+};
+export function filterNonPoolEvmTokens(
+  chainId: string,
+  coingeckoId: CoinGeckoId,
+  denom: string,
+  searchTokenName: string,
+  direction: SwapDirection // direction = to means we are filtering to tokens
+) {
+  // basic filter. Dont include itself & only collect tokens with searched letters
+  const listTokens = direction === SwapDirection.From ? swapFromTokens : swapToTokens;
+  let filteredToTokens = listTokens.filter(
+    (token) => token.denom !== denom && token.name.toLowerCase().includes(searchTokenName.toLowerCase())
+  );
+  // special case for tokens not having a pool on Oraichain
+  if (isSupportedNoPoolSwapEvm(coingeckoId)) {
+    const swappableTokens = Object.keys(swapEvmRoutes[chainId]).map((key) => key.split("-")[1]);
+    const filteredTokens = filteredToTokens.filter((token) => swappableTokens.includes(token.contractAddress));
+
+    // tokens that dont have a pool on Oraichain like WETH or WBNB cannot be swapped from a token on Oraichain
+    if (direction === SwapDirection.To)
+      return [...new Set(filteredTokens.concat(filteredTokens.map((token) => getTokenOnOraichain(token.coinGeckoId))))];
+    filteredToTokens = filteredTokens;
+  }
+  // special case filter. Tokens on networks other than supported evm cannot swap to tokens, so we need to remove them
+  if (!isEvmNetworkNativeSwapSupported(chainId as NetworkChainId))
+    return filteredToTokens.filter((t) => {
+      // one-directional swap. non-pool tokens of evm network can swap be swapped with tokens on Oraichain, but not vice versa
+      const isSupported = isSupportedNoPoolSwapEvm(t.coinGeckoId);
+      if (direction === SwapDirection.To) return !isSupported;
+      if (isSupported) {
+        // if we cannot find any matched token then we dont include it in the list since it cannot be swapped
+        const sameChainId = getTokenOnSpecificChainId(coingeckoId, t.chainId as NetworkChainId);
+        if (!sameChainId) return false;
+        return true;
+      }
+      return true;
+    });
+  return filteredToTokens.filter((t) => {
+    // filter out to tokens that are on a different network & with no pool because we are not ready to support them yet. TODO: support
+    if (isSupportedNoPoolSwapEvm(t.coinGeckoId)) return t.chainId === chainId;
+    return true;
+  });
+}
+
+export const feeEstimate = (tokenInfo: TokenItemType, gasDefault: number) => {
+  if (!tokenInfo) return 0;
+
+  return new BigDecimal(MULTIPLIER)
+    .mul(tokenInfo.feeCurrencies[0].gasPriceStep.high)
+    .mul(gasDefault)
+    .div(10 ** tokenInfo.decimals)
+    .toNumber();
+};
+
+export const calcMaxAmount = ({
+  maxAmount,
+  token,
+  coeff,
+  gas = GAS_ESTIMATION_BRIDGE_DEFAULT
+}: {
+  maxAmount: number;
+  token: TokenItemType;
+  coeff: number;
+  gas?: number;
+}) => {
+  if (!token) return maxAmount;
+
+  let finalAmount = maxAmount;
+
+  const feeCurrencyOfToken = token.feeCurrencies?.find((e) => e.coinMinimalDenom === token.denom);
+
+  if (feeCurrencyOfToken) {
+    const useFeeEstimate = feeEstimate(token, gas);
+
+    if (coeff === 1) {
+      finalAmount = useFeeEstimate > finalAmount ? 0 : new BigDecimal(finalAmount).sub(useFeeEstimate).toNumber();
+    } else {
+      finalAmount =
+        useFeeEstimate > new BigDecimal(maxAmount).sub(new BigDecimal(finalAmount).mul(coeff)).toNumber()
+          ? 0
+          : finalAmount;
+    }
+  }
+
+  return finalAmount;
+};
+
+export const getTotalUsd = (amounts: AmountDetails, prices: CoinGeckoPrices<string>): number => {
+  let usd = 0;
+  for (const denom in amounts) {
+    const tokenInfo = tokenMap[denom];
+    if (!tokenInfo) continue;
+    const amount = toDisplay(amounts[denom], tokenInfo.decimals);
+    usd += amount * (prices[tokenInfo.coinGeckoId] ?? 0);
+  }
+  return usd;
+};
+
+export const toSubDisplay = (amounts: AmountDetails, tokenInfo: TokenItemType): number => {
+  const subAmounts = getSubAmountDetails(amounts, tokenInfo);
+  return toSumDisplay(subAmounts);
+};
+
+export const toSubAmount = (amounts: AmountDetails, tokenInfo: TokenItemType): bigint => {
+  const displayAmount = toSubDisplay(amounts, tokenInfo);
+  return toAmount(displayAmount, tokenInfo.decimals);
+};
+
+export const toSumDisplay = (amounts: AmountDetails): number => {
+  // get all native balances that are from oraibridge (ibc/...)
+  let amount = 0;
+
+  for (const denom in amounts) {
+    // update later
+    const balance = amounts[denom];
+    if (!balance) continue;
+    amount += toDisplay(balance, tokenMap[denom].decimals);
+  }
+  return amount;
+};
