@@ -79,7 +79,7 @@ jobs:
           token: ${{ secrets.GIT_PAT }}
           repository: oraichain/infra
           event-type: install-package
-          client-payload: '{"libname": "oraidex-server-staging", "node_version": "16"}'
+          client-payload: '{"libname": "oraidex-server", "node_version": "16"}'
 
       - name: send result via discord
         uses: appleboy/discord-action@master
