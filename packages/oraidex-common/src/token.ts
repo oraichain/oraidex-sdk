@@ -15,6 +15,13 @@ import { FeeCurrency } from "@keplr-wallet/types";
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };
 
+/**
+ * Prices of each token.
+ */
+export type CoinGeckoPrices<T extends string> = {
+  [C in T]: number | null;
+};
+
 export type TokenItemType = {
   name: string;
   org: NetworkName;
