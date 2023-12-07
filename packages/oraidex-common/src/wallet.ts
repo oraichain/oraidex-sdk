@@ -112,6 +112,19 @@ export abstract class EvmWallet {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
     try {
+      const uint256Index = parameters.findIndex(param => param.type === "uint256");
+
+      // type uint256 is bigint, so we need to convert to string if its uint256 because the JSONUint8Array can not stringify bigint
+      if (uint256Index && parameters.length > uint256Index) {
+        parameters[uint256Index] = {
+          ...parameters[uint256Index],
+          value:
+            typeof parameters[uint256Index].value === "bigint"
+              ? parameters[uint256Index].value.toString()
+              : parameters[uint256Index].value
+        };
+      }
+
       console.log("before building tx: ", issuerAddress);
       const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
         address,
