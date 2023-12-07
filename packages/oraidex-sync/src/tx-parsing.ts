@@ -216,6 +216,25 @@ export const calculateSwapOpsWithPoolAmount = async (swapOps: SwapOperationData[
   }
 };
 
+export async function calculateRewardAssetPrice(rewardAssetDenom: string): Promise<number> {
+  // hardcode price for reward OCH
+  if (rewardAssetDenom === ORAIXOCH_INFO.token.contract_addr) {
+    return OCH_PRICE;
+  } else {
+    const rewardAssetInfo = parseCw20DenomToAssetInfo(rewardAssetDenom);
+    return await getPriceAssetByUsdt(rewardAssetInfo);
+  }
+}
+
+export function calculateEarnAmountInUsdt(
+  rewardAssetPrice: number,
+  earnAmount: number,
+  oraiEarnedAmount: number,
+  oraiPrice: number
+): number {
+  return rewardAssetPrice * earnAmount + oraiPrice * oraiEarnedAmount;
+}
+
 async function extractClaimOperations(
   txData: BasicTxData,
   wasmAttributes: (readonly Attribute[])[],
@@ -266,15 +285,8 @@ async function extractClaimOperations(
   }
 
   for (let i = 0; i < stakerAddresses.length; i++) {
-    let rewardAssetPrice = 0;
-    // hardcode price for reward OCH
-    if (rewardAssetDenoms[i] === ORAIXOCH_INFO.token.contract_addr) rewardAssetPrice = OCH_PRICE;
-    else {
-      const rewardAssetInfo = parseCw20DenomToAssetInfo(rewardAssetDenoms[i]);
-      rewardAssetPrice = await getPriceAssetByUsdt(rewardAssetInfo);
-    }
-
-    const earnAmountInUsdt = rewardAssetPrice * earnAmounts[i] + oraiPrice * oraiEarnedAmount;
+    const rewardAssetPrice = await calculateRewardAssetPrice(rewardAssetDenoms[i]);
+    const earnAmountInUsdt = calculateEarnAmountInUsdt(rewardAssetPrice, earnAmounts[i], oraiEarnedAmount, oraiPrice);
     claimData.push({
       uniqueKey: concatEarnedHistoryToUniqueKey({
         txheight: txData.txheight,
