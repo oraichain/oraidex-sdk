@@ -2,10 +2,11 @@ import * as parse from "../src/tx-parsing";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { parseTxToMsgExecuteContractMsgs } from "../src/tx-parsing";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { DuckDb, ORAI, SwapDirection, SwapOperationData, oraiInfo, usdtCw20Address, usdtInfo } from "../src";
+import { DuckDb, OCH_PRICE, ORAI, SwapDirection, SwapOperationData, oraiInfo, usdtCw20Address, usdtInfo } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { ORAIXOCH_INFO } from "@oraichain/oraidex-common";
 
 describe("test-tx-parsing", () => {
   it.each<[string, string[]]>([
@@ -18,6 +19,16 @@ describe("test-tx-parsing", () => {
   ])("test-parseWithdrawLiquidityAssets", (assets, expectedParsing) => {
     // act
     const result = parse.parseWithdrawLiquidityAssets(assets);
+    // assert
+    expect(result).toEqual(expectedParsing);
+  });
+
+  it.each<[string, string[]]>([
+    ["foo", []],
+    ["2591orai", ["2591", "orai"]]
+  ])("test-parseClaimNativeAsset", (assets, expectedParsing) => {
+    // act
+    const result = parse.parseClaimNativeAsset(assets);
     // assert
     expect(result).toEqual(expectedParsing);
   });
@@ -238,5 +249,33 @@ describe("test-tx-parsing", () => {
     // assertion
     expect(updatedSwapOps[0].basePoolAmount).toEqual(99n); // 100n - 1n
     expect(updatedSwapOps[0].quotePoolAmount).toEqual(202n); // 200n + 2n
+  });
+
+  it.each([
+    [ORAIXOCH_INFO.token.contract_addr, OCH_PRICE],
+    ["other_denom", 1]
+  ])("should-calculate-reward-asset-price", async (denom: string, expectedPrice: number) => {
+    // setup
+    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(expectedPrice);
+
+    // act
+    const price = await parse.calculateRewardAssetPrice(denom);
+
+    // assertion
+    expect(price).toBe(expectedPrice);
+  });
+
+  it("test-calculateEarnAmountInUsdt-should-calculate-earn-amount-in-USDT", async () => {
+    // setup
+    const earnAmount = 100;
+    const rewardAssetPrice = 0.5;
+    const oraiEarnedAmount = 50;
+    const oraiPrice = 4;
+
+    // act
+    const result = parse.calculateEarnAmountInUsdt(rewardAssetPrice, earnAmount, oraiEarnedAmount, oraiPrice);
+
+    // assertion
+    expect(result).toBe(250);
   });
 });

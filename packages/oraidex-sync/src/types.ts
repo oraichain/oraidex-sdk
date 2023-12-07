@@ -195,10 +195,6 @@ export type TotalLiquidity = {
 export type Env = {
   PORT: number;
   RPC_URL: string;
-  FACTORY_CONTACT_ADDRESS_V1: string;
-  FACTORY_CONTACT_ADDRESS_V2: string;
-  ROUTER_CONTRACT_ADDRESS: string;
-  MULTICALL_CONTRACT_ADDRESS: string;
   LIMIT: number;
   MAX_THREAD_LEVEL: number;
   DUCKDB_PROD_FILENAME: string;
