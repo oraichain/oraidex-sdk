@@ -1,13 +1,9 @@
-import flatten from 'lodash/flatten';
-import uniqBy from 'lodash/uniqBy';
-import { chainInfos, oraichainNetwork } from './chainInfos';
-import {
-  CustomChainInfo,
-  INJECTIVE_ORAICHAIN_DENOM,
-  KWTBSC_ORAICHAIN_DENOM,
-  MILKYBSC_ORAICHAIN_DENOM,
-  TokenItemType
-} from '@oraichain/oraidex-common';
+import flatten from "lodash/flatten";
+import uniqBy from "lodash/uniqBy";
+import { chainInfos, oraichainNetwork } from "./chainInfos";
+import { INJECTIVE_ORAICHAIN_DENOM, KWTBSC_ORAICHAIN_DENOM, MILKYBSC_ORAICHAIN_DENOM } from "../constant";
+import { TokenItemType } from "../token";
+import { CustomChainInfo } from "../network";
 
 const evmDenomsMap = {
   kwt: [KWTBSC_ORAICHAIN_DENOM],
@@ -33,7 +29,7 @@ export const getTokensFromNetwork = (network: CustomChainInfo): TokenItemType[] 
     chainId: network.chainId,
     rpc: network.rpc,
     lcd: network.rest,
-    cosmosBased: network.networkType === 'cosmos',
+    cosmosBased: network.networkType === "cosmos",
     maxGas: (network.feeCurrencies?.[0].gasPriceStep?.high ?? 0) * 20000,
     gasPriceStep: currency.gasPriceStep,
     feeCurrencies: network.feeCurrencies,
@@ -46,7 +42,7 @@ export const getTokensFromNetwork = (network: CustomChainInfo): TokenItemType[] 
 
 // other chains, oraichain
 const otherChainTokens = flatten(
-  chainInfos.filter((chainInfo) => chainInfo.chainId !== 'Oraichain').map(getTokensFromNetwork)
+  chainInfos.filter((chainInfo) => chainInfo.chainId !== "Oraichain").map(getTokensFromNetwork)
 );
 export const oraichainTokens: TokenItemType[] = getTokensFromNetwork(oraichainNetwork);
 
@@ -79,31 +75,31 @@ export const evmTokens = uniqBy(
   flattenTokens.filter(
     (token) =>
       // !token.contractAddress &&
-      token.denom && !token.cosmosBased && token.coinGeckoId && token.chainId !== 'kawaii_6886-1'
+      token.denom && !token.cosmosBased && token.coinGeckoId && token.chainId !== "kawaii_6886-1"
   ),
   (c) => c.denom
 );
 
 export const kawaiiTokens = uniqBy(
-  cosmosTokens.filter((token) => token.chainId === 'kawaii_6886-1'),
+  cosmosTokens.filter((token) => token.chainId === "kawaii_6886-1"),
   (c) => c.denom
 );
 
-const notAllowSwapCoingeckoIds = ['kawaii-islands', 'milky-token', 'injective-protocol'];
+const notAllowSwapCoingeckoIds = ["kawaii-islands", "milky-token", "injective-protocol"];
 // universal swap. Currently we dont support from tokens that are not using the ibc wasm channel
 const notAllowSwapFromChainIds = [
-  'kawaii_6886-1',
-  'osmosis-1',
-  'cosmoshub-4',
-  'oraibridge-subnet-2',
-  'injective-1',
-  'noble-1'
+  "kawaii_6886-1",
+  "osmosis-1",
+  "cosmoshub-4",
+  "oraibridge-subnet-2",
+  "injective-1",
+  "noble-1"
 ];
 export const swapFromTokens = flattenTokens.filter(
   (token) => !notAllowSwapCoingeckoIds.includes(token.coinGeckoId) && !notAllowSwapFromChainIds.includes(token.chainId)
 );
 // universal swap. We dont support kwt & milky & injective for simplicity. We also skip OraiBridge tokens because users dont care about them
-const notAllowSwapToChainIds = ['oraibridge-subnet-2', 'injective-1', 'noble-1'];
+const notAllowSwapToChainIds = ["oraibridge-subnet-2", "injective-1", "noble-1"];
 export const swapToTokens = flattenTokens.filter(
   (token) => !notAllowSwapCoingeckoIds.includes(token.coinGeckoId) && !notAllowSwapToChainIds.includes(token.chainId)
 );

@@ -1,8 +1,7 @@
-import { NetworkConfig } from 'types/network';
-import { oraichainNetwork } from './chainInfos';
+import { CustomChainInfo, NetworkConfig } from "../network";
+import { oraichainNetwork } from "./chainInfos";
 import {
   CONVERTER_CONTRACT,
-  CustomChainInfo,
   FACTORY_CONTRACT,
   FACTORY_V2_CONTRACT,
   MULTICALL_CONTRACT,
@@ -11,14 +10,14 @@ import {
   REWARDER_CONTRACT,
   ROUTER_V2_CONTRACT,
   STAKING_CONTRACT
-} from '@oraichain/oraidex-common';
+} from "../constant";
 
 export const network: CustomChainInfo & NetworkConfig = {
   ...oraichainNetwork,
   prefix: oraichainNetwork.bech32Config.bech32PrefixAccAddr,
-  denom: 'orai',
+  denom: "orai",
   coinType: oraichainNetwork.bip44.coinType,
-  fee: { gasPrice: '0.00506', amount: '1518', gas: '2000000' }, // 0.000500 ORAI
+  fee: { gasPrice: "0.00506", amount: "1518", gas: "2000000" }, // 0.000500 ORAI
   factory: FACTORY_CONTRACT,
   factory_v2: FACTORY_V2_CONTRACT,
   router: ROUTER_V2_CONTRACT,
@@ -28,5 +27,5 @@ export const network: CustomChainInfo & NetworkConfig = {
   converter: CONVERTER_CONTRACT,
   oraidex_listing: ORAIDEX_LISTING_CONTRACT,
   multicall: MULTICALL_CONTRACT,
-  explorer: 'https://scan.orai.io'
+  explorer: "https://scan.orai.io"
 };
