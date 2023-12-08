@@ -1,15 +1,6 @@
-import {
-  CosmosChainId,
-  CosmosWallet,
-  EvmResponse,
-  EvmWallet,
-  TokenItemType,
-  flattenTokens,
-  tokens
-} from "@oraichain/oraidex-common";
+import { CosmosChainId, CosmosWallet, EvmResponse, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
 import { UniversalSwapHandler } from "./handler";
 import { ExecuteResult } from "@cosmjs/cosmwasm-stargate";
-import { Client as BitcoinWallet } from "@xchainjs/xchain-bitcoin";
 
 export const swapOraichainToOraichain = async (data: {
   cosmosWallet: CosmosWallet;
@@ -123,22 +114,4 @@ export const swapEvmToOraichain = async (data: {
     { cosmosWallet, evmWallet }
   );
   return handler.processUniversalSwap() as Promise<EvmResponse>;
-};
-
-export const swapBitcoinToOraichain = async (data: {
-  bitcoinWallet: BitcoinWallet;
-  toToken: TokenItemType;
-  receiver: string;
-  fromAmount: number;
-}): Promise<any> => {
-  const handler = new UniversalSwapHandler(
-    {
-      sender: { cosmos: data.receiver },
-      fromAmount: data.fromAmount,
-      simulateAmount: data.fromAmount.toString(),
-      originalFromToken: flattenTokens.find((t) => t.chainId === ""),
-      originalToToken: data.toToken
-    },
-    { bitcoinWallet: data.bitcoinWallet }
-  );
 };
