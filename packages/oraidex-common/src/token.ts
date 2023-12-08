@@ -122,3 +122,29 @@ export const cosmosTokens = uniqBy(
   ),
   (c) => c.denom
 );
+
+export const cw20Tokens = uniqBy(
+  cosmosTokens.filter(
+    // filter cosmos based tokens to collect tokens that have contract addresses
+    (token) =>
+      // !token.contractAddress &&
+      token.contractAddress
+  ),
+  (c) => c.denom
+);
+
+export const cw20TokenMap = Object.fromEntries(cw20Tokens.map((c) => [c.contractAddress, c]));
+
+export const evmTokens = uniqBy(
+  flattenTokens.filter(
+    (token) =>
+      // !token.contractAddress &&
+      token.denom && !token.cosmosBased && token.coinGeckoId && token.chainId !== "kawaii_6886-1"
+  ),
+  (c) => c.denom
+);
+
+export const kawaiiTokens = uniqBy(
+  cosmosTokens.filter((token) => token.chainId === "kawaii_6886-1"),
+  (c) => c.denom
+);
