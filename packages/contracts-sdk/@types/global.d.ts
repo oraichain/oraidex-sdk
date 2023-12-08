@@ -5,7 +5,7 @@ import {
   ExchangeRatesResponse,
   TaxCapResponse,
   TaxRateResponse
-} from "./src/OraiswapOracle.types";
+} from "../src/OraiswapOracle.types";
 
 declare global {
   type TreasuryResponse = TaxRateResponse | TaxCapResponse;
