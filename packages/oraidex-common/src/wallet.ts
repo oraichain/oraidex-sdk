@@ -66,6 +66,11 @@ export abstract class CosmosWallet {
 export abstract class EvmWallet {
   constructor(public tronWeb?: TronWeb) {}
 
+  public withTronWeb(tronWeb: TronWeb): EvmWallet {
+    this.tronWeb = tronWeb;
+    return this;
+  }
+
   /**
    * Note: Browser only. Return if you dont use the browser.
    * This method allows switching between different evm networks.
@@ -112,7 +117,7 @@ export abstract class EvmWallet {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
     try {
-      const uint256Index = parameters.findIndex(param => param.type === "uint256");
+      const uint256Index = parameters.findIndex((param) => param.type === "uint256");
 
       // type uint256 is bigint, so we need to convert to string if its uint256 because the JSONUint8Array can not stringify bigint
       if (uint256Index && parameters.length > uint256Index) {

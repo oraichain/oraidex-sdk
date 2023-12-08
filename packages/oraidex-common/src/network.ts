@@ -45,6 +45,7 @@ import {
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT
 } from "./constant";
+import { ChainIdEnum } from "./interface";
 
 export type NetworkName =
   | "Oraichain"
@@ -57,7 +58,9 @@ export type NetworkName =
   | "Kawaiiverse EVM"
   | "Tron Network"
   | "Injective"
-  | "Noble";
+  | "Noble"
+  | "Bitcoin Mainnet"
+  | "Bitcoin Testnet";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -74,7 +77,9 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type NetworkChainId = CosmosChainId | EvmChainId;
+export type BitcoinChainId = ChainIdEnum.Bitcoin | ChainIdEnum.BitcoinTestnet;
+
+export type NetworkChainId = CosmosChainId | EvmChainId | BitcoinChainId;
 
 export type CoinGeckoId =
   | "oraichain-token"
@@ -94,9 +99,10 @@ export type CoinGeckoId =
   | "weth"
   | "wbnb"
   | "scatom"
-  | "injective-protocol";
+  | "injective-protocol"
+  | "bitcoin";
 
-export type NetworkType = "cosmos" | "evm";
+export type NetworkType = "cosmos" | "evm" | "bitcoin";
 export interface NetworkConfig {
   coinType?: number;
   explorer: string;
@@ -122,12 +128,12 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
   readonly bridgeNetworkIdentifier?: EvmChainId;
-  readonly coinDecimals: 6 | 18;
+  readonly coinDecimals: 6 | 18 | 8; // 8 for satoshi of bitcoin
   readonly contractAddress?: string;
   readonly prefixToken?: string;
 };
 
-export type CoinType = 118 | 60 | 195;
+export type CoinType = 118 | 60 | 195 | 84; // 84 for bitcoin
 
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
@@ -258,6 +264,20 @@ export const OsmoToken: BridgeAppCurrency = {
     low: 0,
     average: 0.025,
     high: 0.04
+  }
+};
+
+export const bitcoinToken: BridgeAppCurrency = {
+  coinDenom: "BTC",
+  coinMinimalDenom: "sat",
+  coinDecimals: 8,
+  coinGeckoId: "bitcoin",
+  bridgeTo: ["Oraichain"],
+  coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png",
+  gasPriceStep: {
+    low: 0.003,
+    average: 0.005,
+    high: 0.007
   }
 };
 
@@ -916,6 +936,24 @@ export const chainInfos: CustomChainInfo[] = [
       name: "Kawaiiverse Scan",
       txUrl: "https://scan.kawaii.global/tx/${txHash}",
       accountUrl: "https://scan.kawaii.global/account/{address}"
+    }
+  },
+  {
+    rpc: "", // TODO: should we use our full bitcoin node rpc?
+    chainId: ChainIdEnum.BitcoinTestnet,
+    networkType: "bitcoin",
+    chainName: "Bitcoin Testnet",
+    bip44: {
+      coinType: 84
+    },
+    bech32Config: defaultBech32Config("tb"),
+    currencies: [bitcoinToken],
+
+    features: [],
+    txExplorer: {
+      name: "Bitcoin Scan",
+      txUrl: "https://live.blockcypher.com/btc-testnet/tx/{txHash}",
+      accountUrl: "https://live.blockcypher.com/btc-testnet/address/{address}"
     }
   }
 ];

@@ -35,7 +35,8 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  cosmosTokens
+  CosmosWallet,
+  EvmWallet
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -52,11 +53,35 @@ import {
 } from "./helper";
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
-import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { Client as BitcoinWallet } from "@xchainjs/xchain-bitcoin";
+import { IBitcoinBridgeHandler } from "./handler/bitcoin-bridge";
 export class UniversalSwapHandler {
+  private bitcoinBridgeHandler: IBitcoinBridgeHandler;
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
+
+  // pipeline style, setting up wallets
+  withBitcoinWallet(bitcoinWallet: BitcoinWallet): UniversalSwapHandler {
+    this.config.bitcoinWallet = bitcoinWallet;
+    return this;
+  }
+
+  withCosmosWallet(cosmosWallet: CosmosWallet): UniversalSwapHandler {
+    this.config.cosmosWallet = cosmosWallet;
+    return this;
+  }
+
+  withEvmWallet(evmWallet: EvmWallet): UniversalSwapHandler {
+    this.config.evmWallet = evmWallet;
+    return this;
+  }
+
+  // pipeline setting up sub-handlers
+  withBitcoinBridgeHandler(handler: IBitcoinBridgeHandler): UniversalSwapHandler {
+    this.bitcoinBridgeHandler = handler;
+    return this;
+  }
 
   private getTokenOnOraichain(coinGeckoId: CoinGeckoId): TokenItemType {
     const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
@@ -102,7 +127,7 @@ export class UniversalSwapHandler {
     const { cosmos: sender } = this.swapData.sender;
     if (toChainId === "Oraichain") {
       const msgSwap = this.generateMsgsSwap();
-      return getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
+      return getEncodedExecuteContractMsgs(sender, msgSwap);
     }
     const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
     const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
