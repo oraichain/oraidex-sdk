@@ -1,4 +1,4 @@
-import { CosmosChainId, EvmChainId, chainInfos, cosmosChains, evmChains } from "./network";
+import { EvmChainId } from "./network";
 
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;

@@ -9,7 +9,12 @@ import {
   oraichainNetwork
 } from "./network";
 import { flatten, uniqBy } from "lodash";
-import { INJECTIVE_ORAICHAIN_DENOM, KWTBSC_ORAICHAIN_DENOM, MILKYBSC_ORAICHAIN_DENOM } from "./constant";
+import {
+  COSMOS_CHAIN_ID_COMMON,
+  INJECTIVE_ORAICHAIN_DENOM,
+  KWTBSC_ORAICHAIN_DENOM,
+  MILKYBSC_ORAICHAIN_DENOM
+} from "./constant";
 import { FeeCurrency } from "@keplr-wallet/types";
 
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
@@ -106,7 +111,9 @@ export const getTokensFromNetwork = (network: CustomChainInfo): TokenItemType[] 
 
 // other chains, oraichain
 const otherChainTokens = flatten(
-  chainInfos.filter((chainInfo) => chainInfo.chainId !== "Oraichain").map(getTokensFromNetwork)
+  chainInfos
+    .filter((chainInfo) => chainInfo.chainId !== COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID)
+    .map(getTokensFromNetwork)
 );
 export const oraichainTokens: TokenItemType[] = getTokensFromNetwork(oraichainNetwork);
 
@@ -139,12 +146,15 @@ export const evmTokens = uniqBy(
   flattenTokens.filter(
     (token) =>
       // !token.contractAddress &&
-      token.denom && !token.cosmosBased && token.coinGeckoId && token.chainId !== "kawaii_6886-1"
+      token.denom &&
+      !token.cosmosBased &&
+      token.coinGeckoId &&
+      token.chainId !== COSMOS_CHAIN_ID_COMMON.KAWAII_COSMOS_CHAIN_ID
   ),
   (c) => c.denom
 );
 
 export const kawaiiTokens = uniqBy(
-  cosmosTokens.filter((token) => token.chainId === "kawaii_6886-1"),
+  cosmosTokens.filter((token) => token.chainId === COSMOS_CHAIN_ID_COMMON.KAWAII_COSMOS_CHAIN_ID),
   (c) => c.denom
 );

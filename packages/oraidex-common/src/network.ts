@@ -208,6 +208,59 @@ export const tokensIcon: TokenIcon[] = [
   }
 ];
 
+export const chainIcons: ChainIcon[] = [
+  {
+    chainId: "Oraichain",
+    Icon: OraiIcon,
+    IconLight: OraiLightIcon
+  },
+  {
+    chainId: "kawaii_6886-1",
+    Icon: KwtIcon,
+    IconLight: KwtIcon
+  },
+  {
+    chainId: "osmosis-1",
+    Icon: OsmoIcon,
+    IconLight: OsmoLightIcon
+  },
+  {
+    chainId: "injective-1",
+    Icon: InjIcon,
+    IconLight: InjIcon
+  },
+  {
+    chainId: "cosmoshub-4",
+    Icon: AtomIcon,
+    IconLight: AtomIcon
+  },
+  {
+    chainId: "0x01",
+    Icon: EthIcon,
+    IconLight: EthIcon
+  },
+  {
+    chainId: "0x2b6653dc",
+    Icon: TronIcon,
+    IconLight: TronIcon
+  },
+  {
+    chainId: "0x38",
+    Icon: BnbIcon,
+    IconLight: BnbIcon
+  },
+  {
+    chainId: "0x1ae6",
+    Icon: KwtIcon,
+    IconLight: KwtIcon
+  },
+  {
+    chainId: "noble-1",
+    Icon: NobleIcon,
+    IconLight: NobleIcon
+  }
+];
+
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
   coinType?: number;
