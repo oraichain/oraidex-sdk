@@ -34,8 +34,13 @@ import {
   IBC_WASM_HOOKS_CONTRACT,
   isInPairList
 } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute } from "./types";
-import { AssetInfo, OraiswapRouterReadOnlyInterface, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
+import {
+  AssetInfo,
+  OraiswapRouterClient,
+  OraiswapRouterReadOnlyInterface,
+  OraiswapTokenQueryClient
+} from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
