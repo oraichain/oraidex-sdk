@@ -32,8 +32,6 @@ import {
   cosmosTokens,
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
-  toTokenInfo,
-  network,
   isInPairList
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
