@@ -15,10 +15,9 @@ import {
   USDT_CONTRACT
 } from "./constant";
 import { parseAssetInfo } from "./helper";
-import { TokenItemType } from "./token";
+import { TokenItemType, assetInfoMap } from "./token";
 import uniq from "lodash/uniq";
 import flatten from "lodash/flatten";
-import { assetInfoMap } from "./config/bridgeTokens";
 
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];

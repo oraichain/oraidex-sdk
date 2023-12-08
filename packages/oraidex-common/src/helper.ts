@@ -26,17 +26,11 @@ import {
   cosmosTokens,
   flattenTokens,
   oraichainTokens,
-  CoinGeckoPrices
+  CoinGeckoPrices,
+  tokenMap
 } from "./token";
 import { StargateMsg, Tx } from "./tx";
 import { BigDecimal } from "./bigdecimal";
-import {
-  isEvmNetworkNativeSwapSupported,
-  isSupportedNoPoolSwapEvm,
-  SwapDirection,
-  swapEvmRoutes
-} from "@oraichain/oraidex-universal-swap";
-import { swapFromTokens, swapToTokens, tokenMap } from "./config/bridgeTokens";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -331,48 +325,6 @@ export const getSwapType = ({
 
   return "Universal Swap";
 };
-export function filterNonPoolEvmTokens(
-  chainId: string,
-  coingeckoId: CoinGeckoId,
-  denom: string,
-  searchTokenName: string,
-  direction: SwapDirection // direction = to means we are filtering to tokens
-) {
-  // basic filter. Dont include itself & only collect tokens with searched letters
-  const listTokens = direction === SwapDirection.From ? swapFromTokens : swapToTokens;
-  let filteredToTokens = listTokens.filter(
-    (token) => token.denom !== denom && token.name.toLowerCase().includes(searchTokenName.toLowerCase())
-  );
-  // special case for tokens not having a pool on Oraichain
-  if (isSupportedNoPoolSwapEvm(coingeckoId)) {
-    const swappableTokens = Object.keys(swapEvmRoutes[chainId]).map((key) => key.split("-")[1]);
-    const filteredTokens = filteredToTokens.filter((token) => swappableTokens.includes(token.contractAddress));
-
-    // tokens that dont have a pool on Oraichain like WETH or WBNB cannot be swapped from a token on Oraichain
-    if (direction === SwapDirection.To)
-      return [...new Set(filteredTokens.concat(filteredTokens.map((token) => getTokenOnOraichain(token.coinGeckoId))))];
-    filteredToTokens = filteredTokens;
-  }
-  // special case filter. Tokens on networks other than supported evm cannot swap to tokens, so we need to remove them
-  if (!isEvmNetworkNativeSwapSupported(chainId as NetworkChainId))
-    return filteredToTokens.filter((t) => {
-      // one-directional swap. non-pool tokens of evm network can swap be swapped with tokens on Oraichain, but not vice versa
-      const isSupported = isSupportedNoPoolSwapEvm(t.coinGeckoId);
-      if (direction === SwapDirection.To) return !isSupported;
-      if (isSupported) {
-        // if we cannot find any matched token then we dont include it in the list since it cannot be swapped
-        const sameChainId = getTokenOnSpecificChainId(coingeckoId, t.chainId as NetworkChainId);
-        if (!sameChainId) return false;
-        return true;
-      }
-      return true;
-    });
-  return filteredToTokens.filter((t) => {
-    // filter out to tokens that are on a different network & with no pool because we are not ready to support them yet. TODO: support
-    if (isSupportedNoPoolSwapEvm(t.coinGeckoId)) return t.chainId === chainId;
-    return true;
-  });
-}
 
 export const feeEstimate = (tokenInfo: TokenItemType, gasDefault: number) => {
   if (!tokenInfo) return 0;
