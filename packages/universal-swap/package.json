@@ -6,7 +6,7 @@
     "build/"
   ],
   "scripts": {
-    "build": "rimraf build && tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json"
   },
   "license": "MIT",
   "dependencies": {
