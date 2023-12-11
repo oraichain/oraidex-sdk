@@ -1,4 +1,4 @@
-import { getDate24hBeforeNow, validateContractAddress } from "../src/helper";
+import { getDate24hBeforeNow, validateOraiAddress } from "../src/helper";
 
 describe("test-helper", () => {
   it("test-getDate24hBeforeNow", () => {
@@ -17,7 +17,7 @@ describe("test-helper", () => {
     ["orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge", true], // ORAIX
     ["orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh", true] // USDT
   ])("test-validateContractAddress", (contractAddress, expected) => {
-    const checkContractAddress = validateContractAddress(contractAddress);
+    const checkContractAddress = validateOraiAddress(contractAddress);
     // assert
     expect(checkContractAddress).toEqual(expected);
   });

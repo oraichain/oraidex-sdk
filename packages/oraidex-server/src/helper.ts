@@ -30,7 +30,7 @@ export function pairToString([base, quote]: string[]): string {
   return `${base}-${quote}`;
 }
 
-export const validateContractAddress = (contractAddress: string) => {
+export const validateOraiAddress = (contractAddress: string) => {
   try {
     const { prefix } = bech32.decode(contractAddress);
     if (prefix === ORAI) return true;
