@@ -49,7 +49,7 @@ import {
   getSpecificDateBeforeNow,
   pairToString,
   parseSymbolsToTickerId,
-  validateContractAddress
+  validateOraiAddress
 } from "./helper";
 
 const app = express();
@@ -464,7 +464,7 @@ app.get("/price-by-usdt/", async (req: Request<{}, {}, {}, GetPriceAssetByUsdt>,
     const { contractAddress, denom } = req.query;
     let price = 0;
     if (contractAddress) {
-      const checkValidContractAddress = validateContractAddress(contractAddress);
+      const checkValidContractAddress = validateOraiAddress(contractAddress);
       if (!checkValidContractAddress) {
         res.status(200).send({ price: 0 });
         return;
