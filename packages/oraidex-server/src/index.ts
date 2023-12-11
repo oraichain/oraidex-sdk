@@ -9,6 +9,7 @@ import {
   GetPoolDetailQuery,
   GetPricePairQuery,
   GetStakedByUserQuery,
+  GetPriceAssetByUsdt,
   ORAI,
   OraiDexSync,
   PairInfoDataResponse,
@@ -35,14 +36,21 @@ import {
   oraixCw20Address,
   usdcCw20Address,
   getPoolLiquidities,
-  getPoolAmounts
+  getPoolAmounts,
+  getPriceAssetByUsdt
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import "dotenv/config";
 import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
-import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
+import {
+  getDate24hBeforeNow,
+  getSpecificDateBeforeNow,
+  pairToString,
+  parseSymbolsToTickerId,
+  validateContractAddress
+} from "./helper";
 
 const app = express();
 app.use(cors());
@@ -448,6 +456,35 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
   } catch (error) {
     console.log({ error });
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
+  }
+});
+
+app.get("/price-by-usdt/", async (req: Request<{}, {}, {}, GetPriceAssetByUsdt>, res) => {
+  try {
+    const { contractAddress, denom } = req.query;
+    let price = 0;
+    if (contractAddress) {
+      const checkValidContractAddress = validateContractAddress(contractAddress);
+      if (!checkValidContractAddress) {
+        res.status(200).send({ price: 0 });
+        return;
+      }
+      price = await getPriceAssetByUsdt({
+        token: {
+          contract_addr: contractAddress
+        }
+      });
+    } else {
+      price = await getPriceAssetByUsdt({
+        native_token: {
+          denom: denom
+        }
+      });
+    }
+
+    res.status(200).send({ price });
+  } catch (error) {
+    res.status(500).send(error.message);
   }
 });
 

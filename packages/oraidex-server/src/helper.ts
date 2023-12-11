@@ -1,3 +1,5 @@
+import { ORAI } from "@oraichain/oraidex-sync";
+import bech32 from "bech32";
 export function parseSymbolsToTickerId([base, quote]: [string, string]) {
   return `${base}_${quote}`;
 }
@@ -27,3 +29,14 @@ export function calculateBasePriceFromTickerVolume(baseVolume: string, targetVol
 export function pairToString([base, quote]: string[]): string {
   return `${base}-${quote}`;
 }
+
+export const validateContractAddress = (contractAddress: string) => {
+  try {
+    const { prefix } = bech32.decode(contractAddress);
+    if (prefix === ORAI) return true;
+    return false;
+  } catch (error) {
+    console.log("error: ", error);
+    return false;
+  }
+};

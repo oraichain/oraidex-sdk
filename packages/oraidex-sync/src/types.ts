@@ -228,6 +228,11 @@ export type GetCandlesQuery = {
   endTime: number;
 };
 
+export type GetPriceAssetByUsdt = {
+  denom?: string;
+  contractAddress?: string;
+};
+
 export type GetFeeSwap = {
   offerDenom: string;
   askDenom: string;
