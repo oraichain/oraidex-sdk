@@ -44,7 +44,13 @@ import "dotenv/config";
 import express, { Request } from "express";
 import fs from "fs";
 import path from "path";
-import { getDate24hBeforeNow, getSpecificDateBeforeNow, pairToString, parseSymbolsToTickerId } from "./helper";
+import {
+  getDate24hBeforeNow,
+  getSpecificDateBeforeNow,
+  pairToString,
+  parseSymbolsToTickerId,
+  validateContractAddress
+} from "./helper";
 
 const app = express();
 app.use(cors());
@@ -458,6 +464,11 @@ app.get("/price-by-usdt/", async (req: Request<{}, {}, {}, GetPriceAssetByUsdt>,
     const { contractAddress, denom } = req.query;
     let price = 0;
     if (contractAddress) {
+      const checkValidContractAddress = validateContractAddress(contractAddress);
+      if (!checkValidContractAddress) {
+        res.status(200).send({ price: 0 });
+        return;
+      }
       price = await getPriceAssetByUsdt({
         token: {
           contract_addr: contractAddress
