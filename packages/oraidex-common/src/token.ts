@@ -15,6 +15,13 @@ import { FeeCurrency } from "@keplr-wallet/types";
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };
 
+/**
+ * Prices of each token.
+ */
+export type CoinGeckoPrices<T extends string> = {
+  [C in T]: number | null;
+};
+
 export type TokenItemType = {
   name: string;
   org: NetworkName;
@@ -113,5 +120,31 @@ export const cosmosTokens = uniqBy(
       // !token.contractAddress &&
       token.denom && token.cosmosBased && token.coinGeckoId
   ),
+  (c) => c.denom
+);
+
+export const cw20Tokens = uniqBy(
+  cosmosTokens.filter(
+    // filter cosmos based tokens to collect tokens that have contract addresses
+    (token) =>
+      // !token.contractAddress &&
+      token.contractAddress
+  ),
+  (c) => c.denom
+);
+
+export const cw20TokenMap = Object.fromEntries(cw20Tokens.map((c) => [c.contractAddress, c]));
+
+export const evmTokens = uniqBy(
+  flattenTokens.filter(
+    (token) =>
+      // !token.contractAddress &&
+      token.denom && !token.cosmosBased && token.coinGeckoId && token.chainId !== "kawaii_6886-1"
+  ),
+  (c) => c.denom
+);
+
+export const kawaiiTokens = uniqBy(
+  cosmosTokens.filter((token) => token.chainId === "kawaii_6886-1"),
   (c) => c.denom
 );
