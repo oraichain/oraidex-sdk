@@ -187,14 +187,19 @@ class OraiDexSync {
       // to get the offerAmount, askAmount from lp amount history table.
       await this.updateLatestPoolApr(currentInd);
 
-      new SyncData({
+      const syncStream = new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
         limit: parseInt(process.env.LIMIT) || 1000,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
         interval: 10000
-      }).pipe(new WriteOrders(this.duckDb));
+      });
+
+      const writeOrders = new WriteOrders(this.duckDb);
+      for await (const orders of syncStream) {
+        await writeOrders.process(orders);
+      }
     } catch (error) {
       console.log("error in start: ", error);
       process.exit(1);
