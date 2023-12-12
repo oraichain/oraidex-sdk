@@ -40,3 +40,19 @@ export const validateOraiAddress = (contractAddress: string) => {
     return false;
   }
 };
+
+export const getOrderbookTicker = async () => {
+  try {
+    // get ticker from orderbook
+    const ORDERBOOK_TICKER_API_ENDPOINT = "https://server.oraidex.io/v2/tickers";
+    const response = await fetch(ORDERBOOK_TICKER_API_ENDPOINT);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    const tickerOrderbook = await response.json();
+    return tickerOrderbook;
+  } catch (error) {
+    console.error("Error get orderbook ticker: ", error);
+    return [];
+  }
+};
