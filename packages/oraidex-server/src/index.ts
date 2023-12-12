@@ -46,6 +46,7 @@ import fs from "fs";
 import path from "path";
 import {
   getDate24hBeforeNow,
+  getOrderbookTicker,
   getSpecificDateBeforeNow,
   pairToString,
   parseSymbolsToTickerId,
@@ -172,7 +173,10 @@ app.get("/tickers", async (req, res) => {
       }
       data.push(tickerInfo);
     }
-    res.status(200).send(data);
+
+    const tickerOrderbook = await getOrderbookTicker();
+    const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;
+    res.status(200).send(finalData);
   } catch (error) {
     console.log("error: ", error);
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
