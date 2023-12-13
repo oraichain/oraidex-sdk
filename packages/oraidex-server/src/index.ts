@@ -298,11 +298,11 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
 
   try {
     const [baseDenom, quoteDenom] = pairDenoms && pairDenoms.split("_");
-    const pair = pairs.find((pair) =>
-      isEqual(
-        pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
-        [baseDenom, quoteDenom]
-      )
+    const pair = pairs.find(
+      (pair) =>
+        pair.asset_infos.filter(
+          (info) => parseAssetInfoOnlyDenom(info) === baseDenom || parseAssetInfoOnlyDenom(info) === quoteDenom
+        ).length === 2
     );
     if (!pair) throw new Error(`Cannot find pair with denoms: ${pairDenoms}`);
 

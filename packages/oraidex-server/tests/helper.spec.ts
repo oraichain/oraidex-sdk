@@ -1,4 +1,6 @@
+import { airiCw20Adress, pairs, parseAssetInfoOnlyDenom } from "@oraichain/oraidex-sync";
 import { getDate24hBeforeNow, validateOraiAddress } from "../src/helper";
+import { isEqual } from "lodash";
 
 describe("test-helper", () => {
   it("test-getDate24hBeforeNow", () => {
@@ -20,5 +22,19 @@ describe("test-helper", () => {
     const checkContractAddress = validateOraiAddress(contractAddress);
     // assert
     expect(checkContractAddress).toEqual(expected);
+  });
+
+  it.each([
+    ["orai", airiCw20Adress],
+    [airiCw20Adress, "orai"]
+  ])("test-find-denom-pairs", (base, quote) => {
+    console.log("pairs: ", JSON.stringify(pairs));
+    const pair = pairs.find(
+      (pair) =>
+        pair.asset_infos.filter(
+          (info) => parseAssetInfoOnlyDenom(info) === base || parseAssetInfoOnlyDenom(info) === quote
+        ).length === 2
+    );
+    expect(pair).not.toBeUndefined();
   });
 });
