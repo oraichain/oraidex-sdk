@@ -1,4 +1,4 @@
-import { fetchRetry } from "@oraichain/oraidex-common";
+import { fetchRetry, ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common";
 import bech32 from "bech32";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
@@ -75,10 +75,7 @@ export const getOrderbookTicker = async () => {
 // fetch the simulate prices
 export const fetchSimulatePrices = async () => {
   const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-  const routerContract = new OraiswapRouterQueryClient(
-    cosmwasmClient,
-    process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-  );
+  const routerContract = new OraiswapRouterQueryClient(cosmwasmClient, ROUTER_V2_CONTRACT);
 
   const arrangedPairs = pairs.map((pair) => {
     const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
