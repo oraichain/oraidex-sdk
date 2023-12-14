@@ -157,24 +157,30 @@ app.get("/tickers", async (req, res) => {
         ticker_id: tickerId,
         base_currency: symbols[baseIndex],
         target_currency: symbols[targetIndex],
-        last_price: "",
+        last_price: "0",
         base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(),
         target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
         pool_id: pairAddr ?? "",
         base: symbols[baseIndex],
         target: symbols[targetIndex]
       };
-      try {
-        // reverse because in pairs, we put base info as first index
-        const price = await simulateSwapPrice(pair.asset_infos, routerContract);
-        tickerInfo.last_price = price.toString();
-      } catch (error) {
-        tickerInfo.last_price = "0";
-      }
       data.push(tickerInfo);
     }
 
-    const tickerOrderbook = await getOrderbookTicker();
+    // reverse because in pairs, we put base info as first index
+    const [prices, tickerOrderbook] = await Promise.all([
+      simulateSwapPrice(
+        arrangedPairs.map((pair) => pair.asset_infos),
+        routerContract
+      ),
+      getOrderbookTicker()
+    ]);
+    prices.forEach((price, index) => {
+      if (price) {
+        data[index].last_price = price;
+      }
+    });
+
     const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;
     res.status(200).send(finalData);
   } catch (error) {
