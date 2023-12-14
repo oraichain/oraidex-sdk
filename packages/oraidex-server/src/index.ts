@@ -1,50 +1,45 @@
 #!/usr/bin/env node
 
-import { isEqual } from "lodash";
-import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   DuckDb,
   GetCandlesQuery,
   GetPoolDetailQuery,
+  GetPriceAssetByUsdt,
   GetPricePairQuery,
   GetStakedByUserQuery,
-  GetPriceAssetByUsdt,
   ORAI,
   OraiDexSync,
-  PairInfoDataResponse,
   PairMapping,
   TickerInfo,
   VolumeRange,
   findPairAddress,
-  getAllFees,
-  getAllVolume24h,
   getOraiPrice,
   getPairLiquidity,
+  getPriceAssetByUsdt,
   getPriceByAsset,
   getVolumePairByUsdt,
   injAddress,
   oraiInfo,
   oraiUsdtPairOnlyDenom,
+  oraixCw20Address,
   pairs,
   pairsOnlyDenom,
   pairsWithDenom,
   parseAssetInfoOnlyDenom,
-  simulateSwapPrice,
   toDisplay,
-  usdtInfo,
-  oraixCw20Address,
   usdcCw20Address,
-  getPoolLiquidities,
-  getPoolAmounts,
-  getPriceAssetByUsdt
+  usdtInfo
 } from "@oraichain/oraidex-sync";
 import cors from "cors";
 import "dotenv/config";
 import express, { Request } from "express";
 import fs from "fs";
+import { isEqual } from "lodash";
 import path from "path";
 import {
+  fetchSimulatePrices,
+  getAllPoolsInfo,
   getDate24hBeforeNow,
   getOrderbookTicker,
   getSpecificDateBeforeNow,
@@ -52,6 +47,14 @@ import {
   parseSymbolsToTickerId,
   validateOraiAddress
 } from "./helper";
+import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
+
+// cache
+
+registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
+registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
+
+updateInterval();
 
 const app = express();
 app.use(cors());
@@ -60,7 +63,6 @@ export let duckDb: DuckDb;
 
 const port = parseInt(process.env.PORT) || 2024;
 const hostname = process.env.HOSTNAME || "0.0.0.0";
-const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 
 app.get("/version", async (req, res) => {
   try {
@@ -94,11 +96,6 @@ app.get("/pairs", async (req, res) => {
 app.get("/tickers", async (req, res) => {
   try {
     const { endTime } = req.query;
-    const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-    const routerContract = new OraiswapRouterQueryClient(
-      cosmwasmClient,
-      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-    );
     const pairInfos = await duckDb.queryPairInfos();
     const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
     const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
@@ -157,24 +154,26 @@ app.get("/tickers", async (req, res) => {
         ticker_id: tickerId,
         base_currency: symbols[baseIndex],
         target_currency: symbols[targetIndex],
-        last_price: "",
+        last_price: "0",
         base_volume: toDisplay(BigInt(volume.volume[baseInfo])).toString(),
         target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
         pool_id: pairAddr ?? "",
         base: symbols[baseIndex],
         target: symbols[targetIndex]
       };
-      try {
-        // reverse because in pairs, we put base info as first index
-        const price = await simulateSwapPrice(pair.asset_infos, routerContract);
-        tickerInfo.last_price = price.toString();
-      } catch (error) {
-        tickerInfo.last_price = "0";
-      }
       data.push(tickerInfo);
     }
 
-    const tickerOrderbook = await getOrderbookTicker();
+    // reverse because in pairs, we put base info as first index
+    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE);
+
+    const [tickerOrderbook] = await Promise.all([getOrderbookTicker()]);
+    prices.forEach((price, index) => {
+      if (price) {
+        data[index].last_price = price;
+      }
+    });
+
     const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;
     res.status(200).send(finalData);
   } catch (error) {
@@ -244,48 +243,8 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
 
 app.get("/v1/pools/", async (_req, res) => {
   try {
-    const volumes = await getAllVolume24h();
-    const allFee7Days = await getAllFees();
-    const pools = await duckDb.getPools();
-    const allPoolApr = await duckDb.getAllAprs();
-    const allLiquidities = await getPoolLiquidities(pools);
-    const allPoolAmounts = await getPoolAmounts(pools);
-
-    const allPoolInfoResponse: PairInfoDataResponse[] = pools.map((pool, index) => {
-      const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
-      if (!poolApr) return null;
-
-      const poolFee = allFee7Days.find((item) => {
-        const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
-        return (
-          JSON.stringify(baseAssetInfo) === pool.firstAssetInfo &&
-          JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
-        );
-      });
-
-      const poolVolume = volumes.find((item) => {
-        const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
-        return (
-          JSON.stringify(baseAssetInfo) === pool.firstAssetInfo &&
-          JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
-        );
-      });
-      if (!poolVolume) return null;
-
-      return {
-        ...pool,
-        volume24Hour: poolVolume.volume.toString(),
-        fee7Days: poolFee.fee.toString(),
-        apr: poolApr.apr,
-        totalLiquidity: allLiquidities[index],
-        rewardPerSec: poolApr.rewardPerSec,
-        offerPoolAmount: allPoolAmounts[index].offerPoolAmount,
-        askPoolAmount: allPoolAmounts[index].askPoolAmount,
-        totalSupply: poolApr.totalSupply
-      } as PairInfoDataResponse;
-    });
-
-    res.status(200).send(allPoolInfoResponse);
+    const allPoolInfoResponse = cache.get(CACHE_KEY.POOLS_INFO);
+    res.status(200).send(allPoolInfoResponse ?? []);
   } catch (error) {
     console.log({ error });
     res.status(500).send(error.message);
