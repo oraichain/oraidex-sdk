@@ -209,7 +209,7 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
   for (const [time, volumeData] of Object.entries(volumeRanges)) {
     const oraiUsdtVolumeData = volumeData.find((data) => data.pair === pairToString(oraiUsdtPairOnlyDenom));
     if (!oraiUsdtVolumeData) {
-      res.status(500).send("Cannot find ORAI_USDT volume data in the volume list");
+      return res.status(500).send("Cannot find ORAI_USDT volume data in the volume list");
     }
     const totalVolumePrice = volumeData.reduce((acc, volData) => {
       // console.log("base price in usdt: ", basePriceInUsdt);
