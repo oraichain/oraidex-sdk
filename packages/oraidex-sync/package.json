@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-sync",
-  "version": "1.0.4",
+  "version": "1.0.41",
   "main": "build/index.js",
   "license": "MIT",
   "files": [
