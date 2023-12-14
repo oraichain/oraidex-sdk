@@ -409,8 +409,9 @@ export type RetryOptions = {
   callback?: (retry: number) => void;
 };
 
-const fetchRetry = async (url: RequestInfo | URL, opts: RequestInit & RetryOptions = {}) => {
-  let { retry = 3, callback, timeout = 30000, ...init } = opts;
+export const fetchRetry = async (url: RequestInfo | URL, options: RequestInit & RetryOptions = {}) => {
+  let retry = options.retry ?? 3;
+  const { callback, timeout = 30000, ...init } = options;
   init.signal = AbortSignal.timeout(timeout);
   while (retry > 0) {
     try {
