@@ -68,7 +68,9 @@ export const validateOraiAddress = (contractAddress: string) => {
 export const getOrderbookTicker = async () => {
   try {
     // get ticker from orderbook
-    const ORDERBOOK_TICKER_API_ENDPOINT = "https://server.oraidex.io/v2/tickers";
+    const ORDERBOOK_TICKER_API_ENDPOINT = `${
+      process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
+    }/v2/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
