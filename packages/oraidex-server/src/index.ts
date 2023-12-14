@@ -50,8 +50,16 @@ import {
   getSpecificDateBeforeNow,
   pairToString,
   parseSymbolsToTickerId,
-  validateOraiAddress
+  validateOraiAddress,
+  fetchSimulatePrices
 } from "./helper";
+import { cache, CACHE_KEY, registerListener, updateInterval } from "./map-cache";
+
+// cache
+
+registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
+
+updateInterval();
 
 const app = express();
 app.use(cors());
@@ -94,11 +102,6 @@ app.get("/pairs", async (req, res) => {
 app.get("/tickers", async (req, res) => {
   try {
     const { endTime } = req.query;
-    const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-    const routerContract = new OraiswapRouterQueryClient(
-      cosmwasmClient,
-      process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
-    );
     const pairInfos = await duckDb.queryPairInfos();
     const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
     const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
@@ -168,13 +171,9 @@ app.get("/tickers", async (req, res) => {
     }
 
     // reverse because in pairs, we put base info as first index
-    const [prices, tickerOrderbook] = await Promise.all([
-      simulateSwapPrice(
-        arrangedPairs.map((pair) => pair.asset_infos),
-        routerContract
-      ),
-      getOrderbookTicker()
-    ]);
+    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE);
+
+    const [tickerOrderbook] = await Promise.all([getOrderbookTicker()]);
     prices.forEach((price, index) => {
       if (price) {
         data[index].last_price = price;

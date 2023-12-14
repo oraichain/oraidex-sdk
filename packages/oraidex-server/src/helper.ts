@@ -1,6 +1,20 @@
-import { ORAI } from "@oraichain/oraidex-sync";
 import { fetchRetry } from "@oraichain/oraidex-common";
 import bech32 from "bech32";
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import {
+  simulateSwapPrice,
+  pairs,
+  parseAssetInfoOnlyDenom,
+  ORAI,
+  injAddress,
+  oraiInfo,
+  PairMapping,
+  oraixCw20Address,
+  usdcCw20Address
+} from "@oraichain/oraidex-sync";
+const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
+
 export function parseSymbolsToTickerId([base, quote]: [string, string]) {
   return `${base}_${quote}`;
 }
@@ -56,4 +70,56 @@ export const getOrderbookTicker = async () => {
     console.error("Error get orderbook ticker: ", error);
     return [];
   }
+};
+
+// fetch the simulate prices
+export const fetchSimulatePrices = async () => {
+  const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
+  const routerContract = new OraiswapRouterQueryClient(
+    cosmwasmClient,
+    process.env.ROUTER_CONTRACT_ADDRESS || "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf"
+  );
+
+  const arrangedPairs = pairs.map((pair) => {
+    const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+    if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
+      return {
+        ...pair,
+        asset_infos: [
+          oraiInfo,
+          {
+            token: {
+              contract_addr: injAddress
+            }
+          } as AssetInfo
+        ],
+        symbols: ["ORAI", "INJ"]
+      } as PairMapping;
+
+    if (pairDenoms.some((denom) => denom === oraixCw20Address) && pairDenoms.some((denom) => denom === usdcCw20Address))
+      return {
+        ...pair,
+        asset_infos: [
+          {
+            token: {
+              contract_addr: oraixCw20Address
+            }
+          } as AssetInfo,
+          {
+            token: {
+              contract_addr: usdcCw20Address
+            }
+          } as AssetInfo
+        ],
+        symbols: ["ORAIX", "USDC"]
+      } as PairMapping;
+    return pair;
+  });
+
+  const prices = await simulateSwapPrice(
+    arrangedPairs.map((pair) => pair.asset_infos),
+    routerContract
+  );
+
+  return prices;
 };

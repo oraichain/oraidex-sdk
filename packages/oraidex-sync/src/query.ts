@@ -78,7 +78,7 @@ async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRoute
       operations
     });
   }
-  const call: Call[] = dataCall.map((data) => {
+  const calls: Call[] = dataCall.map((data) => {
     return {
       address: router.contractAddress,
       data: toBinary({
@@ -89,14 +89,12 @@ async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRoute
       } as OraiswapRouterTypes.QueryMsg)
     };
   });
-  const chunks = call.reduce((resultArray, item, index) => {
-    const chunkIndex = Math.floor(index / MAX_CHUNK_SIZE);
-    if (!resultArray[chunkIndex]) {
-      resultArray[chunkIndex] = []; // start a new chunk
-    }
-    resultArray[chunkIndex].push(item);
-    return resultArray;
-  }, []);
+
+  const chunks = [];
+
+  for (let i = 0; i < calls.length; i += MAX_CHUNK_SIZE) {
+    chunks.push(calls.slice(i, i + MAX_CHUNK_SIZE));
+  }
   try {
     const res = (await Promise.all(
       chunks.map(aggregateMulticall<OraiswapRouterTypes.SimulateSwapOperationsResponse>)
