@@ -53,11 +53,13 @@ async function queryAllPairInfos(
 
 /**
  * Simulate price for pair[0]/pair[pair.length - 1] where the amount of pair[0] is 10^7. This is a multihop simulate swap function. The asset infos in between of the array are for hopping
+ * Must divide the pairCalls into chunks of 5 to avoid the error: "Error: Query failed with (18): out of gas in location: wasm contract"
  * @param pairPaths - the array of path starting from the offer asset info to the ask asset info
  * @param router - router contract
  * @returns - prices after simulating
  */
 async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRouterReadOnlyInterface): Promise<string[]> {
+  const MAX_CHUNK_SIZE = 5;
   const dataCall = [];
   for (const pairPath of pairPaths) {
     // usdt case, price is always 1
@@ -87,9 +89,19 @@ async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRoute
       } as OraiswapRouterTypes.QueryMsg)
     };
   });
+  const chunks = call.reduce((resultArray, item, index) => {
+    const chunkIndex = Math.floor(index / MAX_CHUNK_SIZE);
+    if (!resultArray[chunkIndex]) {
+      resultArray[chunkIndex] = []; // start a new chunk
+    }
+    resultArray[chunkIndex].push(item);
+    return resultArray;
+  }, []);
   try {
-    const res = await aggregateMulticall<OraiswapRouterTypes.SimulateSwapOperationsResponse>(call);
-    return res.map((data, ind) => toDisplay(data.amount, dataCall[ind].sourceDecimals).toString());
+    const res = (await Promise.all(
+      chunks.map(aggregateMulticall<OraiswapRouterTypes.SimulateSwapOperationsResponse>)
+    )) as OraiswapRouterTypes.SimulateSwapOperationsResponse[][];
+    return res.flat().map((data, ind) => toDisplay(data.amount, dataCall[ind].sourceDecimals).toString());
   } catch (error) {
     console.log(`Error when trying to simulate swap with pairs: ${JSON.stringify(pairPaths)} using router: ${error}`);
     throw new Error("SwapSimulateSwapPriceFail::" + error.message); // error case. Will be handled by the caller function
