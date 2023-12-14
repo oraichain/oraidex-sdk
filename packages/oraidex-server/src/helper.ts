@@ -1,4 +1,5 @@
 import { ORAI } from "@oraichain/oraidex-sync";
+import { fetchRetry } from "@oraichain/oraidex-common";
 import bech32 from "bech32";
 export function parseSymbolsToTickerId([base, quote]: [string, string]) {
   return `${base}_${quote}`;
@@ -45,7 +46,7 @@ export const getOrderbookTicker = async () => {
   try {
     // get ticker from orderbook
     const ORDERBOOK_TICKER_API_ENDPOINT = "https://server.oraidex.io/v2/tickers";
-    const response = await fetch(ORDERBOOK_TICKER_API_ENDPOINT);
+    const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
     }
