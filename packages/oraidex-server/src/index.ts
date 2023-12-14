@@ -498,15 +498,19 @@ app
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
     duckDb.conn.exec("SET memory_limit='1000MB'");
 
-    const oraidexSync = await OraiDexSync.create(
-      duckDb,
-      process.env.RPC_URL || "https://rpc.orai.io",
-      process.env as any
-    );
-    oraidexSync.sync();
-    console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
+    if (process.env.NODE_ENV !== "test") {
+      const oraidexSync = await OraiDexSync.create(
+        duckDb,
+        process.env.RPC_URL || "https://rpc.orai.io",
+        process.env as any
+      );
+      oraidexSync.sync();
+      console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
+    }
   })
   .on("error", (err) => {
     console.log("error when start oraiDEX server", err);
     process.exit(1);
   });
+
+export default app;

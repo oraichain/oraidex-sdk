@@ -29,7 +29,8 @@
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "0.31.0",
     "@oraichain/common-contracts-build": "1.0.32",
-    "@oraichain/common-contracts-sdk": "1.0.31"
+    "@oraichain/common-contracts-sdk": "1.0.31",
+    "supertest": "^6.3.3"
   },
   "devDependencies": {
     "@cosmjs/encoding": "^0.31.0",
@@ -39,8 +40,8 @@
     "@types/node": "^18.15.8",
     "@typescript-eslint/eslint-plugin": "^6.7.5",
     "@typescript-eslint/parser": "^6.7.5",
-    "cosmjs-types": "^0.8.0",
     "@vercel/ncc": "0.36.1",
+    "cosmjs-types": "^0.8.0",
     "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^16.3.1",
     "eslint": "^8.51.0",
