@@ -1,19 +1,22 @@
-import { duckDb as duckDbTest } from "./../src/index";
-// api.test.js
+import { initDb } from "./../src/index";
 import request from "supertest";
 import app from "../src";
-import { DuckDb } from "@oraichain/oraidex-sync";
+
+let duckDb;
+/* Connecting to the database before each test. */
+beforeAll(async () => {
+  //   await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "");
+  duckDb = await initDb();
+});
+
+/* Closing database connection after each test. */
+afterAll(async () => {
+  //   await DuckDb.instances.closeDb();
+  await duckDb?.instance?.closeDb();
+});
 
 describe("API Tests", () => {
-  beforeAll(() => {
-    //   duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "");
-  });
-
-  afterAll(async () => {
-    //   await duckDb?.closeDb();
-  });
-
-  it("Get version from DB", (done) => {
+  it("Get api version", (done) => {
     request(app)
       .get("/version")
       .expect(200)
@@ -27,12 +30,14 @@ describe("API Tests", () => {
     const response = await request(app).get("/pairs");
 
     console.log("response.body", response.body);
-    // expect(response.status).toBe(200);
+    expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   });
 
   it("Get tickers from DB", async () => {
     const response = await request(app).get("/tickers");
+
+    console.log("tickers: >>", response.body);
     expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   }, 10000);
@@ -91,8 +96,11 @@ describe("API Tests", () => {
   });
 
   it("Get /v1/my-staking from DB", async () => {
-    const response = await request(app).get("/v1/my-staking");
-    // expect(response.status).toBe(200);
+    const response = await request(app).get("/v1/my-staking").query({
+      stakerAddress: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz"
+    });
+
+    expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   });
 

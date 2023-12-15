@@ -493,28 +493,23 @@ app.get("/price-by-usdt/", async (req: Request<{}, {}, {}, GetPriceAssetByUsdt>,
   }
 });
 
-async function initDb() {
+export async function initDb() {
   try {
     // sync data for the service to read
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
     duckDb.conn.exec("SET memory_limit='1000MB'");
-
-    console.log("duckDb----", duckDb);
+    return duckDb;
   } catch (error) {
     console.error("Error connecting to DuckDB:", error);
     process.exit(1);
   }
 }
 
-// Run initDb
-initDb();
-
 if (process.env.NODE_ENV !== "test") {
   app
     .listen(port, hostname, async () => {
-      // // sync data for the service to read
-      // duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
-      // duckDb.conn.exec("SET memory_limit='1000MB'");
+      // init duck DB
+      initDb();
 
       const oraidexSync = await OraiDexSync.create(
         duckDb,
