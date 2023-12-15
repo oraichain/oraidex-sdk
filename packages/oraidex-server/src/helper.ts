@@ -85,51 +85,58 @@ export const getOrderbookTicker = async () => {
 
 // fetch the simulate prices
 export const fetchSimulatePrices = async () => {
-  const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
-  const routerContract = new OraiswapRouterQueryClient(cosmwasmClient, ROUTER_V2_CONTRACT);
+  try {
+    const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
+    const routerContract = new OraiswapRouterQueryClient(cosmwasmClient, ROUTER_V2_CONTRACT);
 
-  const arrangedPairs = pairs.map((pair) => {
-    const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
-    if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
-      return {
-        ...pair,
-        asset_infos: [
-          oraiInfo,
-          {
-            token: {
-              contract_addr: injAddress
-            }
-          } as AssetInfo
-        ],
-        symbols: ["ORAI", "INJ"]
-      } as PairMapping;
+    const arrangedPairs = pairs.map((pair) => {
+      const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+      if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
+        return {
+          ...pair,
+          asset_infos: [
+            oraiInfo,
+            {
+              token: {
+                contract_addr: injAddress
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAI", "INJ"]
+        } as PairMapping;
 
-    if (pairDenoms.some((denom) => denom === oraixCw20Address) && pairDenoms.some((denom) => denom === usdcCw20Address))
-      return {
-        ...pair,
-        asset_infos: [
-          {
-            token: {
-              contract_addr: oraixCw20Address
-            }
-          } as AssetInfo,
-          {
-            token: {
-              contract_addr: usdcCw20Address
-            }
-          } as AssetInfo
-        ],
-        symbols: ["ORAIX", "USDC"]
-      } as PairMapping;
-    return pair;
-  });
+      if (
+        pairDenoms.some((denom) => denom === oraixCw20Address) &&
+        pairDenoms.some((denom) => denom === usdcCw20Address)
+      )
+        return {
+          ...pair,
+          asset_infos: [
+            {
+              token: {
+                contract_addr: oraixCw20Address
+              }
+            } as AssetInfo,
+            {
+              token: {
+                contract_addr: usdcCw20Address
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAIX", "USDC"]
+        } as PairMapping;
+      return pair;
+    });
 
-  const prices = await simulateSwapPrice(
-    arrangedPairs.map((pair) => pair.asset_infos),
-    routerContract
-  );
+    const prices = await simulateSwapPrice(
+      arrangedPairs.map((pair) => pair.asset_infos),
+      routerContract
+    );
 
-  return prices;
+    return prices;
+  } catch (error) {
+    console.log("Fetch simulate prices error: ", error);
+  }
 };
 
 export const getAllPoolsInfo = async () => {
