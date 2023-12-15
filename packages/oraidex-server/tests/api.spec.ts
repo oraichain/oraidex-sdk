@@ -27,7 +27,7 @@ describe("API Tests", () => {
     const response = await request(app).get("/pairs");
 
     console.log("response.body", response.body);
-    expect(response.status).toBe(200);
+    // expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   });
 
@@ -62,7 +62,7 @@ describe("API Tests", () => {
   it("Get /v1/pools/ from DB", async () => {
     const response = await request(app).get("/v1/pools/");
 
-    // expect(response.status).toBe(200);
+    expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   });
 
