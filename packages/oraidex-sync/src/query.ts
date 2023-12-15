@@ -5,6 +5,7 @@ import {
   AssetInfo,
   OraiswapFactoryReadOnlyInterface,
   OraiswapRouterReadOnlyInterface,
+  OraiswapRouterTypes,
   OraiswapStakingTypes,
   OraiswapTokenTypes,
   PairInfo
@@ -52,39 +53,64 @@ async function queryAllPairInfos(
 
 /**
  * Simulate price for pair[0]/pair[pair.length - 1] where the amount of pair[0] is 10^7. This is a multihop simulate swap function. The asset infos in between of the array are for hopping
- * @param pairPath - the path starting from the offer asset info to the ask asset info
+ * Must divide the pairCalls into chunks of 5 to avoid the error: "Error: Query failed with (18): out of gas in location: wasm contract"
+ * @param pairPaths - the array of path starting from the offer asset info to the ask asset info
  * @param router - router contract
- * @returns - price after simulating
+ * @returns - prices after simulating
  */
-async function simulateSwapPrice(pairPath: AssetInfo[], router: OraiswapRouterReadOnlyInterface): Promise<string> {
-  // usdt case, price is always 1
-  const operations = generateSwapOperations(pairPath);
-  if (operations.length === 0) return "0"; // error case. Will be handled by the caller function
+async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRouterReadOnlyInterface): Promise<string[]> {
+  const MAX_CHUNK_SIZE = 5;
+  const dataCall = [];
+  for (const pairPath of pairPaths) {
+    // usdt case, price is always 1
+    const operations = generateSwapOperations(pairPath);
 
-  // TECH DEBT: hardcode simulate for pair oraix/usdc
-  const isSimulateOraixUsdc =
-    pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === oraixCw20Address) &&
-    pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === usdcCw20Address);
-  const THOUDAND_AMOUNT_IN_DECIMAL_SIX = 1000000000;
-  const offerAmount = isSimulateOraixUsdc ? THOUDAND_AMOUNT_IN_DECIMAL_SIX : tenAmountInDecimalSix;
-  const sourceDecimals = isSimulateOraixUsdc ? 9 : 7;
-  try {
-    const data = await router.simulateSwapOperations({
+    // TECH DEBT: hardcode simulate for pair oraix/usdc
+    const isSimulateOraixUsdc =
+      pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === oraixCw20Address) &&
+      pairPath.some((assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === usdcCw20Address);
+    const THOUDAND_AMOUNT_IN_DECIMAL_SIX = 1000000000;
+    const offerAmount = isSimulateOraixUsdc ? THOUDAND_AMOUNT_IN_DECIMAL_SIX : tenAmountInDecimalSix;
+    const sourceDecimals = isSimulateOraixUsdc ? 9 : 7;
+    dataCall.push({
+      sourceDecimals,
       offerAmount: offerAmount.toString(),
       operations
     });
-    return toDisplay(data.amount, sourceDecimals).toString(); // since we simulate using 10 units, not 1. We use 10 because its a workaround for pools that are too small to simulate using 1 unit
+  }
+  const calls: Call[] = dataCall.map((data) => {
+    return {
+      address: router.contractAddress,
+      data: toBinary({
+        simulate_swap_operations: {
+          offer_amount: data.offerAmount,
+          operations: data.operations
+        }
+      } as OraiswapRouterTypes.QueryMsg)
+    };
+  });
+
+  const chunks = [];
+
+  for (let i = 0; i < calls.length; i += MAX_CHUNK_SIZE) {
+    chunks.push(calls.slice(i, i + MAX_CHUNK_SIZE));
+  }
+  try {
+    const res = (await Promise.all(
+      chunks.map(aggregateMulticall<OraiswapRouterTypes.SimulateSwapOperationsResponse>)
+    )) as OraiswapRouterTypes.SimulateSwapOperationsResponse[][];
+    return res.flat().map((data, ind) => toDisplay(data.amount, dataCall[ind].sourceDecimals).toString());
   } catch (error) {
-    console.log(`Error when trying to simulate swap with pair: ${JSON.stringify(pairPath)} using router: ${error}`);
-    return "0"; // error case. Will be handled by the caller function
+    console.log(`Error when trying to simulate swap with pairs: ${JSON.stringify(pairPaths)} using router: ${error}`);
+    throw new Error("SwapSimulateSwapPriceFail::" + error.message); // error case. Will be handled by the caller function
   }
 }
 
-async function aggregateMulticall(queries: Call[]) {
+async function aggregateMulticall<T>(queries: Call[]): Promise<T[]> {
   const client = await getCosmwasmClient();
   const multicall = new MulticallQueryClient(client, network.multicall);
-  const res = await multicall.aggregate({ queries });
-  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined));
+  const res = await multicall.tryAggregate({ queries });
+  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)) as T[];
 }
 
 async function fetchTokenInfos(liquidityAddrs: Addr[]): Promise<TokenInfoResponse[]> {
