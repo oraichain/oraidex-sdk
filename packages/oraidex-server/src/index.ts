@@ -89,6 +89,7 @@ app.get("/pairs", async (req, res) => {
       })
     );
   } catch (error) {
+    console.log("error", error);
     res.status(500).send(`Error getting pair infos: ${JSON.stringify(error)}`);
   }
 });
@@ -451,13 +452,24 @@ app.get("/price-by-usdt/", async (req: Request<{}, {}, {}, GetPriceAssetByUsdt>,
   }
 });
 
-app
-  .listen(port, hostname, async () => {
+export async function initDb() {
+  try {
     // sync data for the service to read
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
     duckDb.conn.exec("SET memory_limit='1000MB'");
+    return duckDb;
+  } catch (error) {
+    console.error("Error connecting to DuckDB:", error);
+    process.exit(1);
+  }
+}
 
-    if (process.env.NODE_ENV !== "test") {
+if (process.env.NODE_ENV !== "test") {
+  app
+    .listen(port, hostname, async () => {
+      // init duck DB
+      initDb();
+
       const oraidexSync = await OraiDexSync.create(
         duckDb,
         process.env.RPC_URL || "https://rpc.orai.io",
@@ -465,11 +477,11 @@ app
       );
       oraidexSync.sync();
       console.log(`[server]: oraiDEX info server is running at http://${hostname}:${port}`);
-    }
-  })
-  .on("error", (err) => {
-    console.log("error when start oraiDEX server", err);
-    process.exit(1);
-  });
+    })
+    .on("error", (err) => {
+      console.log("error when start oraiDEX server", err);
+      process.exit(1);
+    });
+}
 
 export default app;
