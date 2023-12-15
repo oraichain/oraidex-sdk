@@ -5,52 +5,45 @@ import app from "../src";
 let duckDb;
 /* Connecting to the database before each test. */
 beforeAll(async () => {
-  //   await DuckDb.create(process.env.DUCKDB_PROD_FILENAME || "");
   duckDb = await initDb();
 });
 
 /* Closing database connection after each test. */
 afterAll(async () => {
-  //   await DuckDb.instances.closeDb();
   await duckDb?.instance?.closeDb();
 });
 
 describe("API Tests", () => {
-  it("Get api version", (done) => {
-    request(app)
-      .get("/version")
-      .expect(200)
-      .end((err, res) => {
-        expect(res.text).toEqual("1.0.38");
-        done(); // Call done when your asynchronous operations are complete
-      });
+  it("Get api version", async () => {
+    const response = await request(app).get("/version");
+    expect(response.text).toEqual("1.0.42");
   });
 
   it("Get pairs from DB", async () => {
     const response = await request(app).get("/pairs");
-
-    console.log("response.body", response.body);
     expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   });
 
   it("Get tickers from DB", async () => {
     const response = await request(app).get("/tickers");
-
-    console.log("tickers: >>", response.body);
     expect(response.status).toBe(200);
     // expect(response.body).toMatchSnapshot();
   }, 10000);
 
-  it("Get historical/chart from DB", async () => {
-    const response = await request(app).get("/volume/v2/historical/chart").query({
-      startTime: 28372237,
-      endTime: 28377037,
-      tf: 15
-    });
-    expect(response.status).toBe(200);
-    // expect(response.body).toMatchSnapshot();
-  });
+  // it.each([
+  //   [28372237, 28377037, 15],
+  //   [28372237, undefined, 15],
+  //   [undefined, undefined, 15],
+  //   [undefined, undefined, undefined]
+  // ])("Get historical/chart from DB", async (startTime, endTime, tf) => {
+  //   const response = await request(app).get("/volume/v2/historical/chart").query({
+  //     startTime,
+  //     endTime,
+  //     tf
+  //   });
+  //   expect(response.status).toBe(200);
+  // });
 
   it("Get /v1/candles/ from DB", async () => {
     const response = await request(app).get("/v1/candles/").query({

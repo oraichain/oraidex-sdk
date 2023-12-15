@@ -54,7 +54,9 @@ import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache"
 registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
 registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
 
-updateInterval();
+if (process.env.NODE_ENV !== "test") {
+  updateInterval();
+}
 
 const app = express();
 app.use(cors());
@@ -166,7 +168,7 @@ app.get("/tickers", async (req, res) => {
     }
 
     // reverse because in pairs, we put base info as first index
-    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE);
+    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE) ?? [];
 
     const [tickerOrderbook] = await Promise.all([getOrderbookTicker()]);
     prices.forEach((price, index) => {

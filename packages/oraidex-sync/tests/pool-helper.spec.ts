@@ -105,7 +105,7 @@ describe("test-pool-helper", () => {
     // use orai/usdt in this test suite
     it("test-getPriceByAsset-when-duckdb-empty-should-return-0", async () => {
       // setup
-      jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(null);
+      jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(null as any);
 
       // act & assertion
       const result = await poolHelper.getPriceByAsset([oraiInfo, usdtInfo], "base_in_quote");
@@ -135,7 +135,8 @@ describe("test-pool-helper", () => {
         height: 1,
         timestamp: 1,
         pairAddr,
-        uniqueKey: "1"
+        uniqueKey: "1",
+        totalShare: "1"
       };
       jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfoData);
       jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue(poolAmountHistory);
