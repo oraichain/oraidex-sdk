@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "patch-package",
-    "test": "jest",
+    "test": "jest --runInBand --forceExit",
     "docs": "typedoc --entryPointStrategy expand --name 'Oraidex SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
     "clean": "lerna clean --yes && lerna exec -- rimraf build/ dist/ cache/",
     "build": "lerna run build --concurrency 1",
