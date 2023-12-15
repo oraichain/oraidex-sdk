@@ -135,7 +135,7 @@ export const fetchSimulatePrices = async () => {
 
     return prices;
   } catch (error) {
-    console.log("Fetch simulate prices error::", error.message);
+    throw new Error("fetchSimulatePrices Error::", error.message);
   }
 };
 

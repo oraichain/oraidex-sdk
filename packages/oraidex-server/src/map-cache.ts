@@ -14,8 +14,12 @@ export const updateInterval = async (interval = 5000): Promise<void> => {
     console.log("rerun");
     const listener = cacheListeners.get(key);
     if (listener) {
-      const value = await listener();
-      cache.set(key, value);
+      try {
+        const value = await listener();
+        cache.set(key, value);
+      } catch (error) {
+        console.log("Error update cache: ", error.message);
+      }
     }
   }
   setTimeout(updateInterval, interval);
