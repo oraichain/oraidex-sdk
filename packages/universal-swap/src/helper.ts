@@ -584,13 +584,14 @@ export const checkBalanceIBCOraichain = async (
   }
 };
 
-export const buildIbcWasmHooksMemo = (stargateMsgs: StargateMsg[]): string => {
+export const buildIbcWasmHooksMemo = (func: string, args: string): string => {
   return JSON.stringify({
     wasm: {
-      execute: {
-        contract_addr: IBC_WASM_HOOKS_CONTRACT,
-        msg: {
-          execute_msgs: toBinary(stargateMsgs)
+      contract_addr: IBC_WASM_HOOKS_CONTRACT,
+      msg: {
+        ibc_hooks_receive: {
+          func,
+          args
         }
       }
     }

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+message IbcHooksMemo {
+  string receiver = 1;
+  string destination_receiver = 2;
+  string destination_channel = 3;
+  string destination_denom = 4;
+}
