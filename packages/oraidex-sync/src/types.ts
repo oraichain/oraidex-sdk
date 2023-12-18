@@ -186,6 +186,22 @@ export type TickerInfo = {
   pool_id: string;
 };
 
+export type SummaryInfo = {
+  base_currency: string;
+  quote_currency: string;
+  last_price: number;
+  base_volume: number;
+  quote_volume: number;
+  base: string;
+  quote: string;
+  trading_pairs: string;
+  lowest_ask: number;
+  highest_bid: number;
+  price_change_percent_24h: number;
+  highest_price_24h: number;
+  lowest_price_24h: number;
+};
+
 export type TotalLiquidity = {
   time: string;
   liquidity: number;

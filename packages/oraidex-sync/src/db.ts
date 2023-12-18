@@ -226,9 +226,9 @@ export class DuckDb {
   }
 
   async queryPairInfos(): Promise<PairInfoData[]> {
-    return (await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr from pair_infos")).map(
-      (data) => data as PairInfoData
-    );
+    return (
+      await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr, commissionRate from pair_infos")
+    ).map((data) => data as PairInfoData);
   }
 
   /**
@@ -474,6 +474,28 @@ export class DuckDb {
       timestamp
     );
     return result[0] as PoolAmountHistory;
+  }
+
+  async getListLpAmountWithTime(timestamp: number) {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        WHERE timestamp >= ?
+        ORDER BY timestamp DESC
+      `,
+      timestamp
+    );
+    return result as PoolAmountHistory[];
+  }
+
+  async getListLpAmount() {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        ORDER BY timestamp DESC
+      `
+    );
+    return result as PoolAmountHistory[];
   }
 
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {

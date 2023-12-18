@@ -11,13 +11,16 @@ import {
   ORAI,
   OraiDexSync,
   PairMapping,
+  SummaryInfo,
   TickerInfo,
   VolumeRange,
   findPairAddress,
+  getListPoolAmount,
   getOraiPrice,
   getPairLiquidity,
   getPriceAssetByUsdt,
   getPriceByAsset,
+  getPriceStatisticOfPool,
   getVolumePairByUsdt,
   injAddress,
   oraiInfo,
@@ -448,6 +451,109 @@ app.get("/price-by-usdt/", async (req: Request<{}, {}, {}, GetPriceAssetByUsdt>,
     res.status(200).send({ price });
   } catch (error) {
     res.status(500).send(error.message);
+  }
+});
+
+// API for CMC
+app.get("/v1/summary", async (req, res) => {
+  try {
+    const { endTime } = req.query;
+    const pairInfos = await duckDb.queryPairInfos();
+
+    const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
+    const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
+
+    const SECONDS_PER_DAY = 24 * 60 * 60;
+    const dateBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
+    const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
+
+    const listPoolAmount = await getListPoolAmount(timestamp);
+    // const priceAllTime = await getListPriceAssetsPair(pair.asset_infos, "base_in_quote");
+
+    // hardcode reverse order for ORAI/INJ, USDC/ORAIX
+    const arrangedPairs = pairs.map((pair) => {
+      const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+      if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
+        return {
+          ...pair,
+          asset_infos: [
+            oraiInfo,
+            {
+              token: {
+                contract_addr: injAddress
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAI", "INJ"]
+        } as PairMapping;
+
+      if (
+        pairDenoms.some((denom) => denom === oraixCw20Address) &&
+        pairDenoms.some((denom) => denom === usdcCw20Address)
+      )
+        return {
+          ...pair,
+          asset_infos: [
+            {
+              token: {
+                contract_addr: oraixCw20Address
+              }
+            } as AssetInfo,
+            {
+              token: {
+                contract_addr: usdcCw20Address
+              }
+            } as AssetInfo
+          ],
+          symbols: ["ORAIX", "USDC"]
+        } as PairMapping;
+      return pair;
+    });
+
+    const data: SummaryInfo[] = [];
+    for (const pair of arrangedPairs) {
+      const symbols = pair.symbols;
+      const tickerId = parseSymbolsToTickerId(symbols);
+      const baseIndex = 0;
+      const targetIndex = 1;
+      const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
+      const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
+      const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
+      const priceStatistic = getPriceStatisticOfPool(listPoolAmount, pairInfos, tickerId, baseInfo, targetInfo);
+
+      const tickerInfo: SummaryInfo = {
+        trading_pairs: tickerId,
+        base_currency: symbols[baseIndex],
+        quote_currency: symbols[targetIndex],
+        last_price: priceStatistic.price,
+        base_volume: toDisplay(BigInt(volume.volume[baseInfo])),
+        quote_volume: toDisplay(BigInt(volume.volume[targetInfo])),
+        base: symbols[baseIndex],
+        quote: symbols[targetIndex],
+        lowest_ask: priceStatistic.lowest_ask,
+        highest_bid: priceStatistic.highest_bid,
+        price_change_percent_24h: priceStatistic.price_change,
+        highest_price_24h: priceStatistic.highest_price_24h,
+        lowest_price_24h: priceStatistic.lowest_price_24h
+      };
+      data.push(tickerInfo);
+    }
+
+    // reverse because in pairs, we put base info as first index
+    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE) || [];
+
+    prices.forEach((price, index) => {
+      if (price) {
+        data[index].last_price = data[index].last_price || price;
+        data[index].highest_price_24h = data[index].highest_price_24h || price;
+        data[index].lowest_price_24h = data[index].highest_price_24h || price;
+      }
+    });
+
+    res.status(200).send(data);
+  } catch (error) {
+    console.log("error: ", error);
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
 });
 
