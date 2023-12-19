@@ -17,10 +17,17 @@ import {
   getPoolLiquidities,
   PairInfoDataResponse,
   getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb
+  getPoolAprsFromDuckDb,
+  pairsWithDenom,
+  DuckDb,
+  PoolAmountHistory,
+  calculatePriceByPool,
+  PairInfoData,
+  findPairAddress
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
+import { DbQuery, LowHighPriceOfPairType } from "./db-query";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 
@@ -71,6 +78,24 @@ export const getOrderbookTicker = async () => {
     const ORDERBOOK_TICKER_API_ENDPOINT = `${
       process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
     }/v2/tickers`;
+    const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
+    if (!response.ok) {
+      throw new Error(`${response.status} ${response.statusText}`);
+    }
+    const tickerOrderbook = await response.json();
+    return tickerOrderbook;
+  } catch (error) {
+    console.error("Error get orderbook ticker: ", error);
+    return [];
+  }
+};
+
+export const getOrderbookSummary = async () => {
+  try {
+    // get ticker from orderbook
+    const ORDERBOOK_TICKER_API_ENDPOINT = `${
+      process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
+    }/v1/cmc/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
@@ -186,4 +211,123 @@ export const getAllPoolsInfo = async () => {
   } catch (error) {
     console.log({ errorGetAllPoolsInfo: error });
   }
+};
+/**
+ * get low high price for pair of [base and quote]
+ * @param listLowHighPriceOfPair list low high price of pair
+ * @param baseDenom
+ * @param quoteDenom
+ * @returns low and high price for pair
+ */
+export const getLowHighPriceOfPair = (
+  listLowHighPriceOfPair: LowHighPriceOfPairType[],
+  baseDenom: string,
+  quoteDenom: string
+) => {
+  const pair = pairsWithDenom.find(
+    (pair) => pair.asset_denoms.includes(baseDenom) && pair.asset_denoms.includes(quoteDenom)
+  );
+  if (!pair) {
+    return { low: 0, high: 0, pairAddr: "" };
+  }
+
+  const {
+    low,
+    high,
+    pair: pairAddr
+  } = listLowHighPriceOfPair.find((item) => item.pair.includes(baseDenom) && item.pair.includes(quoteDenom)) || {
+    low: 0,
+    high: 0,
+    pair: ""
+  };
+
+  return { low, high, pairAddr };
+};
+
+/**
+ * Get List Low High Price Of Pairs timestamp
+ * @param timestamp (optional) if it present, the price of asset will be calculated at this time.
+ * @returns list LowHighPriceOfPair
+ */
+export const getListLowHighPriceOfPairs = async (timestamp?: number): Promise<LowHighPriceOfPairType[]> => {
+  const duckDb = DuckDb.instances;
+  const dbQuery = new DbQuery(duckDb);
+
+  const listLowHighPriceOfPair: LowHighPriceOfPairType[] = await dbQuery.getLowHighPrice({ timestamp });
+  if (!listLowHighPriceOfPair) return [];
+
+  return listLowHighPriceOfPair;
+};
+
+/**
+ * Get pool amount by timestamp
+ * @param timestamp (optional) if it present, the price of asset will be calculated at this time.
+ * @returns list pool amount history
+ */
+export const getListPoolAmount = async (timestamp?: number): Promise<PoolAmountHistory[]> => {
+  const duckDb = DuckDb.instances;
+  const dbQuery = new DbQuery(duckDb);
+
+  const poolAmounts: PoolAmountHistory[] = await dbQuery.getListLpAmount({ timestamp });
+  if (!poolAmounts) return [];
+
+  return poolAmounts;
+};
+
+/**
+ * getPriceStatistic of pool
+ * @param listPoolAmount list pool amount histories
+ * @param pairInfos list pair infos
+ * @param tickerId ticker id (pair denoms string. Ex: "MILKY_USDT")
+ * @param base_denom
+ * @param quote_denom
+ * @returns list price statistic of pool
+ */
+export const getPriceStatisticOfPool = (
+  listPoolAmount: PoolAmountHistory[],
+  pairInfos: PairInfoData[],
+  tickerId: string,
+  base_denom: string,
+  quote_denom: string
+) => {
+  const pair = pairsWithDenom.find(
+    (pair) => pair.asset_denoms.includes(base_denom) && pair.asset_denoms.includes(quote_denom)
+  );
+  if (!pair) {
+    return {
+      tickerId,
+      price: 0,
+      price_change: 0
+    };
+  }
+
+  const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
+  const poolInfo = pairInfos.find((p) => p.pairAddr === pairAddr);
+
+  const listPrices = listPoolAmount.reduce((acc, cur) => {
+    if (cur.pairAddr === pairAddr) {
+      const price = calculatePriceByPool(
+        BigInt(cur.askPoolAmount),
+        BigInt(cur.offerPoolAmount),
+        +poolInfo.commissionRate
+      );
+
+      acc.push(price);
+    }
+    return acc;
+  }, []);
+
+  const by24hPrice = listPrices[listPrices.length - 1];
+  const currentPrice = listPrices[0];
+
+  let percentPriceChange = 0;
+  if (by24hPrice !== 0) {
+    percentPriceChange = ((currentPrice - by24hPrice) / by24hPrice) * 100;
+  }
+
+  return {
+    tickerId,
+    price: currentPrice || 0,
+    price_change: percentPriceChange || 0
+  };
 };

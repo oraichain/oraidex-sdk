@@ -200,6 +200,7 @@ export type SummaryInfo = {
   price_change_percent_24h: number;
   highest_price_24h: number;
   lowest_price_24h: number;
+  pool_id: string;
 };
 
 export type TotalLiquidity = {

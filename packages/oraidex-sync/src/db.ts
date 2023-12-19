@@ -476,28 +476,6 @@ export class DuckDb {
     return result[0] as PoolAmountHistory;
   }
 
-  async getListLpAmountWithTime(timestamp: number) {
-    const result = await this.conn.all(
-      `
-        SELECT * FROM lp_amount_history
-        WHERE timestamp >= ?
-        ORDER BY timestamp DESC
-      `,
-      timestamp
-    );
-    return result as PoolAmountHistory[];
-  }
-
-  async getListLpAmount() {
-    const result = await this.conn.all(
-      `
-        SELECT * FROM lp_amount_history
-        ORDER BY timestamp DESC
-      `
-    );
-    return result as PoolAmountHistory[];
-  }
-
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
     await this.insertBulkData(ops, "lp_amount_history");
   }

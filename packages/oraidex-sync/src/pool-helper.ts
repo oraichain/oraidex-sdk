@@ -16,11 +16,10 @@ import {
   DuckDb,
   concatAprHistoryToUniqueKey,
   concatLpHistoryToUniqueKey,
-  findPairAddress,
   getPairLiquidity,
   recalculateTotalShare
 } from "./index";
-import { pairs, pairsWithDenom } from "./pairs";
+import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 import {
   fetchAllRewardPerSecInfos,
@@ -122,118 +121,6 @@ export const getPriceByAsset = async (
   return ratioDirection === "base_in_quote" ? basePrice : 1 / basePrice;
 };
 
-/**
- * Get pool amount by timestamp
- * @param timestamp (optional) if it present, the price of asset will be calculated at this time.
- * @returns list pool amount history
- */
-export const getListPoolAmount = async (timestamp?: number): Promise<PoolAmountHistory[]> => {
-  const duckDb = DuckDb.instances;
-
-  let poolAmounts: PoolAmountHistory[];
-  if (timestamp) {
-    poolAmounts = await duckDb.getListLpAmountWithTime(timestamp);
-  } else {
-    poolAmounts = await duckDb.getListLpAmount();
-  }
-  if (!poolAmounts) return [];
-
-  return poolAmounts;
-};
-
-/**
- * Get list price of pair by timestamp
- * @param poolAmounts list pool amount histories
- * @param commissionRate commission rate of pool.
- * @returns list price of pair by timestamp
- */
-export const getListPriceAssetsPair = async (
-  poolAmounts: PoolAmountHistory[],
-  commissionRate: string
-): Promise<{ pairAddr: string; price: number }[]> => {
-  return poolAmounts.map((pA) => {
-    const price = calculatePriceByPool(BigInt(pA.askPoolAmount), BigInt(pA.offerPoolAmount), +commissionRate);
-    return {
-      price,
-      timestamp: pA.timestamp,
-      pairAddr: pA.pairAddr
-    };
-  });
-};
-/**
- * getPriceStatistic of pool
- * @param listPoolAmount list pool amount histories
- * @param pairInfos list pair infos
- * @param tickerId ticker id (pair denoms string. Ex: "MILKY_USDT")
- * @param base_denom
- * @param quote_denom
- * @returns list price statistic of pool
- */
-export const getPriceStatisticOfPool = (
-  listPoolAmount: PoolAmountHistory[],
-  pairInfos: PairInfoData[],
-  tickerId: string,
-  base_denom: string,
-  quote_denom: string
-) => {
-  let pair = pairsWithDenom.find((pair) => pair.asset_denoms[0] === base_denom && pair.asset_denoms[1] === quote_denom);
-  if (!pair) {
-    pair = pairsWithDenom.find((pair) => pair.asset_denoms[1] === base_denom && pair.asset_denoms[0] === quote_denom);
-
-    if (!pair) {
-      return {
-        tickerId,
-        lowest_ask: 0,
-        highest_bid: 0,
-        highest_price_24h: 0,
-        lowest_price_24h: 0,
-        price: 0,
-        price_change: 0
-      };
-    }
-  }
-
-  const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
-  const poolInfo = pairInfos.find((p) => p.pairAddr === pairAddr);
-
-  const listPrices = listPoolAmount.reduce((acc, cur) => {
-    if (cur.pairAddr === pairAddr) {
-      const price = calculatePriceByPool(
-        BigInt(cur.askPoolAmount),
-        BigInt(cur.offerPoolAmount),
-        +poolInfo.commissionRate
-      );
-
-      acc.push(price);
-    }
-    return acc;
-  }, []);
-
-  const by24hPrice = listPrices[listPrices.length - 1];
-  const currentPrice = listPrices[0];
-
-  let percentPriceChange = 0;
-  if (by24hPrice !== 0) {
-    percentPriceChange = ((currentPrice - by24hPrice) / by24hPrice) * 100;
-  }
-
-  // calc low high price
-  const sortListPrice = listPrices.sort();
-  const priceStatistic = {
-    lowest_price: sortListPrice[0],
-    highest_price: sortListPrice[sortListPrice.length - 1]
-  };
-
-  return {
-    tickerId,
-    lowest_ask: 0, // priceAllTime.lowest_price || 0,
-    highest_bid: 0, // priceAllTime.highest_price || 0,
-    highest_price_24h: priceStatistic.highest_price || 0, // priceToday.highest_price || 0,
-    lowest_price_24h: priceStatistic.lowest_price || 0, // priceToday.lowest_price || 0,
-    price: currentPrice || 0,
-    price_change: percentPriceChange || 0
-  };
-};
 /**
  * @param asset
  * asset is:

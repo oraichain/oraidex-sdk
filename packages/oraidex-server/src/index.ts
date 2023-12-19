@@ -15,12 +15,10 @@ import {
   TickerInfo,
   VolumeRange,
   findPairAddress,
-  getListPoolAmount,
   getOraiPrice,
   getPairLiquidity,
   getPriceAssetByUsdt,
   getPriceByAsset,
-  getPriceStatisticOfPool,
   getVolumePairByUsdt,
   injAddress,
   oraiInfo,
@@ -44,7 +42,12 @@ import {
   fetchSimulatePrices,
   getAllPoolsInfo,
   getDate24hBeforeNow,
+  getListLowHighPriceOfPairs,
+  getListPoolAmount,
+  getLowHighPriceOfPair,
+  getOrderbookSummary,
   getOrderbookTicker,
+  getPriceStatisticOfPool,
   getSpecificDateBeforeNow,
   pairToString,
   parseSymbolsToTickerId,
@@ -467,8 +470,11 @@ app.get("/v1/summary", async (req, res) => {
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
     const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
 
-    const listPoolAmount = await getListPoolAmount(timestamp);
-    // const priceAllTime = await getListPriceAssetsPair(pair.asset_infos, "base_in_quote");
+    const [listPoolAmount, listLowHighPrice24h, listLowHighPriceAll] = await Promise.all([
+      getListPoolAmount(timestamp),
+      getListLowHighPriceOfPairs(timestamp),
+      getListLowHighPriceOfPairs()
+    ]);
 
     // hardcode reverse order for ORAI/INJ, USDC/ORAIX
     const arrangedPairs = pairs.map((pair) => {
@@ -516,12 +522,20 @@ app.get("/v1/summary", async (req, res) => {
       const tickerId = parseSymbolsToTickerId(symbols);
       const baseIndex = 0;
       const targetIndex = 1;
+      const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
       const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
       const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
       const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
       const priceStatistic = getPriceStatisticOfPool(listPoolAmount, pairInfos, tickerId, baseInfo, targetInfo);
+      const { low: lowest_price_24h, high: highest_price_24h } = getLowHighPriceOfPair(
+        listLowHighPrice24h,
+        baseInfo,
+        targetInfo
+      );
+      const { low: lowest_ask, high: highest_bid } = getLowHighPriceOfPair(listLowHighPriceAll, baseInfo, targetInfo);
 
       const tickerInfo: SummaryInfo = {
+        pool_id: pairAddr || "",
         trading_pairs: tickerId,
         base_currency: symbols[baseIndex],
         quote_currency: symbols[targetIndex],
@@ -530,11 +544,11 @@ app.get("/v1/summary", async (req, res) => {
         quote_volume: toDisplay(BigInt(volume.volume[targetInfo])),
         base: symbols[baseIndex],
         quote: symbols[targetIndex],
-        lowest_ask: priceStatistic.lowest_ask,
-        highest_bid: priceStatistic.highest_bid,
+        lowest_ask: lowest_ask,
+        highest_bid: highest_bid,
         price_change_percent_24h: priceStatistic.price_change,
-        highest_price_24h: priceStatistic.highest_price_24h,
-        lowest_price_24h: priceStatistic.lowest_price_24h
+        highest_price_24h: highest_price_24h,
+        lowest_price_24h: lowest_price_24h
       };
       data.push(tickerInfo);
     }
@@ -544,13 +558,15 @@ app.get("/v1/summary", async (req, res) => {
 
     prices.forEach((price, index) => {
       if (price) {
-        data[index].last_price = data[index].last_price || price;
-        data[index].highest_price_24h = data[index].highest_price_24h || price;
-        data[index].lowest_price_24h = data[index].highest_price_24h || price;
+        data[index].last_price = data[index].last_price || Number(price);
+        data[index].highest_price_24h = data[index].highest_price_24h || Number(price);
+        data[index].lowest_price_24h = data[index].highest_price_24h || Number(price);
       }
     });
+    const [tickerOrderbook] = await Promise.all([getOrderbookSummary()]);
 
-    res.status(200).send(data);
+    const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;
+    res.status(200).send(finalData);
   } catch (error) {
     console.log("error: ", error);
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
