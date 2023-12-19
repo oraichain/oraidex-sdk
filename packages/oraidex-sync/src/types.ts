@@ -192,15 +192,12 @@ export type SummaryInfo = {
   last_price: number;
   base_volume: number;
   quote_volume: number;
-  base: string;
-  quote: string;
   trading_pairs: string;
   lowest_ask: number;
   highest_bid: number;
   price_change_percent_24h: number;
   highest_price_24h: number;
   lowest_price_24h: number;
-  pool_id: string;
 };
 
 export type TotalLiquidity = {

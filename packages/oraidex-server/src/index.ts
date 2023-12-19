@@ -522,7 +522,6 @@ app.get("/v1/summary", async (req, res) => {
       const tickerId = parseSymbolsToTickerId(symbols);
       const baseIndex = 0;
       const targetIndex = 1;
-      const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
       const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
       const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
       const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
@@ -535,15 +534,12 @@ app.get("/v1/summary", async (req, res) => {
       const { low: lowest_ask, high: highest_bid } = getLowHighPriceOfPair(listLowHighPriceAll, baseInfo, targetInfo);
 
       const tickerInfo: SummaryInfo = {
-        pool_id: pairAddr || "",
         trading_pairs: tickerId,
         base_currency: symbols[baseIndex],
         quote_currency: symbols[targetIndex],
         last_price: priceStatistic.price,
         base_volume: toDisplay(BigInt(volume.volume[baseInfo])),
         quote_volume: toDisplay(BigInt(volume.volume[targetInfo])),
-        base: symbols[baseIndex],
-        quote: symbols[targetIndex],
         lowest_ask: lowest_ask,
         highest_bid: highest_bid,
         price_change_percent_24h: priceStatistic.price_change,
@@ -560,7 +556,7 @@ app.get("/v1/summary", async (req, res) => {
       if (price) {
         data[index].last_price = data[index].last_price || Number(price);
         data[index].highest_price_24h = data[index].highest_price_24h || Number(price);
-        data[index].lowest_price_24h = data[index].highest_price_24h || Number(price);
+        data[index].lowest_price_24h = data[index].lowest_price_24h || Number(price);
       }
     });
     const [tickerOrderbook] = await Promise.all([getOrderbookSummary()]);
