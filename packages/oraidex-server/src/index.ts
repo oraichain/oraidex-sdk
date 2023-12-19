@@ -470,11 +470,9 @@ app.get("/v1/summary", async (req, res) => {
     const dateBeforeNow = getSpecificDateBeforeNow(new Date(), SECONDS_PER_DAY);
     const timestamp = Math.round(dateBeforeNow.getTime() / 1000);
 
-    const [listPoolAmount, listLowHighPrice24h, listLowHighPriceAll] = await Promise.all([
-      getListPoolAmount(timestamp),
-      getListLowHighPriceOfPairs(timestamp),
-      getListLowHighPriceOfPairs()
-    ]);
+    const listPoolAmount = await getListPoolAmount(timestamp);
+    const listLowHighPrice24h = await getListLowHighPriceOfPairs(timestamp);
+    const listLowHighPriceAll = await getListLowHighPriceOfPairs();
 
     // hardcode reverse order for ORAI/INJ, USDC/ORAIX
     const arrangedPairs = pairs.map((pair) => {
