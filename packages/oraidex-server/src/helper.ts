@@ -30,6 +30,8 @@ import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
+const ORAI_INJ = "ORAI_INJ";
+const ORAIX_USDC = "ORAIX_USDC";
 
 export function parseSymbolsToTickerId([base, quote]: [string, string]) {
   return `${base}_${quote}`;
@@ -214,12 +216,14 @@ export const getAllPoolsInfo = async () => {
 };
 /**
  * get low high price for pair of [base and quote]
+ * @tickerId pair symbols string
  * @param listLowHighPriceOfPair list low high price of pair
  * @param baseDenom
  * @param quoteDenom
  * @returns low and high price for pair
  */
 export const getLowHighPriceOfPair = (
+  tickerId: string,
   listLowHighPriceOfPair: LowHighPriceOfPairType[],
   baseDenom: string,
   quoteDenom: string
@@ -241,7 +245,14 @@ export const getLowHighPriceOfPair = (
     pair: ""
   };
 
-  return { low, high, pairAddr };
+  // TODO: hardcode Inverse Price for "ORAIX_USDC", "ORAI_INJ" pair
+  const isInversePrice = [ORAIX_USDC, ORAI_INJ].includes(tickerId);
+
+  return {
+    low: low && isInversePrice ? 1 / low : low,
+    high: high && isInversePrice ? 1 / high : high,
+    pairAddr
+  };
 };
 
 /**
@@ -306,11 +317,16 @@ export const getPriceStatisticOfPool = (
 
   const listPrices = listPoolAmount.reduce((acc, cur) => {
     if (cur.pairAddr === pairAddr) {
-      const price = calculatePriceByPool(
+      let price = calculatePriceByPool(
         BigInt(cur.askPoolAmount),
         BigInt(cur.offerPoolAmount),
         +poolInfo.commissionRate
       );
+
+      // TODO: hardcode Inverse Price for "ORAIX_USDC", "ORAI_INJ" pair
+      if ([ORAIX_USDC, ORAI_INJ].includes(tickerId) && price) {
+        price = 1 / price;
+      }
 
       acc.push(price);
     }
