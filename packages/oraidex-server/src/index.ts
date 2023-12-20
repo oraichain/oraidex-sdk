@@ -59,6 +59,7 @@ import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache"
 
 registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
 registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
+registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 
 updateInterval();
 
@@ -557,7 +558,12 @@ app.get("/v1/summary", async (req, res) => {
         data[index].lowest_price_24h = data[index].lowest_price_24h || Number(price);
       }
     });
-    const [tickerOrderbook] = await Promise.all([getOrderbookSummary()]);
+
+    let tickerOrderbook = cache.get(CACHE_KEY.TICKER_ORDER_BOOK) || [];
+    if (!tickerOrderbook.length) {
+      console.log("564", 564);
+      [tickerOrderbook] = await Promise.all([getOrderbookSummary()]);
+    }
 
     const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;
     res.status(200).send(finalData);
