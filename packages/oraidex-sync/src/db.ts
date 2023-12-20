@@ -226,9 +226,9 @@ export class DuckDb {
   }
 
   async queryPairInfos(): Promise<PairInfoData[]> {
-    return (await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr from pair_infos")).map(
-      (data) => data as PairInfoData
-    );
+    return (
+      await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr, commissionRate from pair_infos")
+    ).map((data) => data as PairInfoData);
   }
 
   /**

@@ -1,7 +1,11 @@
 export enum CACHE_KEY {
   SIMULATE_PRICE = "SIMULATE_PRICE",
-  POOLS_INFO = "POOLS_INFO"
+  POOLS_INFO = "POOLS_INFO",
+  TICKER_ORDER_BOOK = "TICKER_ORDER_BOOK"
 }
+
+let updateTimeout: NodeJS.Timeout;
+
 export const cache: Map<string, any> = new Map();
 export const cacheListeners: Map<string, (...args: any[]) => Promise<void>> = new Map();
 
@@ -9,10 +13,11 @@ export const registerListener = (key: string, listener: (...args: any[]) => Prom
   cacheListeners.set(key, listener);
 };
 
-export const updateInterval = async (interval = 5000): Promise<void> => {
+export const updateInterval = async (interval = 30000): Promise<void> => {
   for (const key of cacheListeners.keys()) {
-    console.log("rerun");
+    console.log("rerun >> Key: ", key);
     const listener = cacheListeners.get(key);
+
     if (listener) {
       try {
         const value = await listener();
@@ -22,5 +27,12 @@ export const updateInterval = async (interval = 5000): Promise<void> => {
       }
     }
   }
-  setTimeout(updateInterval, interval);
+
+  // Clear the existing timeout
+  if (updateTimeout) {
+    clearTimeout(updateTimeout);
+  }
+
+  // Set a new timeout
+  updateTimeout = setTimeout(() => updateInterval(interval), interval);
 };
