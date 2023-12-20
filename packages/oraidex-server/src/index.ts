@@ -174,7 +174,7 @@ app.get("/tickers", async (req, res) => {
     // reverse because in pairs, we put base info as first index
     const prices = cache.get(CACHE_KEY.SIMULATE_PRICE) || [];
 
-    const [tickerOrderbook] = await Promise.all([getOrderbookTicker()]);
+    const tickerOrderbook = await getOrderbookTicker();
     prices.forEach((price, index) => {
       if (price) {
         data[index].last_price = price;
@@ -567,7 +567,7 @@ app.get("/v1/summary", async (req, res) => {
 
     let tickerOrderbook = cache.get(CACHE_KEY.TICKER_ORDER_BOOK) || [];
     if (!tickerOrderbook.length) {
-      tickerOrderbook = await Promise.all([getOrderbookSummary()]);
+      tickerOrderbook = await getOrderbookSummary();
     }
 
     const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;

@@ -246,7 +246,7 @@ export const getLowHighPriceOfPair = (
   };
 
   // TODO: hardcode Inverse Price for "ORAIX_USDC", "ORAI_INJ" pair
-  const isInversePrice = tickerId === ORAIX_USDC || tickerId === ORAI_INJ;
+  const isInversePrice = [ORAIX_USDC, ORAI_INJ].includes(tickerId);
 
   return {
     low: low && isInversePrice ? 1 / low : low,
@@ -324,7 +324,7 @@ export const getPriceStatisticOfPool = (
       );
 
       // TODO: hardcode Inverse Price for "ORAIX_USDC", "ORAI_INJ" pair
-      if ((tickerId === ORAIX_USDC || tickerId === ORAI_INJ) && price) {
+      if ([ORAIX_USDC, ORAI_INJ].includes(tickerId) && price) {
         price = 1 / price;
       }
 
