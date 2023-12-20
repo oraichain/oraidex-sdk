@@ -172,7 +172,7 @@ app.get("/tickers", async (req, res) => {
     }
 
     // reverse because in pairs, we put base info as first index
-    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE);
+    const prices = cache.get(CACHE_KEY.SIMULATE_PRICE) || [];
 
     const [tickerOrderbook] = await Promise.all([getOrderbookTicker()]);
     prices.forEach((price, index) => {
@@ -526,11 +526,17 @@ app.get("/v1/summary", async (req, res) => {
       const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
       const priceStatistic = getPriceStatisticOfPool(listPoolAmount, pairInfos, tickerId, baseInfo, targetInfo);
       const { low: lowest_price_24h, high: highest_price_24h } = getLowHighPriceOfPair(
+        tickerId,
         listLowHighPrice24h,
         baseInfo,
         targetInfo
       );
-      const { low: lowest_ask, high: highest_bid } = getLowHighPriceOfPair(listLowHighPriceAll, baseInfo, targetInfo);
+      const { low: lowest_ask, high: highest_bid } = getLowHighPriceOfPair(
+        tickerId,
+        listLowHighPriceAll,
+        baseInfo,
+        targetInfo
+      );
 
       const tickerInfo: SummaryInfo = {
         trading_pairs: tickerId,
@@ -561,8 +567,7 @@ app.get("/v1/summary", async (req, res) => {
 
     let tickerOrderbook = cache.get(CACHE_KEY.TICKER_ORDER_BOOK) || [];
     if (!tickerOrderbook.length) {
-      console.log("564", 564);
-      [tickerOrderbook] = await Promise.all([getOrderbookSummary()]);
+      tickerOrderbook = await Promise.all([getOrderbookSummary()]);
     }
 
     const finalData = tickerOrderbook?.length ? tickerOrderbook.concat(data) : data;
