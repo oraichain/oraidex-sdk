@@ -35,7 +35,8 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  cosmosTokens
+  COSMOS_CHAIN_ID_COMMON,
+  MULTIPLIER_ESTIMATE_OSMOSIS
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -538,7 +539,10 @@ export class UniversalSwapHandler {
     // complex univeral transaction, can be ibc transfer then swap then transfer to another chain
     msgTransfer.memo = buildIbcWasmHooksMemo(marshalEncodeObjsToStargateMsgs(encodedObjects));
     msgTransferEncodeObj = { ...msgTransferEncodeObj, value: msgTransfer };
-    return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
+    // hardcode fix bug fee osmosis
+    let fee: "auto" | number = "auto";
+    if (originalFromToken.chainId === COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID) fee = MULTIPLIER_ESTIMATE_OSMOSIS;
+    return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], fee);
   }
 
   async processUniversalSwap() {
