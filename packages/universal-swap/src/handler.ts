@@ -524,12 +524,15 @@ export class UniversalSwapHandler {
       typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
       value: msgTransfer
     };
+    // hardcode fix bug fee osmosis
+    let fee: "auto" | number = "auto";
+    if (originalFromToken.chainId === COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID) fee = MULTIPLIER_ESTIMATE_OSMOSIS;
     // it means the user just wants to transfer ibc to Oraichain with same token, nothing more, then we can purely call send ibc tokens
     if (
       fromTokenOnOrai.chainId === originalToToken.chainId &&
       fromTokenOnOrai.coinGeckoId === originalToToken.coinGeckoId
     )
-      return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
+      return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], fee);
     if (!isInPairList(fromTokenOnOrai.denom) && !isInPairList(fromTokenOnOrai.contractAddress))
       throw generateError(
         `from token with coingecko id ${originalFromToken.coinGeckoId} does not have any associated pool on Oraichain. Could not swap`
@@ -539,9 +542,6 @@ export class UniversalSwapHandler {
     // complex univeral transaction, can be ibc transfer then swap then transfer to another chain
     msgTransfer.memo = buildIbcWasmHooksMemo(marshalEncodeObjsToStargateMsgs(encodedObjects));
     msgTransferEncodeObj = { ...msgTransferEncodeObj, value: msgTransfer };
-    // hardcode fix bug fee osmosis
-    let fee: "auto" | number = "auto";
-    if (originalFromToken.chainId === COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID) fee = MULTIPLIER_ESTIMATE_OSMOSIS;
     return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], fee);
   }
 
