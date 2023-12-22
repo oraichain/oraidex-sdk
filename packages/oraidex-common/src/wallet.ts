@@ -9,6 +9,7 @@ import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
 import { EncodeObject } from "@cosmjs/proto-signing";
+import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
 
 export interface EvmResponse {
   transactionHash: string;
@@ -39,8 +40,9 @@ export abstract class CosmosWallet {
   }> {
     const { chainId, rpc } = config;
     const wallet = await this.createCosmosSigner(chainId);
-    const client = await SigningCosmWasmClient.connectWithSigner(rpc, wallet, options);
-    const stargateClient = await SigningStargateClient.connectWithSigner(rpc, wallet, options);
+    const tmClient = await Tendermint37Client.connect(rpc);
+    const client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, options);
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, options);
     return { wallet, client, stargateClient };
   }
 
@@ -112,7 +114,7 @@ export abstract class EvmWallet {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
     try {
-      const uint256Index = parameters.findIndex(param => param.type === "uint256");
+      const uint256Index = parameters.findIndex((param) => param.type === "uint256");
 
       // type uint256 is bigint, so we need to convert to string if its uint256 because the JSONUint8Array can not stringify bigint
       if (uint256Index && parameters.length > uint256Index) {
