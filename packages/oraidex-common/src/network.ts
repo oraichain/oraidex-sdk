@@ -57,6 +57,7 @@ export type NetworkName =
   | "Kawaiiverse EVM"
   | "Tron Network"
   | "Injective"
+  | "Bitcoin"
   | "Noble";
 
 export type CosmosChainId =
@@ -74,7 +75,9 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type NetworkChainId = CosmosChainId | EvmChainId;
+export type BtcChainId = "bitcoin"; // btc
+
+export type NetworkChainId = CosmosChainId | EvmChainId | BtcChainId;
 
 export type CoinGeckoId =
   | "oraichain-token"
@@ -94,9 +97,10 @@ export type CoinGeckoId =
   | "weth"
   | "wbnb"
   | "scatom"
+  | "bitcoin"
   | "injective-protocol";
 
-export type NetworkType = "cosmos" | "evm";
+export type NetworkType = "cosmos" | "evm" | "bitcoin";
 export interface NetworkConfig {
   coinType?: number;
   explorer: string;
@@ -122,12 +126,12 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
   readonly bridgeNetworkIdentifier?: EvmChainId;
-  readonly coinDecimals: 6 | 18;
+  readonly coinDecimals: 6 | 18 | 8;
   readonly contractAddress?: string;
   readonly prefixToken?: string;
 };
 
-export type CoinType = 118 | 60 | 195;
+export type CoinType = 118 | 60 | 195 | 0;
 
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
@@ -534,6 +538,44 @@ export const chainInfos: CustomChainInfo[] = [
       name: "OraiBridge Scan",
       txUrl: "https://scan.bridge.orai.io/tx/${txHash}",
       accountUrl: "https://scan.bridge.orai.io/account/{address}"
+    }
+  },
+  {
+    rest: "https://blockstream.info/api",
+    rpc: "https://blockstream.info/api",
+    chainId: "bitcoin",
+    chainName: "Bitcoin",
+    bip44: {
+      coinType: 0
+    },
+    coinType: 0,
+    stakeCurrency: {
+      coinDenom: "BTC",
+      coinMinimalDenom: "btc",
+      coinDecimals: 8,
+      coinGeckoId: "bitcoin",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+    },
+    bech32Config: defaultBech32Config("bc"),
+    networkType: "bitcoin",
+    currencies: [
+      {
+        coinDenom: "BTC",
+        coinMinimalDenom: "btc",
+        coinDecimals: 8,
+        coinGeckoId: "bitcoin",
+        coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+      }
+    ],
+    get feeCurrencies() {
+      return this.currencies;
+    },
+
+    features: ["isBtc"],
+    txExplorer: {
+      name: "Bitcoin",
+      txUrl: "https://blockstream.info/tx/{txHash}",
+      accountUrl: "https://blockstream.info/address/{address}"
     }
   },
   {

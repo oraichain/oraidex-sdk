@@ -1,5 +1,5 @@
 import { OfflineSigner } from "@cosmjs/proto-signing";
-import { CosmosChainId, EvmChainId, NetworkChainId, Networks } from "./network";
+import { BtcChainId, CosmosChainId, EvmChainId, NetworkChainId, Networks } from "./network";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SigningStargateClient, SigningStargateClientOptions } from "@cosmjs/stargate";
 import { ethToTronAddress, tronToEthAddress } from "./helper";
@@ -62,6 +62,55 @@ export abstract class CosmosWallet {
     return client.signAndBroadcast(sender, encodedObjects, "auto");
   }
 }
+export abstract class BitcoinWallet {
+  /**
+   * This method should return the cosmos address in bech32 form given a cosmos chain id
+   * Browsers should make use of the existing methods from the extension to implement this method
+   * @param chainId - Cosmos chain id to parse and return the correct cosmos address
+   */
+  public abstract getAddress(chainId?: BtcChainId): Promise<string>;
+
+  /**
+   * This method creates a new cosmos signer which is responsible for signing cosmos-based transactions.
+   * Browsers should use signers from the extension to implement this method
+   * @param chainId - Cosmos chain id
+   */
+  // public abstract createCosmosSigner(chainId: CosmosChainId): Promise<OfflineSigner>;
+
+  // async getCosmWasmClient(
+  //   config: { rpc: string; chainId: CosmosChainId },
+  //   options: SigningStargateClientOptions
+  // ): Promise<{
+  //   wallet: OfflineSigner;
+  //   client: SigningCosmWasmClient;
+  //   stargateClient: SigningStargateClient;
+  // }> {
+  //   const { chainId, rpc } = config;
+  //   const wallet = await this.createCosmosSigner(chainId);
+  //   const client = await SigningCosmWasmClient.connectWithSigner(rpc, wallet, options);
+  //   const stargateClient = await SigningStargateClient.connectWithSigner(rpc, wallet, options);
+  //   return { wallet, client, stargateClient };
+  // }
+
+  async signAndBroadcast(
+    fromChainId: BtcChainId,
+    fromRpc: string,
+    options: SigningStargateClientOptions,
+    sender: string,
+    encodedObjects: EncodeObject[]
+  ) {
+    // handle sign and broadcast transactions
+    // const { client } = await this.getCosmWasmClient(
+    //   {
+    //     chainId: fromChainId as CosmosChainId,
+    //     rpc: fromRpc
+    //   },
+    //   options
+    // );
+    // return client.signAndBroadcast(sender, encodedObjects, "auto");
+    return;
+  }
+}
 
 export abstract class EvmWallet {
   constructor(public tronWeb?: TronWeb) {}
@@ -112,7 +161,7 @@ export abstract class EvmWallet {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
     try {
-      const uint256Index = parameters.findIndex(param => param.type === "uint256");
+      const uint256Index = parameters.findIndex((param) => param.type === "uint256");
 
       // type uint256 is bigint, so we need to convert to string if its uint256 because the JSONUint8Array can not stringify bigint
       if (uint256Index && parameters.length > uint256Index) {

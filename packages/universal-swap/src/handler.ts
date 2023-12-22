@@ -76,7 +76,7 @@ export class UniversalSwapHandler {
 
   async getUniversalSwapToAddress(
     toChainId: NetworkChainId,
-    address: { metamaskAddress?: string; tronAddress?: string }
+    address: { metamaskAddress?: string; tronAddress?: string; btcAddress?: string }
   ): Promise<string> {
     // evm based
     if (toChainId === "0x01" || toChainId === "0x1ae6" || toChainId === "0x38") {
@@ -88,6 +88,9 @@ export class UniversalSwapHandler {
       const tronWeb = this.config.evmWallet.tronWeb;
       if (tronWeb && tronWeb.defaultAddress?.base58) return tronToEthAddress(tronWeb.defaultAddress.base58);
       throw generateError("Cannot find tron web to nor tron address to send to Tron network");
+    }
+    if (toChainId === "bitcoin") {
+      return address.btcAddress ?? "";
     }
     return this.config.cosmosWallet.getKeplrAddr(toChainId);
   }
