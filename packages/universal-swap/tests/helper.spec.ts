@@ -1,4 +1,6 @@
 import {
+  AIRI_CONTRACT,
+  ATOM,
   ATOM_ORAICHAIN_DENOM,
   CoinGeckoId,
   CosmosChainId,
@@ -8,6 +10,9 @@ import {
   NetworkChainId,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
+  ORAI_ETH_CONTRACT,
+  STABLE_DENOM,
+  USDC_ETH_CONTRACT,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
   USDT_TRON_CONTRACT,
@@ -238,7 +243,7 @@ describe("test helper functions", () => {
       "cosmoshub-4",
       "orai1234",
       {
-        swapRoute: `${oraichain2atom}/orai1234:${ATOM_ORAICHAIN_DENOM}`,
+        swapRoute: `${oraichain2atom}/orai1234:uatom`,
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -249,7 +254,10 @@ describe("test helper functions", () => {
       "oraichain-token",
       "0x01",
       "orai1234",
-      { swapRoute: `${oraichain2oraib}/orai1234:orai`, universalSwapType: "other-networks-to-oraichain" },
+      {
+        swapRoute: `${oraichain2oraib}/orai1234:${ORAI_ETH_CONTRACT}`,
+        universalSwapType: "other-networks-to-oraichain"
+      },
       false
     ],
     [
@@ -259,7 +267,7 @@ describe("test helper functions", () => {
       "0x38",
       "orai1234",
       {
-        swapRoute: `${oraichain2oraib}/orai1234:${USDT_CONTRACT}`,
+        swapRoute: `${oraichain2oraib}/orai1234:${USDT_BSC_CONTRACT}`,
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -271,7 +279,7 @@ describe("test helper functions", () => {
       "0x2b6653dc",
       "orai1234",
       {
-        swapRoute: `${oraichain2oraib}/orai1234:${USDT_CONTRACT}`,
+        swapRoute: `${oraichain2oraib}/orai1234:${USDT_TRON_CONTRACT}`,
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -283,7 +291,7 @@ describe("test helper functions", () => {
       "0x2b6653dc",
       "0x1234",
       {
-        swapRoute: `${oraichain2oraib}/${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234:${USDT_CONTRACT}`,
+        swapRoute: `${oraichain2oraib}/${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234:${USDT_TRON_CONTRACT}`,
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -339,6 +347,7 @@ describe("test helper functions", () => {
       const toToken = flattenTokens.find((item) => item.coinGeckoId === toCoingeckoId && item.chainId === toChainId);
       try {
         const receiverAddress = getRoute(fromToken, toToken, receiver);
+        console.log("-----", receiverAddress);
         expect(receiverAddress).toEqual(swapRoute);
         expect(willThrow).toEqual(false);
       } catch (error) {

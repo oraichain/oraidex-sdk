@@ -549,7 +549,8 @@ export class UniversalSwapHandler {
   async swapCosmosToOtherNetwork(universalSwapType: UniversalSwapType) {
     const { originalFromToken, originalToToken, sender } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
+    const toTokenOnOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId);
+
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       {
         chainId: originalFromToken.chainId as CosmosChainId,

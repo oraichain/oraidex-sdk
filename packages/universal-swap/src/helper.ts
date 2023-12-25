@@ -223,7 +223,7 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
     };
   if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
   return {
-    swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toTokenOnOraichain)}`,
+    swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
     universalSwapType: "other-networks-to-oraichain"
   };
 };
