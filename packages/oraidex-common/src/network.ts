@@ -58,6 +58,7 @@ export type NetworkName =
   | "Tron Network"
   | "Injective"
   | "Bitcoin"
+  | "Bitcoin Testnet"
   | "Noble";
 
 export type CosmosChainId =
@@ -75,7 +76,7 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type BtcChainId = "bitcoin"; // btc
+export type BtcChainId = "bitcoinTestnet" | "bitcoin"; // btc
 
 export type NetworkChainId = CosmosChainId | EvmChainId | BtcChainId;
 
@@ -131,7 +132,7 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly prefixToken?: string;
 };
 
-export type CoinType = 118 | 60 | 195 | 0;
+export type CoinType = 118 | 60 | 195 | 0 | 1;
 
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
@@ -541,14 +542,15 @@ export const chainInfos: CustomChainInfo[] = [
     }
   },
   {
-    rest: "https://blockstream.info/api",
-    rpc: "https://blockstream.info/api",
-    chainId: "bitcoin",
-    chainName: "Bitcoin",
+    rest: "https://blockstream.info/testnet/api",
+    rpc: "https://blockstream.info/testnet/api",
+    chainId: "bitcoinTestnet",
+    chainName: "Bitcoin Testnet",
     bip44: {
-      coinType: 0
+      coinType: 1
     },
-    coinType: 0,
+    coinType: 1,
+
     stakeCurrency: {
       coinDenom: "BTC",
       coinMinimalDenom: "btc",
@@ -556,13 +558,14 @@ export const chainInfos: CustomChainInfo[] = [
       coinGeckoId: "bitcoin",
       coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
     },
-    bech32Config: defaultBech32Config("bc"),
+    bech32Config: defaultBech32Config("tb"),
     networkType: "bitcoin",
     currencies: [
       {
         coinDenom: "BTC",
         coinMinimalDenom: "btc",
         coinDecimals: 8,
+        bridgeTo: ["Oraichain"],
         coinGeckoId: "bitcoin",
         coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
       }
@@ -573,9 +576,9 @@ export const chainInfos: CustomChainInfo[] = [
 
     features: ["isBtc"],
     txExplorer: {
-      name: "Bitcoin",
-      txUrl: "https://blockstream.info/tx/{txHash}",
-      accountUrl: "https://blockstream.info/address/{address}"
+      name: "BlockStream",
+      txUrl: "https://blockstream.info/testnet/tx/{txHash}",
+      accountUrl: "https://blockstream.info/testnet/address/{address}"
     }
   },
   {

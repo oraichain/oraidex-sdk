@@ -35,7 +35,8 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  cosmosTokens
+  cosmosTokens,
+  ChainIdEnum
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -89,7 +90,7 @@ export class UniversalSwapHandler {
       if (tronWeb && tronWeb.defaultAddress?.base58) return tronToEthAddress(tronWeb.defaultAddress.base58);
       throw generateError("Cannot find tron web to nor tron address to send to Tron network");
     }
-    if (toChainId === "bitcoin") {
+    if (toChainId === "bitcoinTestnet" || toChainId === "bitcoin") {
       return address.btcAddress ?? "";
     }
     return this.config.cosmosWallet.getKeplrAddr(toChainId);
