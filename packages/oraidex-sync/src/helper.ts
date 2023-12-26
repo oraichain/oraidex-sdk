@@ -1,7 +1,6 @@
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
-import simulateClient from "./wasm-client/112023.migrate-staking-v3";
 import { maxBy, minBy } from "lodash";
 import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
 import { DuckDb } from "./db";

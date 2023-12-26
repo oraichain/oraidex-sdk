@@ -217,4 +217,3 @@ export * from "./parse";
 export * from "./pool-helper";
 export * from "./query";
 export * from "./types";
-export * from "./wasm-client/112023.migrate-staking-v3";
