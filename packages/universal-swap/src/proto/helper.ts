@@ -10,7 +10,7 @@ export const parseToIbcWasmMemo = (
   wasmMemo.setDestinationChannel(destinationChannel);
   wasmMemo.setDestinationDenom(destinationDenom);
 
-  return Buffer.from(JSON.stringify(wasmMemo.serializeBinary)).toString("base64");
+  return Buffer.from(wasmMemo.serializeBinary()).toString("base64");
 };
 
 export const parseToIbcHookMemo = (
@@ -24,5 +24,5 @@ export const parseToIbcHookMemo = (
   wasmMemo.setDestinationReceiver(destinationReceiver);
   wasmMemo.setDestinationChannel(destinationChannel);
   wasmMemo.setDestinationDenom(destinationDenom);
-  return Buffer.from(JSON.stringify(wasmMemo.serializeBinary)).toString("base64");
+  return Buffer.from(wasmMemo.serializeBinary()).toString("base64");
 };
