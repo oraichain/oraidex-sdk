@@ -626,7 +626,7 @@ describe("test universal swap handler functions", () => {
     ["oraichain-to-oraichain", "swap"],
     ["oraichain-to-evm", "swapAndTransferToOtherNetworks"],
     ["oraichain-to-cosmos", "swapAndTransferToOtherNetworks"],
-    ["cosmos-to-cosmos", "swapCosmosToCosmos"]
+    ["cosmos-to-others", "swapCosmosToOtherNetwork"]
   ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
@@ -639,7 +639,7 @@ describe("test universal swap handler functions", () => {
     jest
       .spyOn(universalSwap, "swapAndTransferToOtherNetworks")
       .mockResolvedValue("swapAndTransferToOtherNetworks" as any);
-    jest.spyOn(universalSwap, "swapCosmosToCosmos").mockResolvedValue("swapCosmosToCosmos" as any);
+    jest.spyOn(universalSwap, "swapCosmosToOtherNetwork").mockResolvedValue("swapCosmosToOtherNetwork" as any);
     jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
     jest.spyOn(universalHelper, "addOraiBridgeRoute").mockReturnValue({ swapRoute: "", universalSwapType });
     const result = await universalSwap.processUniversalSwap();

@@ -47,6 +47,7 @@ import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
+import { parseToIbcWasmMemo } from "./proto/helper";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
@@ -197,7 +198,7 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
   }
   // cosmos to cosmos case where from token is a cosmos token
   if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
-    return { swapRoute: "", universalSwapType: "cosmos-to-cosmos" };
+    return { swapRoute: "", universalSwapType: "cosmos-to-others" };
   }
   if (toToken.chainId === "Oraichain") {
     // if to token chain id is Oraichain, then we dont need to care about ibc msg case
@@ -206,7 +207,8 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
       return { swapRoute: destReceiver, universalSwapType: "other-networks-to-oraichain" };
     // if they are not the same then we set dest denom
     return {
-      swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
+      // swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
+      swapRoute: parseToIbcWasmMemo(destReceiver, "", parseTokenInfoRawDenom(toToken)),
       universalSwapType: "other-networks-to-oraichain"
     };
   }
@@ -223,7 +225,8 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
     };
   if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
   return {
-    swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
+    // swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
+    swapRoute: parseToIbcWasmMemo(destReceiver, ibcInfo.channel, parseTokenInfoRawDenom(toToken)),
     universalSwapType: "other-networks-to-oraichain"
   };
 };

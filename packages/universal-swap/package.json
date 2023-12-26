@@ -15,7 +15,7 @@
     "bech32": "1.1.4",
     "ethers": "^5.0.15",
     "tronweb": "5.3.0",
-    "protobufjs": "^7.2.5"
+    "ts-protoc-gen": "^0.15.0"
   },
   "devDependencies": {
     "cosmjs-types": "^0.8.0",

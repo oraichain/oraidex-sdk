@@ -40,6 +40,7 @@ import {
   isSupportedNoPoolSwapEvm
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
+import { parseToIbcWasmMemo } from "../src/proto/helper";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -213,7 +214,8 @@ describe("test helper functions", () => {
       "Oraichain",
       "orai1234",
       {
-        swapRoute: `orai1234:${ATOM_ORAICHAIN_DENOM}`,
+        swapRoute: parseToIbcWasmMemo("orai1234", "", ATOM_ORAICHAIN_DENOM),
+        // swapRoute: `orai1234:${ATOM_ORAICHAIN_DENOM}`,
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -314,7 +316,7 @@ describe("test helper functions", () => {
       "cosmos",
       "Oraichain",
       "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-cosmos" },
+      { swapRoute: "", universalSwapType: "cosmos-to-others" },
       false
     ],
     [
@@ -323,7 +325,7 @@ describe("test helper functions", () => {
       "oraichain-token",
       "Oraichain",
       "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-cosmos" },
+      { swapRoute: "", universalSwapType: "cosmos-to-others" },
       true
     ],
     [
@@ -332,7 +334,7 @@ describe("test helper functions", () => {
       "cosmos",
       "cosmoshub-4",
       "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-cosmos" },
+      { swapRoute: "", universalSwapType: "cosmos-to-others" },
       true
     ]
   ])(
