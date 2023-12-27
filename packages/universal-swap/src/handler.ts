@@ -47,6 +47,7 @@ import {
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
+  getRoute,
   isEvmSwappable,
   isSupportedNoPoolSwapEvm
 } from "./helper";
@@ -492,7 +493,7 @@ export class UniversalSwapHandler {
   // this method allows swapping from cosmos networks to arbitrary networks using ibc wasm hooks
   // Oraichain will be use as a proxy
   // TODO: write test cases
-  async swapCosmosToOtherNetwork(swapRoute: string) {
+  async swapCosmosToOtherNetwork(destinationReceiver: string) {
     const { originalFromToken, originalToToken, sender } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
 
@@ -512,6 +513,15 @@ export class UniversalSwapHandler {
       throw generateError(
         `Could not find the ibc info given the from token with coingecko id ${originalFromToken.coinGeckoId}`
       );
+
+    // get swapRoute
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    const { swapRoute } = getRoute(
+      this.swapData.originalFromToken,
+      this.swapData.originalToToken,
+      destinationReceiver,
+      oraiAddress
+    );
 
     const msgTransfer = MsgTransfer.fromPartial({
       sourcePort: ibcInfo.source,
@@ -547,7 +557,7 @@ export class UniversalSwapHandler {
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
     if (universalSwapType === "oraichain-to-cosmos" || universalSwapType === "oraichain-to-evm")
       return this.swapAndTransferToOtherNetworks(universalSwapType);
-    if (universalSwapType === "cosmos-to-others") return this.swapCosmosToOtherNetwork(swapRoute);
+    if (universalSwapType === "cosmos-to-others") return this.swapCosmosToOtherNetwork(toAddress);
     return this.transferAndSwap(swapRoute);
   }
 
