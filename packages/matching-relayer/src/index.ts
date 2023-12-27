@@ -1,8 +1,5 @@
-import {
-  ExecuteResult,
-  SigningCosmWasmClient,
-} from "@cosmjs/cosmwasm-stargate";
-import { OraiswapLimitOrderTypes } from "@oraichain/oraidex-contracts-sdk";
+import { ExecuteResult, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { OraiswapLimitOrderQueryClient, OraiswapLimitOrderTypes } from "@oraichain/oraidex-contracts-sdk";
 
 const minimumOraiBalance = 1000000; // 1 ORAI;
 
@@ -12,34 +9,20 @@ const runMatchingEngine = async (
   contractAddr: string,
   pair: any
 ) => {
-  const pair_is_matchable: OraiswapLimitOrderTypes.QueryMsg = {
-    order_book_matchable: {
-      asset_infos: pair.execute_order_book_pair.asset_infos,
-    },
-  };
-
-  const query_matchable = await client.queryContractSmart(
-    contractAddr!,
-    pair_is_matchable
-  );
-
-  if (query_matchable.is_matchable === true) {
-    const start = new Date();
-    console.log("execute_pair:", JSON.stringify(pair));
-    try {
-      const tx = await client.execute(
-        senderAddress,
-        contractAddr!,
-        pair,
-        "auto"
-      );
-      const end = new Date();
-      console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
-      console.log("matching done - txHash:", tx.transactionHash);
-      return tx;
-    } catch (error) {
-      console.error(error);
-    }
+  const start = new Date();
+  console.log("execute_pair:", JSON.stringify(pair));
+  try {
+    const tx = await client.executeMultiple(
+      senderAddress,
+      pair.map((pair) => ({ contractAddress: contractAddr, msg: pair, funds: [] })),
+      "auto"
+    );
+    const end = new Date();
+    console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
+    console.log("matching done - txHash:", tx.transactionHash);
+    return tx;
+  } catch (error) {
+    console.error(error);
   }
 };
 
@@ -53,12 +36,9 @@ export async function matchingOrders(
   contractAddr: string,
   limit = 30,
   denom = "orai"
-): Promise<ExecuteResult[]> {
-  const allPair: OraiswapLimitOrderTypes.QueryMsg = {
-    order_books: {},
-  };
-
-  const query_pairs = await client.queryContractSmart(contractAddr, allPair);
+): Promise<ExecuteResult> {
+  const orderbook = new OraiswapLimitOrderQueryClient(client, contractAddr);
+  const query_pairs = await orderbook.orderBooks({});
 
   console.log(`Excecuting orderbook contract ${contractAddr}`);
 
@@ -67,12 +47,9 @@ export async function matchingOrders(
     let orderbook_pair = query_pairs.order_books[pair];
     let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
       execute_order_book_pair: {
-        asset_infos: [
-          orderbook_pair.base_coin_info,
-          orderbook_pair.quote_coin_info,
-        ],
-        limit,
-      },
+        asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info],
+        limit
+      }
     };
 
     execute_pairs.push(ex_pair);
@@ -81,12 +58,7 @@ export async function matchingOrders(
   const { amount } = await client.getBalance(senderAddress, denom);
   console.log(`balance of ${senderAddress} is ${amount}`);
   if (parseInt(amount) <= minimumOraiBalance) {
-    throw new Error(
-      `Balance(${amount}) of ${senderAddress} must be greater than 1 ORAI`
-    );
+    throw new Error(`Balance(${amount}) of ${senderAddress} must be greater than 1 ORAI`);
   }
-  const promiseAll = execute_pairs.map((item) =>
-    runMatchingEngine(client, senderAddress, contractAddr, item)
-  );
-  return (await Promise.all(promiseAll)).filter(Boolean);
+  return runMatchingEngine(client, senderAddress, contractAddr, execute_pairs);
 }
