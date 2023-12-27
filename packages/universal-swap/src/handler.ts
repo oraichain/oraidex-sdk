@@ -453,13 +453,13 @@ export class UniversalSwapHandler {
     // first case: BNB (bsc) <-> USDT (bsc), then swappable
     // 2nd case: BNB (bsc) -> USDT (oraichain), then find USDT on bsc. We have that and also have route => swappable
     // 3rd case: USDT (bsc) -> ORAI (bsc / Oraichain), both have pools on Oraichain, but we currently dont have the pool route on evm => not swappable => transfer to cosmos like normal
-    let swappableData = {
+    const swappableData = {
       fromChainId: originalFromToken.chainId,
       toChainId: originalToToken.chainId,
       fromContractAddr: originalFromToken.contractAddress,
       toContractAddr: originalToToken.contractAddress
     };
-    let evmSwapData = {
+    const evmSwapData = {
       fromToken: originalFromToken,
       toTokenContractAddr: originalToToken.contractAddress,
       address: { metamaskAddress, tronAddress },
@@ -487,60 +487,6 @@ export class UniversalSwapHandler {
       return this.evmSwap(evmSwapData);
     }
     return this.transferEvmToIBC(swapRoute);
-  }
-
-  // this method allows swapping between arbitrary cosmos networks that have pools on Oraichain using ibc wasm hooks
-  // TODO: write test cases
-  async swapCosmosToCosmos() {
-    const { originalFromToken, originalToToken, sender } = this.swapData;
-    // guard check to see if from token has a pool on Oraichain or not. If not then return error
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
-    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
-      {
-        chainId: originalFromToken.chainId as CosmosChainId,
-        rpc: originalFromToken.rpc
-      },
-      {
-        gasPrice: this.getGasPriceFromToken()
-      }
-    );
-    const amount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
-    // we will be sending to our proxy contract
-    const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, "Oraichain");
-    if (!ibcInfo)
-      throw generateError(
-        `Could not find the ibc info given the from token with coingecko id ${originalFromToken.coinGeckoId}`
-      );
-    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
-    let msgTransfer = MsgTransfer.fromPartial({
-      sourcePort: ibcInfo.source,
-      receiver: oraiAddress,
-      sourceChannel: ibcInfo.channel,
-      token: coin(amount, this.swapData.originalFromToken.denom),
-      sender: this.swapData.sender.cosmos,
-      memo: "",
-      timeoutTimestamp: calculateTimeoutTimestamp(ibcInfo.timeout)
-    });
-    let msgTransferEncodeObj: EncodeObject = {
-      typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
-      value: msgTransfer
-    };
-    // it means the user just wants to transfer ibc to Oraichain with same token, nothing more, then we can purely call send ibc tokens
-    if (
-      fromTokenOnOrai.chainId === originalToToken.chainId &&
-      fromTokenOnOrai.coinGeckoId === originalToToken.coinGeckoId
-    )
-      return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
-    if (!isInPairList(fromTokenOnOrai.denom) && !isInPairList(fromTokenOnOrai.contractAddress))
-      throw generateError(
-        `from token with coingecko id ${originalFromToken.coinGeckoId} does not have any associated pool on Oraichain. Could not swap`
-      );
-    const encodedObjects = await this.combineSwapMsgOraichain();
-    msgTransfer.receiver = IBC_WASM_HOOKS_CONTRACT;
-    // complex univeral transaction, can be ibc transfer then swap then transfer to another chain
-    // msgTransfer.memo = buildIbcWasmHooksMemo(marshalEncodeObjsToStargateMsgs(encodedObjects));
-    msgTransferEncodeObj = { ...msgTransferEncodeObj, value: msgTransfer };
-    return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
   }
 
   // this method allows swapping from cosmos networks to arbitrary networks using ibc wasm hooks
@@ -585,7 +531,6 @@ export class UniversalSwapHandler {
   }
 
   async processUniversalSwap() {
-    console.log(this.swapData);
     const { cosmos, evm, tron } = this.swapData.sender;
     const toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
       metamaskAddress: evm,
@@ -630,7 +575,7 @@ export class UniversalSwapHandler {
       const { fund: offerSentFund, info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
       const { fund: askSentFund, info: askInfo } = parseTokenInfo(toTokenInOrai);
       const funds = handleSentFunds(offerSentFund, askSentFund);
-      let inputTemp = {
+      const inputTemp = {
         execute_swap_operations: {
           operations: generateSwapOperationMsgs(offerInfo, askInfo),
           minimum_receive: minimumReceive

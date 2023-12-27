@@ -12,6 +12,7 @@ import {
   ORAI_BSC_CONTRACT,
   ORAI_ETH_CONTRACT,
   STABLE_DENOM,
+  TokenItemType,
   USDC_ETH_CONTRACT,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
@@ -19,10 +20,13 @@ import {
   WRAP_BNB_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   flattenTokens,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
   ibcInfos,
   oraib2oraichain,
   oraichain2atom,
-  oraichain2oraib
+  oraichain2oraib,
+  parseTokenInfoRawDenom
 } from "@oraichain/oraidex-common";
 
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper";
@@ -40,7 +44,7 @@ import {
   isSupportedNoPoolSwapEvm
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
-import { parseToIbcWasmMemo } from "../src/proto/helper";
+import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/helper";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -317,33 +321,6 @@ describe("test helper functions", () => {
         universalSwapType: "other-networks-to-oraichain"
       },
       false
-    ],
-    [
-      "cosmos",
-      "cosmoshub-4",
-      "cosmos",
-      "Oraichain",
-      "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-others" },
-      false
-    ],
-    [
-      "cosmos",
-      "cosmoshub-4",
-      "oraichain-token",
-      "Oraichain",
-      "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-others" },
-      true
-    ],
-    [
-      "osmosis",
-      "osmosis-1",
-      "cosmos",
-      "cosmoshub-4",
-      "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-others" },
-      true
     ]
   ])(
     "test-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
@@ -357,6 +334,102 @@ describe("test helper functions", () => {
       const toToken = flattenTokens.find((item) => item.coinGeckoId === toCoingeckoId && item.chainId === toChainId);
       try {
         const receiverAddress = getRoute(fromToken, toToken, receiver);
+        expect(receiverAddress).toEqual(swapRoute);
+        expect(willThrow).toEqual(false);
+      } catch (error) {
+        expect(willThrow).toEqual(true);
+        expect(error).toEqual(new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`));
+      }
+    }
+  );
+
+  it.each<
+    [
+      CoinGeckoId,
+      EvmChainId | CosmosChainId,
+      CoinGeckoId,
+      EvmChainId | CosmosChainId,
+      string,
+      string,
+      SwapRoute,
+      boolean
+    ]
+  >([
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "cosmos",
+      "Oraichain",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x1234",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "0x1234",
+          "",
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "Oraichain") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "oraichain-token",
+      "Oraichain",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x1234",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "0x1234",
+          "",
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("oraichain-token", "Oraichain") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      true
+    ],
+    [
+      "osmosis",
+      "osmosis-1",
+      "cosmos",
+      "cosmoshub-4",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x1234",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "0x1234",
+          ibcInfos["Oraichain"]["cosmoshub-4"]?.channel as string,
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "cosmoshub-4") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      true
+    ]
+  ])(
+    "test-ibc-hooks-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
+    (
+      fromCoingeckoId,
+      fromChainId,
+      toCoingeckoId,
+      toChainId,
+      receiverOnOrai,
+      destinationReceiver,
+      swapRoute,
+      willThrow
+    ) => {
+      jest
+        .spyOn(dexCommonHelper, "isEthAddress")
+        .mockImplementation((address) => (address.includes("0x") ? true : false));
+      const fromToken = flattenTokens.find(
+        (item) => item.coinGeckoId === fromCoingeckoId && item.chainId === fromChainId
+      )!;
+      const toToken = flattenTokens.find((item) => item.coinGeckoId === toCoingeckoId && item.chainId === toChainId);
+      try {
+        const receiverAddress = getRoute(fromToken, toToken, destinationReceiver, receiverOnOrai);
         expect(receiverAddress).toEqual(swapRoute);
         expect(willThrow).toEqual(false);
       } catch (error) {

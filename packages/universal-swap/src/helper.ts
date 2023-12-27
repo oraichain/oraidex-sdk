@@ -47,7 +47,7 @@ import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
-import { parseToIbcWasmMemo } from "./proto/helper";
+import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/helper";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
@@ -173,7 +173,12 @@ export const getSourceReceiver = (oraiAddress: string, contractAddress?: string)
  * @param destReceiver - destination destReceiver
  * @returns destination in the format <dest-channel>/<dest-destReceiver>:<dest-denom>
  */
-export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, destReceiver?: string): SwapRoute => {
+export const getRoute = (
+  fromToken?: TokenItemType,
+  toToken?: TokenItemType,
+  destReceiver?: string,
+  receiverOnOrai?: string
+): SwapRoute => {
   if (!fromToken || !toToken || !destReceiver)
     return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
   // this is the simplest case. Both tokens on the same Oraichain network => simple swap with to token denom
@@ -196,9 +201,25 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
   ) {
     throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
   }
-  // cosmos to cosmos case where from token is a cosmos token
+  // cosmos to others case where from token is a cosmos token
+  // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
   if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
-    return { swapRoute: "", universalSwapType: "cosmos-to-others" };
+    // case 1: Cosmos to Oraichain
+    if (toToken.chainId == "Oraichain") {
+      return {
+        swapRoute: parseToIbcHookMemo(receiverOnOrai, destReceiver, "", parseTokenInfoRawDenom(toToken)),
+        universalSwapType: "cosmos-to-others"
+      };
+    }
+
+    // case 2: Cosmos to cosmos or evm
+    const ibcInfo: IBCInfo = ibcInfos["Oraichain"][toToken.chainId];
+    return {
+      swapRoute: parseToIbcHookMemo(receiverOnOrai, destReceiver, ibcInfo.channel, parseTokenInfoRawDenom(toToken)),
+      universalSwapType: "cosmos-to-others"
+    };
+
+    // return { swapRoute: parseToIbcHookMemo(receiverOnOrai, destReceiver), universalSwapType: "cosmos-to-others" };
   }
   if (toToken.chainId === "Oraichain") {
     // if to token chain id is Oraichain, then we dont need to care about ibc msg case
@@ -260,7 +281,7 @@ export const splitOnce = (s: string, seperator: string) => {
  * <first-destination>:<final-receiver>:<token-identifier-on-oraichain>
  * */
 export const unmarshalOraiBridgeRoute = (destination: string) => {
-  let routeData: OraiBridgeRouteData = {
+  const routeData: OraiBridgeRouteData = {
     oraiBridgeChannel: "",
     oraiReceiver: "",
     finalDestinationChannel: "",
@@ -299,7 +320,7 @@ export const unmarshalOraiBridgeRoute = (destination: string) => {
 // generate messages
 export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetInfo): SwapOperation[] => {
   const pairExist = PAIRS.some((pair) => {
-    let assetInfos = pair.asset_infos;
+    const assetInfos = pair.asset_infos;
     return (
       (isEqual(assetInfos[0], offerInfo) && isEqual(assetInfos[1], askInfo)) ||
       (isEqual(assetInfos[1], offerInfo) && isEqual(assetInfos[0], askInfo))
@@ -393,7 +414,7 @@ export const simulateSwapEvm = async (query: {
     const route = getEvmSwapRoute(fromInfo.chainId, fromInfo.contractAddress, toTokenInfoOnSameChainId.contractAddress);
     const outs = await swapRouterV2.getAmountsOut(amount, route);
     if (outs.length === 0) throw new Error("There is no output amounts after simulating evm swap");
-    let simulateAmount = outs.slice(-1)[0].toString();
+    const simulateAmount = outs.slice(-1)[0].toString();
     return {
       // to display to reset the simulate amount to correct display type (swap simulate from -> same chain id to, so we use same chain id toToken decimals)
       // then toAmount with actual toInfo decimals so that it has the same decimals as other tokens displayed
@@ -460,7 +481,7 @@ export const checkFeeRelayer = async (query: {
 }): Promise<boolean> => {
   const { originalFromToken, relayerFee, fromAmount, routerClient } = query;
   if (!relayerFee || !parseInt(relayerFee.relayerAmount)) return true;
-  let relayerDisplay = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
+  const relayerDisplay = toDisplay(relayerFee.relayerAmount, relayerFee.relayerDecimals);
 
   // From Token is orai
   if (originalFromToken.coinGeckoId === "oraichain-token") {
@@ -532,7 +553,7 @@ export const checkBalanceChannelIbc = async (
       const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
       const _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
       if (trueBalance < _toAmount) {
-        throw generateError(`pair key is not enough balance!`);
+        throw generateError("pair key is not enough balance!");
       }
     }
   } catch (error) {

@@ -67,13 +67,13 @@ describe("test universal swap handler functions", () => {
   });
   let oraiPort: string;
   let lpId: number;
-  let channel = "channel-29";
-  let ibcTransferAmount = "100000000";
-  let initialBalanceAmount = "10000000000000";
-  let airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
-  let bobAddress = "orai1ur2vsjrjarygawpdwtqteaazfchvw4fg6uql76";
-  let oraiAddress = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
-  let cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
+  const channel = "channel-29";
+  const ibcTransferAmount = "100000000";
+  const initialBalanceAmount = "10000000000000";
+  const airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
+  const bobAddress = "orai1ur2vsjrjarygawpdwtqteaazfchvw4fg6uql76";
+  const oraiAddress = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
+  const cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
 
   let ics20Contract: CwIcs20LatestClient;
   let factoryContract: OraiswapFactoryClient;
@@ -133,7 +133,7 @@ describe("test universal swap handler functions", () => {
     routerContract = new OraiswapRouterClient(client, testSenderAddress, routerAddress);
     ics20Contract = await deployIcs20Token(client, { swap_router_contract: routerAddress });
     oraiPort = "wasm." + ics20Contract.contractAddress;
-    let cosmosPort: string = "transfer";
+    const cosmosPort: string = "transfer";
     airiToken = await deployToken(client, {
       decimals: 6,
       symbol: "AIRI",
@@ -145,7 +145,7 @@ describe("test universal swap handler functions", () => {
       bech32Prefix: "cosmos"
     });
 
-    let newPacketData = {
+    const newPacketData = {
       src: {
         port_id: cosmosPort,
         channel_id: channel
@@ -570,7 +570,7 @@ describe("test universal swap handler functions", () => {
     [oraichainTokens.find((t) => t.coinGeckoId === "airight")!, 10000000],
     [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, 0]
   ])("test-universal-swap-getBalanceIBCOraichain-ibc-%", async (token: TokenItemType, expectedBalance: number) => {
-    let mockToken = { ...token };
+    const mockToken = { ...token };
     if (mockToken.contractAddress) {
       if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
     }
