@@ -77,6 +77,11 @@ export interface OraiswapLimitOrderReadOnlyInterface {
   }: {
     assetInfos: AssetInfo[];
   }) => Promise<OrderBookMatchableResponse>;
+  midPrice: ({
+    assetInfos
+  }: {
+    assetInfos: AssetInfo[];
+  }) => Promise<Decimal>;
 }
 export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnlyInterface {
   client: CosmWasmClient;
@@ -94,6 +99,7 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
     this.ticks = this.ticks.bind(this);
     this.lastOrderId = this.lastOrderId.bind(this);
     this.orderBookMatchable = this.orderBookMatchable.bind(this);
+    this.midPrice = this.midPrice.bind(this);
   }
 
   contractInfo = async (): Promise<ContractInfoResponse> => {
@@ -224,6 +230,17 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
   }): Promise<OrderBookMatchableResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       order_book_matchable: {
+        asset_infos: assetInfos
+      }
+    });
+  };
+  midPrice = async ({
+    assetInfos
+  }: {
+    assetInfos: AssetInfo[];
+  }): Promise<Decimal> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      mid_price: {
         asset_infos: assetInfos
       }
     });
