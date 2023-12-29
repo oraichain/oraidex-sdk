@@ -116,6 +116,13 @@ export class BigDecimal {
     return this;
   }
 
+  private ipow(other: bigint | boolean | number | string) {
+    const coeff = 10n ** BigInt(this._decimals);
+    const power = BigInt(other);
+    this.bigInt = this.bigInt ** power / coeff ** (power - 1n);
+    return this;
+  }
+
   static rootNth(value: DecimalLike, k = 2n) {
     const big = new BigDecimal(value);
 
@@ -160,6 +167,10 @@ export class BigDecimal {
 
   mul(other: DecimalLike) {
     return this.clone().imul(other);
+  }
+
+  pow(other: bigint | boolean | number | string) {
+    return this.clone().ipow(other);
   }
 
   valueOf() {
