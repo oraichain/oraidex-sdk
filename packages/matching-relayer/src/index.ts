@@ -36,7 +36,7 @@ export async function matchingOrders(
   const orderbook = new OraiswapLimitOrderQueryClient(sender.client, contractAddr);
   const query_pairs = await orderbook.orderBooks({});
 
-  // console.log(`Excecuting orderbook contract ${contractAddr}`);
+  console.log(`Excecuting orderbook contract ${contractAddr}`);
 
   let execute_pairs: any[] = [];
   for (let pair in query_pairs.order_books) {
@@ -47,8 +47,8 @@ export async function matchingOrders(
       }
     };
     const isMatchable = await sender.client.queryContractSmart(contractAddr!, matchableMsg);
-    // console.dir(orderbook_pair, { depth: null });
-    // console.log({ isMatchable });
+    console.dir(orderbook_pair, { depth: null });
+    console.log({ isMatchable });
     if (isMatchable.is_matchable === true) {
       let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
         execute_order_book_pair: {
@@ -61,7 +61,7 @@ export async function matchingOrders(
   }
 
   const { amount } = await sender.client.getBalance(sender.address, denom);
-  // console.log(`balance of ${sender.address} is ${amount}`);
+  console.log(`balance of ${sender.address} is ${amount}`);
   if (parseInt(amount) <= minimumOraiBalance) {
     throw new Error(`Balance(${amount}) of ${sender.address} must be greater than 1 ORAI`);
   }

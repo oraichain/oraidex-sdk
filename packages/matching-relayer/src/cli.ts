@@ -60,7 +60,7 @@ async function getSender(rpcUrl: string): Promise<UserWallet | string> {
       await webhookClient.send(
         `:red_circle: BOT: ${sender.address} - err ` + error.message + ` at ${time(date)}` + mentionUserIds
       );
-      await delay(5000);
     }
+    await delay(3000);
   }
 })();
