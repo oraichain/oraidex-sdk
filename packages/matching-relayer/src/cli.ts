@@ -2,7 +2,7 @@ import { UserWallet, decrypt, delay, setupWallet } from "@oraichain/oraitrading-
 import { WebhookClient, time, userMention } from "discord.js";
 
 import "dotenv/config";
-import { delay, matchingOrders } from "./index";
+import { matchingOrders } from "./index";
 
 async function getSender(rpcUrl: string): Promise<UserWallet | string> {
   try {
@@ -49,7 +49,7 @@ async function getSender(rpcUrl: string): Promise<UserWallet | string> {
   while (true) {
     const date: Date = new Date();
     try {
-      const res = await matchingOrders(sender, contractAddr, 30, "orai");
+      const res = await matchingOrders(sender, contractAddr, 100, "orai");
       if (res !== undefined) {
         await webhookClient.send(
           `:receipt: BOT: ${sender.address} - matched - txHash: ${res.transactionHash}` + ` at ${time(date)}`
