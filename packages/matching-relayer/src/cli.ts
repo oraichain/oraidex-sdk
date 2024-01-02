@@ -1,35 +1,65 @@
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { stringToPath } from "@cosmjs/crypto";
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { GasPrice } from "@cosmjs/stargate";
-import "dotenv/config";
-import { delay, matchingOrders } from "./index";
+import { UserWallet, decrypt, delay, setupWallet } from "@oraichain/oraitrading-common";
+import { WebhookClient, time, userMention } from "discord.js";
 
-const mnemonicMinLength = 12; // 12 words
+import "dotenv/config";
+import { matchingOrders } from "./index";
+
+async function getSender(rpcUrl: string): Promise<UserWallet | string> {
+  try {
+    const sender = await setupWallet(
+      process.env.MNEMONIC ?? decrypt(process.env.MNEMONIC_PASS, process.env.MNEMONIC_ENCRYPTED),
+      {
+        hdPath: process.env.HD_PATH ?? "m/44'/118'/0'/0/0",
+        rpcUrl,
+        prefix: "orai",
+        gasPrices: "0.001"
+      }
+    );
+    return sender;
+  } catch (error: any) {
+    console.log({ error: error.message });
+    return "Error: " + error.message;
+  }
+}
 
 (async () => {
-  const prefix = "orai";
-  const mnemonic = process.env["MNEMONIC"];
-  const mnemonicWords = mnemonic.split(" ");
   const contractAddr = process.env.CONTRACT;
-  if (!mnemonic || (mnemonicWords.length != mnemonicMinLength && mnemonicWords.length != mnemonicMinLength * 2)) {
-    throw new Error(`Must set MNEMONIC to a 12 or word phrase. Has: ${mnemonic.length}`);
+  const webhookUrl = process.env.DISCORD_WEBHOOK ?? "";
+  const discordUserIds: string[] = process.env.DISCORD_USERS_IDS?.split(",") || [];
+
+  const rpcUrl = process.env.RPC_URL ?? "https://rpc.orai.io";
+
+  if (webhookUrl === "") {
+    throw new Error("Discord webhook is not set!");
   }
-  const wallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
-    hdPaths: [stringToPath(process.env.HD_PATH || "m/44'/118'/0'/0/0")],
-    prefix
-  });
-  const [firstAccount] = await wallet.getAccounts();
-  const senderAddress = firstAccount.address;
-  const client = await SigningCosmWasmClient.connectWithSigner(process.env.RPC_URL!, wallet, {
-    gasPrice: GasPrice.fromString("0.002orai")
+
+  let mentionUserIds: string = "";
+  for (const userId of discordUserIds) {
+    mentionUserIds = " " + mentionUserIds + userMention(userId.replace(/[']/g, "")) + " ";
+  }
+
+  const webhookClient = new WebhookClient({
+    url: webhookUrl
   });
 
+  const sender = await getSender(rpcUrl);
+  if (typeof sender === "string") {
+    throw new Error("Cannot get sender - err: " + sender);
+  }
   while (true) {
+    const date: Date = new Date();
     try {
-      await matchingOrders(client, senderAddress, contractAddr, 30, "orai");
+      const res = await matchingOrders(sender, contractAddr, 30, "orai");
+      if (res !== undefined) {
+        await webhookClient.send(
+          `:receipt: BOT: ${sender.address} - matched - txHash: ${res.transactionHash}` + ` at ${time(date)}`
+        );
+      }
     } catch (error) {
       console.error(error);
+      await webhookClient.send(
+        `:red_circle: BOT: ${sender.address} - err ` + error.message + ` at ${time(date)}` + mentionUserIds
+      );
       await delay(5000);
     }
   }

@@ -4,6 +4,8 @@
   "dependencies": {
     "@oraichain/oraidex-contracts-build": "^1.0.12",
     "@oraichain/oraidex-contracts-sdk": "^1.0.10",
+    "@oraichain/oraitrading-common": "^0.0.4",
+    "discord.js": "^14.13.0",
     "dotenv": "^16.0.3"
   },
   "main": "build/index.js",
