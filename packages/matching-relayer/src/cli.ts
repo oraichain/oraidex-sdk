@@ -2,7 +2,7 @@ import { UserWallet, decrypt, delay, setupWallet } from "@oraichain/oraitrading-
 import { WebhookClient, time, userMention } from "discord.js";
 
 import "dotenv/config";
-import { matchingOrders } from "./index";
+import { delay, matchingOrders } from "./index";
 
 async function getSender(rpcUrl: string): Promise<UserWallet | string> {
   try {
