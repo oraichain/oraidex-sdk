@@ -47,8 +47,8 @@ export async function matchingOrders(
       }
     };
     const isMatchable = await sender.client.queryContractSmart(contractAddr!, matchableMsg);
-    console.dir(orderbook_pair, { depth: null });
-    console.log({ isMatchable });
+    // console.dir(orderbook_pair, { depth: null });
+    // console.log({ isMatchable });
     if (isMatchable.is_matchable === true) {
       let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
         execute_order_book_pair: {
