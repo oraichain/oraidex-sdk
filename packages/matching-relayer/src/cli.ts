@@ -2,7 +2,8 @@ import { UserWallet, decrypt, delay, setupWallet } from "@oraichain/oraitrading-
 import { WebhookClient, time, userMention } from "discord.js";
 
 import "dotenv/config";
-import { matchingOrders } from "./index";
+import { matchingOrders } from "./index.js";
+import { serializeError } from "serialize-error";
 
 async function getSender(rpcUrl: string): Promise<UserWallet | string> {
   try {
@@ -26,41 +27,45 @@ async function getSender(rpcUrl: string): Promise<UserWallet | string> {
   const contractAddr = process.env.CONTRACT;
   const webhookUrl = process.env.DISCORD_WEBHOOK ?? "";
   const discordUserIds: string[] = process.env.DISCORD_USERS_IDS?.split(",") || [];
-
-  const rpcUrl = process.env.RPC_URL ?? "https://rpc.orai.io";
-
-  if (webhookUrl === "") {
-    throw new Error("Discord webhook is not set!");
-  }
-
   let mentionUserIds: string = "";
   for (const userId of discordUserIds) {
     mentionUserIds = " " + mentionUserIds + userMention(userId.replace(/[']/g, "")) + " ";
   }
-
+  const rpcUrl = process.env.RPC_URL ?? "https://rpc.orai.io";
   const webhookClient = new WebhookClient({
     url: webhookUrl
   });
+  const date: Date = new Date();
+  try {
+    if (webhookUrl === "") {
+      throw new Error("Discord webhook is not set!");
+    }
 
-  const sender = await getSender(rpcUrl);
-  if (typeof sender === "string") {
-    throw new Error("Cannot get sender - err: " + sender);
-  }
-  while (true) {
-    const date: Date = new Date();
-    try {
-      const res = await matchingOrders(sender, contractAddr, 100, "orai");
-      if (res !== undefined) {
+    const sender = await getSender(rpcUrl);
+    if (typeof sender === "string") {
+      throw new Error("Cannot get sender - err: " + sender);
+    }
+    while (true) {
+      try {
+        const res = await matchingOrders(sender, contractAddr, 100, "orai");
+        if (res) {
+          await webhookClient.send(
+            `:receipt: BOT: ${sender.address} - matched - txHash: ${res.transactionHash}` + ` at ${time(date)}`
+          );
+        }
+      } catch (error) {
+        console.error(error);
         await webhookClient.send(
-          `:receipt: BOT: ${sender.address} - matched - txHash: ${res.transactionHash}` + ` at ${time(date)}`
+          `:red_circle: BOT: ${sender.address} - err ${JSON.stringify(serializeError(error))} at ${time(
+            date
+          )} ${mentionUserIds}`
         );
       }
-    } catch (error) {
-      console.error(error);
-      await webhookClient.send(
-        `:red_circle: BOT: ${sender.address} - err ` + error.message + ` at ${time(date)}` + mentionUserIds
-      );
+      await delay(3000);
     }
-    await delay(3000);
+  } catch (error) {
+    await webhookClient.send(
+      `:red_circle: BOT: err - ${JSON.stringify(serializeError(error))} at ${time(date)} ${mentionUserIds}`
+    );
   }
 })();

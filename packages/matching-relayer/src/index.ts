@@ -5,22 +5,17 @@ import { UserWallet } from "@oraichain/oraitrading-common";
 const minimumOraiBalance = 1000000; // 1 ORAI;
 
 const runMatchingEngine = async (sender: UserWallet, contractAddr: string, pair: any) => {
-  const start = new Date();
+  console.time("matching engine time takes");
   if (pair.length === 0) return;
   console.log("execute_pair:", JSON.stringify(pair));
-  try {
-    const tx = await sender.client.executeMultiple(
-      sender.address,
-      pair.map((pair) => ({ contractAddress: contractAddr, msg: pair, funds: [] })),
-      "auto"
-    );
-    const end = new Date();
-    console.log(`matching time: ${end.getTime() - start.getTime()}ms`);
-    console.log("matching done - txHash:", tx.transactionHash);
-    return tx;
-  } catch (error) {
-    console.error(error);
-  }
+  const tx = await sender.client.executeMultiple(
+    sender.address,
+    pair.map((pair) => ({ contractAddress: contractAddr, msg: pair, funds: [] })),
+    "auto"
+  );
+  console.timeEnd("matching engine time takes");
+  console.log("matching done - txHash:", tx.transactionHash);
+  return tx;
 };
 
 export const delay = (milliseconds: number) => {
