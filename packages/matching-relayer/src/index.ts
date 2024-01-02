@@ -6,6 +6,7 @@ const minimumOraiBalance = 1000000; // 1 ORAI;
 
 const runMatchingEngine = async (sender: UserWallet, contractAddr: string, pair: any) => {
   const start = new Date();
+  if (pair.length === 0) return;
   console.log("execute_pair:", JSON.stringify(pair));
   try {
     const tx = await sender.client.executeMultiple(
@@ -40,14 +41,23 @@ export async function matchingOrders(
   let execute_pairs: any[] = [];
   for (let pair in query_pairs.order_books) {
     let orderbook_pair = query_pairs.order_books[pair];
-    let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
-      execute_order_book_pair: {
-        asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info],
-        limit
+    const matchableMsg: OraiswapLimitOrderTypes.QueryMsg = {
+      order_book_matchable: {
+        asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info]
       }
     };
-
-    execute_pairs.push(ex_pair);
+    const isMatchable = await sender.client.queryContractSmart(contractAddr!, matchableMsg);
+    console.dir(orderbook_pair, { depth: null });
+    console.log({ isMatchable });
+    if (isMatchable.is_matchable === true) {
+      let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
+        execute_order_book_pair: {
+          asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info],
+          limit
+        }
+      };
+      execute_pairs.push(ex_pair);
+    }
   }
 
   const { amount } = await sender.client.getBalance(sender.address, denom);
