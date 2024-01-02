@@ -35,8 +35,7 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  COSMOS_CHAIN_ID_COMMON,
-  MULTIPLIER_ESTIMATE_OSMOSIS
+  COSMOS_CHAIN_ID_COMMON
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -526,7 +525,7 @@ export class UniversalSwapHandler {
     };
     // hardcode fix bug fee osmosis
     let fee: "auto" | number = "auto";
-    if (originalFromToken.chainId === COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID) fee = MULTIPLIER_ESTIMATE_OSMOSIS;
+    if (originalFromToken.chainId === COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID) fee = 3;
     // it means the user just wants to transfer ibc to Oraichain with same token, nothing more, then we can purely call send ibc tokens
     if (
       fromTokenOnOrai.chainId === originalToToken.chainId &&

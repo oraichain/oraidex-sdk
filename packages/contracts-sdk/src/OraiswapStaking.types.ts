@@ -58,10 +58,6 @@ export type ExecuteMsg = {
     staker_addr: Addr;
     staking_token: Addr;
   };
-} | {
-  migrate_store: {
-    asset_info: AssetInfo;
-  };
 };
 export interface RewardMsg {
   staking_token: Addr;

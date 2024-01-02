@@ -18,7 +18,6 @@ export const TRON_DENOM = "trx";
 export const GAS_ESTIMATION_SWAP_DEFAULT = 580000;
 export const GAS_ESTIMATION_BRIDGE_DEFAULT = 200000;
 export const MULTIPLIER = 1.6;
-export const MULTIPLIER_ESTIMATE_OSMOSIS = 3;
 export const HIGH_GAS_PRICE = 0.007;
 export const AVERAGE_COSMOS_GAS_PRICE = 0.025; // average based on Keplr
 
@@ -180,7 +179,7 @@ export const CODE_ID_CW20 = 761;
 export const CW20_DECIMALS = 6;
 
 // type switch wallet between keplr and owallet
-export type WalletType = "keplr" | "owallet";
+export type WalletType = "keplr" | "owallet" | "leapSnap";
 
 export const gravityContracts: Omit<Record<EvmChainId, string>, "0x1ae6"> = {
   "0x38": GRAVITY_EVM_CONTRACT,
