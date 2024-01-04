@@ -1,13 +1,13 @@
-import { CwIcs20LatestClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
-import { OraiswapRouterInterface, OraiswapRouterReadOnlyInterface, Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { BitcoinWallet, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
+import { Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
-  | "cosmos-to-cosmos";
+  | "cosmos-to-cosmos"
+  | "bitcoin-to-oraichain";
 
 export enum SwapDirection {
   From,
@@ -28,6 +28,7 @@ export interface Sender {
   cosmos: string;
   evm?: string;
   tron?: string;
+  bitcoin?: string;
 }
 
 export interface RelayerFeeData {
@@ -52,11 +53,13 @@ export interface UniversalSwapData {
 /**
  * @property cosmosWallet - wallet used for cosmos based networks.
  * @property evmWallet - wallet used for evm based networks. Note that if you want to sign Tron transactions, you need to pass in tronWeb when initializing the EvmWallet object
+ *
  * @property ibcInfoTestMode - true if you want to use the IBC Wasm test contract and channel instead of the production version (default is undefined / false)
  */
 export interface UniversalSwapConfig {
-  readonly cosmosWallet?: CosmosWallet;
-  readonly evmWallet?: EvmWallet;
+  cosmosWallet?: CosmosWallet;
+  evmWallet?: EvmWallet;
+  bitcoinWallet?: BitcoinWallet;
   readonly ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
 }
 

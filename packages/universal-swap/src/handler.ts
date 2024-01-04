@@ -10,7 +10,6 @@ import {
   generateError,
   getEncodedExecuteContractMsgs,
   toAmount,
-  // buildMultipleExecuteMessages,
   parseTokenInfo,
   calculateMinReceive,
   handleSentFunds,
@@ -35,8 +34,10 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  cosmosTokens,
-  ChainIdEnum
+  ChainIdEnum,
+  CosmosWallet,
+  EvmWallet,
+  BitcoinWallet
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -53,11 +54,26 @@ import {
 } from "./helper";
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
-import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
+
+  // pipeline style, setting up wallets
+  withBitcoinWallet(bitcoinWallet: BitcoinWallet): UniversalSwapHandler {
+    this.config.bitcoinWallet = bitcoinWallet;
+    return this;
+  }
+
+  withCosmosWallet(cosmosWallet: CosmosWallet): UniversalSwapHandler {
+    this.config.cosmosWallet = cosmosWallet;
+    return this;
+  }
+
+  withEvmWallet(evmWallet: EvmWallet): UniversalSwapHandler {
+    this.config.evmWallet = evmWallet;
+    return this;
+  }
 
   private getTokenOnOraichain(coinGeckoId: CoinGeckoId): TokenItemType {
     const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
@@ -80,17 +96,21 @@ export class UniversalSwapHandler {
     address: { metamaskAddress?: string; tronAddress?: string; btcAddress?: string }
   ): Promise<string> {
     // evm based
-    if (toChainId === "0x01" || toChainId === "0x1ae6" || toChainId === "0x38") {
+    if (
+      toChainId === ChainIdEnum.Ethereum ||
+      toChainId === ChainIdEnum.KawaiiEvm ||
+      toChainId === ChainIdEnum.BNBChain
+    ) {
       return address.metamaskAddress ?? (await this.config.evmWallet.getEthAddress());
     }
     // tron
-    if (toChainId === "0x2b6653dc") {
+    if (toChainId === ChainIdEnum.TRON) {
       if (address.tronAddress) return tronToEthAddress(address.tronAddress);
       const tronWeb = this.config.evmWallet.tronWeb;
       if (tronWeb && tronWeb.defaultAddress?.base58) return tronToEthAddress(tronWeb.defaultAddress.base58);
       throw generateError("Cannot find tron web to nor tron address to send to Tron network");
     }
-    if (toChainId === "bitcoinTestnet" || toChainId === "bitcoin") {
+    if (toChainId === ChainIdEnum.BitcoinTestnet || toChainId === ChainIdEnum.Bitcoin) {
       return address.btcAddress ?? "";
     }
     return this.config.cosmosWallet.getKeplrAddr(toChainId);
@@ -104,11 +124,11 @@ export class UniversalSwapHandler {
     // if to token is on Oraichain then we wont need to transfer IBC to the other chain
     const { chainId: toChainId } = this.swapData.originalToToken;
     const { cosmos: sender } = this.swapData.sender;
-    if (toChainId === "Oraichain") {
+    if (toChainId === ChainIdEnum.Oraichain) {
       const msgSwap = this.generateMsgsSwap();
-      return getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
+      return getEncodedExecuteContractMsgs(sender, msgSwap);
     }
-    const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
+    const ibcInfo: IBCInfo = this.getIbcInfo(ChainIdEnum.Oraichain, toChainId);
     const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
     if (!ibcReceiveAddr) throw generateError("Please login keplr!");
     const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
@@ -166,7 +186,7 @@ export class UniversalSwapHandler {
     toToken: { chainId: string; prefix: string }
   ) {
     const transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
-    return toToken.chainId === "oraibridge-subnet-2" ? toToken.prefix + transferAddress : "";
+    return toToken.chainId === ChainIdEnum.OraiBridge ? toToken.prefix + transferAddress : "";
   }
 
   /**
@@ -203,7 +223,7 @@ export class UniversalSwapHandler {
   async swap(): Promise<ExecuteResult> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
-      { chainId: "Oraichain", rpc: network.rpc },
+      { chainId: ChainIdEnum.Oraichain, rpc: network.rpc },
       { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
     );
     const result = await client.executeMultiple(this.swapData.sender.cosmos, messages, "auto");
@@ -372,7 +392,7 @@ export class UniversalSwapHandler {
         gasPrice: this.getGasPriceFromToken()
       }
     );
-    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr(ChainIdEnum.Oraichain);
     if (oraiAddress !== this.swapData.sender.cosmos)
       throw generateError(
         `There is a mismatch between the sender ${sender.cosmos} versus the Oraichain address ${oraiAddress}. Should not swap!`
@@ -400,7 +420,7 @@ export class UniversalSwapHandler {
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
-    const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
+    const ibcInfo = this.getIbcInfo(ChainIdEnum.Oraichain, originalToToken.chainId);
     const ics20Client = new CwIcs20LatestQueryClient(client, this.getCwIcs20ContractAddr());
     await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
 
@@ -508,12 +528,12 @@ export class UniversalSwapHandler {
     );
     const amount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
     // we will be sending to our proxy contract
-    const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, "Oraichain");
+    const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, ChainIdEnum.Oraichain);
     if (!ibcInfo)
       throw generateError(
         `Could not find the ibc info given the from token with coingecko id ${originalFromToken.coinGeckoId}`
       );
-    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr(ChainIdEnum.Oraichain);
     let msgTransfer = MsgTransfer.fromPartial({
       sourcePort: ibcInfo.source,
       receiver: oraiAddress,

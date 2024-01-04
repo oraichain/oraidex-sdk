@@ -10,8 +10,9 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@oraichain/oraidex-common": "/Users/toandang/Documents/Projects/oraichain/oraidex-sdk/packages/oraidex-common",
+    "@oraichain/oraidex-common": "^1.0.47",
     "@oraichain/oraidex-contracts-sdk": "^1.0.24",
+    "@xchainjs/xchain-bitcoin": "^0.23.7",
     "bech32": "1.1.4",
     "ethers": "^5.0.15",
     "tronweb": "5.3.0"
@@ -19,5 +20,13 @@
   "devDependencies": {
     "cosmjs-types": "^0.8.0",
     "ts-results": "^3.3.0"
+  },
+  "peerDependencies": {
+    "@xchainjs/xchain-client": "^0.15.5",
+    "@xchainjs/xchain-crypto": "^0.3.0",
+    "@xchainjs/xchain-util": "^0.13.2",
+    "axios": "^1.6.2",
+    "bitcoinjs-lib": "^6.1.5",
+    "wif": "^4.0.0"
   }
 }

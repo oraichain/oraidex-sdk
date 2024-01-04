@@ -9,6 +9,7 @@ import {
   KWT_ORAICHAIN_CHANNELS,
   NOBLE_ORAICHAIN_CHANNELS,
   NOBLE_ORAICHAIN_CHANNELS_TEST,
+  ORAIBTC_ORAICHAIN_CHANNELS,
   ORAIB_ORAICHAIN_CHANNELS,
   ORAIB_ORAICHAIN_CHANNELS_OLD,
   ORAIB_ORAICHAIN_CHANNELS_TEST,
@@ -32,6 +33,7 @@ export const [inj2oraichain, oraichain2inj] = INJECTIVE_ORAICHAIN_CHANNELS.split
 export const [osmosis2oraichain, oraichain2osmosis] = OSMOSIS_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [oraib2oraichain, oraichain2oraib] = ORAIB_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [noble2oraichain, oraichain2noble] = NOBLE_ORAICHAIN_CHANNELS.split(/\s+/);
+export const [oraibtc2oraichain, oraichain2oraibtc] = ORAIBTC_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [noble2oraichainTest, oraichain2nobleTest] = NOBLE_ORAICHAIN_CHANNELS_TEST.split(/\s+/);
 export const [oraib2oraichainTest, oraichain2oraibTest] = ORAIB_ORAICHAIN_CHANNELS_TEST.split(/\s+/);
 const [oraib2oraichain_old, oraichain2oraib_old] = ORAIB_ORAICHAIN_CHANNELS_OLD.split(/\s+/);
@@ -148,10 +150,20 @@ export const ibcInfos: IBCInfoMap = {
       },
       timeout: IBC_TRANSFER_TIMEOUT
     }
+  },
+  "oraibtc-subnet-1": {
+    Oraichain: {
+      source: "transfer",
+      channel: oraibtc2oraichain,
+      timeout: IBC_TRANSFER_TIMEOUT
+    }
   }
 };
 
-export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1"> = {
+export const ibcInfosOld: Omit<
+  IBCInfoMap,
+  "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1" | "oraibtc-subnet-1"
+> = {
   Oraichain: {
     "oraibridge-subnet-2": {
       source: "transfer",

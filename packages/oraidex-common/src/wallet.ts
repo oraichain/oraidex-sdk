@@ -115,6 +115,11 @@ export abstract class BitcoinWallet {
 export abstract class EvmWallet {
   constructor(public tronWeb?: TronWeb) {}
 
+  public withTronWeb(tronWeb: TronWeb): EvmWallet {
+    this.tronWeb = tronWeb;
+    return this;
+  }
+
   /**
    * Note: Browser only. Return if you dont use the browser.
    * This method allows switching between different evm networks.

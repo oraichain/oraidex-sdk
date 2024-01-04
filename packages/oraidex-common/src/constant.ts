@@ -73,6 +73,8 @@ export const ORAIB_ORAICHAIN_CHANNELS_OLD = "channel-0 channel-20";
 export const KWT_ORAICHAIN_CHANNELS = "channel-0 channel-21";
 export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
 export const NOBLE_ORAICHAIN_CHANNELS = "channel-34 channel-147";
+// FIXME: fill the channels between ORAIBTC & Oraichain
+export const ORAIBTC_ORAICHAIN_CHANNELS = "";
 export const NOBLE_ORAICHAIN_CHANNELS_TEST = "channel-35 channel-148";
 
 // config for ibc denom
@@ -99,6 +101,7 @@ export const TRX_CONTRACT = "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40xs3
 export const SCATOM_CONTRACT = "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq";
 export const XOCH_CONTRACT = "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt";
 export const INJECTIVE_CONTRACT = "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49";
+export const OBTC_CONTRACT = "orai1d2hq8pzf0nswlqhhng95hkfnmgutpmz6g8hd8q7ec9q9pj6t3r2q7vc646";
 
 // config for oraichain contract
 export const FACTORY_CONTRACT = "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8";
