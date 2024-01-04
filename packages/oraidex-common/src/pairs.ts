@@ -2,6 +2,7 @@ import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   AIRI_CONTRACT,
   ATOM_ORAICHAIN_DENOM,
+  BTC_CONTRACT,
   INJECTIVE_CONTRACT,
   KWT_CONTRACT,
   MILKY_CONTRACT,
@@ -84,6 +85,10 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
     symbols: ["ORAIX", "USDC"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
+    symbols: ["ORAI", "BTC"]
   }
 ];
 
@@ -101,7 +106,8 @@ export enum pairLpTokens {
   TRX_ORAI = "orai1wgywgvumt5dxhm7vjpwx5es9ecrtl85qaqdspjqwx2lugy7vmw5qlwrn88",
   SCATOM_ATOM = "orai1hcjne0hmdj6pjrc3xuksucr0yplsa9ny7v047c34y8k8hfflq6yqyjapnn",
   INJ_ORAI = "orai1slqw6gfvs6l2jgvh5ryjayf4g77d7sgfv6fumtyzcr06a6g9gnrq6c4rgg",
-  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3"
+  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3",
+  ORAI_BTC = "orai1zsczdv23ttq0afjzhphq8e5rlamhsf5ch7v0ft32ldrnalctenqqrnlz0x"
 }
 
 // token identifier can be denom or contract addr
