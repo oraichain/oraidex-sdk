@@ -1,0 +1,41 @@
+node_modules/
+
+# build
+dist/
+build/
+
+.git/
+.github/
+.vscode/
+
+
+**/coverage/
+npm-debug.log
+.coverage
+.coverage.*
+.aws
+.husky
+.nx
+**/target
+**/pkg
+**/tests
+*.md
+
+# docker
+Dockerfile*
+
+# env variables
+.env
+.env**
+
+# config
+config*.{yaml,yml}
+
+# database file
+**/*.db
+**/*.wal
+orderbook-sync-data*
+
+
+# prettier
+.prettierc.json
