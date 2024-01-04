@@ -609,9 +609,9 @@ export const chainInfos: CustomChainInfo[] = [
     chainId: ChainIdEnum.Bitcoin,
     chainName: "Bitcoin",
     bip44: {
-      coinType: 1
+      coinType: 0
     },
-    coinType: 1,
+    coinType: 0,
 
     stakeCurrency: bitcoinToken,
     bech32Config: defaultBech32Config("bc"),
