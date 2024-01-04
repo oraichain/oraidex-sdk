@@ -104,7 +104,7 @@ export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItem
   if (!tokenInfo.evmDenoms) return {};
   return Object.fromEntries(
     tokenInfo.evmDenoms.map((denom) => {
-      return [denom, amounts[denom]];
+      return [denom, amounts?.[denom]];
     })
   );
 };
