@@ -135,7 +135,9 @@ describe("test-duckdb", () => {
 
     await duckDb.insertLpOps(data);
     let queryResult = await duckDb.queryLpOps();
-    queryResult[0].timestamp = queryResult[0].timestamp;
+    queryResult[0].taxRate = Number(queryResult[0].taxRate);
+    queryResult[0].baseTokenAmount = Number(queryResult[0].baseTokenAmount);
+    queryResult[0].quoteTokenAmount = Number(queryResult[0].quoteTokenAmount);
     expect(queryResult[0]).toEqual(data[0]);
   });
 
