@@ -112,7 +112,7 @@ export const ORAIDEX_LISTING_CONTRACT = "orai1mkr02jzz0jfh34ps6z966uyueu4tlmnyg5
 export const IBC_WASM_HOOKS_CONTRACT = "orai1w0h4ua3k8w2udju97nlws6dfh2ppwkhcewg09zp8gera4mf8lxxs6q086g";
 
 // config for evm
-export const GRAVITY_EVM_CONTRACT = "0x758191e89ff9E898D884ca3426e486e5d8476A44";
+export const GRAVITY_EVM_CONTRACT = "0xE7b78dC667172aAA3eF0B1AD5677957936198f21";
 // export const GRAVITY_TRON_CONTRACT in tron format TLXrPtQor6xxF2HeQtmKJUUkVNjJZVsgTM
 export const GRAVITY_TRON_CONTRACT = "0x73Ddc880916021EFC4754Cb42B53db6EAB1f9D64";
 
