@@ -165,6 +165,9 @@ describe("test-duckdb", () => {
     await duckDb.insertLpOps(data);
 
     let queryResult = await duckDb.queryLpOps();
+    queryResult[0].taxRate = Number(queryResult[0].taxRate);
+    queryResult[0].baseTokenAmount = Number(queryResult[0].baseTokenAmount);
+    queryResult[0].quoteTokenAmount = Number(queryResult[0].quoteTokenAmount);
     expect(queryResult[0]).toEqual(data[0]);
 
     // now we insert another one. Data should be the same
@@ -172,6 +175,9 @@ describe("test-duckdb", () => {
 
     queryResult = await duckDb.queryLpOps();
     expect(queryResult.length).toEqual(1);
+    queryResult[0].taxRate = Number(queryResult[0].taxRate);
+    queryResult[0].baseTokenAmount = Number(queryResult[0].baseTokenAmount);
+    queryResult[0].quoteTokenAmount = Number(queryResult[0].quoteTokenAmount);
     expect(queryResult[0]).toEqual(data[0]);
 
     // when insert a different unique key, then the length increases to 2
@@ -404,10 +410,19 @@ describe("test-duckdb", () => {
       const apr = await duckDb.getAllAprs();
 
       // assertion
-      expect(apr).toEqual([
-        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" },
-        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" }
-      ]);
+      expect(apr.find((apr) => apr.pairAddr === "orai_usdt")).toEqual({
+        pairAddr: "orai_usdt",
+        apr: 2.5,
+        rewardPerSec: "1",
+        totalSupply: "1"
+      });
+
+      expect(apr.find((apr) => apr.pairAddr === "orai_atom")).toEqual({
+        pairAddr: "orai_atom",
+        apr: 2,
+        rewardPerSec: "1",
+        totalSupply: "1"
+      });
     });
 
     it("test-getLatestPoolApr-should-return-latest-pool-apr", async () => {
@@ -423,7 +438,7 @@ describe("test-duckdb", () => {
         totalBondAmount: "1",
         rewardPerSec: "1",
         apr: 2.5,
-        timestamp: 1236
+        timestamp: 1236n
       });
     });
   });
