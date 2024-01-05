@@ -97,6 +97,12 @@ export type QueryMsg =
       };
     }
   | {
+      bids_by_user: {
+        round: number;
+        user: Addr;
+      };
+    }
+  | {
       estimate_amount_receive_of_bid: {
         exchange_rate: Decimal;
         idx: number;
@@ -122,6 +128,7 @@ export interface Bid {
   premium_slot: number;
   residue_bid: Uint128;
   round: number;
+  timestamp: number;
 }
 export type ArrayOfBidPool = BidPool[];
 export interface BidPool {
@@ -141,7 +148,6 @@ export interface BiddingInfo {
   start_time: number;
   total_bid_amount: Uint128;
   total_bid_matched: Uint128;
-  total_bid_threshold: Uint128;
 }
 export interface DistributionInfo {
   actual_distributed: Uint128;

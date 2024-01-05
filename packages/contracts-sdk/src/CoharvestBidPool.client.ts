@@ -44,6 +44,7 @@ export interface CoharvestBidPoolReadOnlyInterface {
     startAfter?: number;
   }) => Promise<ArrayOfBid>;
   bidsIdxByUser: ({ round, user }: { round: number; user: Addr }) => Promise<ArrayOfUint64>;
+  bidsByUser: ({ round, user }: { round: number; user: Addr }) => Promise<ArrayOfBid>;
   estimateAmountReceiveOfBid: ({
     exchangeRate,
     idx,
@@ -80,6 +81,7 @@ export class CoharvestBidPoolQueryClient implements CoharvestBidPoolReadOnlyInte
     this.allBidPoolInRound = this.allBidPoolInRound.bind(this);
     this.allBidInRound = this.allBidInRound.bind(this);
     this.bidsIdxByUser = this.bidsIdxByUser.bind(this);
+    this.bidsByUser = this.bidsByUser.bind(this);
     this.estimateAmountReceiveOfBid = this.estimateAmountReceiveOfBid.bind(this);
     this.estimateAmountReceive = this.estimateAmountReceive.bind(this);
   }
@@ -143,6 +145,14 @@ export class CoharvestBidPoolQueryClient implements CoharvestBidPoolReadOnlyInte
   bidsIdxByUser = async ({ round, user }: { round: number; user: Addr }): Promise<ArrayOfUint64> => {
     return this.client.queryContractSmart(this.contractAddress, {
       bids_idx_by_user: {
+        round,
+        user
+      }
+    });
+  };
+  bidsByUser = async ({ round, user }: { round: number; user: Addr }): Promise<ArrayOfBid> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      bids_by_user: {
         round,
         user
       }
