@@ -425,7 +425,7 @@ export const oraichainNetwork: CustomChainInfo = {
     {
       coinDenom: "WETH",
       coinGeckoId: "weth",
-      coinMinimalDenom: "cw_weth",
+      coinMinimalDenom: "weth",
       type: "cw20",
       contractAddress: WETH_CONTRACT,
       bridgeTo: ["0x01"],
