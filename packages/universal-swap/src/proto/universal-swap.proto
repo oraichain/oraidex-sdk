@@ -2,7 +2,7 @@ syntax = "proto3";
 package universalswap;
 
 message IbcHooksMemo {
-  string receiver = 1;  // receiver address on Oraichain
+  bytes receiver = 1;  // receiver address on Oraichain
   string destination_receiver = 2; // receiver address on destination chain
   string destination_channel = 3; 
   string destination_denom = 4;
