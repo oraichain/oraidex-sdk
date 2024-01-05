@@ -534,7 +534,7 @@ export const chainInfos: CustomChainInfo[] = [
         coinDenom: "WETH",
         coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + WRAP_ETH_CONTRACT,
         bridgeNetworkIdentifier: "0x01",
-        coinDecimals: 6,
+        coinDecimals: 18,
         coinGeckoId: "weth",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
