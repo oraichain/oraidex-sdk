@@ -41,6 +41,7 @@ import {
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
   USDT_TRON_CONTRACT,
+  WETH_CONTRACT,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT
@@ -420,17 +421,17 @@ export const oraichainNetwork: CustomChainInfo = {
       type: "cw20",
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png"
+    },
+    {
+      coinDenom: "WETH",
+      coinGeckoId: "weth",
+      coinMinimalDenom: "cw_weth",
+      type: "cw20",
+      contractAddress: WETH_CONTRACT,
+      bridgeTo: ["0x01"],
+      coinDecimals: 6,
+      coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
     }
-    // {
-    //   coinDenom: 'ATOM-CW20',
-    //   coinGeckoId: 'cosmos',
-    //   coinMinimalDenom: 'uatom',
-    //   type: 'cw20',
-    //   contractAddress: 'orai17l2zk3arrx0a0fyuneyx8raln68622a2lrsz8ph75u7gw9tgz3esayqryf',
-    //   bridgeTo: ['cosmoshub-4'],
-    //   coinDecimals: 6,
-    //   Icon: AtomIcon
-    // }
   ]
 };
 
@@ -528,6 +529,15 @@ export const chainInfos: CustomChainInfo[] = [
         coinDecimals: 18,
         coinGeckoId: "milky-token",
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/14418.png"
+      },
+      {
+        coinDenom: "WETH",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + WRAP_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 6,
+        coinGeckoId: "weth",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
       }
     ],
     txExplorer: {
@@ -744,6 +754,7 @@ export const chainInfos: CustomChainInfo[] = [
         coinDecimals: 18,
         bridgeTo: ["Oraichain"],
         coinGeckoId: "weth",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
       },
       {
