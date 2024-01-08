@@ -65,6 +65,7 @@ export interface CoharvestBidPoolReadOnlyInterface {
     round: number;
     slot: number;
   }) => Promise<EstimateAmountReceiveOfBidResponse>;
+  numbersBidInRound: ({ round }: { round: number }) => Promise<Uint64>;
 }
 export class CoharvestBidPoolQueryClient implements CoharvestBidPoolReadOnlyInterface {
   client: CosmWasmClient;
@@ -84,6 +85,7 @@ export class CoharvestBidPoolQueryClient implements CoharvestBidPoolReadOnlyInte
     this.bidsByUser = this.bidsByUser.bind(this);
     this.estimateAmountReceiveOfBid = this.estimateAmountReceiveOfBid.bind(this);
     this.estimateAmountReceive = this.estimateAmountReceive.bind(this);
+    this.numbersBidInRound = this.numbersBidInRound.bind(this);
   }
 
   config = async (): Promise<Config> => {
@@ -195,6 +197,13 @@ export class CoharvestBidPoolQueryClient implements CoharvestBidPoolReadOnlyInte
       }
     });
   };
+  numbersBidInRound = async ({ round }: { round: number }): Promise<Uint64> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      numbers_bid_in_round: {
+        round
+      }
+    });
+  };
 }
 export interface CoharvestBidPoolInterface extends CoharvestBidPoolReadOnlyInterface {
   contractAddress: string;
@@ -249,7 +258,7 @@ export interface CoharvestBidPoolInterface extends CoharvestBidPoolReadOnlyInter
     _memo?: string,
     _funds?: Coin[]
   ) => Promise<ExecuteResult>;
-  releaseDistributionInfo: (
+  finalizeBiddingRoundResult: (
     {
       exchangeRate,
       round
@@ -301,7 +310,7 @@ export class CoharvestBidPoolClient extends CoharvestBidPoolQueryClient implemen
     this.receive = this.receive.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
     this.createNewRound = this.createNewRound.bind(this);
-    this.releaseDistributionInfo = this.releaseDistributionInfo.bind(this);
+    this.finalizeBiddingRoundResult = this.finalizeBiddingRoundResult.bind(this);
     this.distribute = this.distribute.bind(this);
     this.submitBid = this.submitBid.bind(this);
   }
@@ -405,7 +414,7 @@ export class CoharvestBidPoolClient extends CoharvestBidPoolQueryClient implemen
       _funds
     );
   };
-  releaseDistributionInfo = async (
+  finalizeBiddingRoundResult = async (
     {
       exchangeRate,
       round
@@ -421,7 +430,7 @@ export class CoharvestBidPoolClient extends CoharvestBidPoolQueryClient implemen
       this.sender,
       this.contractAddress,
       {
-        release_distribution_info: {
+        finalize_bidding_round_result: {
           exchange_rate: exchangeRate,
           round
         }

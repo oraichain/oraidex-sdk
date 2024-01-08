@@ -31,7 +31,7 @@ export type ExecuteMsg =
       };
     }
   | {
-      release_distribution_info: {
+      finalize_bidding_round_result: {
         exchange_rate: Decimal;
         round: number;
       };
@@ -116,6 +116,11 @@ export type QueryMsg =
         round: number;
         slot: number;
       };
+    }
+  | {
+      numbers_bid_in_round: {
+        round: number;
+      };
     };
 export interface MigrateMsg {}
 export type ArrayOfBid = Bid[];
@@ -153,6 +158,7 @@ export interface DistributionInfo {
   actual_distributed: Uint128;
   exchange_rate: Decimal;
   is_released: boolean;
+  num_bids_distributed: number;
   total_distribution: Uint128;
 }
 export type ArrayOfUint64 = number[];
