@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-common",
-  "version": "1.0.55",
+  "version": "1.0.56",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -19,9 +19,9 @@
     "@cosmjs/proto-signing": "^0.31.0",
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "0.31.0",
-    "bignumber.js":"^9.0.1",
+    "bignumber.js": "^9.0.1",
     "cosmjs-types": "^0.8.0",
-    "@oraichain/oraidex-contracts-sdk":"^1.0.30"
+    "@oraichain/oraidex-contracts-sdk": "^1.0.30"
   },
   "devDependencies": {},
   "resolutions": {
