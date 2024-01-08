@@ -52,7 +52,6 @@ import { swapFromTokens, swapToTokens } from "./swap-filter";
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
   switch (coingeckoId) {
     case "wbnb":
-    case "weth":
     case "binancecoin":
     case "ethereum":
       return true;
