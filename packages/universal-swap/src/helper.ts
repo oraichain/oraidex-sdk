@@ -92,7 +92,9 @@ export const swapEvmRoutes: {
   },
   "0x01": {
     [`${WRAP_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
-    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT]
+    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    // TODO: hardcode fix eth -> weth (oraichain)
+    [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT]
   }
 };
 
@@ -384,11 +386,12 @@ export const simulateSwapEvm = async (query: {
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
   if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
+      // amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
       amount: new BigDecimal(amount)
         .mul(10 ** toInfo.decimals)
         .div(10 ** fromInfo.decimals)
         .toString(),
-      displayAmount: toDisplay(amount, toInfo.decimals)
+      displayAmount: toDisplay(amount, fromInfo.decimals)
     };
   }
   try {
