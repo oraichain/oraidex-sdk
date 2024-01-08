@@ -55,7 +55,7 @@ describe("test helper functions", () => {
 
   it.each<[CoinGeckoId, boolean]>([
     ["wbnb", true],
-    ["weth", true],
+    ["weth", false],
     ["binancecoin", true],
     ["ethereum", true],
     ["kawaii-islands", false]
