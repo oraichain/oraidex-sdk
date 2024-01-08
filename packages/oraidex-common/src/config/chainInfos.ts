@@ -500,6 +500,15 @@ export const chainInfos: CustomChainInfo[] = [
         Icon: UsdcIcon
       },
       {
+        coinDenom: "WETH",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + WRAP_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 6,
+        coinGeckoId: "weth",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        Icon: EthIcon
+      },
+      {
         coinDenom: "AIRI",
         coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
         bridgeNetworkIdentifier: "0x38",
