@@ -32,7 +32,8 @@ import {
   cosmosTokens,
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
-  isInPairList
+  isInPairList,
+  BigDecimal
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
 import {
@@ -383,7 +384,10 @@ export const simulateSwapEvm = async (query: {
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
   if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
-      amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
+      amount: new BigDecimal(amount)
+        .mul(10 ** toInfo.decimals)
+        .div(10 ** fromInfo.decimals)
+        .toString(),
       displayAmount: toDisplay(amount, toInfo.decimals)
     };
   }
