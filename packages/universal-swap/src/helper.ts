@@ -383,7 +383,7 @@ export const simulateSwapEvm = async (query: {
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
   if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
-      amount,
+      amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
       displayAmount: toDisplay(amount, toInfo.decimals)
     };
   }
