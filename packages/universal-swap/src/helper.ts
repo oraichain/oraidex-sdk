@@ -48,6 +48,10 @@ import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 
+const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
+  const arr = ["ethereum", "weth"];
+  return arr.includes(fromCoingecko) && arr.includes(toCoingecko);
+};
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
   switch (coingeckoId) {
@@ -373,9 +377,11 @@ export const simulateSwapEvm = async (query: {
   amount: string;
 }): Promise<SimulateResponse> => {
   const { amount, fromInfo, toInfo } = query;
+  // check swap native and wrap native
+  const isCheckSwapNativeAndWrapNative = caseSwapNativeAndWrapNative(fromInfo.coinGeckoId, toInfo.coinGeckoId);
 
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-  if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+  if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
       amount,
       displayAmount: toDisplay(amount, toInfo.decimals)
