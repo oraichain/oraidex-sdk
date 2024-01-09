@@ -480,6 +480,7 @@ export const checkFeeRelayer = async (query: {
   return checkFeeRelayerNotOrai({
     fromTokenInOrai: getTokenOnOraichain(originalFromToken.coinGeckoId),
     fromAmount,
+    relayerAmount: relayerFee.relayerAmount,
     routerClient
   });
 };
@@ -487,9 +488,10 @@ export const checkFeeRelayer = async (query: {
 export const checkFeeRelayerNotOrai = async (query: {
   fromTokenInOrai: TokenItemType;
   fromAmount: number;
+  relayerAmount: string;
   routerClient: OraiswapRouterReadOnlyInterface;
 }): Promise<boolean> => {
-  const { fromTokenInOrai, fromAmount, routerClient } = query;
+  const { fromTokenInOrai, fromAmount, routerClient, relayerAmount } = query;
   if (!fromTokenInOrai) return true;
   if (fromTokenInOrai.chainId !== "Oraichain")
     throw generateError(
@@ -504,8 +506,9 @@ export const checkFeeRelayerNotOrai = async (query: {
       amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
       routerClient: routerClient
     });
-    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
-    if (relayerDisplay >= fromAmount) return false;
+    const amountDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    const relayerAmountDisplay = toDisplay(relayerAmount);
+    if (relayerAmountDisplay > amountDisplay) return false;
     return true;
   }
   return true;
