@@ -56,6 +56,7 @@ import {
   validateOraiAddress
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
+import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
 
 // cache
 
@@ -181,7 +182,7 @@ app.get("/tickers", async (req, res) => {
         pool_id: pairAddr ?? "",
         base: symbols[baseIndex],
         target: symbols[targetIndex],
-        liquidity_in_usd: liquidityInUsd.toString()
+        liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString()
       };
       data.push(tickerInfo);
     }
