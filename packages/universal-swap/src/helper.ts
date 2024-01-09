@@ -506,9 +506,9 @@ export const checkFeeRelayerNotOrai = async (query: {
       amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
       routerClient: routerClient
     });
-    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    const amountDisplay = toDisplay(amount, fromTokenInOrai.decimals);
     const relayerAmountDisplay = toDisplay(relayerAmount);
-    if (relayerAmountDisplay > relayerDisplay) return false;
+    if (relayerAmountDisplay > amountDisplay) return false;
     return true;
   }
   return true;
