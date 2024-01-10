@@ -546,6 +546,7 @@ export const chainInfos: CustomChainInfo[] = [
         bridgeNetworkIdentifier: "0x01",
         coinDecimals: 6,
         coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
       }
     ],
