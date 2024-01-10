@@ -390,8 +390,8 @@ export const simulateSwapEvm = async (query: {
     return {
       // amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
       amount: new BigDecimal(amount)
-        .mul(10 ** toInfo.decimals)
-        .div(10 ** fromInfo.decimals)
+        .mul(10n ** BigInt(toInfo.decimals))
+        .div(10n ** BigInt(fromInfo.decimals))
         .toString(),
       displayAmount: toDisplay(amount, fromInfo.decimals)
     };
