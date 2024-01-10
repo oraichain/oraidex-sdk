@@ -1,4 +1,5 @@
 import { FAVORITES_INTERVAL } from "./helpers/constants";
+import { addMinutes, format as formatDateFn } from "date-fns";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
@@ -115,7 +116,9 @@ export const defaultChartProps = {
   },
   custom_formatters: {
     timeFormatter: {
-      format: (date) => formatTVTime(date)
+      format: (date) => {
+        return formatDateFn(addMinutes(date, date.getTimezoneOffset()), "hh:mm:ss a");
+      }
     },
     dateFormatter: {
       format: (date) => formatTVDate(date)

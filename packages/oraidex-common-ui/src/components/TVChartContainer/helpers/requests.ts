@@ -11,10 +11,10 @@ const axios = Axios.create({
   // cache will be enabled by default in 2 seconds
   adapter: retryAdapterEnhancer(
     throttleAdapterEnhancer(Axios.defaults.adapter!, {
-      threshold: AXIOS_THROTTLE_THRESHOLD,
+      threshold: AXIOS_THROTTLE_THRESHOLD
     })
   ),
-  baseURL: "https://api.oraidex.io",
+  baseURL: "https://api.oraidex.io"
 });
 
 export const getTokenChartPrice = async (
@@ -28,8 +28,8 @@ export const getTokenChartPrice = async (
         pair,
         startTime: periodParams.from,
         endTime: periodParams.to,
-        tf: +resolution * 60,
-      },
+        tf: +resolution * 60
+      }
     });
     return res.data;
   } catch (e) {

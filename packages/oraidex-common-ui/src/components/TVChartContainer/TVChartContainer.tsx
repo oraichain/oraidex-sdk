@@ -12,7 +12,7 @@ import {
 import { TVDataProvider } from "./helpers/TVDataProvider";
 import { DEFAULT_LIBRARY_URL, SUPPORTED_RESOLUTIONS, TV_CHART_RELOAD_INTERVAL } from "./helpers/constants";
 import useTVDatafeed, { PairToken } from "./helpers/useTVDatafeed";
-import { getObjectKeyFromValue } from "./helpers/utils";
+import { getObjectKeyFromValue, getTradingViewTimeZone } from "./helpers/utils";
 
 export function useLocalStorageSerializeKey<T>(
   key: string | any[],
@@ -107,6 +107,7 @@ export default function TVChartContainer({
       time_scale: {
         min_bar_spacing: 15
       },
+      timezone: getTradingViewTimeZone(),
       time_frames: [
         { text: "6m", resolution: "6h" as ResolutionString, description: "6 Months" },
         { text: "1m", resolution: "1h" as ResolutionString, description: "1 Month" },
