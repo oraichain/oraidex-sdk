@@ -12,7 +12,8 @@ import {
   SCORAI_CONTRACT,
   TRX_CONTRACT,
   USDC_CONTRACT,
-  USDT_CONTRACT
+  USDT_CONTRACT,
+  WETH_CONTRACT
 } from "./constant";
 import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
@@ -84,6 +85,10 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
     symbols: ["ORAIX", "USDC"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
+    symbols: ["ORAI", "WETH"]
   }
 ];
 
@@ -101,7 +106,8 @@ export enum pairLpTokens {
   TRX_ORAI = "orai1wgywgvumt5dxhm7vjpwx5es9ecrtl85qaqdspjqwx2lugy7vmw5qlwrn88",
   SCATOM_ATOM = "orai1hcjne0hmdj6pjrc3xuksucr0yplsa9ny7v047c34y8k8hfflq6yqyjapnn",
   INJ_ORAI = "orai1slqw6gfvs6l2jgvh5ryjayf4g77d7sgfv6fumtyzcr06a6g9gnrq6c4rgg",
-  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3"
+  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3",
+  ORAI_WETH = "orai1rvr9wk6mdlfysvgp72ltthqvkkd5677mp892efq86yyr9alt0tms2a6lcs"
 }
 
 // token identifier can be denom or contract addr
