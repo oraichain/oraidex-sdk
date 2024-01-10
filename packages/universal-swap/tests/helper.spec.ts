@@ -10,8 +10,10 @@ import {
   ORAI_BSC_CONTRACT,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
+  USDT_ETH_CONTRACT,
   USDT_TRON_CONTRACT,
   WRAP_BNB_CONTRACT,
+  WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   flattenTokens,
   ibcInfos,
@@ -47,7 +49,8 @@ describe("test helper functions", () => {
     ["0x38", "", USDT_TRON_CONTRACT, [WRAP_BNB_CONTRACT, USDT_BSC_CONTRACT]],
     ["0x38", USDT_BSC_CONTRACT, "", [USDT_BSC_CONTRACT, WRAP_BNB_CONTRACT]],
     ["0x38", WRAP_BNB_CONTRACT, WRAP_TRON_TRX_CONTRACT, undefined],
-    ["Oraichain", WRAP_BNB_CONTRACT, WRAP_TRON_TRX_CONTRACT, undefined]
+    ["Oraichain", WRAP_BNB_CONTRACT, WRAP_TRON_TRX_CONTRACT, undefined],
+    ["0x01", WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT, [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT]]
   ])("test-getEvmSwapRoute", (chainId, fromContractAddr, toContractAddr, expectedRoute) => {
     const result = getEvmSwapRoute(chainId, fromContractAddr, toContractAddr);
     expect(JSON.stringify(result)).toEqual(JSON.stringify(expectedRoute));
