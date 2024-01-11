@@ -401,6 +401,7 @@ describe("test-duckdb", () => {
       // act
       const apr = await duckDb.getAllAprs();
 
+      console.log({ apr });
       // assertion
       expect(apr).toEqual([
         { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" },
