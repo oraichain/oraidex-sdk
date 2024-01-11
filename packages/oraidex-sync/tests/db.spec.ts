@@ -119,22 +119,22 @@ describe("test-duckdb", () => {
     const data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
 
     await duckDb.insertLpOps(data);
-    let queryResult = await duckDb.queryLpOps();
+    const queryResult = await duckDb.queryLpOps();
     queryResult[0].timestamp = queryResult[0].timestamp;
     expect(queryResult[0]).toEqual(data[0]);
   });
@@ -144,20 +144,20 @@ describe("test-duckdb", () => {
     duckDb = await DuckDb.create(":memory:");
     await duckDb.createLiquidityOpsTable();
     const currentTimeStamp = Math.round(new Date().getTime() / 1000);
-    let data: ProvideLiquidityOperationData[] = [
+    const data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
     await duckDb.insertLpOps(data);
@@ -403,8 +403,8 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(apr).toEqual([
-        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" },
-        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" }
+        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" },
+        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" }
       ]);
     });
 
@@ -421,7 +421,7 @@ describe("test-duckdb", () => {
         totalBondAmount: "1",
         rewardPerSec: "1",
         apr: 2.5,
-        timestamp: 1236
+        timestamp: 1236n
       });
     });
   });
