@@ -18,7 +18,7 @@
     "@oraichain/oraidex-contracts-sdk": "^1.0.24",
     "@oraichain/cw-simulate": "^2.8.72",
     "@oraichain/oraidex-common": "^1.0.41",
-    "duckdb-async": "^0.8.1",
+    "duckdb-async": "^0.9.2",
     "apache-arrow": "^12.0.1",
     "lodash": "^4.17.21"
   },
