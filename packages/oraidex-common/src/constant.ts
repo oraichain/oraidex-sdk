@@ -112,6 +112,7 @@ export const REWARDER_CONTRACT = "orai15hua2q83fp666nwhnyrn9g8gt9ueenl32qnugh";
 export const CONVERTER_CONTRACT = "orai14wy8xndhnvjmx6zl2866xqvs7fqwv2arhhrqq9";
 export const ORAIDEX_LISTING_CONTRACT = "orai1mkr02jzz0jfh34ps6z966uyueu4tlmnyg57nn72pxfq9t9a706tsha5znh";
 export const IBC_WASM_HOOKS_CONTRACT = "orai1w0h4ua3k8w2udju97nlws6dfh2ppwkhcewg09zp8gera4mf8lxxs6q086g";
+export const ORAIDEX_BID_POOL_CONTRACT = "orai1r4v3f8p2xethczvw5l5ed8cr05a9dqp6auy2zmz5dyvcq5h5g5kqg6m7vu";
 
 // config for evm
 export const GRAVITY_EVM_CONTRACT = "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5";
