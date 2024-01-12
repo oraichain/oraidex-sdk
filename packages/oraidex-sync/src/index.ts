@@ -70,6 +70,7 @@ class OraiDexSync {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
       const allPools = await this.duckDb.getPools();
+
       if (allPools.length > 0 && pairInfos.length === allPools.length) return false;
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair) => {
@@ -131,31 +132,37 @@ class OraiDexSync {
   }
 
   private async updateLatestPoolApr(height: number) {
-    const pools = await this.duckDb.getPools();
-    const allLiquidities = await getPoolLiquidities(pools);
+    try {
+      const pools = await this.duckDb.getPools();
+      const allLiquidities = await getPoolLiquidities(pools);
+      const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
+        pools,
+        allLiquidities
+      );
 
-    const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
-
-    const poolAprs = allAprs.map((apr, index) => {
-      return {
-        uniqueKey: concatAprHistoryToUniqueKey({
-          timestamp: Date.now(),
-          supply: allTotalSupplies[index],
-          bond: allBondAmounts[index],
-          reward: JSON.stringify(allRewardPerSec[index]),
+      const poolAprs = allAprs.map((apr, index) => {
+        return {
+          uniqueKey: concatAprHistoryToUniqueKey({
+            timestamp: Date.now(),
+            supply: allTotalSupplies[index],
+            bond: allBondAmounts[index],
+            reward: JSON.stringify(allRewardPerSec[index]),
+            apr,
+            pairAddr: pools[index].pairAddr
+          }),
+          pairAddr: pools[index].pairAddr,
+          height,
+          totalSupply: allTotalSupplies[index],
+          totalBondAmount: allBondAmounts[index],
+          rewardPerSec: JSON.stringify(allRewardPerSec[index]),
           apr,
-          pairAddr: pools[index].pairAddr
-        }),
-        pairAddr: pools[index].pairAddr,
-        height,
-        totalSupply: allTotalSupplies[index],
-        totalBondAmount: allBondAmounts[index],
-        rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-        apr,
-        timestamp: Date.now()
-      } as PoolApr;
-    });
-    await this.duckDb.insertPoolAprs(poolAprs);
+          timestamp: Date.now()
+        } as PoolApr;
+      });
+      await this.duckDb.insertPoolAprs(poolAprs);
+    } catch (error) {
+      console.log("error in updateLatestPoolApr: ", error);
+    }
   }
 
   public async sync() {

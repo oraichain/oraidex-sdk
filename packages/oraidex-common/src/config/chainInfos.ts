@@ -50,6 +50,7 @@ import {
   USDC_ETH_CONTRACT,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
+  USDT_ETH_CONTRACT,
   USDT_TRON_CONTRACT,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
@@ -500,6 +501,24 @@ export const chainInfos: CustomChainInfo[] = [
         Icon: UsdcIcon
       },
       {
+        coinDenom: "WETH",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + WRAP_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 6,
+        coinGeckoId: "weth",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        Icon: EthIcon
+      },
+      {
+        coinDenom: "USDT",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + USDT_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 6,
+        coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        Icon: UsdtIcon
+      },
+      {
         coinDenom: "AIRI",
         coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
         bridgeNetworkIdentifier: "0x38",
@@ -798,6 +817,16 @@ export const chainInfos: CustomChainInfo[] = [
         bridgeTo: ["Oraichain"],
         coinGeckoId: "ethereum",
         Icon: EthIcon
+      },
+      {
+        coinDenom: "USDT",
+        coinMinimalDenom: "erc20_usdt",
+        contractAddress: USDT_ETH_CONTRACT,
+        coinDecimals: 6,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        Icon: UsdtIcon
       }
     ]
   },

@@ -8,6 +8,7 @@ import {
   AIRI_BSC_CONTRACT,
   WRAP_ETH_CONTRACT,
   USDC_ETH_CONTRACT,
+  USDT_ETH_CONTRACT,
   EvmChainId,
   proxyContractInfo,
   CosmosChainId,
@@ -32,7 +33,8 @@ import {
   cosmosTokens,
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
-  isInPairList
+  isInPairList,
+  BigDecimal
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
 import {
@@ -48,11 +50,14 @@ import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 
+const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
+  const arr = ["ethereum", "weth"];
+  return arr.includes(fromCoingecko) && arr.includes(toCoingecko);
+};
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
   switch (coingeckoId) {
     case "wbnb":
-    case "weth":
     case "binancecoin":
     case "ethereum":
       return true;
@@ -88,7 +93,10 @@ export const swapEvmRoutes: {
   },
   "0x01": {
     [`${WRAP_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
-    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT]
+    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${WRAP_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT],
+    // TODO: hardcode fix eth -> weth (oraichain)
+    [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT]
   }
 };
 
@@ -374,12 +382,18 @@ export const simulateSwapEvm = async (query: {
   amount: string;
 }): Promise<SimulateResponse> => {
   const { amount, fromInfo, toInfo } = query;
+  // check swap native and wrap native
+  const isCheckSwapNativeAndWrapNative = caseSwapNativeAndWrapNative(fromInfo.coinGeckoId, toInfo.coinGeckoId);
 
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-  if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+  if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
-      amount,
-      displayAmount: toDisplay(amount, toInfo.decimals)
+      // amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
+      amount: new BigDecimal(amount)
+        .mul(10n ** BigInt(toInfo.decimals))
+        .div(10n ** BigInt(fromInfo.decimals))
+        .toString(),
+      displayAmount: toDisplay(amount, fromInfo.decimals)
     };
   }
   try {
@@ -468,6 +482,7 @@ export const checkFeeRelayer = async (query: {
   return checkFeeRelayerNotOrai({
     fromTokenInOrai: getTokenOnOraichain(originalFromToken.coinGeckoId),
     fromAmount,
+    relayerAmount: relayerFee.relayerAmount,
     routerClient
   });
 };
@@ -475,9 +490,10 @@ export const checkFeeRelayer = async (query: {
 export const checkFeeRelayerNotOrai = async (query: {
   fromTokenInOrai: TokenItemType;
   fromAmount: number;
+  relayerAmount: string;
   routerClient: OraiswapRouterReadOnlyInterface;
 }): Promise<boolean> => {
-  const { fromTokenInOrai, fromAmount, routerClient } = query;
+  const { fromTokenInOrai, fromAmount, routerClient, relayerAmount } = query;
   if (!fromTokenInOrai) return true;
   if (fromTokenInOrai.chainId !== "Oraichain")
     throw generateError(
@@ -492,8 +508,9 @@ export const checkFeeRelayerNotOrai = async (query: {
       amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
       routerClient: routerClient
     });
-    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
-    if (relayerDisplay >= fromAmount) return false;
+    const amountDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    const relayerAmountDisplay = toDisplay(relayerAmount);
+    if (relayerAmountDisplay > amountDisplay) return false;
     return true;
   }
   return true;

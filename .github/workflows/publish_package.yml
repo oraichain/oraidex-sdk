@@ -69,6 +69,13 @@ jobs:
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish Oraidex contracts-sdk
+        id: publish-oraidex-contracts-sdk
+        continue-on-error: true
+        run: yarn deploy packages/contracts-sdk
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install latest version
         id: install
