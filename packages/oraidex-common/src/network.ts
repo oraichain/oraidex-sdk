@@ -44,7 +44,8 @@ import {
   WETH_CONTRACT,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
-  WRAP_TRON_TRX_CONTRACT
+  WRAP_TRON_TRX_CONTRACT,
+  USDT_ETH_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -314,7 +315,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "usdt",
       type: "cw20",
       contractAddress: USDT_CONTRACT,
-      bridgeTo: ["0x38", "0x2b6653dc"],
+      bridgeTo: ["0x38", "0x2b6653dc", "0x01"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
     },
@@ -538,6 +539,15 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "weth",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+      },
+      {
+        coinDenom: "USDT",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + USDT_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 6,
+        coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
       }
     ],
     txExplorer: {
@@ -765,6 +775,16 @@ export const chainInfos: CustomChainInfo[] = [
         bridgeTo: ["Oraichain"],
         coinGeckoId: "ethereum",
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+      },
+      {
+        coinDenom: "USDT",
+        coinMinimalDenom: "erc20_usdt",
+        contractAddress: USDT_ETH_CONTRACT,
+        coinDecimals: 6,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
       }
     ],
     txExplorer: {

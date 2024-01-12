@@ -8,6 +8,7 @@ import {
   AIRI_BSC_CONTRACT,
   WRAP_ETH_CONTRACT,
   USDC_ETH_CONTRACT,
+  USDT_ETH_CONTRACT,
   EvmChainId,
   proxyContractInfo,
   CosmosChainId,
@@ -93,6 +94,7 @@ export const swapEvmRoutes: {
   "0x01": {
     [`${WRAP_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
     [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${WRAP_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT],
     // TODO: hardcode fix eth -> weth (oraichain)
     [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT]
   }
@@ -388,8 +390,8 @@ export const simulateSwapEvm = async (query: {
     return {
       // amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
       amount: new BigDecimal(amount)
-        .mul(10 ** toInfo.decimals)
-        .div(10 ** fromInfo.decimals)
+        .mul(10n ** BigInt(toInfo.decimals))
+        .div(10n ** BigInt(fromInfo.decimals))
         .toString(),
       displayAmount: toDisplay(amount, fromInfo.decimals)
     };
