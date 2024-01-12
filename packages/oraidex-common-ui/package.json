@@ -31,7 +31,6 @@
     "mini-css-extract-plugin": "^2.6.1",
     "storybook": "7.5.3",
     "terser-webpack-plugin": "^5.3.6",
-    "typescript": "^5.3.2",
     "webpack": "^5.89.0",
     "webpack-cli": "^5.1.4"
   },

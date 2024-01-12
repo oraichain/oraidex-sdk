@@ -94,6 +94,10 @@ export type QueryMsg = {
   order_book_matchable: {
     asset_infos: [AssetInfo, AssetInfo];
   };
+} | {
+  mid_price: {
+    asset_infos: [AssetInfo, AssetInfo];
+  };
 };
 export type OrderFilter = ("tick" | "none") | {
   bidder: string;

@@ -9,6 +9,7 @@ import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
 import { EncodeObject } from "@cosmjs/proto-signing";
+import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
 
 export interface EvmResponse {
   transactionHash: string;
@@ -39,8 +40,9 @@ export abstract class CosmosWallet {
   }> {
     const { chainId, rpc } = config;
     const wallet = await this.createCosmosSigner(chainId);
-    const client = await SigningCosmWasmClient.connectWithSigner(rpc, wallet, options);
-    const stargateClient = await SigningStargateClient.connectWithSigner(rpc, wallet, options);
+    const tmClient = await Tendermint37Client.connect(rpc);
+    const client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, options);
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, options);
     return { wallet, client, stargateClient };
   }
 

@@ -179,7 +179,7 @@ export const CODE_ID_CW20 = 761;
 export const CW20_DECIMALS = 6;
 
 // type switch wallet between keplr and owallet
-export type WalletType = "keplr" | "owallet";
+export type WalletType = "keplr" | "owallet" | "leapSnap";
 
 export const gravityContracts: Omit<Record<EvmChainId, string>, "0x1ae6"> = {
   "0x38": GRAVITY_EVM_CONTRACT,
