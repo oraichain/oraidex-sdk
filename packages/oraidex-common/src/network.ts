@@ -20,6 +20,7 @@ import {
   MILKY_ERC_CONTRACT,
   MILKY_SUB_NETWORK_DENOM,
   MULTICALL_CONTRACT,
+  OBTC_CONTRACT,
   ORACLE_CONTRACT,
   ORAIDEX_LISTING_CONTRACT,
   ORAIIBC_INJECTIVE_DENOM,
@@ -47,6 +48,7 @@ import {
   WRAP_TRON_TRX_CONTRACT,
   USDT_ETH_CONTRACT
 } from "./constant";
+import { ChainIdEnum } from "./interface";
 
 export type NetworkName =
   | "Oraichain"
@@ -59,6 +61,9 @@ export type NetworkName =
   | "Kawaiiverse EVM"
   | "Tron Network"
   | "Injective"
+  | "Bitcoin"
+  | "Bitcoin Testnet"
+  | "OraiBtc Bridge"
   | "Noble";
 
 export type CosmosChainId =
@@ -68,7 +73,8 @@ export type CosmosChainId =
   | "cosmoshub-4" // cosmos hub
   | "injective-1" // injective network
   | "kawaii_6886-1" // kawaii subnetwork
-  | "noble-1";
+  | "noble-1"
+  | "oraibtc-subnet-1";
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -76,7 +82,9 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type NetworkChainId = CosmosChainId | EvmChainId;
+export type BtcChainId = "bitcoinTestnet" | "bitcoin"; // btc
+
+export type NetworkChainId = CosmosChainId | EvmChainId | BtcChainId;
 
 export type CoinGeckoId =
   | "oraichain-token"
@@ -96,9 +104,10 @@ export type CoinGeckoId =
   | "weth"
   | "wbnb"
   | "scatom"
+  | "bitcoin"
   | "injective-protocol";
 
-export type NetworkType = "cosmos" | "evm";
+export type NetworkType = "cosmos" | "evm" | "bitcoin";
 export interface NetworkConfig {
   coinType?: number;
   explorer: string;
@@ -124,12 +133,12 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
   readonly bridgeNetworkIdentifier?: EvmChainId;
-  readonly coinDecimals: 6 | 18;
+  readonly coinDecimals: 6 | 18 | 8 | 14;
   readonly contractAddress?: string;
   readonly prefixToken?: string;
 };
 
-export type CoinType = 118 | 60 | 195;
+export type CoinType = 118 | 60 | 195 | 0 | 1 | 84; // 84 for bitcoin
 
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
@@ -200,6 +209,30 @@ export const OraiBToken: BridgeAppCurrency = {
   }
 };
 
+export const SatToken: BridgeAppCurrency = {
+  coinDenom: "oBTC",
+  coinMinimalDenom: "usat",
+  coinDecimals: 14,
+  gasPriceStep: {
+    low: 0,
+    average: 0,
+    high: 0
+  },
+  coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+};
+
+export const OraiBtcToken: BridgeAppCurrency = {
+  coinDenom: "ORAIBTC",
+  coinMinimalDenom: "uoraibtc",
+  coinDecimals: 6,
+  gasPriceStep: {
+    low: 0,
+    average: 0,
+    high: 0
+  },
+  coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+};
+
 export const KawaiiToken: BridgeAppCurrency = {
   coinDenom: "ORAIE",
   coinMinimalDenom: "oraie",
@@ -261,6 +294,15 @@ export const OsmoToken: BridgeAppCurrency = {
     average: 0.025,
     high: 0.04
   }
+};
+
+export const bitcoinToken: BridgeAppCurrency = {
+  coinDenom: "BTC",
+  coinMinimalDenom: "sat",
+  coinDecimals: 8,
+  coinGeckoId: "bitcoin",
+  bridgeTo: ["Oraichain"],
+  coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
 };
 
 export const oraichainNetwork: CustomChainInfo = {
@@ -432,6 +474,15 @@ export const oraichainNetwork: CustomChainInfo = {
       bridgeTo: ["0x01"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+    },
+    {
+      coinDenom: "oBTC",
+      coinGeckoId: "bitcoin",
+      coinMinimalDenom: "obtc",
+      contractAddress: OBTC_CONTRACT,
+      coinDecimals: 6,
+      type: "cw20",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
     }
   ]
 };
@@ -554,6 +605,47 @@ export const chainInfos: CustomChainInfo[] = [
       name: "OraiBridge Scan",
       txUrl: "https://scan.bridge.orai.io/tx/${txHash}",
       accountUrl: "https://scan.bridge.orai.io/account/{address}"
+    }
+  },
+  {
+    // FIXME: change to the real rpc & rest of oraibtc bridge
+    rpc: "https://oraibtc.rpc.orai.io",
+    rest: "https://oraibtc.lcd.orai.io",
+    chainId: "oraibtc-subnet-1",
+    chainName: "OraiBtc Bridge",
+    networkType: "cosmos",
+    bip44: {
+      coinType: 118
+    },
+    bech32Config: defaultBech32Config("oraibtc"),
+    features: ["stargate", "ibc-transfer", "no-legacy-stdTx"],
+    stakeCurrency: OraiBtcToken,
+    feeCurrencies: [OraiBtcToken, SatToken],
+    currencies: [OraiBtcToken, SatToken]
+  },
+  {
+    rest: "https://blockstream.info/api",
+    rpc: "https://blockstream.info/api",
+    chainId: ChainIdEnum.Bitcoin,
+    chainName: "Bitcoin",
+    bip44: {
+      coinType: 0
+    },
+    coinType: 0,
+
+    stakeCurrency: bitcoinToken,
+    bech32Config: defaultBech32Config("bc"),
+    networkType: "bitcoin",
+    currencies: [bitcoinToken],
+    get feeCurrencies() {
+      return this.currencies;
+    },
+
+    features: ["isBtc"],
+    txExplorer: {
+      name: "BlockStream",
+      txUrl: "https://blockstream.info/tx/{txHash}",
+      accountUrl: "https://blockstream.info/address/{address}"
     }
   },
   {

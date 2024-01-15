@@ -2,23 +2,23 @@
 
 declare const dateFormatFunctions: {
   "dd MMM 'yy": (date: Date, local: boolean) => string;
-  'MMM dd, yyyy': (date: Date, local: boolean) => string;
-  'MMM dd': (date: Date, local: boolean) => string;
-  'yyyy-MM-dd': (date: Date, local: boolean) => string;
-  'yy-MM-dd': (date: Date, local: boolean) => string;
-  'yy/MM/dd': (date: Date, local: boolean) => string;
-  'yyyy/MM/dd': (date: Date, local: boolean) => string;
-  'dd-MM-yyyy': (date: Date, local: boolean) => string;
-  'dd-MM-yy': (date: Date, local: boolean) => string;
-  'dd/MM/yy': (date: Date, local: boolean) => string;
-  'dd/MM/yyyy': (date: Date, local: boolean) => string;
-  'MM/dd/yy': (date: Date, local: boolean) => string;
-  'MM/dd/yyyy': (date: Date, local: boolean) => string;
+  "MMM dd, yyyy": (date: Date, local: boolean) => string;
+  "MMM dd": (date: Date, local: boolean) => string;
+  "yyyy-MM-dd": (date: Date, local: boolean) => string;
+  "yy-MM-dd": (date: Date, local: boolean) => string;
+  "yy/MM/dd": (date: Date, local: boolean) => string;
+  "yyyy/MM/dd": (date: Date, local: boolean) => string;
+  "dd-MM-yyyy": (date: Date, local: boolean) => string;
+  "dd-MM-yy": (date: Date, local: boolean) => string;
+  "dd/MM/yy": (date: Date, local: boolean) => string;
+  "dd/MM/yyyy": (date: Date, local: boolean) => string;
+  "MM/dd/yy": (date: Date, local: boolean) => string;
+  "MM/dd/yyyy": (date: Date, local: boolean) => string;
 };
 declare enum OrderOrPositionMessageType {
-  Information = 'information',
-  Warning = 'warning',
-  Error = 'error'
+  Information = "information",
+  Warning = "warning",
+  Error = "error"
 }
 declare enum StopType {
   StopLoss = 0,
@@ -107,83 +107,83 @@ export declare const enum Side {
   Sell = -1
 }
 export declare const enum StandardFormatterName {
-  Date = 'date',
-  DateOrDateTime = 'dateOrDateTime',
-  Default = 'default',
-  Fixed = 'fixed',
-  VariablePrecision = 'variablePrecision',
-  FormatQuantity = 'formatQuantity',
-  FormatPrice = 'formatPrice',
-  FormatPriceForexSup = 'formatPriceForexSup',
-  IntegerSeparated = 'integerSeparated',
-  LocalDate = 'localDate',
-  LocalDateOrDateTime = 'localDateOrDateTime',
-  OrderSettings = 'orderSettings',
-  Percentage = 'percentage',
-  Pips = 'pips',
-  Profit = 'profit',
-  ProfitInInstrumentCurrency = 'profitInInstrumentCurrency',
-  PosSettings = 'posSettings',
-  Side = 'side',
-  PositionSide = 'positionSide',
-  Status = 'status',
-  Symbol = 'symbol',
-  Text = 'text',
-  TextNoWrap = 'textNoWrap',
-  TradeSettings = 'tradeSettings',
-  Type = 'type',
-  MarginPercent = 'marginPercent'
+  Date = "date",
+  DateOrDateTime = "dateOrDateTime",
+  Default = "default",
+  Fixed = "fixed",
+  VariablePrecision = "variablePrecision",
+  FormatQuantity = "formatQuantity",
+  FormatPrice = "formatPrice",
+  FormatPriceForexSup = "formatPriceForexSup",
+  IntegerSeparated = "integerSeparated",
+  LocalDate = "localDate",
+  LocalDateOrDateTime = "localDateOrDateTime",
+  OrderSettings = "orderSettings",
+  Percentage = "percentage",
+  Pips = "pips",
+  Profit = "profit",
+  ProfitInInstrumentCurrency = "profitInInstrumentCurrency",
+  PosSettings = "posSettings",
+  Side = "side",
+  PositionSide = "positionSide",
+  Status = "status",
+  Symbol = "symbol",
+  Text = "text",
+  TextNoWrap = "textNoWrap",
+  TradeSettings = "tradeSettings",
+  Type = "type",
+  MarginPercent = "marginPercent"
 }
 export declare const enum TimeFrameType {
-  PeriodBack = 'period-back',
-  TimeRange = 'time-range'
+  PeriodBack = "period-back",
+  TimeRange = "time-range"
 }
 export declare const enum VisibilityType {
-  AlwaysOn = 'alwaysOn',
-  VisibleOnMouseOver = 'visibleOnMouseOver',
-  AlwaysOff = 'alwaysOff'
+  AlwaysOn = "alwaysOn",
+  VisibleOnMouseOver = "visibleOnMouseOver",
+  AlwaysOff = "alwaysOff"
 }
 export declare const widget: ChartingLibraryWidgetConstructor;
 export declare function version(): string;
-export declare type AccountId = Nominal<string, 'AccountID'>;
+export declare type AccountId = Nominal<string, "AccountID">;
 export declare type ActionMetaInfo = ActionDescriptionWithCallback | MenuSeparator;
-export declare type AvailableSaveloadVersions = '1.0' | '1.1';
-export declare type CellAlignment = 'left' | 'right';
+export declare type AvailableSaveloadVersions = "1.0" | "1.1";
+export declare type CellAlignment = "left" | "right";
 export declare type ChartActionId =
-  | 'chartProperties'
-  | 'compareOrAdd'
-  | 'scalesProperties'
-  | 'paneObjectTree'
-  | 'insertIndicator'
-  | 'symbolSearch'
-  | 'changeInterval'
-  | 'timeScaleReset'
-  | 'chartReset'
-  | 'seriesHide'
-  | 'studyHide'
-  | 'lineToggleLock'
-  | 'lineHide'
-  | 'scaleSeriesOnly'
-  | 'drawingToolbarAction'
-  | 'stayInDrawingModeAction'
-  | 'hideAllMarks'
-  | 'showCountdown'
-  | 'showSeriesLastValue'
-  | 'showSymbolLabelsAction'
-  | 'showStudyLastValue'
-  | 'showStudyPlotNamesAction'
-  | 'undo'
-  | 'redo'
-  | 'paneRemoveAllStudiesDrawingTools'
-  | 'showSymbolInfoDialog';
+  | "chartProperties"
+  | "compareOrAdd"
+  | "scalesProperties"
+  | "paneObjectTree"
+  | "insertIndicator"
+  | "symbolSearch"
+  | "changeInterval"
+  | "timeScaleReset"
+  | "chartReset"
+  | "seriesHide"
+  | "studyHide"
+  | "lineToggleLock"
+  | "lineHide"
+  | "scaleSeriesOnly"
+  | "drawingToolbarAction"
+  | "stayInDrawingModeAction"
+  | "hideAllMarks"
+  | "showCountdown"
+  | "showSeriesLastValue"
+  | "showSymbolLabelsAction"
+  | "showStudyLastValue"
+  | "showStudyPlotNamesAction"
+  | "undo"
+  | "redo"
+  | "paneRemoveAllStudiesDrawingTools"
+  | "showSymbolInfoDialog";
 export declare type DateFormat = keyof typeof dateFormatFunctions;
-export declare type Direction = 'buy' | 'sell';
+export declare type Direction = "buy" | "sell";
 export declare type DomeCallback = (data: DOMData) => void;
-export declare type DrawingEventType = 'click' | 'move' | 'remove' | 'hide' | 'show';
-export declare type DropdownUpdateParams = Partial<Omit<DropdownParams, 'align'>>;
-export declare type EditObjectDialogObjectType = 'mainSeries' | 'drawing' | 'study' | 'other';
+export declare type DrawingEventType = "click" | "move" | "remove" | "hide" | "show";
+export declare type DropdownUpdateParams = Partial<Omit<DropdownParams, "align">>;
+export declare type EditObjectDialogObjectType = "mainSeries" | "drawing" | "study" | "other";
 export declare type EmptyCallback = () => void;
-export declare type EntityId = Nominal<string, 'EntityId'>;
+export declare type EntityId = Nominal<string, "EntityId">;
 export declare type ErrorCallback = (reason: string) => void;
 export declare type FieldDescriptor =
   | TimeFieldDescriptor
@@ -192,9 +192,9 @@ export declare type FieldDescriptor =
   | StudyFieldDescriptor;
 export declare type GetMarksCallback<T> = (marks: T[]) => void;
 export declare type GetNewsFunction = (symbol: string, callback: (response: GetNewsResponse) => void) => void;
-export declare type GroupLockState = 'Locked' | 'Unlocked' | 'Partial';
-export declare type GroupVisibilityState = 'Visible' | 'Invisible' | 'Partial';
-export declare type HeaderWidgetButtonsMode = 'fullsize' | 'compact' | 'adaptive';
+export declare type GroupLockState = "Locked" | "Unlocked" | "Partial";
+export declare type GroupVisibilityState = "Visible" | "Invisible" | "Partial";
+export declare type HeaderWidgetButtonsMode = "fullsize" | "compact" | "adaptive";
 export declare type HistoryCallback = (bars: Bar[], meta?: HistoryMetadata) => void;
 export declare type IBasicDataFeed = IDatafeedChartApi & IExternalDatafeed;
 export declare type INumberFormatter = IFormatter<number>;
@@ -203,60 +203,60 @@ export declare type InputFieldValidatorResult =
   | PositiveBaseInputFieldValidatorResult
   | NegativeBaseInputFieldValidatorResult;
 export declare type LanguageCode =
-  | 'ar'
-  | 'zh'
-  | 'cs'
-  | 'da_DK'
-  | 'nl_NL'
-  | 'en'
-  | 'et_EE'
-  | 'fr'
-  | 'de'
-  | 'el'
-  | 'he_IL'
-  | 'hu_HU'
-  | 'id_ID'
-  | 'it'
-  | 'ja'
-  | 'ko'
-  | 'fa'
-  | 'pl'
-  | 'pt'
-  | 'ro'
-  | 'ru'
-  | 'sk_SK'
-  | 'es'
-  | 'sv'
-  | 'th'
-  | 'tr'
-  | 'vi'
-  | 'no'
-  | 'ms_MY'
-  | 'zh_TW';
+  | "ar"
+  | "zh"
+  | "cs"
+  | "da_DK"
+  | "nl_NL"
+  | "en"
+  | "et_EE"
+  | "fr"
+  | "de"
+  | "el"
+  | "he_IL"
+  | "hu_HU"
+  | "id_ID"
+  | "it"
+  | "ja"
+  | "ko"
+  | "fa"
+  | "pl"
+  | "pt"
+  | "ro"
+  | "ru"
+  | "sk_SK"
+  | "es"
+  | "sv"
+  | "th"
+  | "tr"
+  | "vi"
+  | "no"
+  | "ms_MY"
+  | "zh_TW";
 export declare type LayoutType = SingleChartLayoutType | MultipleChartsLayoutType;
-export declare type LegendMode = 'horizontal' | 'vertical';
-export declare type MarkConstColors = 'red' | 'green' | 'blue' | 'yellow';
+export declare type LegendMode = "horizontal" | "vertical";
+export declare type MarkConstColors = "red" | "green" | "blue" | "yellow";
 export declare type MultipleChartsLayoutType =
-  | '2h'
-  | '2v'
-  | '2-1'
-  | '3s'
-  | '3h'
-  | '3v'
-  | '4'
-  | '6'
-  | '8'
-  | '1-2'
-  | '3r'
-  | '4h'
-  | '4v'
-  | '4s'
-  | '1-3'
-  | '2-2'
-  | '1-4'
-  | '5s'
-  | '6c'
-  | '8c';
+  | "2h"
+  | "2v"
+  | "2-1"
+  | "3s"
+  | "3h"
+  | "3v"
+  | "4"
+  | "6"
+  | "8"
+  | "1-2"
+  | "3r"
+  | "4h"
+  | "4v"
+  | "4s"
+  | "1-3"
+  | "2-2"
+  | "1-4"
+  | "5s"
+  | "6c"
+  | "8c";
 /**
  * This is the generic type useful for declaring a nominal type,
  * which does not structurally matches with the base type and
@@ -278,160 +278,161 @@ export declare type Order = PlacedOrder | BracketOrder;
 export declare type PineJS = any;
 export declare type QuoteData = QuoteOkData | QuoteErrorData;
 export declare type QuotesCallback = (data: QuoteData[]) => void;
-export declare type ResolutionString = Nominal<string, 'ResolutionString'>;
+export declare type ResolutionString = Nominal<string, "ResolutionString">;
 export declare type ResolveCallback = (symbolInfo: LibrarySymbolInfo) => void;
 export declare type RssNewsFeedItem = RssNewsFeedInfo | RssNewsFeedInfo[];
 export declare type SearchSymbolsCallback = (items: SearchSymbolResultItem[]) => void;
-export declare type SeriesEventType = 'price_scale_changed';
-export declare type SeriesFormat = 'price' | 'volume';
-export declare type SeriesPriceScale = 'new-left' | 'new-right' | 'no-scale' | EntityId;
+export declare type SeriesEventType = "price_scale_changed";
+export declare type SeriesFormat = "price" | "volume";
+export declare type SeriesPriceScale = "new-left" | "new-right" | "no-scale" | EntityId;
 export declare type ServerTimeCallback = (serverTime: number) => void;
-export declare type SetVisibleTimeRange = Omit<VisibleTimeRange, 'to'> & Partial<Pick<VisibleTimeRange, 'to'>>;
+export declare type SetVisibleTimeRange = Omit<VisibleTimeRange, "to"> & Partial<Pick<VisibleTimeRange, "to">>;
 export declare type ShapePoint = StickedPoint | PricedPoint | TimePoint;
-export declare type ShapesGroupId = Nominal<string, 'ShapesGroupId'>;
-export declare type SingleChartLayoutType = 's';
-export declare type StudyEventType = 'remove' | 'price_scale_changed';
-export declare type StudyInputId = Nominal<string, 'StudyInputId'>;
+export declare type ShapesGroupId = Nominal<string, "ShapesGroupId">;
+export declare type SingleChartLayoutType = "s";
+export declare type StudyEventType = "remove" | "price_scale_changed";
+export declare type StudyInputId = Nominal<string, "StudyInputId">;
 export declare type StudyInputValue = string | number | boolean;
 export declare type StudyOverrideValueType = string | number | boolean;
-export declare type StudyPriceScale = 'new-left' | 'new-right' | 'no-scale' | 'as-series';
+export declare type StudyPriceScale = "new-left" | "new-right" | "no-scale" | "as-series";
 export declare type SubscribeBarsCallback = (bar: Bar) => void;
 export declare type SupportedLineTools =
-  | 'text'
-  | 'anchored_text'
-  | 'note'
-  | 'anchored_note'
-  | 'signpost'
-  | 'double_curve'
-  | 'arc'
-  | 'icon'
-  | 'arrow_up'
-  | 'arrow_down'
-  | 'arrow_left'
-  | 'arrow_right'
-  | 'price_label'
-  | 'price_note'
-  | 'arrow_marker'
-  | 'flag'
-  | 'vertical_line'
-  | 'horizontal_line'
-  | 'cross_line'
-  | 'horizontal_ray'
-  | 'trend_line'
-  | 'info_line'
-  | 'trend_angle'
-  | 'arrow'
-  | 'ray'
-  | 'extended'
-  | 'parallel_channel'
-  | 'disjoint_angle'
-  | 'flat_bottom'
-  | 'pitchfork'
-  | 'schiff_pitchfork_modified'
-  | 'schiff_pitchfork'
-  | 'balloon'
-  | 'inside_pitchfork'
-  | 'pitchfan'
-  | 'gannbox'
-  | 'gannbox_square'
-  | 'gannbox_fixed'
-  | 'gannbox_fan'
-  | 'fib_retracement'
-  | 'fib_trend_ext'
-  | 'fib_speed_resist_fan'
-  | 'fib_timezone'
-  | 'fib_trend_time'
-  | 'fib_circles'
-  | 'fib_spiral'
-  | 'fib_speed_resist_arcs'
-  | 'fib_channel'
-  | 'xabcd_pattern'
-  | 'cypher_pattern'
-  | 'abcd_pattern'
-  | 'callout'
-  | 'triangle_pattern'
-  | '3divers_pattern'
-  | 'head_and_shoulders'
-  | 'fib_wedge'
-  | 'elliott_impulse_wave'
-  | 'elliott_triangle_wave'
-  | 'elliott_triple_combo'
-  | 'elliott_correction'
-  | 'elliott_double_combo'
-  | 'cyclic_lines'
-  | 'time_cycles'
-  | 'sine_line'
-  | 'long_position'
-  | 'short_position'
-  | 'forecast'
-  | 'date_range'
-  | 'price_range'
-  | 'date_and_price_range'
-  | 'bars_pattern'
-  | 'ghost_feed'
-  | 'projection'
-  | 'rectangle'
-  | 'rotated_rectangle'
-  | 'ellipse'
-  | 'triangle'
-  | 'polyline'
-  | 'path'
-  | 'curve'
-  | 'cursor'
-  | 'dot'
-  | 'arrow_cursor'
-  | 'eraser'
-  | 'measure'
-  | 'zoom'
-  | 'brush'
-  | 'highlighter'
-  | 'regression_trend'
-  | 'fixed_range_volume_profile';
+  | "text"
+  | "anchored_text"
+  | "note"
+  | "anchored_note"
+  | "signpost"
+  | "double_curve"
+  | "arc"
+  | "icon"
+  | "arrow_up"
+  | "arrow_down"
+  | "arrow_left"
+  | "arrow_right"
+  | "price_label"
+  | "price_note"
+  | "arrow_marker"
+  | "flag"
+  | "vertical_line"
+  | "horizontal_line"
+  | "cross_line"
+  | "horizontal_ray"
+  | "trend_line"
+  | "info_line"
+  | "trend_angle"
+  | "arrow"
+  | "ray"
+  | "extended"
+  | "parallel_channel"
+  | "disjoint_angle"
+  | "flat_bottom"
+  | "pitchfork"
+  | "schiff_pitchfork_modified"
+  | "schiff_pitchfork"
+  | "balloon"
+  | "inside_pitchfork"
+  | "pitchfan"
+  | "gannbox"
+  | "gannbox_square"
+  | "gannbox_fixed"
+  | "gannbox_fan"
+  | "fib_retracement"
+  | "fib_trend_ext"
+  | "fib_speed_resist_fan"
+  | "fib_timezone"
+  | "fib_trend_time"
+  | "fib_circles"
+  | "fib_spiral"
+  | "fib_speed_resist_arcs"
+  | "fib_channel"
+  | "xabcd_pattern"
+  | "cypher_pattern"
+  | "abcd_pattern"
+  | "callout"
+  | "triangle_pattern"
+  | "3divers_pattern"
+  | "head_and_shoulders"
+  | "fib_wedge"
+  | "elliott_impulse_wave"
+  | "elliott_triangle_wave"
+  | "elliott_triple_combo"
+  | "elliott_correction"
+  | "elliott_double_combo"
+  | "cyclic_lines"
+  | "time_cycles"
+  | "sine_line"
+  | "long_position"
+  | "short_position"
+  | "forecast"
+  | "date_range"
+  | "price_range"
+  | "date_and_price_range"
+  | "bars_pattern"
+  | "ghost_feed"
+  | "projection"
+  | "rectangle"
+  | "rotated_rectangle"
+  | "ellipse"
+  | "triangle"
+  | "polyline"
+  | "path"
+  | "curve"
+  | "cursor"
+  | "dot"
+  | "arrow_cursor"
+  | "eraser"
+  | "measure"
+  | "zoom"
+  | "brush"
+  | "highlighter"
+  | "regression_trend"
+  | "fixed_range_volume_profile";
 export declare type SymbolSearchCompleteOverrideFunction = (symbol: string) => Promise<string>;
 export declare type SymbolType =
-  | 'stock'
-  | 'index'
-  | 'forex'
-  | 'futures'
-  | 'bitcoin'
-  | 'crypto'
-  | 'undefined'
-  | 'expression'
-  | 'spread'
-  | 'cfd'
-  | 'economic'
-  | 'equity'
-  | 'dr'
-  | 'bond'
-  | 'right'
-  | 'warrant'
-  | 'fund'
-  | 'structured';
+  | "stock"
+  | "index"
+  | "forex"
+  | "futures"
+  | "bitcoin"
+  | "bitcoinTestnet"
+  | "crypto"
+  | "undefined"
+  | "expression"
+  | "spread"
+  | "cfd"
+  | "economic"
+  | "equity"
+  | "dr"
+  | "bond"
+  | "right"
+  | "warrant"
+  | "fund"
+  | "structured";
 export declare type TextInputFieldValidator = (value: string) => InputFieldValidatorResult;
-export declare type ThemeName = 'Light' | 'Dark';
+export declare type ThemeName = "Light" | "Dark";
 export declare type TickMarkType =
   /**
    * The start of the year (e.g. it's the first tick mark in a year).
    */
-  | 'Year'
+  | "Year"
   /**
    * The start of the month (e.g. it's the first tick mark in a month).
    */
-  | 'Month'
+  | "Month"
   /**
    * A day of the month.
    */
-  | 'DayOfMonth'
+  | "DayOfMonth"
   /**
    * A time without seconds.
    */
-  | 'Time'
+  | "Time"
   /**
    * A time with seconds.
    */
-  | 'TimeWithSeconds';
+  | "TimeWithSeconds";
 export declare type TimeFrameValue = TimeFramePeriodBack | TimeFrameTimeRange;
-export declare type Timezone = 'Etc/UTC' | CustomTimezones;
+export declare type Timezone = "Etc/UTC" | CustomTimezones;
 export declare type TradableSolutions = ChangeAccountSolution | ChangeSymbolSolution;
 export declare type TradingDialogCustomField = TextWithCheckboxFieldMetaInfo | CustomComboBoxMetaInfo;
 export declare type WatchListSymbolListAddedCallback = (listId: string, symbols: string[]) => void;
@@ -440,7 +441,7 @@ export declare type WatchListSymbolListRemovedCallback = (listId: string) => voi
 export declare type WatchListSymbolListRenamedCallback = (listId: string, oldName: string, newName: string) => void;
 export declare type WatchedValueCallback<T> = (value: T) => void;
 export interface AccessList {
-  type: 'black' | 'white';
+  type: "black" | "white";
   tools: AccessListItem[];
 }
 export interface AccessListItem {
@@ -450,7 +451,7 @@ export interface AccessListItem {
 export interface AccountManagerColumn {
   label: string;
   alignment?: CellAlignment;
-  formatter?: StandardFormatterName | 'orderSettings' | 'posSettings' | string;
+  formatter?: StandardFormatterName | "orderSettings" | "posSettings" | string;
   property: string;
   sortProp?: string;
   notSortable?: boolean;
@@ -502,7 +503,7 @@ export interface AccountManagerTableFlags {
   supportPagination?: boolean;
 }
 export interface ActionDescription {
-  text?: '-' | string;
+  text?: "-" | string;
   separator?: boolean;
   shortcut?: string;
   tooltip?: string;
@@ -711,7 +712,7 @@ export interface ChartingLibraryWidgetOptions {
   study_count_limit?: number;
   symbol_search_request_delay?: number;
   timeframe?: string;
-  timezone?: 'exchange' | Timezone;
+  timezone?: "exchange" | Timezone;
   toolbar_bg?: string;
   width?: number;
   charts_storage_url?: string;
@@ -724,7 +725,7 @@ export interface ChartingLibraryWidgetOptions {
   custom_formatters?: CustomFormatters;
   overrides?: Overrides;
   snapshot_url?: string;
-  preset?: 'mobile';
+  preset?: "mobile";
   time_frames?: TimeFrameItem[];
   custom_css_url?: string;
   favorites?: Favorites;
@@ -752,18 +753,18 @@ export interface CompareSymbol {
   title: string;
 }
 export interface ContextMenuItem {
-  position: 'top' | 'bottom';
+  position: "top" | "bottom";
   text: string;
   click: EmptyCallback;
 }
 export interface CreateButtonOptions {
-  align: 'right' | 'left';
+  align: "right" | "left";
 }
 export interface CreateMultipointShapeOptions<TOverrides extends object> extends CreateShapeOptionsBase<TOverrides> {
-  shape?: Exclude<SupportedLineTools, 'cursor' | 'dot' | 'arrow_cursor' | 'eraser' | 'measure' | 'zoom'>;
+  shape?: Exclude<SupportedLineTools, "cursor" | "dot" | "arrow_cursor" | "eraser" | "measure" | "zoom">;
 }
 export interface CreateShapeOptions<TOverrides extends object> extends CreateShapeOptionsBase<TOverrides> {
-  shape?: 'arrow_up' | 'arrow_down' | 'flag' | 'vertical_line' | 'horizontal_line' | 'long_position' | 'short_position';
+  shape?: "arrow_up" | "arrow_down" | "flag" | "vertical_line" | "horizontal_line" | "long_position" | "short_position";
   ownerStudyId?: EntityId;
 }
 export interface CreateShapeOptionsBase<TOverrides extends object> {
@@ -773,7 +774,7 @@ export interface CreateShapeOptionsBase<TOverrides extends object> {
   disableSave?: boolean;
   disableUndo?: boolean;
   overrides?: TOverrides;
-  zOrder?: 'top' | 'bottom';
+  zOrder?: "top" | "bottom";
   showInObjectsTree?: boolean;
   ownerStudyId?: EntityId;
 }
@@ -807,7 +808,7 @@ export interface CustomComboBoxItem {
   value: string;
 }
 export interface CustomComboBoxMetaInfo extends CustomInputFieldMetaInfo {
-  inputType: 'ComboBox';
+  inputType: "ComboBox";
   items: CustomComboBoxItem[];
 }
 export interface CustomFields {
@@ -902,7 +903,7 @@ export interface DropdownParams {
   items: DropdownItem[];
   tooltip?: string;
   icon?: string;
-  align?: 'right' | 'left';
+  align?: "right" | "left";
 }
 export interface EditObjectDialogEventParams {
   objectType: EditObjectDialogObjectType;
@@ -935,7 +936,7 @@ export interface ExportDataOptions {
   includeUserTime?: boolean;
   includeSeries?: boolean;
   includeDisplayedValues?: boolean;
-  includedStudies: readonly string[] | 'all';
+  includedStudies: readonly string[] | "all";
 }
 export interface ExportedData {
   schema: FieldDescriptor[];
@@ -954,7 +955,7 @@ export interface GetNewsResponse {
   newsItems: NewsItem[];
 }
 export interface GrayedObject {
-  type: 'drawing' | 'study';
+  type: "drawing" | "study";
   name: string;
 }
 export interface HeikinAshiStylePreferences {
@@ -1199,8 +1200,8 @@ export interface IChartWidgetApi {
   defaultScrollPosition(): number;
   priceFormatter(): INumberFormatter;
   chartType(): SeriesStyle;
-  setTimezone(timezone: 'exchange' | Timezone): void;
-  getTimezone(): 'exchange' | Timezone;
+  setTimezone(timezone: "exchange" | Timezone): void;
+  getTimezone(): "exchange" | Timezone;
   getPanes(): IPaneApi[];
   exportData(options?: Partial<ExportDataOptions>): Promise<ExportedData>;
   canZoomOut(): boolean;
@@ -1805,7 +1806,7 @@ export interface LibrarySymbolInfo {
    * Integer showing typical volume value decimal places for this symbol
    */
   volume_precision?: number;
-  data_status?: 'streaming' | 'endofday' | 'pulsed' | 'delayed_streaming';
+  data_status?: "streaming" | "endofday" | "pulsed" | "delayed_streaming";
   /**
    * Boolean showing whether this symbol is expired futures contract or not.
    */
@@ -1917,7 +1918,7 @@ export interface OrderPreviewSectionRow {
 }
 export interface OrderRule {
   id: string;
-  severity: 'warning' | 'error';
+  severity: "warning" | "error";
 }
 export interface OrderTableColumn extends AccountManagerColumn {
   supportedStatusFilters?: OrderStatusFilter[];
@@ -2026,12 +2027,12 @@ export interface QuantityMetainfo {
   default?: number;
 }
 export interface QuoteErrorData {
-  s: 'error';
+  s: "error";
   n: string;
   v: object;
 }
 export interface QuoteOkData {
-  s: 'ok';
+  s: "ok";
   n: string;
   v: DatafeedQuoteValues;
 }
@@ -2085,8 +2086,8 @@ export interface SearchSymbolResultItem {
   type: string;
 }
 export interface SeriesFieldDescriptor {
-  type: 'value';
-  sourceType: 'series';
+  type: "value";
+  sourceType: "series";
   plotTitle: string;
   sourceTitle: string;
 }
@@ -2121,11 +2122,11 @@ export interface SortingParameters {
   asc?: boolean;
 }
 export interface StickedPoint extends TimePoint {
-  channel: 'open' | 'high' | 'low' | 'close';
+  channel: "open" | "high" | "low" | "close";
 }
 export interface StudyFieldDescriptor {
-  type: 'value';
-  sourceType: 'study';
+  type: "value";
+  sourceType: "study";
   sourceId: string;
   sourceTitle: string;
   plotTitle: string;
@@ -2170,13 +2171,13 @@ export interface SubscribeEventsMap {
   reset_scales: EmptyCallback;
   compare_add: EmptyCallback;
   add_compare: EmptyCallback;
-  'load_study template': EmptyCallback;
+  "load_study template": EmptyCallback;
   onTick: (tick: Bar) => void;
   onAutoSaveNeeded: EmptyCallback;
   onScreenshotReady: (url: string) => void;
-  onMarkClick: (markId: Mark['id']) => void;
+  onMarkClick: (markId: Mark["id"]) => void;
   onPlusClick: (params: PlusClickParams) => void;
-  onTimescaleMarkClick: (markId: TimescaleMark['id']) => void;
+  onTimescaleMarkClick: (markId: TimescaleMark["id"]) => void;
   onSelectedLineToolChanged: EmptyCallback;
   layout_about_to_be_changed: (newLayoutType: LayoutType) => void;
   layout_changed: EmptyCallback;
@@ -2220,7 +2221,7 @@ export interface TextWithCheckboxFieldCustomInfo {
   asterix?: boolean;
 }
 export interface TextWithCheckboxFieldMetaInfo extends CustomInputFieldMetaInfo {
-  inputType: 'TextWithCheckBox';
+  inputType: "TextWithCheckBox";
   value: TextWithCheckboxValue;
   customInfo: TextWithCheckboxFieldCustomInfo;
   validator?: TextInputFieldValidator;
@@ -2230,7 +2231,7 @@ export interface TextWithCheckboxValue {
   checked: boolean;
 }
 export interface TimeFieldDescriptor {
-  type: 'time';
+  type: "time";
 }
 export interface TimeFrameItem {
   text: string;
@@ -2318,7 +2319,7 @@ export interface Unit {
   description: string;
 }
 export interface UserTimeFieldDescriptor {
-  type: 'userTime';
+  type: "userTime";
 }
 export interface VisiblePriceRange {
   from: number;
@@ -2353,82 +2354,82 @@ export interface WidgetBarParams {
   };
 }
 export type CustomTimezones =
-  | 'Africa/Cairo'
-  | 'Africa/Johannesburg'
-  | 'Africa/Lagos'
-  | 'America/Argentina/Buenos_Aires'
-  | 'America/Bogota'
-  | 'America/Caracas'
-  | 'America/Chicago'
-  | 'America/El_Salvador'
-  | 'America/Juneau'
-  | 'America/Lima'
-  | 'America/Los_Angeles'
-  | 'America/Mexico_City'
-  | 'America/New_York'
-  | 'America/Phoenix'
-  | 'America/Santiago'
-  | 'America/Sao_Paulo'
-  | 'America/Toronto'
-  | 'America/Vancouver'
-  | 'Asia/Almaty'
-  | 'Asia/Ashkhabad'
-  | 'Asia/Bahrain'
-  | 'Asia/Bangkok'
-  | 'Asia/Chongqing'
-  | 'Asia/Dubai'
-  | 'Asia/Ho_Chi_Minh'
-  | 'Asia/Hong_Kong'
-  | 'Asia/Jakarta'
-  | 'Asia/Jerusalem'
-  | 'Asia/Kathmandu'
-  | 'Asia/Kolkata'
-  | 'Asia/Kuwait'
-  | 'Asia/Muscat'
-  | 'Asia/Qatar'
-  | 'Asia/Riyadh'
-  | 'Asia/Seoul'
-  | 'Asia/Shanghai'
-  | 'Asia/Singapore'
-  | 'Asia/Taipei'
-  | 'Asia/Tehran'
-  | 'Asia/Tokyo'
-  | 'Atlantic/Reykjavik'
-  | 'Australia/ACT'
-  | 'Australia/Adelaide'
-  | 'Australia/Brisbane'
-  | 'Australia/Perth'
-  | 'Australia/Sydney'
-  | 'Europe/Amsterdam'
-  | 'Europe/Athens'
-  | 'Europe/Belgrade'
-  | 'Europe/Berlin'
-  | 'Europe/Brussels'
-  | 'Europe/Copenhagen'
-  | 'Europe/Dublin'
-  | 'Europe/Helsinki'
-  | 'Europe/Istanbul'
-  | 'Europe/Lisbon'
-  | 'Europe/London'
-  | 'Europe/Luxembourg'
-  | 'Europe/Madrid'
-  | 'Europe/Malta'
-  | 'Europe/Moscow'
-  | 'Europe/Oslo'
-  | 'Europe/Paris'
-  | 'Europe/Riga'
-  | 'Europe/Rome'
-  | 'Europe/Stockholm'
-  | 'Europe/Tallinn'
-  | 'Europe/Vilnius'
-  | 'Europe/Warsaw'
-  | 'Europe/Zurich'
-  | 'Pacific/Auckland'
-  | 'Pacific/Chatham'
-  | 'Pacific/Fakaofo'
-  | 'Pacific/Honolulu'
-  | 'Pacific/Norfolk'
-  | 'US/Mountain';
+  | "Africa/Cairo"
+  | "Africa/Johannesburg"
+  | "Africa/Lagos"
+  | "America/Argentina/Buenos_Aires"
+  | "America/Bogota"
+  | "America/Caracas"
+  | "America/Chicago"
+  | "America/El_Salvador"
+  | "America/Juneau"
+  | "America/Lima"
+  | "America/Los_Angeles"
+  | "America/Mexico_City"
+  | "America/New_York"
+  | "America/Phoenix"
+  | "America/Santiago"
+  | "America/Sao_Paulo"
+  | "America/Toronto"
+  | "America/Vancouver"
+  | "Asia/Almaty"
+  | "Asia/Ashkhabad"
+  | "Asia/Bahrain"
+  | "Asia/Bangkok"
+  | "Asia/Chongqing"
+  | "Asia/Dubai"
+  | "Asia/Ho_Chi_Minh"
+  | "Asia/Hong_Kong"
+  | "Asia/Jakarta"
+  | "Asia/Jerusalem"
+  | "Asia/Kathmandu"
+  | "Asia/Kolkata"
+  | "Asia/Kuwait"
+  | "Asia/Muscat"
+  | "Asia/Qatar"
+  | "Asia/Riyadh"
+  | "Asia/Seoul"
+  | "Asia/Shanghai"
+  | "Asia/Singapore"
+  | "Asia/Taipei"
+  | "Asia/Tehran"
+  | "Asia/Tokyo"
+  | "Atlantic/Reykjavik"
+  | "Australia/ACT"
+  | "Australia/Adelaide"
+  | "Australia/Brisbane"
+  | "Australia/Perth"
+  | "Australia/Sydney"
+  | "Europe/Amsterdam"
+  | "Europe/Athens"
+  | "Europe/Belgrade"
+  | "Europe/Berlin"
+  | "Europe/Brussels"
+  | "Europe/Copenhagen"
+  | "Europe/Dublin"
+  | "Europe/Helsinki"
+  | "Europe/Istanbul"
+  | "Europe/Lisbon"
+  | "Europe/London"
+  | "Europe/Luxembourg"
+  | "Europe/Madrid"
+  | "Europe/Malta"
+  | "Europe/Moscow"
+  | "Europe/Oslo"
+  | "Europe/Paris"
+  | "Europe/Riga"
+  | "Europe/Rome"
+  | "Europe/Stockholm"
+  | "Europe/Tallinn"
+  | "Europe/Vilnius"
+  | "Europe/Warsaw"
+  | "Europe/Zurich"
+  | "Pacific/Auckland"
+  | "Pacific/Chatham"
+  | "Pacific/Fakaofo"
+  | "Pacific/Honolulu"
+  | "Pacific/Norfolk"
+  | "US/Mountain";
 
 export as namespace TradingView;
 
