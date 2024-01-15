@@ -186,6 +186,14 @@ export abstract class EvmWallet {
       // using window.ethereum for signing
       // if you call this function on evm, you have to switch network before calling. Otherwise, unexpected errors may happen
       const tokenContract = IERC20Upgradeable__factory.connect(token.contractAddress, this.getSigner());
+
+      // TODO: hardcode check currentAllowance USDT ERC20
+      const isUsdtErc20 = token.chainId === "0x01" && token.coinGeckoId === "tether";
+      if (isUsdtErc20 && BigInt(currentAllowance.toString()) < BigInt(amount)) {
+        const approveUsdtErc20 = await tokenContract.approve(spender, "0", { from: ownerHex });
+        await approveUsdtErc20.wait();
+      }
+
       const result = await tokenContract.approve(spender, amount, { from: ownerHex });
       await result.wait();
       return { transactionHash: result.hash };
