@@ -189,7 +189,7 @@ export abstract class EvmWallet {
 
       // TODO: hardcode check currentAllowance USDT ERC20
       const isUsdtErc20 = token.chainId === "0x01" && token.coinGeckoId === "tether";
-      if (isUsdtErc20 && BigInt(currentAllowance.toString()) < BigInt(amount)) {
+      if (isUsdtErc20 && !!currentAllowance.toString()) {
         const approveUsdtErc20 = await tokenContract.approve(spender, "0", { from: ownerHex });
         await approveUsdtErc20.wait();
       }
