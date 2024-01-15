@@ -1,5 +1,5 @@
 import { IbcBridgeWasmMemo, IbcHooksMemo } from "./universal-swap_pb";
-import { decode, encode, fromWords } from "bech32";
+import { decode, fromWords } from "bech32";
 export const parseToIbcWasmMemo = (
   destinationReceiver: string,
   destinationChannel: string,
@@ -21,7 +21,7 @@ export const parseToIbcHookMemo = (
 ): string => {
   const wasmMemo = new IbcHooksMemo();
   // we will encode receiver from Orai address to canonicalize address
-  wasmMemo.setReceiver(Buffer.from(fromWords(decode(receiver).words)).toString("base64"));
+  wasmMemo.setReceiver(Buffer.from(fromWords(decode(receiver).words)));
   wasmMemo.setDestinationReceiver(destinationReceiver);
   wasmMemo.setDestinationChannel(destinationChannel);
   wasmMemo.setDestinationDenom(destinationDenom);

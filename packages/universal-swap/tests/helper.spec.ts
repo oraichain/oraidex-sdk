@@ -44,7 +44,7 @@ import {
   isSupportedNoPoolSwapEvm
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
-import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/helper";
+import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {

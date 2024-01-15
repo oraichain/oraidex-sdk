@@ -47,7 +47,7 @@ import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
-import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/helper";
+import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
 
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
