@@ -384,11 +384,11 @@ async function getAllVolume24h(): Promise<PoolVolume[]> {
 }
 // ===== end get volume pairs =====>
 
-async function getPoolsFromDuckDb(): Promise<PairInfoData[]> {
+export const getPoolsFromDuckDb = async (): Promise<PairInfoData[]> => {
   const duckDb = DuckDb.instances;
   const pools = await duckDb.getPools();
   return pools;
-}
+};
 
 async function getPoolAprsFromDuckDb() {
   const duckDb = DuckDb.instances;
@@ -471,7 +471,6 @@ export {
   getAllVolume24h,
   getCosmwasmClient,
   getPoolAprsFromDuckDb,
-  getPoolsFromDuckDb,
   getSpecificDateBeforeNow,
   getSymbolFromAsset
 };
