@@ -11,14 +11,17 @@ import {
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual } from "lodash";
 import { OCH_PRICE, ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
-import { calculatePriceByPool, getCosmwasmClient, isAssetInfoPairReverse, validateNumber } from "./helper";
 import {
-  DuckDb,
+  calculatePriceByPool,
+  getCosmwasmClient,
+  isAssetInfoPairReverse,
+  validateNumber,
   concatAprHistoryToUniqueKey,
   concatLpHistoryToUniqueKey,
   getPairLiquidity,
   recalculateTotalShare
-} from "./index";
+} from "./helper";
+import { DuckDb } from "./db";
 import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 import {
