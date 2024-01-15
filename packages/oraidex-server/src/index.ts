@@ -17,6 +17,7 @@ import {
   findPairAddress,
   getOraiPrice,
   getPairLiquidity,
+  getPoolLiquidities,
   getPriceAssetByUsdt,
   getPriceByAsset,
   getVolumePairByUsdt,
@@ -27,6 +28,7 @@ import {
   pairs,
   pairsOnlyDenom,
   pairsWithDenom,
+  parseAssetInfo,
   parseAssetInfoOnlyDenom,
   toDisplay,
   usdcCw20Address,
@@ -54,6 +56,7 @@ import {
   validateOraiAddress
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
+import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
 
 // cache
 
@@ -150,6 +153,16 @@ app.get("/tickers", async (req, res) => {
     const data: TickerInfo[] = [];
     for (const pair of arrangedPairs) {
       const symbols = pair.symbols;
+      const pairInfo = pairInfos.find(
+        (pairInfo) =>
+          pair.asset_infos.some((info) => parseAssetInfo(info) === pairInfo.firstAssetInfo) &&
+          pair.asset_infos.some((info) => parseAssetInfo(info) === pairInfo.secondAssetInfo)
+      );
+      if (!pairInfo)
+        throw new Error(
+          `Cannot find pair info with assetInfos: ${pairInfo.firstAssetInfo} and ${pairInfo.secondAssetInfo}`
+        );
+
       const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
       const tickerId = parseSymbolsToTickerId(symbols);
       const baseIndex = 0;
@@ -157,6 +170,8 @@ app.get("/tickers", async (req, res) => {
       const baseInfo = parseAssetInfoOnlyDenom(pair.asset_infos[baseIndex]);
       const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
       const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
+      const liquidityInUsd = await getPairLiquidity(pairInfo);
+
       const tickerInfo: TickerInfo = {
         ticker_id: tickerId,
         base_currency: symbols[baseIndex],
@@ -166,7 +181,8 @@ app.get("/tickers", async (req, res) => {
         target_volume: toDisplay(BigInt(volume.volume[targetInfo])).toString(),
         pool_id: pairAddr ?? "",
         base: symbols[baseIndex],
-        target: symbols[targetIndex]
+        target: symbols[targetIndex],
+        liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString()
       };
       data.push(tickerInfo);
     }
