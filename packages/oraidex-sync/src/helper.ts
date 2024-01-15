@@ -1,8 +1,8 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
-import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, tenAmountInDecimalSix, truncDecimals } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
@@ -470,8 +470,8 @@ export {
   getAllFees,
   getAllVolume24h,
   getCosmwasmClient,
-  getSpecificDateBeforeNow,
-  getSymbolFromAsset,
+  getPoolAprsFromDuckDb,
   getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb
+  getSpecificDateBeforeNow,
+  getSymbolFromAsset
 };
