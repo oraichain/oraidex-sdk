@@ -17,7 +17,7 @@ import { PairInfoData, PairMapping, PoolAmountHistory, ProvideLiquidityOperation
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import * as txParsing from "../src/tx-parsing";
-import { pairLpTokens } from "@oraichain/oraidex-common";
+import { pairLpTokens } from "@oraichain/oraidex-common/build/pairs";
 describe("test-pool-helper", () => {
   let duckDb: DuckDb;
   beforeAll(async () => {

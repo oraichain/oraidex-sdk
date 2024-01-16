@@ -1,3 +1,4 @@
+import "./polyfill";
 import { DuckDb, PoolAmountHistory } from "@oraichain/oraidex-sync";
 
 export type LowHighPriceOfPairType = {

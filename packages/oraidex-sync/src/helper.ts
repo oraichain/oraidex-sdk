@@ -54,8 +54,8 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
 export function concatDataToUniqueKey(data: {
   firstDenom: string;
   secondDenom: string;
-  firstAmount: number;
-  secondAmount: number;
+  firstAmount: bigint;
+  secondAmount: bigint;
   txheight: number;
 }): string {
   return `${data.txheight}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
