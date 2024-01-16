@@ -3,7 +3,7 @@ name: Build and push executor to Docker Hub
 on:
   workflow_dispatch:
     branches:
-      - master
+      - main
       - staging
 
   push:
@@ -80,7 +80,7 @@ jobs:
           GITHUB_REF_NAME: ${{ github.ref_name }}
         run: |
           set -e
-          if [[ $GITHUB_REF_NAME == 'master' || ! $GITHUB_REF_NAME  =~ 'beta' ]]
+          if [[ $GITHUB_REF_NAME == 'main' || ! $GITHUB_REF_NAME  =~ 'beta' ]]
           then
           echo deploy_environment='production' >> $GITHUB_OUTPUT
           else
