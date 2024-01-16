@@ -307,7 +307,7 @@ export class DuckDb {
 
     // get second
     result.forEach((item) => {
-      item.time *= BigInt(+tf * 60);
+      item.time *= BigInt(+tf);
     });
 
     return result as Ohlcv[];
