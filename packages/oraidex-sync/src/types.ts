@@ -84,9 +84,9 @@ export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = {
   basePrice: number;
-  baseTokenAmount: number;
+  baseTokenAmount: bigint;
   baseTokenDenom: string; // eg: orai, orai1234...
-  quoteTokenAmount: number;
+  quoteTokenAmount: bigint;
   quoteTokenDenom: string;
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
@@ -104,9 +104,9 @@ export type OraiDexType =
   | EarningOperationData;
 
 export type LpOpsData = {
-  baseTokenAmount: number;
+  baseTokenAmount: bigint;
   baseTokenDenom: string; // eg: orai, orai1234...
-  quoteTokenAmount: number;
+  quoteTokenAmount: bigint;
   quoteTokenDenom: string;
   opType?: LiquidityOpType;
   direction?: SwapDirection;

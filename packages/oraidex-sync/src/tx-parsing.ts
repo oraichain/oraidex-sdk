@@ -111,8 +111,8 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   // faulty swap attributes, wont collect
   if (!swapAttrs.every((array) => array.length === askDenoms.length)) return [];
   for (let i = 0; i < askDenoms.length; i++) {
-    const offerAmount = parseInt(offerAmounts[i]);
-    const returnAmount = parseInt(returnAmounts[i]);
+    const offerAmount = BigInt(offerAmounts[i]);
+    const returnAmount = BigInt(returnAmounts[i]);
     swapData.push({
       askDenom: askDenoms[i],
       commissionAmount: parseInt(commissionAmounts[i]),
@@ -366,8 +366,8 @@ async function extractMsgProvideLiquidity(
       }
       const firstDenom = parseAssetInfoOnlyDenom(baseAsset.info);
       const secDenom = parseAssetInfoOnlyDenom(quoteAsset.info);
-      const firstAmount = parseInt(baseAsset.amount);
-      const secAmount = parseInt(quoteAsset.amount);
+      const firstAmount = BigInt(baseAsset.amount);
+      const secAmount = BigInt(quoteAsset.amount);
       const fee = await getFeeLiquidity(
         [parseAssetInfoOnlyDenom(baseAsset.info), parseAssetInfoOnlyDenom(quoteAsset.info)],
         "provide",
@@ -429,10 +429,10 @@ async function extractMsgWithdrawLiquidity(
     if (!assetAttr) continue;
     const assets = parseWithdrawLiquidityAssets(assetAttr.value);
     // sanity check. only push data if can parse asset successfully
-    let baseAssetAmount = parseInt(assets[0]);
+    let baseAssetAmount = BigInt(assets[0]);
     let baseAsset = assets[1];
     let quoteAsset = assets[3];
-    let quoteAssetAmount = parseInt(assets[2]);
+    let quoteAssetAmount = BigInt(assets[2]);
     // we only have one pair order. If the order is reversed then we also reverse the order
     const findedPair = pairs.find((pair) =>
       isEqual(

@@ -527,7 +527,9 @@ export class DuckDb {
     )
     SELECT pairAddr, apr, rewardPerSec, totalSupply
     FROM RankedPool
-    WHERE rn = 1;
+    WHERE rn = 1
+    ORDER BY apr
+    ;
       `
     );
     return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
