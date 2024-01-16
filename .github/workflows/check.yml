@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         node: ["18.18.0"]
-        os: ["ubuntu:latest"]
+        os: ["ubuntu-latest"]
     runs-on: ${{ matrix.os }}
     steps:
       - name: Cancel Previous Runs
