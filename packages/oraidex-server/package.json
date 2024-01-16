@@ -16,7 +16,9 @@
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "^0.31.0",
     "@oraichain/common-contracts-sdk": "^1.0.31",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.0",
     "@oraichain/oraidex-sync": "^1.0.0",
+    "@oraichain/oraidex-common": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2"
