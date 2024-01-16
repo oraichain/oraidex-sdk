@@ -6,7 +6,7 @@ import { DuckDb, OCH_PRICE, ORAI, SwapDirection, SwapOperationData, oraiInfo, us
 import * as poolHelper from "../src/pool-helper";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { ORAIXOCH_INFO } from "@oraichain/oraidex-common";
+import { ORAIXOCH_INFO } from "@oraichain/oraidex-common/build/constant";
 
 describe("test-tx-parsing", () => {
   it.each<[string, string[]]>([
