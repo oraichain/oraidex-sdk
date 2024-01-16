@@ -64,7 +64,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
 
   swarm:
-    runs-on: orai-swarm
+    runs-on: ubuntu-20.04
     needs: docker
     steps:
       - name: Extract SHA
