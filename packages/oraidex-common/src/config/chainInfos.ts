@@ -627,8 +627,8 @@ export const chainInfos: CustomChainInfo[] = [
 
   /// popular networks already included
   {
-    rpc: "https://osmosis-rpc.polkachu.com",
-    rest: "https://osmosis-api.polkachu.com",
+    rpc: "https://osmosis.rpc.orai.io",
+    rest: "https://osmosis.lcd.orai.io",
     chainId: "osmosis-1",
     chainName: "Osmosis",
     networkType: "cosmos",
@@ -653,8 +653,8 @@ export const chainInfos: CustomChainInfo[] = [
   },
   /// popular networks already included
   {
-    rpc: "https://injective-rpc.polkachu.com",
-    rest: "https://injective-lcd.quickapi.com",
+    rpc: "https://injective.rpc.orai.io",
+    rest: "https://injective.lcd.orai.io",
     chainId: "injective-1",
     chainName: "Injective",
     networkType: "cosmos",
