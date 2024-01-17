@@ -1,5 +1,6 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { fetchRetry, ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common";
+import { ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common/build/constant";
+import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
   injAddress,

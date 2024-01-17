@@ -4,7 +4,7 @@ import {
   MULTICALL_CONTRACT,
   ROUTER_V2_CONTRACT,
   STAKING_CONTRACT
-} from "@oraichain/oraidex-common";
+} from "@oraichain/oraidex-common/build/constant";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export const ORAI = "orai";

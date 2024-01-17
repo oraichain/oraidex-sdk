@@ -307,8 +307,9 @@ export class DuckDb {
 
     // get second
     result.forEach((item) => {
-      item.time *= tf;
+      item.time *= BigInt(+tf);
     });
+
     return result as Ohlcv[];
   }
 
@@ -527,7 +528,9 @@ export class DuckDb {
     )
     SELECT pairAddr, apr, rewardPerSec, totalSupply
     FROM RankedPool
-    WHERE rn = 1;
+    WHERE rn = 1
+    ORDER BY apr
+    ;
       `
     );
     return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
