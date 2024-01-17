@@ -7,7 +7,7 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
+import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, BaseAmountResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
 export interface OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
   contractInfo: () => Promise<ContractInfoResponse>;
@@ -82,6 +82,15 @@ export interface OraiswapLimitOrderReadOnlyInterface {
   }: {
     assetInfos: AssetInfo[];
   }) => Promise<Decimal>;
+  priceByBaseAmount: ({
+    assetInfos,
+    baseAmount,
+    direction
+  }: {
+    assetInfos: AssetInfo[];
+    baseAmount: Uint128;
+    direction: OrderDirection;
+  }) => Promise<BaseAmountResponse>;
 }
 export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnlyInterface {
   client: CosmWasmClient;
@@ -100,6 +109,7 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
     this.lastOrderId = this.lastOrderId.bind(this);
     this.orderBookMatchable = this.orderBookMatchable.bind(this);
     this.midPrice = this.midPrice.bind(this);
+    this.priceByBaseAmount = this.priceByBaseAmount.bind(this);
   }
 
   contractInfo = async (): Promise<ContractInfoResponse> => {
@@ -245,6 +255,23 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
       }
     });
   };
+  priceByBaseAmount = async ({
+    assetInfos,
+    baseAmount,
+    direction
+  }: {
+    assetInfos: AssetInfo[];
+    baseAmount: Uint128;
+    direction: OrderDirection;
+  }): Promise<BaseAmountResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      price_by_base_amount: {
+        asset_infos: assetInfos,
+        base_amount: baseAmount,
+        direction
+      }
+    });
+  };
 }
 export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
@@ -265,12 +292,10 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
     commissionRate,
-    rewardAddress,
-    spreadAddress
+    rewardAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
-    spreadAddress?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   createOrderBookPair: ({
     baseCoinInfo,
@@ -283,12 +308,32 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     quoteCoinInfo: AssetInfo;
     spread?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateOrderbookPair: ({
+    assetInfos,
+    minQuoteCoinAmount,
+    spread
+  }: {
+    assetInfos: AssetInfo[];
+    minQuoteCoinAmount?: Uint128;
+    spread?: Decimal;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   submitOrder: ({
     assets,
     direction
   }: {
     assets: Asset[];
     direction: OrderDirection;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  submitMarketOrder: ({
+    assetInfos,
+    baseAmount,
+    direction,
+    slippage
+  }: {
+    assetInfos: AssetInfo[];
+    baseAmount: Uint128;
+    direction: OrderDirection;
+    slippage?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   cancelOrder: ({
     assetInfos,
@@ -324,7 +369,9 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
     this.createOrderBookPair = this.createOrderBookPair.bind(this);
+    this.updateOrderbookPair = this.updateOrderbookPair.bind(this);
     this.submitOrder = this.submitOrder.bind(this);
+    this.submitMarketOrder = this.submitMarketOrder.bind(this);
     this.cancelOrder = this.cancelOrder.bind(this);
     this.executeOrderBookPair = this.executeOrderBookPair.bind(this);
     this.removeOrderBookPair = this.removeOrderBookPair.bind(this);
@@ -360,18 +407,15 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
   };
   updateConfig = async ({
     commissionRate,
-    rewardAddress,
-    spreadAddress
+    rewardAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
-    spreadAddress?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
         commission_rate: commissionRate,
-        reward_address: rewardAddress,
-        spread_address: spreadAddress
+        reward_address: rewardAddress
       }
     }, _fee, _memo, _funds);
   };
@@ -395,6 +439,23 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       }
     }, _fee, _memo, _funds);
   };
+  updateOrderbookPair = async ({
+    assetInfos,
+    minQuoteCoinAmount,
+    spread
+  }: {
+    assetInfos: AssetInfo[];
+    minQuoteCoinAmount?: Uint128;
+    spread?: Decimal;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_orderbook_pair: {
+        asset_infos: assetInfos,
+        min_quote_coin_amount: minQuoteCoinAmount,
+        spread
+      }
+    }, _fee, _memo, _funds);
+  };
   submitOrder = async ({
     assets,
     direction
@@ -406,6 +467,26 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       submit_order: {
         assets,
         direction
+      }
+    }, _fee, _memo, _funds);
+  };
+  submitMarketOrder = async ({
+    assetInfos,
+    baseAmount,
+    direction,
+    slippage
+  }: {
+    assetInfos: AssetInfo[];
+    baseAmount: Uint128;
+    direction: OrderDirection;
+    slippage?: Decimal;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      submit_market_order: {
+        asset_infos: assetInfos,
+        base_amount: baseAmount,
+        direction,
+        slippage
       }
     }, _fee, _memo, _funds);
   };

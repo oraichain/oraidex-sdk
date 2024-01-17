@@ -4,7 +4,6 @@ export interface InstantiateMsg {
   commission_rate?: string | null;
   name?: string | null;
   reward_address?: Addr | null;
-  spread_address?: Addr | null;
   version?: string | null;
 }
 export type ExecuteMsg = {
@@ -17,7 +16,6 @@ export type ExecuteMsg = {
   update_config: {
     commission_rate?: string | null;
     reward_address?: Addr | null;
-    spread_address?: Addr | null;
   };
 } | {
   create_order_book_pair: {
@@ -27,9 +25,22 @@ export type ExecuteMsg = {
     spread?: Decimal | null;
   };
 } | {
+  update_orderbook_pair: {
+    asset_infos: [AssetInfo, AssetInfo];
+    min_quote_coin_amount?: Uint128 | null;
+    spread?: Decimal | null;
+  };
+} | {
   submit_order: {
     assets: [Asset, Asset];
     direction: OrderDirection;
+  };
+} | {
+  submit_market_order: {
+    asset_infos: [AssetInfo, AssetInfo];
+    base_amount: Uint128;
+    direction: OrderDirection;
+    slippage?: Decimal | null;
   };
 } | {
   cancel_order: {
@@ -98,6 +109,12 @@ export type QueryMsg = {
   mid_price: {
     asset_infos: [AssetInfo, AssetInfo];
   };
+} | {
+  price_by_base_amount: {
+    asset_infos: [AssetInfo, AssetInfo];
+    base_amount: Uint128;
+    direction: OrderDirection;
+  };
 };
 export type OrderFilter = ("tick" | "none") | {
   bidder: string;
@@ -107,7 +124,9 @@ export type OrderFilter = ("tick" | "none") | {
 export interface MigrateMsg {}
 export interface ContractInfoResponse {
   admin: Addr;
+  commission_rate: string;
   name: string;
+  reward_address: Addr;
   version: string;
 }
 export interface LastOrderIdResponse {
@@ -138,6 +157,10 @@ export interface OrderBooksResponse {
 }
 export interface OrdersResponse {
   orders: OrderResponse[];
+}
+export interface BaseAmountResponse {
+  expected_base_amount: Uint128;
+  market_price: Decimal;
 }
 export interface TickResponse {
   price: Decimal;
