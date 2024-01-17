@@ -1,8 +1,8 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
-import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, tenAmountInDecimalSix, truncDecimals } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
@@ -384,11 +384,11 @@ async function getAllVolume24h(): Promise<PoolVolume[]> {
 }
 // ===== end get volume pairs =====>
 
-async function getPoolsFromDuckDb(): Promise<PairInfoData[]> {
+export const getPoolsFromDuckDb = async (): Promise<PairInfoData[]> => {
   const duckDb = DuckDb.instances;
   const pools = await duckDb.getPools();
   return pools;
-}
+};
 
 async function getPoolAprsFromDuckDb() {
   const duckDb = DuckDb.instances;
@@ -470,8 +470,7 @@ export {
   getAllFees,
   getAllVolume24h,
   getCosmwasmClient,
+  getPoolAprsFromDuckDb,
   getSpecificDateBeforeNow,
-  getSymbolFromAsset,
-  getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb
+  getSymbolFromAsset
 };
