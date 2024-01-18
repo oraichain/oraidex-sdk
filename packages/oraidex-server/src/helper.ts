@@ -177,8 +177,11 @@ export const getAllPoolsInfo = async () => {
     const allPoolAmounts = await getPoolAmounts(pools);
 
     const allPoolsInfo: PairInfoDataResponse[] = pools.map((pool, index) => {
-      const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
-      if (!poolApr) return null;
+      const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr) ?? {
+        totalSupply: "0",
+        rewardPerSec: "0",
+        apr: 0
+      };
 
       const poolFee = allFee7Days.find((item) => {
         const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
@@ -195,17 +198,16 @@ export const getAllPoolsInfo = async () => {
           JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
         );
       });
-      if (!poolVolume) return null;
 
       return {
         ...pool,
-        volume24Hour: poolVolume.volume.toString(),
+        volume24Hour: poolVolume ? poolVolume.volume.toString() : "0",
         fee7Days: poolFee.fee.toString(),
         apr: poolApr.apr,
         totalLiquidity: allLiquidities[index],
         rewardPerSec: poolApr.rewardPerSec,
-        offerPoolAmount: allPoolAmounts[index].offerPoolAmount,
-        askPoolAmount: allPoolAmounts[index].askPoolAmount,
+        offerPoolAmount: allPoolAmounts[index]?.offerPoolAmount,
+        askPoolAmount: allPoolAmounts[index]?.askPoolAmount,
         totalSupply: poolApr.totalSupply
       } as PairInfoDataResponse;
     });
