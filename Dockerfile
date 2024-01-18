@@ -9,6 +9,7 @@ COPY patches /app/patches
 
 RUN yarn --frozen-lockfile 
 
+COPY packages/oraidex-common/ /app/packages/oraidex-common/
 COPY packages/oraidex-server/ /app/packages/oraidex-server/
 COPY packages/oraidex-sync/ /app/packages/oraidex-sync/
 COPY ./tsconfig.json /app/tsconfig.json
