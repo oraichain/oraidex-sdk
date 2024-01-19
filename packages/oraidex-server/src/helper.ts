@@ -179,7 +179,7 @@ export const getAllPoolsInfo = async () => {
     const allPoolsInfo: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr) ?? {
         totalSupply: "0",
-        rewardPerSec: "0",
+        rewardPerSec: '{"assets":[]}',
         apr: 0
       };
 
