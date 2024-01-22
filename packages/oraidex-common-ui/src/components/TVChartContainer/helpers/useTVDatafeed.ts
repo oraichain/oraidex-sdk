@@ -28,6 +28,7 @@ type Props = {
   setChartDataLength: React.Dispatch<React.SetStateAction<number>>;
   pairsChart: PairToken[];
   setChartTimeFrame?: (tf: number) => void;
+  baseURL?: string;
 };
 
 export const EXCHANGE_NAME = "OraiDEX";
@@ -37,7 +38,8 @@ export default function useTVDatafeed({
   currentPair,
   setChartDataLength,
   pairsChart,
-  setChartTimeFrame
+  setChartTimeFrame,
+  baseURL
 }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>();
   const resetCacheRef = useRef<() => void | undefined>();
@@ -111,7 +113,8 @@ export default function useTVDatafeed({
               ticker,
               resolution,
               periodParams,
-              shouldRefetchBars.current
+              shouldRefetchBars.current,
+              baseURL
             );
 
             if (periodParams.firstDataRequest) {

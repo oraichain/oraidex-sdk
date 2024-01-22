@@ -13,6 +13,7 @@ import { TVDataProvider } from "./helpers/TVDataProvider";
 import { DEFAULT_LIBRARY_URL, SUPPORTED_RESOLUTIONS, TV_CHART_RELOAD_INTERVAL } from "./helpers/constants";
 import useTVDatafeed, { PairToken } from "./helpers/useTVDatafeed";
 import { getObjectKeyFromValue, getTradingViewTimeZone } from "./helpers/utils";
+import { useChartSocket } from "./helpers/useChartSocket";
 
 export function useLocalStorageSerializeKey<T>(
   key: string | any[],
@@ -33,6 +34,8 @@ export type TVChartContainerProsp = {
   currentPair: PairToken;
   pairsChart: PairToken[];
   setChartTimeFrame?: (tf: number) => void;
+  baseURL?: string;
+  wsUrl?: string;
 };
 
 export default function TVChartContainer({
@@ -40,7 +43,9 @@ export default function TVChartContainer({
   theme,
   currentPair,
   pairsChart,
-  setChartTimeFrame
+  setChartTimeFrame,
+  baseURL,
+  wsUrl
 }: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
@@ -51,18 +56,23 @@ export default function TVChartContainer({
     currentPair,
     setChartDataLength,
     pairsChart,
-    setChartTimeFrame
+    setChartTimeFrame,
+    baseURL
   });
   const isMobile = useMedia("(max-width: 550px)");
   const [chartReady, setChartReady] = useState(false);
   const [period, setPeriod] = useLocalStorageSerializeKey([currentPair.symbol, "Chart-period"], DEFAULT_PERIOD);
   const symbolRef = useRef(currentPair.symbol);
 
+  const { currentPair: pairUpdate, data: socketData } = useChartSocket(currentPair, wsUrl);
+
   useEffect(() => {
     if (chartReady && tvWidgetRef.current && currentPair.symbol !== tvWidgetRef.current?.activeChart?.().symbol()) {
       tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => {});
     }
   }, [currentPair, chartReady, period]);
+
+  useEffect;
 
   /* Tradingview charting library only fetches the historical data once so if the tab is inactive or system is in sleep mode
   for a long time, the historical data will be outdated. */
