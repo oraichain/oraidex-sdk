@@ -26,12 +26,13 @@ type Props = {
   dataProvider?: TVDataProvider;
   currentPair: PairToken;
   setChartDataLength: any;
-  pairsChart: PairToken[]
+  pairsChart: PairToken[];
+  baseURL?: string;
 };
 
 export const EXCHANGE_NAME = "OraiDEX";
 
-export default function useTVDatafeed({ dataProvider, currentPair, setChartDataLength, pairsChart }: Props) {
+export default function useTVDatafeed({ dataProvider, currentPair, setChartDataLength, pairsChart, baseURL }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>();
   const resetCacheRef = useRef<() => void | undefined>();
   const activeTicker = useRef<string | undefined>();
@@ -103,7 +104,8 @@ export default function useTVDatafeed({ dataProvider, currentPair, setChartDataL
               ticker,
               resolution,
               periodParams,
-              shouldRefetchBars.current
+              shouldRefetchBars.current,
+              baseURL
             );
 
             if (periodParams.firstDataRequest) {
