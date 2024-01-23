@@ -61,7 +61,7 @@ async function getSender(rpcUrl: string): Promise<UserWallet | string> {
           )} ${mentionUserIds}`
         );
       }
-      await delay(3000);
+      await delay(1000);
     }
   } catch (error) {
     await webhookClient.send(
