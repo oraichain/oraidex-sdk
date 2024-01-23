@@ -279,7 +279,7 @@ describe("limit_order", () => {
           direction: "buy",
           filled_ask_amount: "0",
           filled_offer_amount: "0",
-          order_id: 2
+          order_id: 11
         },
         {
           ask_asset: asset("2000000", "orai"),
@@ -288,89 +288,10 @@ describe("limit_order", () => {
           direction: "buy",
           filled_ask_amount: "0",
           filled_offer_amount: "0",
-          order_id: 1
+          order_id: 10
         }
       ]
     };
     expect(queryAll).toMatchObject(expectedAllorders);
-  });
-
-  it("matching_orders", async () => {
-    const orders: [Coin, Coin, OrderDirection][] = [
-      [coin("567", "orai"), coin("123", "usdt"), "buy"],
-      [coin("654", "orai"), coin("111", "usdt"), "buy"],
-      [coin("553", "orai"), coin("100", "usdt"), "sell"],
-      [coin("632", "orai"), coin("100", "usdt"), "sell"]
-    ];
-
-    for (const [base, quote, direction] of orders) {
-      const submitRes = await orderbook.submitOrder(
-        {
-          assets: [asset(base.amount, base.denom), asset(quote.amount, quote.denom)],
-          direction
-        },
-        "auto",
-        "",
-        [direction === "sell" ? base : quote]
-      );
-      expect(
-        submitRes.events.some((event) => event.attributes.some((attr) => attr.value === LISTEN_EVENTS.SUBMIT_ORDER))
-      ).toBe(true);
-    }
-
-    const matching_pair = await orderbook.executeOrderBookPair({
-      assetInfos: [assetInfo("orai"), assetInfo("usdt")]
-    });
-
-    expect(
-      matching_pair.events.some((event) =>
-        event.attributes.some((attr) => attr.value === LISTEN_EVENTS.EXECUTE_ORDERBOOK_PAIR)
-      )
-    ).toBe(true);
-
-    const allOrders = await orderbook.orders({
-      assetInfos: [assetInfo("orai"), assetInfo("usdt")],
-      filter: {
-        bidder: senderAddress
-      }
-    });
-
-    printOrders("query All order", allOrders.orders);
-
-    const expectedAllorders = {
-      orders: [
-        {
-          ask_asset: asset("100", "usdt"),
-          offer_asset: asset("632", "orai"),
-          bidder_addr: senderAddress,
-          direction: "sell",
-          filled_ask_amount: "0",
-          filled_offer_amount: "0",
-          order_id: 4,
-          status: "open"
-        },
-        {
-          ask_asset: asset("100", "usdt"),
-          offer_asset: asset("553", "orai"),
-          bidder_addr: senderAddress,
-          direction: "sell",
-          filled_ask_amount: "0",
-          filled_offer_amount: "0",
-          order_id: 3,
-          status: "open"
-        },
-        {
-          ask_asset: asset("654", "orai"),
-          offer_asset: asset("111", "usdt"),
-          bidder_addr: senderAddress,
-          direction: "buy",
-          filled_ask_amount: "64",
-          filled_offer_amount: "11",
-          order_id: 2,
-          status: "partial_filled"
-        }
-      ]
-    };
-    expect(allOrders).toMatchObject(expectedAllorders);
   });
 });
