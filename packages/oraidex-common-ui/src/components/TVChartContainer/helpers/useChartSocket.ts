@@ -1,13 +1,12 @@
-import { handleTradeEvent } from "components/TVChartContainer/helpers/streaming";
+import { handleTradeEvent } from "./streaming";
 import { useEffect, useState } from "react";
-
-export const APP_WS_URL = "";
+import { WS_URL } from "./requests";
 
 export const useChartSocket = (currentPair, socketUrl) => {
   const [data, setData] = useState([]);
 
   useEffect(() => {
-    const ws = new WebSocket(socketUrl || APP_WS_URL);
+    const ws = new WebSocket(socketUrl || WS_URL);
     ws.onmessage = (message) => {
       const payload = JSON.parse(message.data);
       console.info("[socket] Message:", payload);
