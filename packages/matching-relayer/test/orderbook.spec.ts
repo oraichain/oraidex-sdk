@@ -294,4 +294,101 @@ describe("limit_order", () => {
     };
     expect(queryAll).toMatchObject(expectedAllorders);
   });
+
+  it("matching_orders", async () => {
+    const matching_pair = await orderbook.executeOrderBookPair({
+      assetInfos: [assetInfo("orai"), assetInfo("usdt")]
+    });
+
+    expect(
+      matching_pair.events.some((event) =>
+        event.attributes.some((attr) => attr.value === LISTEN_EVENTS.EXECUTE_ORDERBOOK_PAIR)
+      )
+    ).toBe(true);
+
+    const allOrders = await orderbook.orders({
+      assetInfos: [assetInfo("orai"), assetInfo("usdt")],
+      filter: {
+        bidder: senderAddress
+      }
+    });
+
+    printOrders("query All order", allOrders.orders);
+
+    const expectedAllorders = {
+      orders: [
+        {
+          order_id: 9,
+          status: "open",
+          direction: "sell",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "orai" } }, amount: "100" },
+          ask_asset: { info: { native_token: { denom: "usdt" } }, amount: "21" },
+          filled_offer_amount: "0",
+          filled_ask_amount: "0"
+        },
+        {
+          order_id: 8,
+          status: "open",
+          direction: "sell",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "orai" } }, amount: "632" },
+          ask_asset: { info: { native_token: { denom: "usdt" } }, amount: "100" },
+          filled_offer_amount: "0",
+          filled_ask_amount: "0"
+        },
+        {
+          order_id: 7,
+          status: "open",
+          direction: "sell",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "orai" } }, amount: "553" },
+          ask_asset: { info: { native_token: { denom: "usdt" } }, amount: "100" },
+          filled_offer_amount: "0",
+          filled_ask_amount: "0"
+        },
+        {
+          order_id: 6,
+          status: "open",
+          direction: "buy",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "usdt" } }, amount: "111" },
+          ask_asset: { info: { native_token: { denom: "orai" } }, amount: "654" },
+          filled_offer_amount: "0",
+          filled_ask_amount: "0"
+        },
+        {
+          order_id: 4,
+          status: "open",
+          direction: "sell",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "orai" } }, amount: "632" },
+          ask_asset: { info: { native_token: { denom: "usdt" } }, amount: "100" },
+          filled_offer_amount: "0",
+          filled_ask_amount: "0"
+        },
+        {
+          order_id: 3,
+          status: "open",
+          direction: "sell",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "orai" } }, amount: "553" },
+          ask_asset: { info: { native_token: { denom: "usdt" } }, amount: "100" },
+          filled_offer_amount: "0",
+          filled_ask_amount: "0"
+        },
+        {
+          order_id: 2,
+          status: "partial_filled",
+          direction: "buy",
+          bidder_addr: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
+          offer_asset: { info: { native_token: { denom: "usdt" } }, amount: "111" },
+          ask_asset: { info: { native_token: { denom: "orai" } }, amount: "654" },
+          filled_offer_amount: "22",
+          filled_ask_amount: "129"
+        }
+      ]
+    };
+    expect(allOrders).toMatchObject(expectedAllorders);
+  });
 });
