@@ -109,7 +109,7 @@ export default function useTVDatafeed({
             if (setChartTimeFrame) setChartTimeFrame(+resolution);
 
             const bars = await tvDataProvider.current?.getBars(
-              pair?.info,
+              pair,
               ticker,
               resolution,
               periodParams,

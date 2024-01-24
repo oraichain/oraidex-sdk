@@ -3,6 +3,7 @@ import { Bar } from "./types";
 import { fillBarGaps, formatTimeInBarToMs, getCurrentCandleTime } from "./utils";
 import { getTokenChartPrice } from "./requests";
 import { CHART_PERIODS, SUPPORTED_RESOLUTIONS } from "./constants";
+import { PairToken } from "./useTVDatafeed";
 
 const getUTCTimestamp = (periodTimestamp: number = 0, nowDate: Date = new Date()): number => {
   const secondsPerDay = 86400;
@@ -36,18 +37,20 @@ export class TVDataProvider {
   }
 
   async getTokenHistoryBars(
-    pair: string,
+    pair: PairToken,
     ticker: string,
     periodParams: PeriodParams,
     shouldRefetchBars: boolean,
     resolution: string,
     baseURL?: string
+    // fetchDataChart?: () => Bar[]
   ): Promise<Bar[]> {
     const barsInfo = this.barsInfo;
     const period = SUPPORTED_RESOLUTIONS[resolution];
     if (!barsInfo.data.length || barsInfo.ticker !== ticker || barsInfo.period !== period || shouldRefetchBars) {
       try {
         const bars = await getTokenChartPrice(pair, periodParams, resolution, baseURL);
+        // const bars = await fetchDataChart();
         const filledBars = fillBarGaps(bars, CHART_PERIODS[period]);
         const currentCandleTime = getCurrentCandleTime(period);
         const lastCandleTime = currentCandleTime - CHART_PERIODS[period];
@@ -84,7 +87,7 @@ export class TVDataProvider {
   }
 
   async getBars(
-    pair: string,
+    pair: PairToken,
     ticker: string,
     resolution: string,
     periodParams: PeriodParams,
@@ -92,7 +95,7 @@ export class TVDataProvider {
     baseURL?: string
   ) {
     try {
-      const bars = await this.getTokenHistoryBars(pair, ticker, periodParams, shouldRefetchBars, resolution);
+      const bars = await this.getTokenHistoryBars(pair, ticker, periodParams, shouldRefetchBars, resolution, baseURL);
       return bars.sort((a, b) => a.time - b.time).map(formatTimeInBarToMs);
     } catch (e) {
       console.error("getBars", e);
@@ -100,7 +103,7 @@ export class TVDataProvider {
     }
   }
 
-  async getLastBar(pair: string, ticker: string, period: string, resolution: string, baseURL?: string) {
+  async getLastBar(pair: PairToken, ticker: string, period: string, resolution: string, baseURL?: string) {
     if (!ticker || !period || !pair) {
       throw new Error("Invalid input. Ticker, period, and chainId are required parameters.");
     }
@@ -120,7 +123,7 @@ export class TVDataProvider {
     return this.lastBar;
   }
 
-  async getLiveBar(pair: string, ticker: string, resolution: string, baseURL?: string) {
+  async getLiveBar(pair: PairToken, ticker: string, resolution: string, baseURL?: string) {
     const period = SUPPORTED_RESOLUTIONS[resolution];
     if (!ticker || !period || !pair) return;
 
