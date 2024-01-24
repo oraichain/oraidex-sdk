@@ -72,8 +72,6 @@ export default function TVChartContainer({
     }
   }, [currentPair, chartReady, period]);
 
-  useEffect;
-
   /* Tradingview charting library only fetches the historical data once so if the tab is inactive or system is in sleep mode
   for a long time, the historical data will be outdated. */
   useEffect(() => {
