@@ -85,11 +85,13 @@ export interface OraiswapLimitOrderReadOnlyInterface {
   priceByBaseAmount: ({
     assetInfos,
     baseAmount,
-    direction
+    direction,
+    slippage
   }: {
     assetInfos: AssetInfo[];
     baseAmount: Uint128;
     direction: OrderDirection;
+    slippage?: Decimal;
   }) => Promise<BaseAmountResponse>;
 }
 export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnlyInterface {
@@ -258,17 +260,20 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
   priceByBaseAmount = async ({
     assetInfos,
     baseAmount,
-    direction
+    direction,
+    slippage
   }: {
     assetInfos: AssetInfo[];
     baseAmount: Uint128;
     direction: OrderDirection;
+    slippage?: Decimal;
   }): Promise<BaseAmountResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       price_by_base_amount: {
         asset_infos: assetInfos,
         base_amount: baseAmount,
-        direction
+        direction,
+        slippage
       }
     });
   };
@@ -328,11 +333,13 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     assetInfos,
     baseAmount,
     direction,
+    quoteAmount,
     slippage
   }: {
     assetInfos: AssetInfo[];
     baseAmount: Uint128;
     direction: OrderDirection;
+    quoteAmount: Uint128;
     slippage?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   cancelOrder: ({
@@ -474,11 +481,13 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     assetInfos,
     baseAmount,
     direction,
+    quoteAmount,
     slippage
   }: {
     assetInfos: AssetInfo[];
     baseAmount: Uint128;
     direction: OrderDirection;
+    quoteAmount: Uint128;
     slippage?: Decimal;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
@@ -486,6 +495,7 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
         asset_infos: assetInfos,
         base_amount: baseAmount,
         direction,
+        quote_amount: quoteAmount,
         slippage
       }
     }, _fee, _memo, _funds);

@@ -40,6 +40,7 @@ export type ExecuteMsg = {
     asset_infos: [AssetInfo, AssetInfo];
     base_amount: Uint128;
     direction: OrderDirection;
+    quote_amount: Uint128;
     slippage?: Decimal | null;
   };
 } | {
@@ -114,6 +115,7 @@ export type QueryMsg = {
     asset_infos: [AssetInfo, AssetInfo];
     base_amount: Uint128;
     direction: OrderDirection;
+    slippage?: Decimal | null;
   };
 };
 export type OrderFilter = ("tick" | "none") | {
