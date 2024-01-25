@@ -10,27 +10,36 @@ import {
   OraiswapTokenTypes,
   PairInfo
 } from "@oraichain/oraidex-contracts-sdk";
-import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { network, oraixCw20Address, tenAmountInDecimalSix, usdcCw20Address } from "./constants";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
 import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom } from "./parse";
+import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
-async function queryPoolInfos(pairAddrs: string[], multicall: MulticallReadOnlyInterface): Promise<PoolResponse[]> {
-  // adjust the query height to get data from the past
-  const res = await multicall.tryAggregate({
-    queries: pairAddrs.map((pair) => {
-      return {
-        address: pair,
-        data: toBinary({
-          pool: {}
-        })
-      };
-    })
+async function queryPoolInfos(pairAddrs: string[]): Promise<PoolResponse[]> {
+  const MAX_CHUNK_SIZE = 5;
+
+  const calls: Call[] = pairAddrs.map((pair) => {
+    return {
+      address: pair,
+      data: toBinary({
+        pool: {}
+      })
+    };
   });
-  // reset query client to latest for other functions to call
-  return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)).filter((data) => data); // remove undefined items
+
+  const chunks = [];
+
+  for (let i = 0; i < calls.length; i += MAX_CHUNK_SIZE) {
+    chunks.push(calls.slice(i, i + MAX_CHUNK_SIZE));
+  }
+  try {
+    const res = (await Promise.all(chunks.map(aggregateMulticall))) as PoolResponse[][];
+    return res.flat();
+  } catch (error) {
+    console.log(`Error when trying to queryPoolInfos: ${JSON.stringify(pairAddrs)}: ${error} `);
+  }
 }
 
 async function queryAllPairInfos(
