@@ -8,6 +8,7 @@ import {
 } from "../charting_library";
 import { TVDataProvider } from "./TVDataProvider";
 import { SUPPORTED_RESOLUTIONS } from "./constants";
+import { Bar, FetchChartDataParams } from "./types";
 
 export type PairToken = {
   symbol: string;
@@ -28,7 +29,8 @@ type Props = {
   setChartDataLength: React.Dispatch<React.SetStateAction<number>>;
   pairsChart: PairToken[];
   setChartTimeFrame?: (tf: number) => void;
-  baseURL?: string;
+  baseUrl?: string;
+  fetchDataChart: (arg: FetchChartDataParams) => Promise<Bar[]>;
 };
 
 export const EXCHANGE_NAME = "OraiDEX";
@@ -39,7 +41,8 @@ export default function useTVDatafeed({
   setChartDataLength,
   pairsChart,
   setChartTimeFrame,
-  baseURL
+  baseUrl,
+  fetchDataChart
 }: Props) {
   const intervalRef = useRef<ReturnType<typeof setInterval> | undefined>();
   const resetCacheRef = useRef<() => void | undefined>();
@@ -108,14 +111,15 @@ export default function useTVDatafeed({
             const pair = pairsChart.find((p) => p.symbol === symbolInfo.ticker);
             if (setChartTimeFrame) setChartTimeFrame(+resolution);
 
-            const bars = await tvDataProvider.current?.getBars(
+            const bars = await tvDataProvider.current?.getBars({
               pair,
               ticker,
               resolution,
               periodParams,
-              shouldRefetchBars.current,
-              baseURL
-            );
+              shouldRefetchBars: shouldRefetchBars.current,
+              baseUrl,
+              fetchDataChart
+            });
 
             if (periodParams.firstDataRequest) {
               lastBarsCache.set(symbolInfo.full_name, {

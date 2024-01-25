@@ -14,6 +14,7 @@ import { DEFAULT_LIBRARY_URL, SUPPORTED_RESOLUTIONS, TV_CHART_RELOAD_INTERVAL } 
 import useTVDatafeed, { PairToken } from "./helpers/useTVDatafeed";
 import { getObjectKeyFromValue, getTradingViewTimeZone } from "./helpers/utils";
 import { useChartSocket } from "./helpers/useChartSocket";
+import { Bar, FetchChartDataParams } from "./helpers/types";
 
 export function useLocalStorageSerializeKey<T>(
   key: string | any[],
@@ -34,8 +35,9 @@ export type TVChartContainerProsp = {
   currentPair: PairToken;
   pairsChart: PairToken[];
   setChartTimeFrame?: (tf: number) => void;
-  baseURL?: string;
+  baseUrl?: string;
   wsUrl?: string;
+  fetchDataChart?: (arg: FetchChartDataParams) => Promise<Bar[]>;
 };
 
 export default function TVChartContainer({
@@ -44,8 +46,9 @@ export default function TVChartContainer({
   currentPair,
   pairsChart,
   setChartTimeFrame,
-  baseURL,
-  wsUrl
+  baseUrl,
+  wsUrl,
+  fetchDataChart
 }: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
@@ -57,7 +60,8 @@ export default function TVChartContainer({
     setChartDataLength,
     pairsChart,
     setChartTimeFrame,
-    baseURL
+    baseUrl,
+    fetchDataChart
   });
   const isMobile = useMedia("(max-width: 550px)");
   const [chartReady, setChartReady] = useState(false);

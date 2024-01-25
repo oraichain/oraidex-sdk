@@ -1,8 +1,6 @@
-import { PeriodParams } from "../charting_library";
-import { Bar } from "./types";
 import Axios from "axios";
-import { throttleAdapterEnhancer, retryAdapterEnhancer } from "axios-extensions";
-import { PairToken } from "./useTVDatafeed";
+import { retryAdapterEnhancer, throttleAdapterEnhancer } from "axios-extensions";
+import { Bar, GetTokenChartPriceParams } from "./types";
 
 const AXIOS_TIMEOUT = 10000;
 const AXIOS_THROTTLE_THRESHOLD = 2000;
@@ -57,16 +55,27 @@ const createAxiosWithBaseUrl = (baseURL: string) => {
   return axios;
 };
 
-export const getTokenChartPrice = async (
-  pair: PairToken,
-  periodParams: PeriodParams,
-  resolution: string,
-  baseUrl: string = BASE_URL
-): Promise<Bar[]> => {
+export const getTokenChartPrice = async ({
+  pair,
+  periodParams,
+  resolution,
+  fetchDataChart,
+  baseUrl = BASE_URL
+}: GetTokenChartPriceParams): Promise<Bar[]> => {
   try {
     const axios = createAxiosWithBaseUrl(baseUrl);
     const endpoint = API_CANDLE_BY_BASE_URL[baseUrl] || DEFAULT_CANDLE_ENDPOINT;
     const { info, symbol } = pair || {};
+
+    if (fetchDataChart) {
+      return await fetchDataChart({
+        pair: info,
+        symbol: symbol,
+        startTime: periodParams.from,
+        endTime: periodParams.to,
+        tf: +resolution * 60
+      });
+    }
 
     const res = await axios.get(endpoint, {
       params: {
