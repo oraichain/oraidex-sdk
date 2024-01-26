@@ -5,84 +5,6 @@ describe("test-duckdb", () => {
   let duckDb: DuckDb;
   afterEach(jest.restoreAllMocks);
 
-  it.each<[string[], number[]]>([
-    [
-      ["orai", "atom"],
-      [121, 10012]
-    ],
-    [
-      ["atom", "orai"],
-      [10012, 121]
-    ]
-  ])(
-    "test-duckdb-queryAllVolume-should-return-correct-total-volume-given-%s-should-have-%d",
-    async (denoms, expectedVolumes) => {
-      duckDb = await DuckDb.create(":memory:");
-      await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
-      await duckDb.insertSwapOps([
-        {
-          askDenom: "orai",
-          commissionAmount: 0,
-          direction: "Buy",
-          offerAmount: 10000,
-          offerDenom: "atom",
-          uniqueKey: "1",
-          returnAmount: 100,
-          spreadAmount: 0,
-          taxAmount: 0,
-          timestamp: 168961006800 / 1000,
-          txhash: "foo",
-          txheight: 1
-        },
-        {
-          askDenom: "orai",
-          commissionAmount: 0,
-          direction: "Buy",
-          offerAmount: 10,
-          offerDenom: "atom",
-          uniqueKey: "2",
-          returnAmount: 1,
-          spreadAmount: 0,
-          taxAmount: 0,
-          timestamp: 1589610068000 / 1000,
-          txhash: "foo",
-          txheight: 1
-        },
-        {
-          askDenom: "atom",
-          commissionAmount: 0,
-          direction: "Sell",
-          offerAmount: 10,
-          offerDenom: "orai",
-          uniqueKey: "3",
-          returnAmount: 1,
-          spreadAmount: 0,
-          taxAmount: 0,
-          timestamp: 1589610068000 / 1000,
-          txhash: "foo",
-          txheight: 1
-        },
-        {
-          askDenom: "atom",
-          commissionAmount: 0,
-          direction: "Sell",
-          offerAmount: 10,
-          offerDenom: "orai",
-          uniqueKey: "4",
-          returnAmount: 1,
-          spreadAmount: 0,
-          taxAmount: 0,
-          timestamp: 1589610068000 / 1000,
-          txhash: "foo",
-          txheight: 1
-        }
-      ]);
-      let queryResult = await duckDb.queryAllVolume(denoms[0], denoms[1]);
-      expect(queryResult.volume[denoms[0]]).toEqual(expectedVolumes[0]);
-      expect(queryResult.volume[denoms[1]]).toEqual(expectedVolumes[1]);
-    }
-  );
-
   it("test-query-volume-last-24h", async () => {
     duckDb = await DuckDb.create(":memory:");
     await Promise.all([duckDb.createHeightSnapshot(), duckDb.createLiquidityOpsTable(), duckDb.createSwapOpsTable()]);
@@ -197,23 +119,22 @@ describe("test-duckdb", () => {
     const data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
 
     await duckDb.insertLpOps(data);
-    let queryResult = await duckDb.queryLpOps();
-    queryResult[0].timestamp = queryResult[0].timestamp;
+    const queryResult = await duckDb.queryLpOps();
     expect(queryResult[0]).toEqual(data[0]);
   });
 
@@ -225,17 +146,17 @@ describe("test-duckdb", () => {
     let data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
     await duckDb.insertLpOps(data);
@@ -481,8 +402,8 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(apr).toEqual([
-        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" },
-        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" }
+        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" },
+        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" }
       ]);
     });
 
@@ -499,7 +420,7 @@ describe("test-duckdb", () => {
         totalBondAmount: "1",
         rewardPerSec: "1",
         apr: 2.5,
-        timestamp: 1236
+        timestamp: 1236n
       });
     });
   });

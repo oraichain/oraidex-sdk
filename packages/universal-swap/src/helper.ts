@@ -8,6 +8,7 @@ import {
   AIRI_BSC_CONTRACT,
   WRAP_ETH_CONTRACT,
   USDC_ETH_CONTRACT,
+  USDT_ETH_CONTRACT,
   EvmChainId,
   proxyContractInfo,
   CosmosChainId,
@@ -32,11 +33,10 @@ import {
   cosmosTokens,
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
-  toTokenInfo,
-  network,
-  isInPairList
+  isInPairList,
+  BigDecimal
 } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, SimulateResponse, SwapRoute, UniversalSwapConfig } from "./types";
+import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
 import {
   AssetInfo,
   OraiswapRouterClient,
@@ -48,12 +48,16 @@ import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { swapFromTokens, swapToTokens } from "./swap-filter";
 
+const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
+  const arr = ["ethereum", "weth"];
+  return arr.includes(fromCoingecko) && arr.includes(toCoingecko);
+};
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
   switch (coingeckoId) {
     case "wbnb":
-    case "weth":
     case "binancecoin":
     case "ethereum":
       return true;
@@ -89,7 +93,10 @@ export const swapEvmRoutes: {
   },
   "0x01": {
     [`${WRAP_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
-    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT]
+    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${WRAP_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT],
+    // TODO: hardcode fix eth -> weth (oraichain)
+    [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT]
   }
 };
 
@@ -375,12 +382,18 @@ export const simulateSwapEvm = async (query: {
   amount: string;
 }): Promise<SimulateResponse> => {
   const { amount, fromInfo, toInfo } = query;
+  // check swap native and wrap native
+  const isCheckSwapNativeAndWrapNative = caseSwapNativeAndWrapNative(fromInfo.coinGeckoId, toInfo.coinGeckoId);
 
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-  if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+  if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
-      amount,
-      displayAmount: toDisplay(amount, toInfo.decimals)
+      // amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
+      amount: new BigDecimal(amount)
+        .mul(10n ** BigInt(toInfo.decimals))
+        .div(10n ** BigInt(fromInfo.decimals))
+        .toString(),
+      displayAmount: toDisplay(amount, fromInfo.decimals)
     };
   }
   try {
@@ -469,6 +482,7 @@ export const checkFeeRelayer = async (query: {
   return checkFeeRelayerNotOrai({
     fromTokenInOrai: getTokenOnOraichain(originalFromToken.coinGeckoId),
     fromAmount,
+    relayerAmount: relayerFee.relayerAmount,
     routerClient
   });
 };
@@ -476,9 +490,10 @@ export const checkFeeRelayer = async (query: {
 export const checkFeeRelayerNotOrai = async (query: {
   fromTokenInOrai: TokenItemType;
   fromAmount: number;
+  relayerAmount: string;
   routerClient: OraiswapRouterReadOnlyInterface;
 }): Promise<boolean> => {
-  const { fromTokenInOrai, fromAmount, routerClient } = query;
+  const { fromTokenInOrai, fromAmount, routerClient, relayerAmount } = query;
   if (!fromTokenInOrai) return true;
   if (fromTokenInOrai.chainId !== "Oraichain")
     throw generateError(
@@ -493,8 +508,9 @@ export const checkFeeRelayerNotOrai = async (query: {
       amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
       routerClient: routerClient
     });
-    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
-    if (relayerDisplay >= fromAmount) return false;
+    const amountDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    const relayerAmountDisplay = toDisplay(relayerAmount);
+    if (relayerAmountDisplay > amountDisplay) return false;
     return true;
   }
   return true;
@@ -597,3 +613,46 @@ export const buildIbcWasmHooksMemo = (stargateMsgs: StargateMsg[]): string => {
     }
   });
 };
+
+export function filterNonPoolEvmTokens(
+  chainId: string,
+  coingeckoId: CoinGeckoId,
+  denom: string,
+  searchTokenName: string,
+  direction: SwapDirection // direction = to means we are filtering to tokens
+) {
+  // basic filter. Dont include itself & only collect tokens with searched letters
+  const listTokens = direction === SwapDirection.From ? swapFromTokens : swapToTokens;
+  let filteredToTokens = listTokens.filter(
+    (token) => token.denom !== denom && token.name.toLowerCase().includes(searchTokenName.toLowerCase())
+  );
+  // special case for tokens not having a pool on Oraichain
+  if (isSupportedNoPoolSwapEvm(coingeckoId)) {
+    const swappableTokens = Object.keys(swapEvmRoutes[chainId]).map((key) => key.split("-")[1]);
+    const filteredTokens = filteredToTokens.filter((token) => swappableTokens.includes(token.contractAddress));
+
+    // tokens that dont have a pool on Oraichain like WETH or WBNB cannot be swapped from a token on Oraichain
+    if (direction === SwapDirection.To)
+      return [...new Set(filteredTokens.concat(filteredTokens.map((token) => getTokenOnOraichain(token.coinGeckoId))))];
+    filteredToTokens = filteredTokens;
+  }
+  // special case filter. Tokens on networks other than supported evm cannot swap to tokens, so we need to remove them
+  if (!isEvmNetworkNativeSwapSupported(chainId as NetworkChainId))
+    return filteredToTokens.filter((t) => {
+      // one-directional swap. non-pool tokens of evm network can swap be swapped with tokens on Oraichain, but not vice versa
+      const isSupported = isSupportedNoPoolSwapEvm(t.coinGeckoId);
+      if (direction === SwapDirection.To) return !isSupported;
+      if (isSupported) {
+        // if we cannot find any matched token then we dont include it in the list since it cannot be swapped
+        const sameChainId = getTokenOnSpecificChainId(coingeckoId, t.chainId as NetworkChainId);
+        if (!sameChainId) return false;
+        return true;
+      }
+      return true;
+    });
+  return filteredToTokens.filter((t) => {
+    // filter out to tokens that are on a different network & with no pool because we are not ready to support them yet. TODO: support
+    if (isSupportedNoPoolSwapEvm(t.coinGeckoId)) return t.chainId === chainId;
+    return true;
+  });
+}

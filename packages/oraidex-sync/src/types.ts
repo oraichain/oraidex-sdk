@@ -26,15 +26,6 @@ export type SwapOperationData = {
   quotePoolAmount?: number | bigint;
 } & BasicTxData;
 
-export type StakingOperationData = {
-  uniqueKey: string; // concat of txheight, stakeAmount, stakerAddress, and stakeAssetDenom => should be unique
-  stakerAddress: string;
-  stakingAssetDenom: string;
-  stakeAmount: bigint;
-  stakeAmountInUsdt: number;
-  lpPrice: number;
-} & BasicTxData;
-
 export type EarningOperationData = {
   uniqueKey: string; // concat of txheight, stakeAmount, stakerAddress, and stakeAssetDenom => should be unique
   stakerAddress: string;
@@ -93,9 +84,9 @@ export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = {
   basePrice: number;
-  baseTokenAmount: number;
+  baseTokenAmount: bigint;
   baseTokenDenom: string; // eg: orai, orai1234...
-  quoteTokenAmount: number;
+  quoteTokenAmount: bigint;
   quoteTokenDenom: string;
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
@@ -110,13 +101,12 @@ export type OraiDexType =
   | ProvideLiquidityOperationData
   | WithdrawLiquidityOperationData
   | Ohlcv
-  | StakingOperationData
   | EarningOperationData;
 
 export type LpOpsData = {
-  baseTokenAmount: number;
+  baseTokenAmount: bigint;
   baseTokenDenom: string; // eg: orai, orai1234...
-  quoteTokenAmount: number;
+  quoteTokenAmount: bigint;
   quoteTokenDenom: string;
   opType?: LiquidityOpType;
   direction?: SwapDirection;
@@ -131,7 +121,6 @@ export type TxAnlysisResult = {
   accountTxs: AccountTx[];
   provideLiquidityOpsData: ProvideLiquidityOperationData[];
   withdrawLiquidityOpsData: WithdrawLiquidityOperationData[];
-  stakingOpsData: StakingOperationData[];
   claimOpsData: EarningOperationData[];
   poolAmountHistories: PoolAmountHistory[];
 };
@@ -164,7 +153,7 @@ export type MsgType =
   | OraiswapPairCw20HookMsg
   | {
       withdraw: {
-        asset_info: AssetInfo;
+        staking_token: Addr;
       };
     };
 export type OraiswapRouterCw20HookMsg = {
@@ -180,6 +169,7 @@ export type OraiswapPairCw20HookMsg = {
 };
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
+  lp_token: string;
   symbols: [string, string];
   factoryV1?: boolean;
 };
@@ -194,6 +184,21 @@ export type TickerInfo = {
   base: string;
   target: string;
   pool_id: string;
+  liquidity_in_usd: string;
+};
+
+export type SummaryInfo = {
+  base_currency: string;
+  quote_currency: string;
+  last_price: number;
+  base_volume: number;
+  quote_volume: number;
+  trading_pairs: string;
+  lowest_ask: number;
+  highest_bid: number;
+  price_change_percent_24h: number;
+  highest_price_24h: number;
+  lowest_price_24h: number;
 };
 
 export type TotalLiquidity = {
@@ -205,10 +210,6 @@ export type TotalLiquidity = {
 export type Env = {
   PORT: number;
   RPC_URL: string;
-  FACTORY_CONTACT_ADDRESS_V1: string;
-  FACTORY_CONTACT_ADDRESS_V2: string;
-  ROUTER_CONTRACT_ADDRESS: string;
-  MULTICALL_CONTRACT_ADDRESS: string;
   LIMIT: number;
   MAX_THREAD_LEVEL: number;
   DUCKDB_PROD_FILENAME: string;
@@ -240,6 +241,11 @@ export type GetCandlesQuery = {
   tf: number;
   startTime: number;
   endTime: number;
+};
+
+export type GetPriceAssetByUsdt = {
+  denom?: string;
+  contractAddress?: string;
 };
 
 export type GetFeeSwap = {

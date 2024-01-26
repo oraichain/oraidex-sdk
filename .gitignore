@@ -32,3 +32,5 @@ build
 dist
 .DS_Store
 cache/
+
+packages/contract-state-simulate/public/

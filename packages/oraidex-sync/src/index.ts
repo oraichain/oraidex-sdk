@@ -1,14 +1,16 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import {
-  concatAprHistoryToUniqueKey,
-  concatLpHistoryToUniqueKey,
-  getPairLiquidity,
-  getSymbolFromAsset
-} from "./helper";
+import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
-import { fetchAprResult, getAllPairInfos, getPairByAssetInfos, getPoolInfos, handleEventApr } from "./pool-helper";
+import {
+  fetchAprResult,
+  getAllPairInfos,
+  getPairByAssetInfos,
+  getPoolInfos,
+  getPoolLiquidities,
+  handleEventApr
+} from "./pool-helper";
 import { parseTxs } from "./tx-parsing";
 import { Env, PairInfoData, PoolAmountHistory, PoolApr, TxAnlysisResult } from "./types";
 
@@ -22,7 +24,6 @@ class WriteOrders extends WriteData {
       this.duckDb.insertSwapOps(txs.swapOpsData),
       this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
       this.duckDb.insertOhlcv(txs.ohlcv),
-      this.duckDb.insertStakingHistories(txs.stakingOpsData),
       this.duckDb.insertEarningHistories(txs.claimOpsData),
       this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
     ]);
@@ -41,7 +42,8 @@ class WriteOrders extends WriteData {
       await handleEventApr(txs, lpOpsData, newOffset);
 
       // hash to be promise all because if inserting height pass and txs fail then we will have duplications
-      await Promise.all([this.duckDb.insertHeightSnapshot(newOffset), this.insertParsedTxs(result)]);
+      await this.duckDb.insertHeightSnapshot(newOffset);
+      await this.insertParsedTxs(result);
       console.log("new offset: ", newOffset);
 
       const lpOps = await this.duckDb.queryLpOps();
@@ -68,7 +70,8 @@ class OraiDexSync {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
       const allPools = await this.duckDb.getPools();
-      if (allPools.length > 0 && pairInfos.length === allPools.length) return;
+
+      if (allPools.length > 0 && pairInfos.length === allPools.length) return false;
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair) => {
           const symbols = getSymbolFromAsset(pair.asset_infos);
@@ -87,18 +90,18 @@ class OraiDexSync {
         })
       );
       console.timeEnd("timer-updateLatestPairInfos");
+      return true;
     } catch (error) {
       console.log("error in updateLatestPairInfos: ", error);
     }
   }
 
-  private async updateLatestLpAmountHistory(currentHeight: number) {
+  private async updateLatestLpAmountHistory(currentHeight: number, isNewPool: boolean) {
     try {
       console.time("timer-updateLatestLpAmountHistory");
       const countLpAmounts = await this.duckDb.getLpAmountHistory();
-      if (countLpAmounts > 0) return;
-      const pairInfos = await this.duckDb.getPools();
-
+      if (countLpAmounts > 0 && !isNewPool && !process.env.IS_MIGRATE_POOL) return;
+      const pairInfos = await this.duckDb.getPools(); // 13 pools
       const poolInfos = await getPoolInfos(
         pairInfos.map((pair) => pair.pairAddr),
         currentHeight
@@ -129,50 +132,51 @@ class OraiDexSync {
   }
 
   private async updateLatestPoolApr(height: number) {
-    const pools = await this.duckDb.getPools();
-    const allLiquidities = (await Promise.allSettled(pools.map((pair) => getPairLiquidity(pair)))).map((result) => {
-      if (result.status === "fulfilled") return result.value;
-      else console.error("error get allLiquidities: ", result.reason);
-    });
-    const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
+    try {
+      const pools = await this.duckDb.getPools();
+      const allLiquidities = await getPoolLiquidities(pools);
+      const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
+        pools,
+        allLiquidities
+      );
 
-    const poolAprs = allAprs.map((apr, index) => {
-      return {
-        uniqueKey: concatAprHistoryToUniqueKey({
-          timestamp: Date.now(),
-          supply: allTotalSupplies[index],
-          bond: allBondAmounts[index],
-          reward: JSON.stringify(allRewardPerSec[index]),
+      const poolAprs = allAprs.map((apr, index) => {
+        return {
+          uniqueKey: concatAprHistoryToUniqueKey({
+            timestamp: Date.now(),
+            supply: allTotalSupplies[index],
+            bond: allBondAmounts[index],
+            reward: JSON.stringify(allRewardPerSec[index]),
+            apr,
+            pairAddr: pools[index].pairAddr
+          }),
+          pairAddr: pools[index].pairAddr,
+          height,
+          totalSupply: allTotalSupplies[index],
+          totalBondAmount: allBondAmounts[index],
+          rewardPerSec: JSON.stringify(allRewardPerSec[index]),
           apr,
-          pairAddr: pools[index].pairAddr
-        }),
-        pairAddr: pools[index].pairAddr,
-        height,
-        totalSupply: allTotalSupplies[index],
-        totalBondAmount: allBondAmounts[index],
-        rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-        apr,
-        timestamp: Date.now()
-      } as PoolApr;
-    });
-    await this.duckDb.insertPoolAprs(poolAprs);
+          timestamp: Date.now()
+        } as PoolApr;
+      });
+      await this.duckDb.insertPoolAprs(poolAprs);
+    } catch (error) {
+      console.log("error in updateLatestPoolApr: ", error);
+    }
   }
 
   public async sync() {
     try {
       // create tables
-      await Promise.all([
-        this.duckDb.createHeightSnapshot(),
-        this.duckDb.createLiquidityOpsTable(),
-        this.duckDb.createSwapOpsTable(),
-        this.duckDb.createPairInfosTable(),
-        this.duckDb.createSwapOhlcv(),
-        this.duckDb.createLpAmountHistoryTable(),
-        this.duckDb.createPoolAprTable(),
-        this.duckDb.createStakingHistoryTable(),
-        this.duckDb.createEarningHistoryTable(),
-        this.duckDb.addTimestampColToPoolAprTable()
-      ]);
+      await this.duckDb.createHeightSnapshot();
+      await this.duckDb.createLiquidityOpsTable();
+      await this.duckDb.createSwapOpsTable();
+      await this.duckDb.createPairInfosTable();
+      await this.duckDb.createSwapOhlcv();
+      await this.duckDb.createLpAmountHistoryTable();
+      await this.duckDb.createPoolAprTable();
+      await this.duckDb.createEarningHistoryTable();
+      await this.duckDb.addTimestampColToPoolAprTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
@@ -181,23 +185,28 @@ class OraiDexSync {
       }
       console.log("current ind: ", currentInd);
 
-      await this.updateLatestPairInfos();
+      const isNewPool = await this.updateLatestPairInfos();
 
       // update offer & ask, total share of pool history in the first time
-      await this.updateLatestLpAmountHistory(currentInd);
+      await this.updateLatestLpAmountHistory(currentInd, isNewPool);
 
       // NOTE: need to updateLatestLpAmountHistory before update apr in the first time
       // to get the offerAmount, askAmount from lp amount history table.
       await this.updateLatestPoolApr(currentInd);
 
-      new SyncData({
+      const syncStream = new SyncData({
         offset: currentInd,
         rpcUrl: this.rpcUrl,
         queryTags: [],
         limit: parseInt(process.env.LIMIT) || 1000,
         maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
-        interval: 5000
-      }).pipe(new WriteOrders(this.duckDb));
+        interval: 10000
+      });
+
+      const writeOrders = new WriteOrders(this.duckDb);
+      for await (const orders of syncStream) {
+        await writeOrders.process(orders);
+      }
     } catch (error) {
       console.log("error in start: ", error);
       process.exit(1);

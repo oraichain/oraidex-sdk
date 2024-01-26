@@ -35,7 +35,7 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  cosmosTokens
+  COSMOS_CHAIN_ID_COMMON
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -244,7 +244,7 @@ export class UniversalSwapHandler {
       finalFromAmount // increase allowance only take display form as input
     );
 
-    // native bnb / eth case when from token contract addr is empty, then we bridge from native
+    // Case 1: bridge from native bnb / eth case
     if (!fromToken.contractAddress) {
       result = await gravityContract.bridgeFromETH(
         ethers.utils.getAddress(toTokenContractAddr),
@@ -253,9 +253,9 @@ export class UniversalSwapHandler {
         { value: finalFromAmount }
       );
     } else if (!toTokenContractAddr) {
+      // Case 2: swap to native eth / bnb. Get evm route so that we can swap from token -> native eth / bnb
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
-      // the route is with weth or wbnb, then the uniswap router will automatically convert and transfer native eth / bnb back
-      const evmRoute = getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress, toTokenContractAddr);
+      const evmRoute = getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
 
       result = await routerV2.swapExactTokensForETH(
         finalFromAmount,
@@ -265,6 +265,7 @@ export class UniversalSwapHandler {
         new Date().getTime() + UNISWAP_ROUTER_DEADLINE
       );
     } else {
+      // Case 3: swap erc20 token to another erc20 token with a given destination (possibly sent to Oraichain or other networks)
       result = await gravityContract.bridgeFromERC20(
         ethers.utils.getAddress(fromToken.contractAddress),
         ethers.utils.getAddress(toTokenContractAddr),
@@ -523,12 +524,15 @@ export class UniversalSwapHandler {
       typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
       value: msgTransfer
     };
+    // hardcode fix bug fee osmosis
+    let fee: "auto" | number = "auto";
+    if (originalFromToken.chainId === COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID) fee = 3;
     // it means the user just wants to transfer ibc to Oraichain with same token, nothing more, then we can purely call send ibc tokens
     if (
       fromTokenOnOrai.chainId === originalToToken.chainId &&
       fromTokenOnOrai.coinGeckoId === originalToToken.coinGeckoId
     )
-      return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
+      return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], fee);
     if (!isInPairList(fromTokenOnOrai.denom) && !isInPairList(fromTokenOnOrai.contractAddress))
       throw generateError(
         `from token with coingecko id ${originalFromToken.coinGeckoId} does not have any associated pool on Oraichain. Could not swap`
@@ -538,7 +542,7 @@ export class UniversalSwapHandler {
     // complex univeral transaction, can be ibc transfer then swap then transfer to another chain
     msgTransfer.memo = buildIbcWasmHooksMemo(marshalEncodeObjsToStargateMsgs(encodedObjects));
     msgTransferEncodeObj = { ...msgTransferEncodeObj, value: msgTransfer };
-    return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], "auto");
+    return client.signAndBroadcast(sender.cosmos, [msgTransferEncodeObj], fee);
   }
 
   async processUniversalSwap() {

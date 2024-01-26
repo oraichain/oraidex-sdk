@@ -2,11 +2,12 @@ import * as parse from "../src/tx-parsing";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { parseTxToMsgExecuteContractMsgs } from "../src/tx-parsing";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
-import { DuckDb, ORAI, SwapDirection, SwapOperationData, oraiInfo, usdtCw20Address, usdtInfo } from "../src";
-import * as helper from "../src/helper";
+import { DuckDb, OCH_PRICE, ORAI, SwapDirection, SwapOperationData, oraiInfo, usdtCw20Address, usdtInfo } from "../src";
 import * as poolHelper from "../src/pool-helper";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { ORAIXOCH_INFO } from "@oraichain/oraidex-common/build/constant";
+
 describe("test-tx-parsing", () => {
   it.each<[string, string[]]>([
     [
@@ -18,6 +19,16 @@ describe("test-tx-parsing", () => {
   ])("test-parseWithdrawLiquidityAssets", (assets, expectedParsing) => {
     // act
     const result = parse.parseWithdrawLiquidityAssets(assets);
+    // assert
+    expect(result).toEqual(expectedParsing);
+  });
+
+  it.each<[string, string[]]>([
+    ["foo", []],
+    ["2591orai", ["2591", "orai"]]
+  ])("test-parseClaimNativeAsset", (assets, expectedParsing) => {
+    // act
+    const result = parse.parseClaimNativeAsset(assets);
     // assert
     expect(result).toEqual(expectedParsing);
   });
@@ -97,43 +108,6 @@ describe("test-tx-parsing", () => {
     };
     const msgs = parseTxToMsgExecuteContractMsgs(tx);
     expect(msgs.length).toEqual(expectedMsgLength);
-  });
-
-  it.each<[string, string, number]>([
-    ["invalid-staking-asset-denom-should-return-0", "invalid-staking-asset-denom", 0],
-    ["valid-staking-asset-denom-should-return-correctly-price", usdtCw20Address, 5]
-  ])("test-calculateLpPrice-WITH-%p", async (_caseName, stakingAssetDenom, expectedResult) => {
-    // setup
-    const MOCK_TOTAL_SHARE = "2";
-    const MOCK_PAIR_LIQUIDITY = 10.5;
-    const duckDb = await DuckDb.create(":memory:");
-    jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue({
-      timestamp: 1,
-      height: 1,
-      pairAddr: "1",
-      uniqueKey: "1",
-      totalShare: MOCK_TOTAL_SHARE,
-      offerPoolAmount: 1n,
-      askPoolAmount: 1n
-    });
-    jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue({
-      firstAssetInfo: "1",
-      secondAssetInfo: "1",
-      commissionRate: "1",
-      pairAddr: "1",
-      liquidityAddr: "1",
-      oracleAddr: "1",
-      symbols: "1",
-      fromIconUrl: "1",
-      toIconUrl: "1"
-    });
-    jest.spyOn(helper, "getPairLiquidity").mockResolvedValue(MOCK_PAIR_LIQUIDITY);
-
-    // act
-    const LPPrice = await parse.calculateLpPrice(stakingAssetDenom);
-
-    // assertion
-    expect(LPPrice).toEqual(expectedResult);
   });
 
   it.each([
@@ -273,8 +247,35 @@ describe("test-tx-parsing", () => {
     const updatedSwapOps = await parse.calculateSwapOpsWithPoolAmount(swapOps);
 
     // assertion
-    console.dir({ updatedSwapOps }, { depth: null });
     expect(updatedSwapOps[0].basePoolAmount).toEqual(99n); // 100n - 1n
     expect(updatedSwapOps[0].quotePoolAmount).toEqual(202n); // 200n + 2n
+  });
+
+  it.each([
+    [ORAIXOCH_INFO.token.contract_addr, OCH_PRICE],
+    ["other_denom", 1]
+  ])("should-calculate-reward-asset-price", async (denom: string, expectedPrice: number) => {
+    // setup
+    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(expectedPrice);
+
+    // act
+    const price = await parse.calculateRewardAssetPrice(denom);
+
+    // assertion
+    expect(price).toBe(expectedPrice);
+  });
+
+  it("test-calculateEarnAmountInUsdt-should-calculate-earn-amount-in-USDT", async () => {
+    // setup
+    const earnAmount = 100;
+    const rewardAssetPrice = 0.5;
+    const oraiEarnedAmount = 50;
+    const oraiPrice = 4;
+
+    // act
+    const result = parse.calculateEarnAmountInUsdt(rewardAssetPrice, earnAmount, oraiEarnedAmount, oraiPrice);
+
+    // assertion
+    expect(result).toBe(250);
   });
 });

@@ -41,9 +41,12 @@ import {
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
   USDT_TRON_CONTRACT,
+  WETH_CONTRACT,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
-  WRAP_TRON_TRX_CONTRACT
+  WRAP_TRON_TRX_CONTRACT,
+  USDT_ETH_CONTRACT,
+  BTC_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -94,7 +97,8 @@ export type CoinGeckoId =
   | "weth"
   | "wbnb"
   | "scatom"
-  | "injective-protocol";
+  | "injective-protocol"
+  | "bitcoin";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -313,7 +317,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "usdt",
       type: "cw20",
       contractAddress: USDT_CONTRACT,
-      bridgeTo: ["0x38", "0x2b6653dc"],
+      bridgeTo: ["0x38", "0x2b6653dc", "0x01"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
     },
@@ -420,17 +424,27 @@ export const oraichainNetwork: CustomChainInfo = {
       type: "cw20",
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png"
+    },
+    {
+      coinDenom: "WETH",
+      coinGeckoId: "weth",
+      coinMinimalDenom: "weth",
+      type: "cw20",
+      contractAddress: WETH_CONTRACT,
+      bridgeTo: ["0x01"],
+      coinDecimals: 6,
+      coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+    },
+    {
+      coinDenom: "BTC",
+      coinGeckoId: "bitcoin",
+      coinMinimalDenom: "btc",
+      type: "cw20",
+      contractAddress: BTC_CONTRACT,
+      // bridgeTo: ["bitcoinTestnet"],
+      coinDecimals: 6,
+      coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
     }
-    // {
-    //   coinDenom: 'ATOM-CW20',
-    //   coinGeckoId: 'cosmos',
-    //   coinMinimalDenom: 'uatom',
-    //   type: 'cw20',
-    //   contractAddress: 'orai17l2zk3arrx0a0fyuneyx8raln68622a2lrsz8ph75u7gw9tgz3esayqryf',
-    //   bridgeTo: ['cosmoshub-4'],
-    //   coinDecimals: 6,
-    //   Icon: AtomIcon
-    // }
   ]
 };
 
@@ -528,6 +542,24 @@ export const chainInfos: CustomChainInfo[] = [
         coinDecimals: 18,
         coinGeckoId: "milky-token",
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/14418.png"
+      },
+      {
+        coinDenom: "WETH",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + WRAP_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 18,
+        coinGeckoId: "weth",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+      },
+      {
+        coinDenom: "USDT",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + USDT_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 6,
+        coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
       }
     ],
     txExplorer: {
@@ -597,8 +629,8 @@ export const chainInfos: CustomChainInfo[] = [
 
   /// popular networks already included
   {
-    rpc: "https://rpc.cosmos.directory/osmosis",
-    rest: "https://rest.cosmos.directory/osmosis",
+    rpc: "https://osmosis.rpc.orai.io/",
+    rest: "https://osmosis.lcd.orai.io/",
     chainId: "osmosis-1",
     chainName: "Osmosis",
     networkType: "cosmos",
@@ -744,6 +776,7 @@ export const chainInfos: CustomChainInfo[] = [
         coinDecimals: 18,
         bridgeTo: ["Oraichain"],
         coinGeckoId: "weth",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
       },
       {
@@ -754,6 +787,16 @@ export const chainInfos: CustomChainInfo[] = [
         bridgeTo: ["Oraichain"],
         coinGeckoId: "ethereum",
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+      },
+      {
+        coinDenom: "USDT",
+        coinMinimalDenom: "erc20_usdt",
+        contractAddress: USDT_ETH_CONTRACT,
+        coinDecimals: 6,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "tether",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
       }
     ],
     txExplorer: {

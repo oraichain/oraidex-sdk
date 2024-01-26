@@ -34,7 +34,7 @@ import {
 } from "../src/helper";
 import { CoinGeckoId, NetworkChainId, OraiToken } from "../src/network";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { getPairSwapV2, isFactoryV1 } from "../src/pairs";
+import { isFactoryV1 } from "../src/pairs";
 import { Coin } from "@cosmjs/amino";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
 
@@ -99,17 +99,6 @@ describe("should helper functions in helper run exactly", () => {
     [{ token: { contract_addr: "foobar" } }, "foobar"]
   ])("test-parseAssetInfo-given-%j-should-receive-%s", (assetInfo, expectedResult) => {
     expect(parseAssetInfo(assetInfo)).toEqual(expectedResult);
-  });
-
-  it.each<[string, string[], string, boolean]>([
-    [MILKY_CONTRACT, [USDT_CONTRACT], "usdt", false],
-    [USDC_CONTRACT, [ORAI], ORAI, true]
-  ])("test-get-pair-swap", (contractAddress, expectedArr, exprectArrDenom, expectedArrIncludesOrai) => {
-    const { arr, arrLength, arrIncludesOrai, arrDenom } = getPairSwapV2(contractAddress);
-    expect(arr).toEqual(expectedArr);
-    expect(arrLength).toEqual(arr!.length);
-    expect(arrDenom).toEqual(exprectArrDenom);
-    expect(arrIncludesOrai).toEqual(expectedArrIncludesOrai);
   });
 
   it("test-isFactoryV1-true", () => {

@@ -1,21 +1,15 @@
 {
-    "extends": "../../tsconfig.json",
-    "compilerOptions": {
-        "baseUrl": ".",
-        "outDir": "build",
-        "declaration": true,
-        "rootDir": "src"
-    },
-    "ts-node": {
-        "esm": true,
-        "ignore": [
-            "node_modules/(?!@terran-one)"
-        ]
-    },
-    "include": [
-        "src/**/*.ts"
-    ],
-    "exclude": [
-        "node_modules/"
-    ]
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "outDir": "build",
+    "rootDir": "src",
+    "module": "ESNext"
+  },
+  "ts-node": {
+    "esm": true,
+    "ignore": ["node_modules/(?!@terran-one)"]
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules/"]
 }

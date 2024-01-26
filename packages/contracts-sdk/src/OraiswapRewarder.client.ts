@@ -6,20 +6,20 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, AssetInfo, Uint128} from "./types";
+import {Addr, Uint128} from "./types";
 import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, DistributionInfoResponse, RewardAmountPerSecondResponse} from "./OraiswapRewarder.types";
 export interface OraiswapRewarderReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
   distributionInfo: ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }) => Promise<DistributionInfoResponse>;
   rewardAmountPerSec: ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }) => Promise<RewardAmountPerSecondResponse>;
 }
 export class OraiswapRewarderQueryClient implements OraiswapRewarderReadOnlyInterface {
@@ -40,24 +40,24 @@ export class OraiswapRewarderQueryClient implements OraiswapRewarderReadOnlyInte
     });
   };
   distributionInfo = async ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }): Promise<DistributionInfoResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       distribution_info: {
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     });
   };
   rewardAmountPerSec = async ({
-    assetInfo
+    stakingToken
   }: {
-    assetInfo: AssetInfo;
+    stakingToken: Addr;
   }): Promise<RewardAmountPerSecondResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       reward_amount_per_sec: {
-        asset_info: assetInfo
+        staking_token: stakingToken
       }
     });
   };
@@ -75,9 +75,9 @@ export interface OraiswapRewarderInterface extends OraiswapRewarderReadOnlyInter
     stakingContract?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   distribute: ({
-    assetInfos
+    stakingTokens
   }: {
-    assetInfos: AssetInfo[];
+    stakingTokens: Addr[];
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapRewarderClient extends OraiswapRewarderQueryClient implements OraiswapRewarderInterface {
@@ -112,13 +112,13 @@ export class OraiswapRewarderClient extends OraiswapRewarderQueryClient implemen
     }, _fee, _memo, _funds);
   };
   distribute = async ({
-    assetInfos
+    stakingTokens
   }: {
-    assetInfos: AssetInfo[];
+    stakingTokens: Addr[];
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       distribute: {
-        asset_infos: assetInfos
+        staking_tokens: stakingTokens
       }
     }, _fee, _memo, _funds);
   };

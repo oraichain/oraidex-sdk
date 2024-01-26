@@ -13,7 +13,8 @@
     "deploy": "yarn publish --access public",
     "start:server": "yarn build-tsc packages/oraidex-sync/ && npx ts-node-dev packages/oraidex-server/src/index.ts",
     "start:sync": "npx ts-node packages/oraidex-sync/src/sync-cmd.ts",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "build:docker": "lerna run build --concurrency 1"
   },
   "workspaces": [
     "packages/*"
@@ -39,6 +40,7 @@
     "@types/node": "^18.15.8",
     "@typescript-eslint/eslint-plugin": "^6.7.5",
     "@typescript-eslint/parser": "^6.7.5",
+    "@vercel/ncc": "0.36.1",
     "cosmjs-types": "^0.8.0",
     "cz-conventional-changelog": "^3.3.0",
     "dotenv": "^16.3.1",
@@ -56,7 +58,7 @@
     "ts-node": "^10.9.1",
     "ts-node-dev": "^2.0.0",
     "typedoc": "^0.24.7",
-    "typescript": "^4.8.3"
+    "typescript": "^5.3.2"
   },
   "version": "1.0.1"
 }

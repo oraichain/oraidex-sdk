@@ -1,13 +1,13 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { maxBy, minBy } from "lodash";
-import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, tenAmountInDecimalSix, truncDecimals } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import { Ohlcv, OraiDexType, PairInfoData, StakingOperationData, SwapDirection, SwapOperationData } from "./types";
+import { Ohlcv, OraiDexType, PairInfoData, SwapDirection, SwapOperationData } from "./types";
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -54,8 +54,8 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
 export function concatDataToUniqueKey(data: {
   firstDenom: string;
   secondDenom: string;
-  firstAmount: number;
-  secondAmount: number;
+  firstAmount: bigint;
+  secondAmount: bigint;
   txheight: number;
 }): string {
   return `${data.txheight}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
@@ -69,13 +69,13 @@ export const concatLpHistoryToUniqueKey = (data: { timestamp: number; pairAddr: 
   return `${data.timestamp}-${data.pairAddr}`;
 };
 
-export const concatStakingpHistoryToUniqueKey = (data: {
+export const concatEarnedHistoryToUniqueKey = (data: {
   txheight: number;
   stakerAddress: string;
-  stakeAmount: number;
-  stakeAssetDenom: string;
+  earnAmount: number;
+  rewardAssetDenom: string;
 }): string => {
-  return `${data.txheight}-${data.stakerAddress}-${data.stakeAmount}-${data.stakeAssetDenom}`;
+  return `${data.txheight}-${data.stakerAddress}-${data.earnAmount}-${data.rewardAssetDenom}`;
 };
 
 export const concatAprHistoryToUniqueKey = (data: {
@@ -109,37 +109,8 @@ async function delay(timeout: number) {
   return new Promise((resolve) => setTimeout(resolve, timeout));
 }
 
-function findMappedTargetedAssetInfo(targetedAssetInfo: AssetInfo): AssetInfo[] {
-  const mappedAssetInfos = [];
-
-  for (const pair of pairs) {
-    const infos = pair.asset_infos;
-    if (parseAssetInfo(infos[0]) === parseAssetInfo(targetedAssetInfo)) mappedAssetInfos.push(infos[1]);
-    else if (parseAssetInfo(infos[1]) === parseAssetInfo(targetedAssetInfo)) mappedAssetInfos.push(infos[0]);
-    else continue;
-  }
-
-  return mappedAssetInfos;
-}
-
-function findAssetInfoPathToUsdt(info: AssetInfo): AssetInfo[] {
-  // first, check usdt mapped target infos because if we the info pairs with usdt directly then we can easily calculate its price
-  // otherwise, we find orai mapped target infos, which can lead to usdt.
-  // finally, if not paired with orai, then we find recusirvely to find a path leading to usdt token
-  if (parseAssetInfo(info) === parseAssetInfo(usdtInfo)) return [info]; // means there's no path, the price should be 1
-  const mappedUsdtInfoList = findMappedTargetedAssetInfo(usdtInfo);
-  if (mappedUsdtInfoList.find((assetInfo) => parseAssetInfo(assetInfo) === parseAssetInfo(info)))
-    return [info, usdtInfo];
-  const mappedOraiInfoList = findMappedTargetedAssetInfo(oraiInfo);
-  if (mappedOraiInfoList.find((assetInfo) => parseAssetInfo(assetInfo) === parseAssetInfo(info)))
-    return [info, oraiInfo, usdtInfo];
-  const pairedInfo = findMappedTargetedAssetInfo(info);
-  if (pairedInfo.length === 0) return []; // cannot find any mapped target pair
-  return [info, ...findAssetInfoPathToUsdt(pairedInfo[0])]; // only need the first found paired token with the one we are matching
-}
-
 function generateSwapOperations(infoPath: AssetInfo[]): SwapOperation[] {
-  let swapOps: SwapOperation[] = [];
+  const swapOps: SwapOperation[] = [];
   for (let i = 0; i < infoPath.length - 1; i++) {
     swapOps.push({ orai_swap: { offer_asset_info: infoPath[i], ask_asset_info: infoPath[i + 1] } } as SwapOperation);
   }
@@ -161,14 +132,14 @@ export const calculatePriceByPool = (
   offerAmount?: number
 ): number => {
   const finalOfferAmount = offerAmount || tenAmountInDecimalSix;
-  let bigIntAmount =
+  const bigIntAmount =
     Number(offerPool - (askPool * offerPool) / (askPool + BigInt(finalOfferAmount))) * (1 - commissionRate || 0);
 
   return bigIntAmount / finalOfferAmount;
 };
 
 export function groupDataByTime(data: any[], timeframe?: number): { [key: string]: any[] } {
-  let ops: { [k: number]: any[] } = {};
+  const ops: { [k: number]: any[] } = {};
   for (const op of data) {
     const roundedTime = roundTime(op.timestamp * 1000, timeframe || 60); // op timestamp is sec
     if (!ops[roundedTime]) {
@@ -230,26 +201,9 @@ export const recalculateTotalShare = ({
 };
 
 export function removeOpsDuplication(ops: OraiDexType[]): OraiDexType[] {
-  let newOps: OraiDexType[] = [];
-  for (let op of ops) {
+  const newOps: OraiDexType[] = [];
+  for (const op of ops) {
     if (!newOps.some((newOp) => newOp.uniqueKey === op.uniqueKey)) newOps.push(op);
-  }
-  return newOps;
-}
-
-// check if there are more 2 ops has same unique key, mean that we have more 2 msg stake in one txs is same, so we combine to one ops.
-export function groupDuplicateStakeOps(ops: StakingOperationData[]): StakingOperationData[] {
-  let newOps: StakingOperationData[] = [];
-  for (let op of ops) {
-    const opIndex = newOps.findIndex((newOp) => newOp.uniqueKey === op.uniqueKey);
-    if (opIndex < 0) newOps.push(op);
-    else {
-      newOps[opIndex] = {
-        ...newOps[opIndex],
-        stakeAmount: newOps[opIndex].stakeAmount + op.stakeAmount,
-        stakeAmountInUsdt: newOps[opIndex].stakeAmountInUsdt + op.stakeAmountInUsdt
-      };
-    }
   }
   return newOps;
 }
@@ -260,7 +214,7 @@ export function groupDuplicateStakeOps(ops: StakingOperationData[]): StakingOper
  * @returns
  */
 export const groupSwapOpsByPair = (ops: SwapOperationData[]): { [key: string]: SwapOperationData[] } => {
-  let opsByPair = {};
+  const opsByPair = {};
   for (const op of ops) {
     const pairIndex = findPairIndexFromDenoms(op.offerDenom, op.askDenom);
     if (pairIndex === -1) continue;
@@ -301,7 +255,7 @@ export const calculateSwapOhlcv = (ops: SwapOperationData[], pair: string): Ohlc
 };
 
 export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
-  let ohlcv: Ohlcv[] = [];
+  const ohlcv: Ohlcv[] = [];
   for (const [pair, opsByPair] of Object.entries(groupSwapOpsByPair(ops))) {
     const opsByTime = groupDataByTime(opsByPair);
     const ticks = Object.values(opsByTime).map((value) => calculateSwapOhlcv(value, pair));
@@ -416,17 +370,31 @@ async function getAllVolume24h(): Promise<PoolVolume[]> {
   const tf = 24 * 60 * 60; // second of 24h
   const currentDate = new Date();
   const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-  const allVolumes = await Promise.all(
-    pairs.map((pair) => getVolumePairByUsdt(pair.asset_infos, oneDayBeforeNow, currentDate))
-  );
-  return pairs.map((pair, index) => {
-    return {
-      assetInfos: pair.asset_infos,
-      volume: allVolumes[index]
-    };
-  });
+
+  const poolVolumes = [];
+  for (const { asset_infos } of pairs) {
+    const volume = await getVolumePairByUsdt(asset_infos, oneDayBeforeNow, currentDate);
+    poolVolumes.push({
+      assetInfos: asset_infos,
+      volume
+    });
+  }
+
+  return poolVolumes;
 }
 // ===== end get volume pairs =====>
+
+export const getPoolsFromDuckDb = async (): Promise<PairInfoData[]> => {
+  const duckDb = DuckDb.instances;
+  const pools = await duckDb.getPools();
+  return pools;
+};
+
+async function getPoolAprsFromDuckDb() {
+  const duckDb = DuckDb.instances;
+  const allPoolApr = await duckDb.getAllAprs();
+  return allPoolApr;
+}
 
 //  <==== start get fee pair ====
 export const getFeeSwapInUsdt = async (
@@ -443,10 +411,8 @@ export const getFeeSwapInUsdt = async (
     endTime: convertDateToSecond(endTime)
   });
 
-  const [baseAssetPrice, quoteAssetPrice] = await Promise.all([
-    getPriceAssetByUsdt(baseAsset),
-    getPriceAssetByUsdt(quoteAsset)
-  ]);
+  const baseAssetPrice = await getPriceAssetByUsdt(baseAsset);
+  const quoteAssetPrice = await getPriceAssetByUsdt(quoteAsset);
 
   const totalFeeInUsdt = baseAssetPrice * feeInBaseAsset + quoteAssetPrice * feeInQuoteAsset;
   return BigInt(Math.trunc(totalFeeInUsdt));
@@ -458,15 +424,14 @@ export const getFeePair = async (
   endTime: Date
 ): Promise<bigint> => {
   const duckDb = DuckDb.instances;
-  const [swapFee, liquidityFee] = await Promise.all([
-    getFeeSwapInUsdt(asset_infos, startTime, endTime),
-    duckDb.getFeeLiquidity({
-      offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
-      askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
-      startTime: convertDateToSecond(startTime),
-      endTime: convertDateToSecond(endTime)
-    })
-  ]);
+
+  const swapFee = await getFeeSwapInUsdt(asset_infos, startTime, endTime);
+  const liquidityFee = await duckDb.getFeeLiquidity({
+    offerDenom: parseAssetInfoOnlyDenom(asset_infos[0]),
+    askDenom: parseAssetInfoOnlyDenom(asset_infos[1]),
+    startTime: convertDateToSecond(startTime),
+    endTime: convertDateToSecond(endTime)
+  });
   return swapFee + liquidityFee;
 };
 
@@ -478,13 +443,17 @@ async function getAllFees(): Promise<PoolFee[]> {
   const tf = 7 * 24 * 60 * 60; // second of 7 days
   const currentDate = new Date();
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
-  const allFees = await Promise.all(pairs.map((pair) => getFeePair(pair.asset_infos, oneWeekBeforeNow, currentDate)));
-  return pairs.map((pair, index) => {
-    return {
-      assetInfos: pair.asset_infos,
-      fee: allFees[index]
-    };
-  });
+
+  const poolFees = [];
+  for (const { asset_infos } of pairs) {
+    const fee = await getFeePair(asset_infos, oneWeekBeforeNow, currentDate);
+    poolFees.push({
+      assetInfos: asset_infos,
+      fee
+    });
+  }
+
+  return poolFees;
 }
 //  ==== end get fee pair ====>
 
@@ -496,13 +465,12 @@ export function getDate24hBeforeNow(time: Date) {
 
 export {
   delay,
-  findAssetInfoPathToUsdt,
-  findMappedTargetedAssetInfo,
   findPairAddress,
   generateSwapOperations,
   getAllFees,
   getAllVolume24h,
   getCosmwasmClient,
+  getPoolAprsFromDuckDb,
   getSpecificDateBeforeNow,
   getSymbolFromAsset
 };

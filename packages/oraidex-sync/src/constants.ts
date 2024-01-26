@@ -1,3 +1,10 @@
+import {
+  FACTORY_CONTRACT,
+  FACTORY_V2_CONTRACT,
+  MULTICALL_CONTRACT,
+  ROUTER_V2_CONTRACT,
+  STAKING_CONTRACT
+} from "@oraichain/oraidex-common/build/constant";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export const ORAI = "orai";
@@ -27,9 +34,9 @@ export const OCH_PRICE = 0.4; // usdt
 
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 export const network = {
-  factory: process.env.FACTORY_CONTACT_ADDRESS_V1,
-  factory_v2: process.env.FACTORY_CONTACT_ADDRESS_V2,
-  router: process.env.ROUTER_CONTRACT_ADDRESS,
-  staking: process.env.STAKING_CONTRACT,
-  multicall: process.env.MULTICALL_CONTRACT_ADDRESS
+  factory: FACTORY_CONTRACT,
+  factory_v2: FACTORY_V2_CONTRACT,
+  router: ROUTER_V2_CONTRACT,
+  staking: STAKING_CONTRACT,
+  multicall: MULTICALL_CONTRACT
 };
