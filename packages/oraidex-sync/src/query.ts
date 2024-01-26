@@ -17,7 +17,7 @@ import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom } from "./parse";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 
-async function queryPoolInfos(pairAddrs: string[]): Promise<PoolResponse[]> {
+async function queryPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
   const MAX_CHUNK_SIZE = 5;
 
   const calls: Call[] = pairAddrs.map((pair) => {
@@ -35,7 +35,7 @@ async function queryPoolInfos(pairAddrs: string[]): Promise<PoolResponse[]> {
     chunks.push(calls.slice(i, i + MAX_CHUNK_SIZE));
   }
   try {
-    const res = (await Promise.all(chunks.map(aggregateMulticall))) as PoolResponse[][];
+    const res = (await Promise.all(chunks.map((chunk) => aggregateMulticall(chunk, wantedHeight)))) as PoolResponse[][];
     return res.flat();
   } catch (error) {
     console.log(`Error when trying to queryPoolInfos: ${JSON.stringify(pairAddrs)}: ${error} `);
@@ -115,8 +115,9 @@ async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRoute
   }
 }
 
-async function aggregateMulticall<T>(queries: Call[]): Promise<T[]> {
+async function aggregateMulticall<T>(queries: Call[], wantedHeight?: number): Promise<T[]> {
   const client = await getCosmwasmClient();
+  client.setQueryClientWithHeight(wantedHeight);
   const multicall = new MulticallQueryClient(client, network.multicall);
   const res = await multicall.tryAggregate({ queries });
   return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)) as T[];
