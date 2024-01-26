@@ -45,7 +45,8 @@ import {
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
-  USDT_ETH_CONTRACT
+  USDT_ETH_CONTRACT,
+  BTC_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -96,7 +97,8 @@ export type CoinGeckoId =
   | "weth"
   | "wbnb"
   | "scatom"
-  | "injective-protocol";
+  | "injective-protocol"
+  | "bitcoin";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -432,6 +434,16 @@ export const oraichainNetwork: CustomChainInfo = {
       bridgeTo: ["0x01"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png"
+    },
+    {
+      coinDenom: "BTC",
+      coinGeckoId: "bitcoin",
+      coinMinimalDenom: "btc",
+      type: "cw20",
+      contractAddress: BTC_CONTRACT,
+      // bridgeTo: ["bitcoinTestnet"],
+      coinDecimals: 6,
+      coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
     }
   ]
 };
