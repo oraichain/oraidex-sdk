@@ -103,8 +103,8 @@ class OraiDexSync {
       if (countLpAmounts > 0 && !isNewPool && !process.env.IS_MIGRATE_POOL) return;
       const pairInfos = await this.duckDb.getPools(); // 13 pools
       const poolInfos = await getPoolInfos(
-        pairInfos.map((pair) => pair.pairAddr)
-        // currentHeight
+        pairInfos.map((pair) => pair.pairAddr),
+        currentHeight
       );
       const INITIAL_TIMESTAMP = 1;
       await this.duckDb.insertPoolAmountHistory(
