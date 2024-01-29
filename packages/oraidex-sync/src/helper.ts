@@ -7,7 +7,7 @@ import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
-import { Ohlcv, OraiDexType, PairInfoData, SwapDirection, SwapOperationData } from "./types";
+import { Ohlcv, OraiDexType, PairInfoData, PoolAmountHistory, SwapDirection, SwapOperationData } from "./types";
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -456,6 +456,26 @@ async function getAllFees(): Promise<PoolFee[]> {
   return poolFees;
 }
 //  ==== end get fee pair ====>
+
+// get total liquidity of pair from assetInfos by timestamp
+export const getTotalPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
+  const tf = 7 * 24 * 60 * 60; // second of 7 days
+  const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf).getTime() / 1000;
+
+  const duckDb = DuckDb.instances;
+  const poolAmount = await duckDb.getLpAmountByTime(poolInfo.pairAddr, oneWeekBeforeNow);
+
+  if (!poolAmount) return 0;
+  const totalLiquidity7Days = poolAmount.reduce((acc, cur) => {
+    acc = acc + Number(cur.offerPoolAmount) * Math.pow(10, -6);
+    return acc;
+  }, 0);
+
+  const baseAssetInfo = JSON.parse(poolInfo.firstAssetInfo);
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
+
+  return priceBaseAssetInUsdt * totalLiquidity7Days * 2;
+};
 
 export function getDate24hBeforeNow(time: Date) {
   const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
