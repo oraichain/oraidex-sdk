@@ -10,7 +10,19 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual } from "lodash";
-import { OCH_PRICE, ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
+import {
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  OCH_PRICE,
+  ORAI,
+  ORAIXOCH_INFO,
+  SEC_PER_YEAR,
+  atomic,
+  network,
+  oraiInfo,
+  truncDecimals,
+  usdtInfo
+} from "./constants";
 import {
   calculatePriceByPool,
   getCosmwasmClient,
@@ -21,8 +33,8 @@ import {
   getPairLiquidity,
   recalculateTotalShare,
   PoolFee,
-  getTotalPairLiquidity,
-  getAllFees
+  getAllFees,
+  getAvgPairLiquidity
 } from "./helper";
 import { DuckDb } from "./db";
 import { pairs } from "./pairs";
@@ -236,63 +248,77 @@ export const calculateLiquidityFee = async (
 };
 
 //  <==== calculate APR ====
-export const calculateAprResultV2 = async (allLiquidities: number[], allFee7Days: PoolFee[]): Promise<number[]> => {
-  const aprResult = [];
-  let ind = 0;
+export const calculateAprResultV2 = async (
+  allLiquidities: Record<string, number>,
+  allFee7Days: PoolFee[]
+): Promise<Record<string, number>> => {
+  const aprResult = {};
   for (const _pair of pairs) {
-    const liquidityAmount = allLiquidities[ind];
-    // * Math.pow(10, -6);
+    const lpTokenAddress = _pair.lp_token;
+    const liquidityAmount = allLiquidities[lpTokenAddress]; // || latestLiquidity[ind];
 
     const poolFee = allFee7Days.find((item) => {
       return JSON.stringify(item.assetInfos) === JSON.stringify(_pair.asset_infos);
     });
 
-    const yearlyFees = (365 * Number(poolFee.fee) * Math.pow(10, -6)) / 7;
-    const avgLiquidity = liquidityAmount / 7;
+    const yearlyFees = (DAYS_PER_YEAR * Number(poolFee.fee) * Math.pow(10, -truncDecimals)) / DAYS_PER_WEEK;
 
-    aprResult[ind] = !avgLiquidity ? 0 : (100 * yearlyFees) / avgLiquidity || 0;
-    ind += 1;
+    aprResult[lpTokenAddress] = !liquidityAmount ? 0 : (100 * yearlyFees) / liquidityAmount || 0;
   }
+
   return aprResult;
 };
 
-export const calculateBoostApr = (avgLiquidities: number[], allFee7Days: PoolFee[]): number[] => {
-  const aprResult = [];
-  let ind = 0;
+export const calculateBoostApr = (
+  avgLiquidities: Record<string, number>,
+  allFee7Days: PoolFee[],
+  latestLiquidity: Record<string, number>
+): Record<string, number> => {
+  const aprResult = {};
+
   for (const _pair of pairs) {
-    const liquidityAmount = avgLiquidities[ind] * Math.pow(10, -6);
+    const lpTokenAddress = _pair.lp_token;
+    const liquidityAmount = avgLiquidities[lpTokenAddress] || latestLiquidity[lpTokenAddress];
 
     const poolFee = allFee7Days.find((item) => {
       return JSON.stringify(item.assetInfos) === JSON.stringify(_pair.asset_infos);
     });
 
-    const yearlyFees = (365 * Number(poolFee.fee) * Math.pow(10, -6)) / 7;
-    const avgLiquidity = liquidityAmount / 7;
+    const yearlyFees = (DAYS_PER_YEAR * Number(poolFee.fee) * Math.pow(10, -truncDecimals)) / DAYS_PER_WEEK;
 
-    aprResult[ind] = (100 * yearlyFees) / avgLiquidity || 0;
-    ind += 1;
+    aprResult[lpTokenAddress] = !liquidityAmount ? 0 : (100 * yearlyFees) / liquidityAmount || 0;
   }
+
   return aprResult;
 };
 
 //  <==== calculate APR ====
-export const calculateAprResult = async (
-  allLiquidities: number[],
-  allTotalSupplies: string[],
-  allBondAmounts: string[],
-  allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[],
-  avgLiquidity: number[],
-  allFee7Days: PoolFee[]
-): Promise<number[]> => {
-  const aprResult = [];
-  let ind = 0;
-  const bootAprs = calculateBoostApr(avgLiquidity, allFee7Days);
+export type CalculateAprType = {
+  allLiquidities: Record<string, number>;
+  allTotalSupplies: Record<string, string>;
+  allBondAmounts: Record<string, string>;
+  allRewardPerSec: Record<string, OraiswapStakingTypes.RewardsPerSecResponse>;
+  avgLiquidity: Record<string, number>;
+  allFee7Days: PoolFee[];
+};
+
+export const calculateAprResult = async ({
+  allLiquidities,
+  allTotalSupplies,
+  allBondAmounts,
+  allRewardPerSec,
+  avgLiquidity,
+  allFee7Days
+}: CalculateAprType): Promise<Record<string, number>> => {
+  const aprResult = {};
+  const bootAprs = calculateBoostApr(avgLiquidity, allFee7Days, allLiquidities);
 
   for (const _pair of pairs) {
-    const liquidityAmount = allLiquidities[ind] * Math.pow(10, -6);
-    const totalBondAmount = allBondAmounts[ind];
-    const tokenSupply = allTotalSupplies[ind];
-    const rewardsPerSecData = allRewardPerSec[ind];
+    const { lp_token = "" } = _pair || {};
+    const liquidityAmount = allLiquidities[lp_token] * Math.pow(10, -6);
+    const totalBondAmount = allBondAmounts[lp_token];
+    const tokenSupply = allTotalSupplies[lp_token];
+    const rewardsPerSecData = allRewardPerSec[lp_token];
     if (!totalBondAmount || !tokenSupply || !rewardsPerSecData) continue;
 
     const bondValue = (validateNumber(totalBondAmount) * liquidityAmount) / validateNumber(tokenSupply);
@@ -304,13 +330,12 @@ export const calculateAprResult = async (
       rewardsPerYearValue += (SEC_PER_YEAR * validateNumber(amount) * priceAssetInUsdt) / atomic;
     }
 
-    aprResult[ind] = ((100 * rewardsPerYearValue) / bondValue || 0) + bootAprs[ind];
-    ind += 1;
+    aprResult[lp_token] = ((100 * rewardsPerYearValue) / bondValue || 0) + bootAprs[lp_token];
   }
   return aprResult;
 };
 
-export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]) => {
+export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: Record<string, number>) => {
   const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
   try {
     const [allTokenInfo, allLpTokenAsset, allRewardPerSec, allFee7Days] = await Promise.all([
@@ -319,14 +344,23 @@ export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: 
       fetchAllRewardPerSecInfos(liquidityAddrs),
       getAllFees()
     ]);
-    const allTotalSupplies = allTokenInfo.map((info) => info.total_supply);
-    const allBondAmounts = allLpTokenAsset.map((info) => info.total_bond_amount);
+
+    const allTotalSupplies = {};
+    const allBondAmounts = {};
+    const fmtAllRewardPerSec = {};
+
+    liquidityAddrs.map((liqAddress, index) => {
+      allTotalSupplies[liqAddress] = allTokenInfo[index].total_supply;
+      allBondAmounts[liqAddress] = allLpTokenAsset[index].total_bond_amount;
+      fmtAllRewardPerSec[liqAddress] = allRewardPerSec[index];
+    });
     // const allAprs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
     const allAprs = await calculateAprResultV2(allLiquidities, allFee7Days);
+
     return {
       allTotalSupplies,
       allBondAmounts,
-      allRewardPerSec,
+      allRewardPerSec: fmtAllRewardPerSec,
       allAprs
     };
   } catch (error) {
@@ -343,20 +377,20 @@ export const getAllPairInfos = async (): Promise<PairInfo[]> => {
   return queryAllPairInfos(firstFactoryClient, secondFactoryClient);
 };
 
-export const getPoolLiquidities = async (pools: PairInfoData[]): Promise<number[]> => {
-  const allLiquidities: number[] = [];
+export const getPoolLiquidities = async (pools: PairInfoData[]): Promise<Record<string, number>> => {
+  const allLiquidities: Record<string, number> = {};
   for (const pool of pools) {
     const liquidity = await getPairLiquidity(pool);
-    allLiquidities.push(liquidity);
+    allLiquidities[pool.liquidityAddr] = liquidity;
   }
   return allLiquidities;
 };
 
-export const getAllPoolLiquidities = async (pools: PairInfoData[]): Promise<number[]> => {
-  const allLiquidities: number[] = [];
+export const getAvgPoolLiquidities = async (pools: PairInfoData[]): Promise<Record<string, number>> => {
+  const allLiquidities: Record<string, number> = {};
   for (const pool of pools) {
-    const liquidity = await getTotalPairLiquidity(pool);
-    allLiquidities.push(liquidity);
+    const liquidity = await getAvgPairLiquidity(pool);
+    allLiquidities[pool.liquidityAddr] = liquidity;
   }
   return allLiquidities;
 };
@@ -399,32 +433,37 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
   const duckDb = DuckDb.instances;
 
   const pools = await getAllPoolByAssetInfos(assetInfos);
-  const allLiquidities = await getAllPoolLiquidities(pools);
+  const avgLiquidities = await getAvgPoolLiquidities(pools);
   const allFee7Days = await getAllFees();
-  const poolAprInfos = [];
+  const poolAprInfos: { aprInfo: PoolApr; pool: PairInfoData }[] = [];
   for (const pool of pools) {
     const aprInfo = await duckDb.getLatestPoolApr(pool.pairAddr);
-    poolAprInfos.push(aprInfo);
+    poolAprInfos.push({ aprInfo, pool });
   }
 
-  const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
-  const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
-  const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
+  // const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
+  // const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
+  // const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
 
   // const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
-  const APRs = await calculateAprResultV2(allLiquidities, allFee7Days);
+  const APRs = await calculateAprResultV2(avgLiquidities, allFee7Days);
+
   const newPoolAprs = poolAprInfos.map((poolApr, index) => {
+    const { aprInfo, pool: poolInfo } = poolApr;
+    const { liquidityAddr, pairAddr } = poolInfo;
+    const { totalBondAmount, totalSupply, rewardPerSec } = aprInfo;
+    const fmtRewardPerSec = rewardPerSec ? JSON.parse(rewardPerSec) : null;
     return {
-      ...poolApr,
+      ...aprInfo,
       height: newOffset,
-      apr: APRs[index],
+      apr: APRs[liquidityAddr],
       uniqueKey: concatAprHistoryToUniqueKey({
         timestamp: Date.now(),
-        supply: allTotalSupplies[index],
-        bond: allBondAmounts[index],
-        reward: allRewardPerSecs[index],
-        apr: APRs[index],
-        pairAddr: pools[index].pairAddr
+        supply: totalSupply,
+        bond: totalBondAmount,
+        reward: fmtRewardPerSec,
+        apr: APRs[liquidityAddr],
+        pairAddr: pairAddr
       }),
       timestamp: Date.now() // use timestamp date.now() because we just need to have a order of apr.
     };

@@ -25,7 +25,7 @@ import {
   calculatePriceByPool,
   PairInfoData,
   findPairAddress,
-  getAllPoolLiquidities
+  getAvgPoolLiquidities
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
@@ -175,7 +175,7 @@ export const getAllPoolsInfo = async () => {
     const pools = await getPoolsFromDuckDb();
     const allPoolApr = await getPoolAprsFromDuckDb();
     const allLiquidities = await getPoolLiquidities(pools);
-    const allLiq7Days = await getAllPoolLiquidities(pools);
+    const avgLiqIn7Days = await getAvgPoolLiquidities(pools);
     const allPoolAmounts = await getPoolAmounts(pools);
 
     const allPoolsInfo: PairInfoDataResponse[] = pools.map((pool, index) => {
@@ -199,14 +199,13 @@ export const getAllPoolsInfo = async () => {
       });
       if (!poolVolume) return null;
 
-      // console.log("allPo", allPoolAmounts);
       return {
         ...pool,
         volume24Hour: poolVolume.volume.toString(),
         fee7Days: poolFee.fee.toString(),
         apr: poolApr.apr,
-        totalLiquidity: allLiquidities[index],
-        avgLiquidity: allLiq7Days[index] / 7,
+        totalLiquidity: allLiquidities[pool.liquidityAddr],
+        avgLiquidity: avgLiqIn7Days[pool.liquidityAddr],
         rewardPerSec: poolApr.rewardPerSec,
         offerPoolAmount: allPoolAmounts[index]?.offerPoolAmount,
         askPoolAmount: allPoolAmounts[index]?.askPoolAmount,

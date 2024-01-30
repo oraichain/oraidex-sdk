@@ -6,6 +6,7 @@ import { parseAssetInfo, parsePoolAmount } from "./parse";
 import {
   fetchAprResult,
   getAllPairInfos,
+  getAvgPoolLiquidities,
   getPairByAssetInfos,
   getPoolInfos,
   getPoolLiquidities,
@@ -134,31 +135,34 @@ class OraiDexSync {
   private async updateLatestPoolApr(height: number) {
     try {
       const pools = await this.duckDb.getPools();
-      const allLiquidities = await getPoolLiquidities(pools);
+      const allLiquidities = await getAvgPoolLiquidities(pools);
       const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
         pools,
         allLiquidities
       );
 
-      const poolAprs = allAprs.map((apr, index) => {
+      const poolAprs = Object.entries(allAprs).map(([liqAddress, apr], _index) => {
+        const { pairAddr = "" } = pools.find((p) => p.liquidityAddr === liqAddress) || {};
+
         return {
           uniqueKey: concatAprHistoryToUniqueKey({
             timestamp: Date.now(),
-            supply: allTotalSupplies[index],
-            bond: allBondAmounts[index],
-            reward: JSON.stringify(allRewardPerSec[index]),
+            supply: allTotalSupplies[liqAddress],
+            bond: allBondAmounts[liqAddress],
+            reward: JSON.stringify(allRewardPerSec[liqAddress]),
             apr,
-            pairAddr: pools[index].pairAddr
+            pairAddr
           }),
-          pairAddr: pools[index].pairAddr,
+          pairAddr,
           height,
-          totalSupply: allTotalSupplies[index],
-          totalBondAmount: allBondAmounts[index],
-          rewardPerSec: JSON.stringify(allRewardPerSec[index]),
+          totalSupply: allTotalSupplies[liqAddress],
+          totalBondAmount: allBondAmounts[liqAddress],
+          rewardPerSec: JSON.stringify(allRewardPerSec[liqAddress]),
           apr,
           timestamp: Date.now()
         } as PoolApr;
       });
+
       await this.duckDb.insertPoolAprs(poolAprs);
     } catch (error) {
       console.log("error in updateLatestPoolApr: ", error);
