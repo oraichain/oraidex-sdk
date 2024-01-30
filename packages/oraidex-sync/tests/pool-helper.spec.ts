@@ -289,30 +289,63 @@ describe("test-pool-helper", () => {
 
   it("test-calculateAprResult-should-return-correctly-APR", async () => {
     // setup
-    const allLiquidities = Array(pairs.length).fill(1e6);
-    const allTotalSupplies = Array(pairs.length).fill("100000");
-    const allBondAmounts = Array(pairs.length).fill("1");
-    const allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[] = Array(pairs.length).fill({
-      assets: [
-        {
-          amount: "1",
-          info: oraiInfo
-        }
-      ]
+    const allLiquidities = {}; // = Array(pairs.length).fill(1e6);
+    const allTotalSupplies = {}; //= Array(pairs.length).fill("100000");
+    const allBondAmounts = {}; //= Array(pairs.length).fill("1");
+    const allRewardPerSec: Record<string, OraiswapStakingTypes.RewardsPerSecResponse> = {};
+    // OraiswapStakingTypes.RewardsPerSecResponse[] = Array(pairs.length).fill({
+    //   assets: [
+    //     {
+    //       amount: "1",
+    //       info: oraiInfo
+    //     }
+    //   ]
+    // });
+    const avgLiquidity = {};
+    const allFee7Days = pairs.map((p) => {
+      const { lp_token } = p;
+      avgLiquidity[lp_token] = 1e6;
+      allLiquidities[lp_token] = 1e6;
+      allTotalSupplies[lp_token] = "100000";
+      allBondAmounts[lp_token] = "1";
+      allRewardPerSec[lp_token] = {
+        assets: [
+          {
+            amount: "1",
+            info: oraiInfo
+          }
+        ]
+      };
+
+      return {
+        assetInfos: p.asset_infos,
+        fee: BigInt(2e2)
+      };
     });
+
     jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(1);
 
     // act
-    const result = await poolHelper.calculateAprResult(
-      allLiquidities,
+    const result = await poolHelper.calculateAprResult({
+      latestLiquidity: allLiquidities,
       allTotalSupplies,
       allBondAmounts,
-      allRewardPerSec
-    );
+      allRewardPerSec,
+      allFee7Days,
+      avgLiquidity
+    });
 
     // assertion
-    expect(result.length).toEqual(pairs.length);
-    expect(result).toStrictEqual(Array(pairs.length).fill(315360000));
+    expect(Object.keys(result).length).toEqual(pairs.length);
+
+    const res = {};
+    pairs.map((p) => {
+      res[p.lp_token] = 315360000.000001;
+    });
+    expect(result).toStrictEqual(
+      res
+      // Array(pairs.length).fill(315360000)
+    );
   });
 
   it.each([

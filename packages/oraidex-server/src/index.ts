@@ -67,7 +67,7 @@ registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 // wait 30s to setup all init info before
 setTimeout(() => {
   updateInterval();
-}, 30000);
+}, 10000);
 
 const app = express();
 app.use(cors());

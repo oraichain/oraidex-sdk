@@ -294,7 +294,7 @@ export const calculateBoostApr = (
 
 //  <==== calculate APR ====
 export type CalculateAprType = {
-  allLiquidities: Record<string, number>;
+  latestLiquidity: Record<string, number>;
   allTotalSupplies: Record<string, string>;
   allBondAmounts: Record<string, string>;
   allRewardPerSec: Record<string, OraiswapStakingTypes.RewardsPerSecResponse>;
@@ -303,7 +303,7 @@ export type CalculateAprType = {
 };
 
 export const calculateAprResult = async ({
-  allLiquidities,
+  latestLiquidity,
   allTotalSupplies,
   allBondAmounts,
   allRewardPerSec,
@@ -311,11 +311,11 @@ export const calculateAprResult = async ({
   allFee7Days
 }: CalculateAprType): Promise<Record<string, number>> => {
   const aprResult = {};
-  const bootAprs = calculateBoostApr(avgLiquidity, allFee7Days, allLiquidities);
+  const bootAprs = calculateBoostApr(avgLiquidity, allFee7Days, latestLiquidity);
 
   for (const _pair of pairs) {
     const { lp_token = "" } = _pair || {};
-    const liquidityAmount = allLiquidities[lp_token] * Math.pow(10, -6);
+    const liquidityAmount = latestLiquidity[lp_token] * Math.pow(10, -6);
     const totalBondAmount = allBondAmounts[lp_token];
     const tokenSupply = allTotalSupplies[lp_token];
     const rewardsPerSecData = allRewardPerSec[lp_token];
@@ -331,11 +331,16 @@ export const calculateAprResult = async ({
     }
 
     aprResult[lp_token] = ((100 * rewardsPerYearValue) / bondValue || 0) + bootAprs[lp_token];
+    // aprResult[lp_token] = bootAprs[lp_token];
   }
   return aprResult;
 };
 
-export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: Record<string, number>) => {
+export const fetchAprResult = async (
+  pairInfos: PairInfoData[],
+  allLiquidities: Record<string, number>,
+  latestLiquidity: Record<string, number>
+) => {
   const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
   try {
     const [allTokenInfo, allLpTokenAsset, allRewardPerSec, allFee7Days] = await Promise.all([
@@ -354,8 +359,16 @@ export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: 
       allBondAmounts[liqAddress] = allLpTokenAsset[index].total_bond_amount;
       fmtAllRewardPerSec[liqAddress] = allRewardPerSec[index];
     });
-    // const allAprs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSec);
-    const allAprs = await calculateAprResultV2(allLiquidities, allFee7Days);
+
+    const allAprs = await calculateAprResult({
+      avgLiquidity: allLiquidities,
+      allTotalSupplies,
+      allBondAmounts,
+      allRewardPerSec: fmtAllRewardPerSec,
+      latestLiquidity,
+      allFee7Days
+    });
+    // const allAprs = await calculateAprResultV2(allLiquidities, allFee7Days);
 
     return {
       allTotalSupplies,
@@ -434,6 +447,7 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
 
   const pools = await getAllPoolByAssetInfos(assetInfos);
   const avgLiquidities = await getAvgPoolLiquidities(pools);
+  const latestLiquidity = await getPoolLiquidities(pools);
   const allFee7Days = await getAllFees();
   const poolAprInfos: { aprInfo: PoolApr; pool: PairInfoData }[] = [];
   for (const pool of pools) {
@@ -441,12 +455,29 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
     poolAprInfos.push({ aprInfo, pool });
   }
 
-  // const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
-  // const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
-  // const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
+  const allTotalSupplies = {};
+  const allBondAmounts = {};
+  const fmtAllRewardPerSec = {};
 
-  // const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
-  const APRs = await calculateAprResultV2(avgLiquidities, allFee7Days);
+  poolAprInfos.map(({ aprInfo, pool: poolInfo }, index) => {
+    const { liquidityAddr = "" } = poolInfo || {};
+    const { totalBondAmount, totalSupply, rewardPerSec } = aprInfo;
+    const fmtRewardPerSec = rewardPerSec ? JSON.parse(rewardPerSec) : null;
+
+    allTotalSupplies[liquidityAddr] = totalBondAmount;
+    allBondAmounts[liquidityAddr] = totalSupply;
+    fmtAllRewardPerSec[liquidityAddr] = fmtRewardPerSec;
+  });
+
+  const APRs = await calculateAprResult({
+    avgLiquidity: avgLiquidities,
+    allTotalSupplies,
+    allBondAmounts,
+    allRewardPerSec: fmtAllRewardPerSec,
+    latestLiquidity,
+    allFee7Days
+  });
+  // const APRs = await calculateAprResultV2(avgLiquidities, allFee7Days);
 
   const newPoolAprs = poolAprInfos.map((poolApr, index) => {
     const { aprInfo, pool: poolInfo } = poolApr;

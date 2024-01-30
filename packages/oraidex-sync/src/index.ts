@@ -136,9 +136,11 @@ class OraiDexSync {
     try {
       const pools = await this.duckDb.getPools();
       const allLiquidities = await getAvgPoolLiquidities(pools);
+      const latestLiquidity = await getPoolLiquidities(pools);
       const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
         pools,
-        allLiquidities
+        allLiquidities,
+        latestLiquidity
       );
 
       const poolAprs = Object.entries(allAprs).map(([liqAddress, apr], _index) => {
