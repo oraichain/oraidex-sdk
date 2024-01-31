@@ -213,7 +213,7 @@ export const getAllPoolsInfo = async () => {
       } as PairInfoDataResponse;
     });
 
-    return allPoolsInfo;
+    return allPoolsInfo.filter((p) => !!p);
   } catch (error) {
     console.log({ errorGetAllPoolsInfo: error });
   }
