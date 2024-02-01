@@ -85,7 +85,7 @@ export const PAIRS: PairMapping[] = [
   },
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
-    symbols: ["ORAIX", "USDC"]
+    symbols: ["USDC", "ORAIX"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
