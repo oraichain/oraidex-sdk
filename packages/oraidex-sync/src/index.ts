@@ -1,7 +1,14 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
+import {
+  calculateSwapOhlcv,
+  concatAprHistoryToUniqueKey,
+  concatLpHistoryToUniqueKey,
+  getSymbolFromAsset,
+  groupDataByTime,
+  groupSwapOpsByPair
+} from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import {
   fetchAprResult,
@@ -12,21 +19,42 @@ import {
   handleEventApr
 } from "./pool-helper";
 import { parseTxs } from "./tx-parsing";
-import { Env, PairInfoData, PoolAmountHistory, PoolApr, TxAnlysisResult } from "./types";
+import { Env, Ohlcv, PairInfoData, PoolAmountHistory, PoolApr, SwapOperationData, TxAnlysisResult } from "./types";
+import WebSocket from "ws";
+import { IncomingMessage } from "http";
 
 class WriteOrders extends WriteData {
-  constructor(private duckDb: DuckDb) {
+  wss: WebSocket.Server<typeof WebSocket, typeof IncomingMessage>;
+  constructor(wss: WebSocket.Server<typeof WebSocket, typeof IncomingMessage>, public duckDb: DuckDb) {
     super();
+    this.wss = wss;
   }
 
   private async insertParsedTxs(txs: TxAnlysisResult) {
+    const handleEmitEventTicker = () => {
+      this.handleBroadcastOhlcv({ ticks: txs.ohlcv });
+    };
+
     await Promise.all([
       this.duckDb.insertSwapOps(txs.swapOpsData),
       this.duckDb.insertLpOps([...txs.provideLiquidityOpsData, ...txs.withdrawLiquidityOpsData]),
-      this.duckDb.insertOhlcv(txs.ohlcv),
+      this.duckDb.insertOhlcv(txs.ohlcv, handleEmitEventTicker),
       this.duckDb.insertEarningHistories(txs.claimOpsData),
       this.duckDb.insertPoolAmountHistory(txs.poolAmountHistories)
     ]);
+  }
+
+  async handleBroadcastOhlcv({ ticks }) {
+    this.wss.clients.forEach((ws) => {
+      ws.send(
+        JSON.stringify({
+          event: "ohlcv",
+          data: ticks.map((tick) => {
+            return { ...tick, volume: Number(tick.volume) };
+          })
+        })
+      );
+    });
   }
 
   async process(chunk: any): Promise<boolean> {
@@ -59,10 +87,20 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) {}
+  protected constructor(
+    private readonly duckDb: DuckDb,
+    private readonly wss: WebSocket.Server<typeof WebSocket, typeof IncomingMessage>,
+    private readonly rpcUrl: string,
+    private readonly env: Env
+  ) {}
 
-  public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
-    return new OraiDexSync(duckDb, rpcUrl, env);
+  public static async create(
+    duckDb: DuckDb,
+    wss: WebSocket.Server<typeof WebSocket, typeof IncomingMessage>,
+    rpcUrl: string,
+    env: Env
+  ): Promise<OraiDexSync> {
+    return new OraiDexSync(duckDb, wss, rpcUrl, env);
   }
 
   private async updateLatestPairInfos() {
@@ -203,7 +241,7 @@ class OraiDexSync {
         interval: 10000
       });
 
-      const writeOrders = new WriteOrders(this.duckDb);
+      const writeOrders = new WriteOrders(this.wss, this.duckDb);
       for await (const orders of syncStream) {
         await writeOrders.process(orders);
       }

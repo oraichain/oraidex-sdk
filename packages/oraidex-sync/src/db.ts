@@ -21,6 +21,19 @@ import {
   VolumeRange,
   WithdrawLiquidityOperationData
 } from "./types";
+import {
+  Field,
+  Float,
+  RecordBatch,
+  Schema,
+  Struct,
+  Table,
+  Uint32,
+  Uint64,
+  Utf8,
+  tableToIPC,
+  vectorFromArray
+} from "apache-arrow";
 
 export class DuckDb {
   static instances: DuckDb;
@@ -277,9 +290,13 @@ export class DuckDb {
     );
   }
 
-  async insertOhlcv(ohlcv: Ohlcv[]) {
+  async insertOhlcv(ohlcv: Ohlcv[], onAfterInsert?: () => void) {
     const filtedOhlcv = ohlcv.filter((item) => item.open != 0 && item.close != 0 && item.low != 0 && item.high != 0);
     await this.insertBulkData(filtedOhlcv, "swap_ohlcv");
+
+    if (filtedOhlcv.length > 0 && onAfterInsert) {
+      onAfterInsert();
+    }
   }
 
   async getOhlcvCandles(query: GetCandlesQuery): Promise<Ohlcv[]> {
@@ -586,5 +603,28 @@ export class DuckDb {
   async getLpAmountHistory(): Promise<number> {
     const result = await this.conn.all("SELECT count(*) as count from lp_amount_history");
     return result[0].count;
+  }
+
+  async saveOhlcv(data: Ohlcv[]) {
+    if (data.length === 0) return;
+    const vector = vectorFromArray(
+      data,
+      new Struct([
+        new Field("uniqueKey", new Utf8()),
+        new Field("timestamp", new Uint64()),
+        new Field("open", new Float(2)),
+        new Field("close", new Float(2)),
+        new Field("low", new Float(2)),
+        new Field("high", new Float(2)),
+        new Field("volume", new Uint64()),
+        new Field("pair", new Utf8())
+      ])
+    );
+    const batch = new RecordBatch(new Schema(vector.type.children), vector.data[0]);
+    const table = new Table(batch);
+    const buffer = "ohlcv_buffer";
+    const tableName = "swap_ohlcv";
+    await this.conn.register_buffer(buffer, [tableToIPC(table)], true);
+    await this.conn.run(`INSERT INTO ${tableName} SELECT * FROM ${buffer}`);
   }
 }

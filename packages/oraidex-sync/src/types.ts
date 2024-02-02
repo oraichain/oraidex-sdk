@@ -209,6 +209,7 @@ export type TotalLiquidity = {
 
 export type Env = {
   PORT: number;
+  WS_PORT: number;
   RPC_URL: string;
   LIMIT: number;
   MAX_THREAD_LEVEL: number;
