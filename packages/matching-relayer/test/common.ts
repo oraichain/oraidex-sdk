@@ -1,9 +1,13 @@
-import * as oraidexArtifacts from "@hieu_le/oraidex-contracts-build";
+import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 
-import { OraiswapLimitOrderClient, OraiswapLimitOrderTypes, OraiswapTokenClient } from "@hieu_le/oraidex-contracts-sdk";
+import {
+  OraiswapLimitOrderClient,
+  OraiswapLimitOrderTypes,
+  OraiswapTokenClient
+} from "@oraichain/oraidex-contracts-sdk";
 import { readFileSync } from "fs";
-import { Cw20Coin } from "@hieu_le/oraidex-contracts-sdk/build/OraiswapToken.types";
+import { Cw20Coin } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 
 export const senderAddress = "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g";
 
