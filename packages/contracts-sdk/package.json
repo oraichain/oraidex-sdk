@@ -1,6 +1,6 @@
 {
-  "name": "@hieu_le/oraidex-contracts-sdk",
-  "version": "1.0.0",
+  "name": "@oraichain/oraidex-contracts-sdk",
+  "version": "1.0.32",
   "main": "build/index.js",
   "files": [
     "build/",
