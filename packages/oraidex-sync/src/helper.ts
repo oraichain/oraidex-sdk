@@ -457,6 +457,29 @@ async function getAllFees(): Promise<PoolFee[]> {
 }
 //  ==== end get fee pair ====>
 
+// get avg liquidity of pair from assetInfos by timestamp
+export const getAvgPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
+  const tf = 7 * 24 * 60 * 60; // second of 7 days
+  const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf).getTime() / 1000;
+
+  const duckDb = DuckDb.instances;
+  const poolAmount = await duckDb.getLpAmountByTime(poolInfo.pairAddr, oneWeekBeforeNow);
+  const numberOfRecords = poolAmount?.length;
+
+  if (!poolAmount || !numberOfRecords) return 0;
+  const totalLiquidity7Days = poolAmount.reduce((acc, cur) => {
+    acc = acc + Number(cur.offerPoolAmount) * Math.pow(10, -6);
+    return acc;
+  }, 0);
+
+  const avgLiquidity = totalLiquidity7Days / numberOfRecords;
+
+  const baseAssetInfo = JSON.parse(poolInfo.firstAssetInfo);
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
+
+  return priceBaseAssetInUsdt * avgLiquidity * 2;
+};
+
 export function getDate24hBeforeNow(time: Date) {
   const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
   const date24hBeforeNow = new Date(time.getTime() - twentyFourHoursInMilliseconds);
