@@ -10,7 +10,19 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual } from "lodash";
-import { OCH_PRICE, ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
+import {
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  OCH_PRICE,
+  ORAI,
+  ORAIXOCH_INFO,
+  SEC_PER_YEAR,
+  atomic,
+  network,
+  oraiInfo,
+  truncDecimals,
+  usdtInfo
+} from "./constants";
 import {
   calculatePriceByPool,
   getCosmwasmClient,
@@ -19,7 +31,10 @@ import {
   concatAprHistoryToUniqueKey,
   concatLpHistoryToUniqueKey,
   getPairLiquidity,
-  recalculateTotalShare
+  recalculateTotalShare,
+  PoolFee,
+  getAvgPairLiquidity,
+  getAllFees
 } from "./helper";
 import { DuckDb } from "./db";
 import { pairs } from "./pairs";
@@ -262,6 +277,28 @@ export const calculateAprResult = async (
   return aprResult;
 };
 
+export const calculateBoostApr = (
+  avgLiquidities: Record<string, number>,
+  allFee7Days: PoolFee[]
+): Record<string, number> => {
+  const aprResult = {};
+
+  for (const _pair of pairs) {
+    const lpTokenAddress = _pair.lp_token;
+    const liquidityAmount = avgLiquidities[lpTokenAddress];
+
+    const poolFee = allFee7Days.find((item) => {
+      return JSON.stringify(item.assetInfos) === JSON.stringify(_pair.asset_infos);
+    });
+
+    const yearlyFees = (DAYS_PER_YEAR * Number(poolFee.fee) * Math.pow(10, -truncDecimals)) / DAYS_PER_WEEK;
+
+    aprResult[lpTokenAddress] = !liquidityAmount ? 0 : (100 * yearlyFees) / liquidityAmount || 0;
+  }
+
+  return aprResult;
+};
+
 export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]) => {
   const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
   try {
@@ -298,6 +335,15 @@ export const getPoolLiquidities = async (pools: PairInfoData[]): Promise<number[
   for (const pool of pools) {
     const liquidity = await getPairLiquidity(pool);
     allLiquidities.push(liquidity);
+  }
+  return allLiquidities;
+};
+
+export const getAvgPoolLiquidities = async (pools: PairInfoData[]): Promise<Record<string, number>> => {
+  const allLiquidities: Record<string, number> = {};
+  for (const pool of pools) {
+    const liquidity = await getAvgPairLiquidity(pool);
+    allLiquidities[pool.liquidityAddr] = liquidity;
   }
   return allLiquidities;
 };
@@ -341,20 +387,28 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
 
   const pools = await getAllPoolByAssetInfos(assetInfos);
   const allLiquidities = await getPoolLiquidities(pools);
-  const poolAprInfos = [];
+  const allFee7Days = await getAllFees();
+  const avgLiquidities = await getAvgPoolLiquidities(pools);
+  const poolAprInfos: {
+    aprInfo: PoolApr;
+    poolInfo: PairInfoData;
+  }[] = [];
   for (const pool of pools) {
     const aprInfo = await duckDb.getLatestPoolApr(pool.pairAddr);
-    poolAprInfos.push(aprInfo);
+    poolAprInfos.push({ aprInfo, poolInfo: pool });
   }
 
-  const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
-  const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
-  const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
+  const allTotalSupplies = poolAprInfos.map((item) => item.aprInfo.totalSupply);
+  const allBondAmounts = poolAprInfos.map((info) => info.aprInfo.totalBondAmount);
+  const allRewardPerSecs = poolAprInfos.map((info) =>
+    info.aprInfo.rewardPerSec ? JSON.parse(info.aprInfo.rewardPerSec) : null
+  );
 
   const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
+  const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
   const newPoolAprs = poolAprInfos.map((poolApr, index) => {
     return {
-      ...poolApr,
+      ...poolApr.aprInfo,
       height: newOffset,
       apr: APRs[index],
       uniqueKey: concatAprHistoryToUniqueKey({
@@ -362,7 +416,7 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
         supply: allTotalSupplies[index],
         bond: allBondAmounts[index],
         reward: allRewardPerSecs[index],
-        apr: APRs[index],
+        apr: APRs[index] + boostAPR[poolApr.poolInfo.liquidityAddr],
         pairAddr: pools[index].pairAddr
       }),
       timestamp: Date.now() // use timestamp date.now() because we just need to have a order of apr.

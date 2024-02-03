@@ -1,11 +1,13 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
+import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getAllFees, getSymbolFromAsset } from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import {
+  calculateBoostApr,
   fetchAprResult,
   getAllPairInfos,
+  getAvgPoolLiquidities,
   getPairByAssetInfos,
   getPoolInfos,
   getPoolLiquidities,
@@ -135,10 +137,14 @@ class OraiDexSync {
     try {
       const pools = await this.duckDb.getPools();
       const allLiquidities = await getPoolLiquidities(pools);
+      const avgLiquidities = await getAvgPoolLiquidities(pools);
+      const allFee7Days = await getAllFees();
       const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
         pools,
         allLiquidities
       );
+
+      const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
 
       const poolAprs = allAprs.map((apr, index) => {
         return {
@@ -155,7 +161,7 @@ class OraiDexSync {
           totalSupply: allTotalSupplies[index],
           totalBondAmount: allBondAmounts[index],
           rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-          apr,
+          apr: apr + boostAPR[pools[index].liquidityAddr],
           timestamp: Date.now()
         } as PoolApr;
       });
