@@ -210,7 +210,7 @@ export const getAllPoolsInfo = async () => {
       } as PairInfoDataResponse;
     });
 
-    return allPoolsInfo;
+    return allPoolsInfo.filter(Boolean);
   } catch (error) {
     console.log({ errorGetAllPoolsInfo: error });
   }
