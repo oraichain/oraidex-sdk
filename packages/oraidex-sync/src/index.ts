@@ -147,13 +147,14 @@ class OraiDexSync {
       const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
 
       const poolAprs = allAprs.map((apr, index) => {
+        const newApr = apr + boostAPR[pools[index].liquidityAddr];
         return {
           uniqueKey: concatAprHistoryToUniqueKey({
             timestamp: Date.now(),
             supply: allTotalSupplies[index],
             bond: allBondAmounts[index],
             reward: JSON.stringify(allRewardPerSec[index]),
-            apr,
+            apr: newApr,
             pairAddr: pools[index].pairAddr
           }),
           pairAddr: pools[index].pairAddr,
@@ -161,7 +162,8 @@ class OraiDexSync {
           totalSupply: allTotalSupplies[index],
           totalBondAmount: allBondAmounts[index],
           rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-          apr: apr + boostAPR[pools[index].liquidityAddr],
+          apr: newApr,
+          aprBoost: boostAPR[pools[index].liquidityAddr],
           timestamp: Date.now()
         } as PoolApr;
       });
@@ -183,6 +185,7 @@ class OraiDexSync {
       await this.duckDb.createPoolAprTable();
       await this.duckDb.createEarningHistoryTable();
       await this.duckDb.addTimestampColToPoolAprTable();
+      await this.duckDb.addAprBoostColToPoolAprTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
