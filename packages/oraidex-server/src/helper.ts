@@ -204,6 +204,7 @@ export const getAllPoolsInfo = async () => {
         volume24Hour: poolVolume.volume.toString(),
         fee7Days: poolFee.fee.toString(),
         apr: poolApr.apr,
+        aprBoost: poolApr?.aprBoost ?? 0,
         totalLiquidity: allLiquidities[index],
         avgLiquidities: avgLiquidities[pool.liquidityAddr],
         rewardPerSec: poolApr.rewardPerSec,

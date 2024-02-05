@@ -145,6 +145,7 @@ class OraiDexSync {
       );
 
       const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
+      // console.log("boostAor", boostAPR);
 
       const poolAprs = allAprs.map((apr, index) => {
         const newApr = apr + boostAPR[pools[index].liquidityAddr];
