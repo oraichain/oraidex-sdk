@@ -352,8 +352,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2,
-          aprBoost: 2,
-          timestamp: 1234
+          timestamp: 1234,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_usdt_1",
@@ -363,8 +363,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2.5,
-          aprBoost: 2,
-          timestamp: 1236
+          timestamp: 1236,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_usdt_4",
@@ -374,8 +374,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 4,
-          aprBoost: 2,
-          timestamp: 1235
+          timestamp: 1235,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_usdt_3",
@@ -385,8 +385,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 3,
-          aprBoost: 2,
-          timestamp: 1233
+          timestamp: 1233,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_atom",
@@ -396,8 +396,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2,
-          aprBoost: 2,
-          timestamp: 1234
+          timestamp: 1234,
+          aprBoost: 2
         }
       ]);
     });
@@ -426,6 +426,7 @@ describe("test-duckdb", () => {
         totalBondAmount: "1",
         rewardPerSec: "1",
         apr: 2.5,
+        aprBoost: 2,
         timestamp: 1236n
       });
     });
