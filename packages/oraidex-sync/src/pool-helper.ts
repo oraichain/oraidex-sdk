@@ -410,7 +410,8 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
     return {
       ...poolApr.aprInfo,
       height: newOffset,
-      apr: APRs[index],
+      apr: APRs[index] + boostAPR[poolApr.poolInfo.liquidityAddr],
+      aprBoost: boostAPR[poolApr.poolInfo.liquidityAddr],
       uniqueKey: concatAprHistoryToUniqueKey({
         timestamp: Date.now(),
         supply: allTotalSupplies[index],
