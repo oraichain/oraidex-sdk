@@ -60,7 +60,7 @@ export default function TVChartContainer({
 
   useEffect(() => {
     if (chartReady && tvWidgetRef.current && currentPair.symbol !== tvWidgetRef.current?.activeChart?.().symbol()) {
-      tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => {});
+      tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => { });
     }
   }, [currentPair, chartReady, period]);
 
@@ -76,7 +76,7 @@ export default function TVChartContainer({
         if (tvReloadTimestamp && Date.now() - tvReloadTimestamp > TV_CHART_RELOAD_INTERVAL) {
           if (resetCache) {
             resetCache();
-            tvWidgetRef.current.activeChart().resetData();
+            tvWidgetRef.current?.activeChart().resetData();
           }
         }
       }
