@@ -164,8 +164,8 @@ class OraiDexSync {
           totalBondAmount: allBondAmounts[index],
           rewardPerSec: JSON.stringify(allRewardPerSec[index]),
           apr: newApr,
-          aprBoost: boostAPR[pools[index].liquidityAddr],
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          aprBoost: boostAPR[pools[index].liquidityAddr]
         } as PoolApr;
       });
       await this.duckDb.insertPoolAprs(poolAprs);
