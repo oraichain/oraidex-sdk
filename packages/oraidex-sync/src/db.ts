@@ -539,18 +539,18 @@ export class DuckDb {
     const result = await this.conn.all(
       `
       WITH RankedPool AS (
-        SELECT pairAddr, apr, rewardPerSec, totalSupply, height,
+        SELECT pairAddr, apr, rewardPerSec, totalSupply, height, aprBoost,
                ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY timestamp DESC) AS rn
         FROM pool_apr
     )
-    SELECT pairAddr, apr, rewardPerSec, totalSupply
+    SELECT pairAddr, apr, rewardPerSec, totalSupply, aprBoost
     FROM RankedPool
     WHERE rn = 1
     ORDER BY apr
     ;
       `
     );
-    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
+    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply" | "aprBoost">[];
   }
 
   async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
