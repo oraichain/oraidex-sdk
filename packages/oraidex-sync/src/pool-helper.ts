@@ -34,7 +34,8 @@ import {
   recalculateTotalShare,
   PoolFee,
   getAvgPairLiquidity,
-  getAllFees
+  getAllFees,
+  toDisplay
 } from "./helper";
 import { DuckDb } from "./db";
 import { pairs } from "./pairs";
@@ -291,7 +292,7 @@ export const calculateBoostApr = (
       return JSON.stringify(item.assetInfos) === JSON.stringify(_pair.asset_infos);
     });
 
-    const yearlyFees = (DAYS_PER_YEAR * Number(poolFee.fee) * Math.pow(10, -truncDecimals)) / DAYS_PER_WEEK;
+    const yearlyFees = (DAYS_PER_YEAR * toDisplay(poolFee.fee)) / DAYS_PER_WEEK;
 
     aprResult[lpTokenAddress] = !liquidityAmount ? 0 : (100 * yearlyFees) / liquidityAmount || 0;
   }
