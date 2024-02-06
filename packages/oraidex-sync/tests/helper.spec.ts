@@ -168,11 +168,6 @@ describe("test-helper", () => {
         factoryV1: true
       },
       {
-        asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
-        lp_token: pairLpTokens.SCORAI_ORAI,
-        symbols: ["scORAI", "ORAI"]
-      },
-      {
         asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
         lp_token: pairLpTokens.ATOM_ORAI,
         symbols: ["ORAI", "ATOM"],
@@ -206,6 +201,11 @@ describe("test-helper", () => {
         lp_token: pairLpTokens.MILKY_USDT,
         symbols: ["MILKY", "USDT"],
         factoryV1: true
+      },
+      {
+        asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.SCORAI_ORAI,
+        symbols: ["scORAI", "ORAI"]
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
@@ -607,8 +607,8 @@ describe("test-helper", () => {
   });
 
   it.each([
-    ["orai", usdtCw20Address, 4],
-    [usdtCw20Address, "orai", 4],
+    ["orai", usdtCw20Address, 3],
+    [usdtCw20Address, "orai", 3],
     ["orai", airiCw20Adress, 0],
     ["orai", "foo", -1]
   ])(
@@ -701,6 +701,61 @@ describe("test-helper", () => {
         };
 
         const result = await helper.getPairLiquidity(poolInfo);
+
+        // assertion
+        expect(result).toEqual(expectedResult);
+      }
+    );
+
+    it.each([
+      [0n, 0n, 0n, 0n, 0],
+      [1n, 1n, 2n, 2n, 0.000006]
+    ])(
+      "test-getApgPairLiquidity-should-return-correctly-liquidity-by-USDT",
+      async (
+        offerPoolAmount: bigint,
+        askPoolAmount: bigint,
+        offerPoolAmount2: bigint,
+        askPoolAmount2: bigint,
+        expectedResult: number
+      ) => {
+        // setup
+        jest.spyOn(duckDb, "getLpAmountByTime").mockResolvedValue([
+          {
+            offerPoolAmount,
+            askPoolAmount,
+            timestamp: 1,
+            height: 1,
+            pairAddr: "oraiUsdtPairAddr",
+            uniqueKey: "1",
+            totalShare: "1"
+          },
+          {
+            offerPoolAmount: offerPoolAmount2,
+            askPoolAmount: askPoolAmount2,
+            timestamp: 1,
+            height: 1,
+            pairAddr: "oraiUsdtPairAddr",
+            uniqueKey: "1",
+            totalShare: "1"
+          }
+        ]);
+        jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
+
+        // act
+        const poolInfo: PairInfoData = {
+          firstAssetInfo: JSON.stringify(oraiInfo),
+          secondAssetInfo: JSON.stringify(usdtInfo),
+          commissionRate: "",
+          pairAddr: "oraiUsdtPairAddr",
+          liquidityAddr: "",
+          oracleAddr: "",
+          symbols: "1",
+          fromIconUrl: "1",
+          toIconUrl: "1"
+        };
+
+        const result = await helper.getAvgPairLiquidity(poolInfo);
 
         // assertion
         expect(result).toEqual(expectedResult);
