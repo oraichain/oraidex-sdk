@@ -410,17 +410,17 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
     return {
       ...poolApr.aprInfo,
       height: newOffset,
-      apr: APRs[index] + boostAPR[poolApr.poolInfo.liquidityAddr],
+      apr: APRs[index] + (boostAPR[poolApr.poolInfo?.liquidityAddr] || 0),
       uniqueKey: concatAprHistoryToUniqueKey({
         timestamp: Date.now(),
         supply: allTotalSupplies[index],
         bond: allBondAmounts[index],
         reward: allRewardPerSecs[index],
-        apr: APRs[index] + boostAPR[poolApr.poolInfo.liquidityAddr],
+        apr: APRs[index] + (boostAPR[poolApr.poolInfo?.liquidityAddr] || 0),
         pairAddr: pools[index].pairAddr
       }),
       timestamp: Date.now(), // use timestamp date.now() because we just need to have a order of apr.
-      aprBoost: boostAPR[poolApr.poolInfo.liquidityAddr]
+      aprBoost: boostAPR[poolApr.poolInfo?.liquidityAddr] || 0
     };
   });
   await duckDb.insertPoolAprs(newPoolAprs);
