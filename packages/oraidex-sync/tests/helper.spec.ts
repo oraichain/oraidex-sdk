@@ -168,11 +168,6 @@ describe("test-helper", () => {
         factoryV1: true
       },
       {
-        asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
-        lp_token: pairLpTokens.SCORAI_ORAI,
-        symbols: ["scORAI", "ORAI"]
-      },
-      {
         asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
         lp_token: pairLpTokens.ATOM_ORAI,
         symbols: ["ORAI", "ATOM"],
@@ -206,6 +201,11 @@ describe("test-helper", () => {
         lp_token: pairLpTokens.MILKY_USDT,
         symbols: ["MILKY", "USDT"],
         factoryV1: true
+      },
+      {
+        asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+        lp_token: pairLpTokens.SCORAI_ORAI,
+        symbols: ["scORAI", "ORAI"]
       },
       {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],
@@ -612,8 +612,8 @@ describe("test-helper", () => {
   });
 
   it.each([
-    ["orai", usdtCw20Address, 4],
-    [usdtCw20Address, "orai", 4],
+    ["orai", usdtCw20Address, 3],
+    [usdtCw20Address, "orai", 3],
     ["orai", airiCw20Adress, 0],
     ["orai", "foo", -1]
   ])(

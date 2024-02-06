@@ -35,11 +35,6 @@ export const pairs: PairMapping[] = [
     factoryV1: true
   },
   {
-    asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
-    lp_token: pairLpTokens.SCORAI_ORAI,
-    symbols: ["scORAI", "ORAI"]
-  },
-  {
     asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: atomIbcDenom } }],
     lp_token: pairLpTokens.ATOM_ORAI,
     symbols: ["ORAI", "ATOM"],
@@ -73,6 +68,11 @@ export const pairs: PairMapping[] = [
     lp_token: pairLpTokens.MILKY_USDT,
     symbols: ["MILKY", "USDT"],
     factoryV1: true
+  },
+  {
+    asset_infos: [{ token: { contract_addr: scOraiCw20Address } }, { native_token: { denom: ORAI } }],
+    lp_token: pairLpTokens.SCORAI_ORAI,
+    symbols: ["scORAI", "ORAI"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: usdcCw20Address } }],

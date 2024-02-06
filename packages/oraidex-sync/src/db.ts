@@ -477,6 +477,19 @@ export class DuckDb {
     return result[0] as PoolAmountHistory;
   }
 
+  async getLpAmountByTime(pairAddr: string, timestamp: number) {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        WHERE pairAddr = ? AND timestamp >= ?
+        ORDER BY timestamp ASC
+      `,
+      pairAddr,
+      timestamp
+    );
+    return result as PoolAmountHistory[];
+  }
+
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
     await this.insertBulkData(ops, "lp_amount_history");
   }
@@ -498,6 +511,10 @@ export class DuckDb {
 
   async addTimestampColToPoolAprTable() {
     await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0`);
+  }
+
+  async addAprBoostColToPoolAprTable() {
+    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0`);
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
@@ -522,18 +539,18 @@ export class DuckDb {
     const result = await this.conn.all(
       `
       WITH RankedPool AS (
-        SELECT pairAddr, apr, rewardPerSec, totalSupply, height,
+        SELECT pairAddr, apr, rewardPerSec, totalSupply, height, aprBoost,
                ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY timestamp DESC) AS rn
         FROM pool_apr
     )
-    SELECT pairAddr, apr, rewardPerSec, totalSupply
+    SELECT pairAddr, apr, rewardPerSec, totalSupply, aprBoost
     FROM RankedPool
     WHERE rn = 1
     ORDER BY apr
     ;
       `
     );
-    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
+    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply" | "aprBoost">[];
   }
 
   async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
