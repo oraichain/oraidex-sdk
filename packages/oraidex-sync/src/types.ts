@@ -280,6 +280,7 @@ export type PoolApr = {
   rewardPerSec: string;
   apr: number;
   timestamp: number;
+  aprBoost: number;
 };
 
 export type GetPricePairQuery = {

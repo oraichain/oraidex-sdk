@@ -342,6 +342,7 @@ describe("test-duckdb", () => {
       duckDb = await DuckDb.create(":memory:");
       await duckDb.createPoolAprTable();
       await duckDb.addTimestampColToPoolAprTable();
+      await duckDb.addAprBoostColToPoolAprTable();
       await duckDb.insertPoolAprs([
         {
           uniqueKey: "orai_usdt_2",
@@ -351,7 +352,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2,
-          timestamp: 1234
+          timestamp: 1234,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_usdt_1",
@@ -361,7 +363,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2.5,
-          timestamp: 1236
+          timestamp: 1236,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_usdt_4",
@@ -371,7 +374,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 4,
-          timestamp: 1235
+          timestamp: 1235,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_usdt_3",
@@ -381,7 +385,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 3,
-          timestamp: 1233
+          timestamp: 1233,
+          aprBoost: 2
         },
         {
           uniqueKey: "orai_atom",
@@ -391,7 +396,8 @@ describe("test-duckdb", () => {
           totalBondAmount: "1",
           rewardPerSec: "1",
           apr: 2,
-          timestamp: 1234
+          timestamp: 1234,
+          aprBoost: 2
         }
       ]);
     });
@@ -402,8 +408,8 @@ describe("test-duckdb", () => {
 
       // assertion
       expect(apr).toEqual([
-        { pairAddr: "orai_atom", apr: 2, rewardPerSec: "1", totalSupply: "1" },
-        { pairAddr: "orai_usdt", apr: 2.5, rewardPerSec: "1", totalSupply: "1" }
+        { pairAddr: "orai_atom", apr: 2, aprBoost: 2, rewardPerSec: "1", totalSupply: "1" },
+        { pairAddr: "orai_usdt", apr: 2.5, aprBoost: 2, rewardPerSec: "1", totalSupply: "1" }
       ]);
     });
 
@@ -420,6 +426,7 @@ describe("test-duckdb", () => {
         totalBondAmount: "1",
         rewardPerSec: "1",
         apr: 2.5,
+        aprBoost: 2,
         timestamp: 1236n
       });
     });

@@ -32,6 +32,8 @@ export const ORAIXOCH_INFO = {
 };
 export const OCH_PRICE = 0.4; // usdt
 
+export const DAYS_PER_WEEK = 7;
+export const DAYS_PER_YEAR = 365;
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 export const network = {
   factory: FACTORY_CONTRACT,

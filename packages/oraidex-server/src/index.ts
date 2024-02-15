@@ -312,6 +312,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
       volume24Hour: poolVolume?.toString() ?? "0",
       volume24hChange: percentVolumeChange,
       apr: poolApr?.apr ?? 0,
+      aprBoost: poolApr?.aprBoost ?? 0,
       totalLiquidity: poolLiquidity,
       rewardPerSec: poolApr?.rewardPerSec
     };
