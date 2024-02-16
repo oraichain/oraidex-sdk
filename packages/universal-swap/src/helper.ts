@@ -372,7 +372,7 @@ export const simulateSwap = async (query: {
     if (!isSimulatingRatio) return data;
     return { amount: data.amount.substring(0, data.amount.length - 1) };
   } catch (error) {
-    throw new Error(`Error when trying to simulate swap using router v2: ${error}`);
+    throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
   }
 };
 
