@@ -615,7 +615,7 @@ export class UniversalSwapHandler {
 
       return [msg];
     } catch (error) {
-      throw generateError(`Error generateMsgsSwap: ${error}`);
+      throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error)}`);
     }
   }
 
