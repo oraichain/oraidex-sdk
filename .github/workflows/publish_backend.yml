@@ -111,7 +111,7 @@ jobs:
           cache-to: type=registry,ref=oraichain/defi_oraidex-backend:buildcache-arm64,mode=max
           platforms: linux/arm64
   swarm:
-    runs-on: orai-swarm
+    runs-on: ubuntu-latest
     needs: docker-amd
     steps:
       - name: Extract SHA
