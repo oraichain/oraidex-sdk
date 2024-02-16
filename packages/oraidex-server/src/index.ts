@@ -2,6 +2,7 @@
 
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
+  DEFAULT_WS_PORT,
   DuckDb,
   GetCandlesQuery,
   GetPoolDetailQuery,
@@ -57,6 +58,7 @@ import {
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
+import { WebSocket } from "ws";
 
 // cache
 
@@ -604,8 +606,22 @@ app
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
     duckDb.conn.exec("SET memory_limit='1000MB'");
 
+    const { RPC_URL, WS_PORT = DEFAULT_WS_PORT } = process.env || {};
+
+    // init websocket server
+    const wss = new WebSocket.Server({ port: Number(WS_PORT) || DEFAULT_WS_PORT });
+    wss.on("error", (error) => {
+      console.error("error wss: ", error);
+      process.exit(1);
+    });
+
+    wss.on("close", () => {
+      console.log("ws close");
+    });
+
     const oraidexSync = await OraiDexSync.create(
       duckDb,
+      wss,
       process.env.RPC_URL || "https://rpc.orai.io",
       process.env as any
     );
