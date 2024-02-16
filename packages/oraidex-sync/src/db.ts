@@ -13,6 +13,7 @@ import {
   PoolAmountHistory,
   PoolApr,
   PriceInfo,
+  ProvideLiquidityOperationData,
   StakeByUserResponse,
   SwapOperationData,
   TokenVolumeData,
@@ -122,7 +123,7 @@ export class DuckDb {
     );
   }
 
-  async insertLpOps(ops: WithdrawLiquidityOperationData[]) {
+  async insertLpOps(ops: ProvideLiquidityOperationData[]) {
     await this.insertBulkData(ops, "lp_ops_data");
   }
 
