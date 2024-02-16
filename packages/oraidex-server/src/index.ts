@@ -2,6 +2,7 @@
 
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
+  DEFAULT_WS_PORT,
   DuckDb,
   GetCandlesQuery,
   GetPoolDetailQuery,
@@ -604,10 +605,11 @@ app
     // sync data for the service to read
     duckDb = await DuckDb.create(process.env.DUCKDB_PROD_FILENAME);
     duckDb.conn.exec("SET memory_limit='1000MB'");
-    const { RPC_URL, WS_PORT } = process.env || {};
+
+    const { RPC_URL, WS_PORT = DEFAULT_WS_PORT } = process.env || {};
 
     // init websocket server
-    const wss = new WebSocket.Server({ port: Number(WS_PORT) });
+    const wss = new WebSocket.Server({ port: Number(WS_PORT) || DEFAULT_WS_PORT });
     wss.on("error", (error) => {
       console.error("error wss: ", error);
       process.exit(1);
