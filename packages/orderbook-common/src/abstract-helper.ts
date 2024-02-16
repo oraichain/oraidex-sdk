@@ -76,10 +76,6 @@ export abstract class AbstractOrderbookClientHelper {
 
   abstract getOrderbookPrice(): Promise<number>;
 
-  abstract buildLimitOrder(offerAmount: string, askAmount: string, direction: unknown): unknown;
-
-  abstract buildOrderbookExecuteInstructions(contractAddress: string, executeMsgs: unknown[]): unknown[];
-
   abstract submitLimitOrder(
     offerAmount: string,
     askAmount: string,
