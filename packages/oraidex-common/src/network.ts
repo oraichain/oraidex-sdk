@@ -46,7 +46,8 @@ import {
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   USDT_ETH_CONTRACT,
-  BTC_CONTRACT
+  BTC_CONTRACT,
+  NTMPI_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -98,7 +99,8 @@ export type CoinGeckoId =
   | "wbnb"
   | "scatom"
   | "injective-protocol"
-  | "bitcoin";
+  | "bitcoin"
+  | "ntmpi";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -444,6 +446,16 @@ export const oraichainNetwork: CustomChainInfo = {
       // bridgeTo: ["bitcoinTestnet"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
+    },
+    {
+      coinDenom: "NTMPI",
+      coinGeckoId: "ntmpi",
+      coinMinimalDenom: "ntmpi",
+      type: "cw20",
+      contractAddress: NTMPI_CONTRACT,
+      coinDecimals: 6,
+      coinImageUrl:
+        "https://icoholder.com/media/cache/ico_logo_view_page/files/img/853b762f1aca1182a7de0e05e72a4b13.jpeg"
     }
   ]
 };
