@@ -42,3 +42,5 @@ export const network = {
   staking: STAKING_CONTRACT,
   multicall: MULTICALL_CONTRACT
 };
+
+export const DEFAULT_WS_PORT = 2028;
