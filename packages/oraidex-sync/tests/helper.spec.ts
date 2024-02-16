@@ -1,3 +1,4 @@
+import "./polyfill";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
@@ -368,36 +369,36 @@ describe("test-helper", () => {
 
     const lpOpsData: LpOpsData[] = [
       {
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1,
+        quoteTokenAmount: 1n,
         quoteTokenDenom: usdtCw20Address,
         opType: "withdraw",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 2,
+        baseTokenAmount: 2n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 2,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: usdtCw20Address,
         opType: "provide",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 2,
+        baseTokenAmount: 2n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: -1,
+        quoteTokenAmount: -1n,
         quoteTokenDenom: usdtCw20Address,
         direction: "Sell",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: -1,
+        quoteTokenAmount: -1n,
         quoteTokenDenom: usdtCw20Address,
         direction: "Buy",
         height: 2,
@@ -418,9 +419,9 @@ describe("test-helper", () => {
   it("test-concatDataToUniqueKey-should-return-unique-key-in-correct-order-from-timestamp-to-first-to-second-amount-and-denom", () => {
     // setup
     const firstDenom = "foo";
-    const firstAmount = 1;
+    const firstAmount = 1n;
     const secondDenom = "bar";
-    const secondAmount = 1;
+    const secondAmount = 1n;
     const txheight = 100;
 
     // act
@@ -434,9 +435,9 @@ describe("test-helper", () => {
     const ops: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1,
+        quoteTokenAmount: 1n,
         quoteTokenDenom: usdtCw20Address,
         opType: "provide",
         uniqueKey: "1",
@@ -448,9 +449,9 @@ describe("test-helper", () => {
       },
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1,
+        quoteTokenAmount: 1n,
         quoteTokenDenom: usdtCw20Address,
         opType: "withdraw",
         uniqueKey: "2",
@@ -462,9 +463,9 @@ describe("test-helper", () => {
       },
       {
         basePrice: 1,
-        baseTokenAmount: 1,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1,
+        quoteTokenAmount: 1n,
         quoteTokenDenom: atomIbcDenom,
         opType: "withdraw",
         uniqueKey: "1",

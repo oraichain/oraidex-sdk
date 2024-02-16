@@ -1,3 +1,4 @@
+import "./polyfill";
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
 import { GetFeeSwap, GetVolumeQuery, ProvideLiquidityOperationData } from "../src/types";
@@ -99,7 +100,7 @@ describe("test-duckdb", () => {
           baseTokenAmount: "abcd" as any,
           baseTokenDenom: "orai",
           uniqueKey: "1",
-          quoteTokenAmount: 2,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
@@ -119,17 +120,17 @@ describe("test-duckdb", () => {
     const data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1n,
+        baseTokenAmount: 1 as any,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2n,
+        quoteTokenAmount: 2 as any,
         quoteTokenDenom: "atom",
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1n
+        taxRate: 1
       }
     ];
 
@@ -146,17 +147,17 @@ describe("test-duckdb", () => {
     let data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1n,
+        baseTokenAmount: 1 as any,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2n,
+        quoteTokenAmount: 2 as any,
         quoteTokenDenom: "atom",
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1n
+        taxRate: 1
       }
     ];
     await duckDb.insertLpOps(data);
@@ -291,11 +292,11 @@ describe("test-duckdb", () => {
       await duckDb.insertLpOps([
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: "orai",
           opType: "withdraw",
           uniqueKey: "1",
-          quoteTokenAmount: 2,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
@@ -305,11 +306,11 @@ describe("test-duckdb", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: "orai",
           opType: "provide",
           uniqueKey: "2",
-          quoteTokenAmount: 2,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
@@ -427,7 +428,7 @@ describe("test-duckdb", () => {
         rewardPerSec: "1",
         apr: 2.5,
         aprBoost: 2,
-        timestamp: 1236n
+        timestamp: 1236
       });
     });
   });

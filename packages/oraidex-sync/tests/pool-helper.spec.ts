@@ -1,3 +1,4 @@
+import "./polyfill";
 import { Asset, AssetInfo, OraiswapStakingTypes } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,
@@ -135,7 +136,8 @@ describe("test-pool-helper", () => {
         height: 1,
         timestamp: 1,
         pairAddr,
-        uniqueKey: "1"
+        uniqueKey: "1",
+        totalShare: "1"
       };
       jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfoData);
       jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue(poolAmountHistory);
@@ -379,9 +381,9 @@ describe("test-pool-helper", () => {
       const ops: ProvideLiquidityOperationData[] = [
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: ORAI,
-          quoteTokenAmount: 1,
+          quoteTokenAmount: 1n,
           quoteTokenDenom: usdtCw20Address,
           opType: "provide",
           uniqueKey: "1",
@@ -393,9 +395,9 @@ describe("test-pool-helper", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: ORAI,
-          quoteTokenAmount: 1,
+          quoteTokenAmount: 1n,
           quoteTokenDenom: usdtCw20Address,
           opType: "withdraw",
           uniqueKey: "2",
@@ -407,9 +409,9 @@ describe("test-pool-helper", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: ORAI,
-          quoteTokenAmount: 1,
+          quoteTokenAmount: 1n,
           quoteTokenDenom: atomIbcDenom,
           opType: "withdraw",
           uniqueKey: "1",
