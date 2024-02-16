@@ -58,7 +58,7 @@ import {
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
-import { WebSocket } from "ws";
+import WebSocket from "ws";
 
 // cache
 

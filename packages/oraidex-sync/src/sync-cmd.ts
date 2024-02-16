@@ -1,4 +1,4 @@
-import { WebSocket } from "ws";
+import WebSocket from "ws";
 import { DuckDb } from "./db";
 import { DEFAULT_WS_PORT, OraiDexSync } from "./index";
 

@@ -43,4 +43,4 @@ export const network = {
   multicall: MULTICALL_CONTRACT
 };
 
-export const DEFAULT_WS_PORT = 2025;
+export const DEFAULT_WS_PORT = 2028;
