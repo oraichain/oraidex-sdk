@@ -60,7 +60,8 @@ module.exports = {
     extensions: [".ts", ".tsx", ".js", ".jsx"],
     modules: [path.resolve(__dirname, "."), "node_modules"],
     fallback: {
-      fs: false
+      fs: false,
+      crypto: false
     }
   },
   module: {

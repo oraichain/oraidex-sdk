@@ -1,3 +1,4 @@
+import { PAIRS } from "@oraichain/oraidex-common/build/pairs";
 import { Timezone } from "../charting_library";
 import { CHART_PERIODS } from "./constants";
 import { Bar } from "./types";
@@ -143,15 +144,26 @@ export function parseFullSymbol(fullSymbol) {
   };
 }
 
-// DEBT: remove later to get pair symbol not need this func
-// export function parseChannelFromPair(pair: string): string {
-//   try {
-//     const pairInfo = pairsChart.find((p) => p.info === pair);
-//     return pairInfo?.symbol;
-//   } catch (error) {
-//     console.error("error parse channel from pair", error);
-//   }
-// }
+export const parseChannelFromPair = (pair: string) => {
+  const checkPair = PAIRS.map((pair) => {
+    const assets = pair.asset_infos.map((info) => {
+      if ("native_token" in info) return info.native_token.denom;
+      return info.token.contract_addr;
+    });
+
+    return {
+      ...pair,
+      symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
+      info: `${assets[0]}-${assets[1]}`,
+      baseSymbol: pair.symbols[0],
+      quoteSymbol: pair.symbols[1]
+    };
+  }).find((currentPair) => {
+    return pair === currentPair.info;
+  });
+
+  return checkPair?.symbol;
+};
 
 export function roundTime(timeIn: Date, interval: number): number {
   const roundTo = interval * 60 * 1000;

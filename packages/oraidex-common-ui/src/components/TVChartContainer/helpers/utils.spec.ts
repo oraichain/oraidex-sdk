@@ -4,6 +4,7 @@ import {
   formatTimeInBarToMs,
   getCurrentCandleTime,
   getObjectKeyFromValue,
+  parseChannelFromPair,
   // parseChannelFromPair,
   parseFullSymbol
 } from "./utils";
@@ -110,14 +111,14 @@ describe.only("test-utils-func", () => {
     expect(result).toEqual(expectedResult);
   });
 
-  // it.each([
-  //   ["invalid-pair", undefined],
-  //   ["orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh", "ORAI/USDT"]
-  // ])(
-  //   "test-parseChannelFromPair-with-%s-should-return-correctly-channel-name",
-  //   (pair: string, expectedResult: string) => {
-  //     const result = parseChannelFromPair(pair);
-  //     expect(result).toBe(expectedResult);
-  //   }
-  // );
+  it.each([
+    ["invalid-pair", undefined],
+    ["orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh", "ORAI/USDT"]
+  ])(
+    "test-parseChannelFromPair-with-%s-should-return-correctly-channel-name",
+    (pair: string, expectedResult: string) => {
+      const result = parseChannelFromPair(pair);
+      expect(result).toBe(expectedResult);
+    }
+  );
 });
