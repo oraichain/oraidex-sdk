@@ -6,7 +6,7 @@ const handleTradeEvent = (data) => {
 
   // DEBT: update this func later to get pair denom, no need to parse
   // const channelString = parseChannelFromPair(pair);
-  const channelString = pair
+  const channelString = pair;
 
   const subscriptionItem = channelToSubscription.get(channelString);
   if (subscriptionItem === undefined) {
