@@ -71,6 +71,14 @@ jobs:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Publish Oraidex contracts-sdk
+        id: publish-oraidex-contracts-build
+        continue-on-error: true
+        run: yarn deploy packages/contracts-build
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: send result via discord
         uses: appleboy/discord-action@master
         with:

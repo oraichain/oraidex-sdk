@@ -1,14 +1,4 @@
-import {Uint128, Binary, Addr} from "./types";
-export type Logo = {
-  url: string;
-} | {
-  embedded: EmbeddedLogo;
-};
-export type EmbeddedLogo = {
-  svg: Binary;
-} | {
-  png: Binary;
-};
+import {Uint128, Logo, EmbeddedLogo, Binary, Cw20Coin, InstantiateMarketingInfo, Addr} from "./types";
 export interface InstantiateMsg {
   decimals: number;
   initial_balances: Cw20Coin[];
@@ -16,16 +6,6 @@ export interface InstantiateMsg {
   mint?: MinterResponse | null;
   name: string;
   symbol: string;
-}
-export interface Cw20Coin {
-  address: string;
-  amount: Uint128;
-}
-export interface InstantiateMarketingInfo {
-  description?: string | null;
-  logo?: Logo | null;
-  marketing?: string | null;
-  project?: string | null;
 }
 export interface MinterResponse {
   cap?: Uint128 | null;
