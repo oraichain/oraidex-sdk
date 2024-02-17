@@ -46,7 +46,8 @@ import {
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   USDT_ETH_CONTRACT,
-  BTC_CONTRACT
+  BTC_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM
 } from "./constant";
 
 export type NetworkName =
@@ -60,7 +61,8 @@ export type NetworkName =
   | "Kawaiiverse EVM"
   | "Tron Network"
   | "Injective"
-  | "Noble";
+  | "Noble"
+  | "Neutaro";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -69,7 +71,8 @@ export type CosmosChainId =
   | "cosmoshub-4" // cosmos hub
   | "injective-1" // injective network
   | "kawaii_6886-1" // kawaii subnetwork
-  | "noble-1";
+  | "noble-1" // noble network
+  | "Neutaro-1"; //neutaro network;
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -98,7 +101,8 @@ export type CoinGeckoId =
   | "wbnb"
   | "scatom"
   | "injective-protocol"
-  | "bitcoin";
+  | "bitcoin"
+  | "neutaro";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -239,6 +243,19 @@ export const AtomToken: BridgeAppCurrency = {
   }
 };
 
+export const NeutaroToken: BridgeAppCurrency = {
+  coinDenom: "NEUTARO",
+  coinMinimalDenom: "uneutaro",
+  coinDecimals: 6,
+  coinGeckoId: "neutaro",
+  coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png",
+  gasPriceStep: {
+    low: 0.01,
+    average: 0.025,
+    high: 0.03
+  }
+};
+
 export const NativeUsdcNobleToken: BridgeAppCurrency = {
   coinDenom: "USDC",
   coinMinimalDenom: "uusdc",
@@ -293,6 +310,14 @@ export const oraichainNetwork: CustomChainInfo = {
       bridgeTo: ["cosmoshub-4"],
       coinDecimals: 6,
       coinImageUrl: "https://dhj8dql1kzq2v.cloudfront.net/white/atom.png"
+    },
+    {
+      coinDenom: "NEUTARO",
+      coinGeckoId: "neutaro",
+      coinMinimalDenom: NEUTARO_ORAICHAIN_DENOM,
+      bridgeTo: ["Neutaro-1"],
+      coinDecimals: 6,
+      coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png"
     },
     // {
     //   coinDenom: 'BEP20 AIRI',
@@ -706,6 +731,43 @@ export const chainInfos: CustomChainInfo[] = [
       name: "Mintscan",
       txUrl: "https://www.mintscan.io/cosmos/txs/{txHash}"
     }
+  },
+  {
+    // rpc: 'http://rpc.neutaro.tech:26657/',
+    rpc: "https://neutaro.rpc.orai.io/",
+    rest: "http://api.neutaro.tech:1317/",
+    chainId: "Neutaro-1",
+    chainName: "Neutaro",
+    networkType: "cosmos",
+    bip44: {
+      coinType: 118
+    },
+    bech32Config: defaultBech32Config("neutaro"),
+    stakeCurrency: {
+      coinDenom: "neutaro",
+      coinMinimalDenom: "uneutaro",
+      coinDecimals: 6,
+      coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png"
+    },
+    feeCurrencies: [
+      {
+        coinDenom: "neutaro",
+        coinMinimalDenom: "uneutaro",
+        coinDecimals: 6,
+        coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png",
+        gasPriceStep: {
+          low: 0.01,
+          average: 0.025,
+          high: 0.03
+        }
+      }
+    ],
+    currencies: [
+      {
+        ...NeutaroToken,
+        bridgeTo: ["Oraichain"]
+      }
+    ]
   },
   {
     rpc: "https://rpc.cosmos.directory/noble",
