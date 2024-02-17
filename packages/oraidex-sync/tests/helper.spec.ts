@@ -368,36 +368,36 @@ describe("test-helper", () => {
 
     const lpOpsData: LpOpsData[] = [
       {
-        baseTokenAmount: 1 as any,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1 as any,
+        quoteTokenAmount: 1n,
         quoteTokenDenom: usdtCw20Address,
         opType: "withdraw",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 2 as any,
+        baseTokenAmount: 2n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 2 as any,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: usdtCw20Address,
         opType: "provide",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 2 as any,
+        baseTokenAmount: 2n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: -1 as any,
+        quoteTokenAmount: -1n,
         quoteTokenDenom: usdtCw20Address,
         direction: "Sell",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 1 as any,
+        baseTokenAmount: 1n,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: -1 as any,
+        quoteTokenAmount: -1n,
         quoteTokenDenom: usdtCw20Address,
         direction: "Buy",
         height: 2,
@@ -589,7 +589,7 @@ describe("test-helper", () => {
         quotePoolAmount
       } as SwapOperationData;
       // first case undefined, return 0
-      expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
+      expect(calculateBasePriceFromSwapOp(undefined)).toEqual(0);
       // other cases
       const price = calculateBasePriceFromSwapOp(swapOp);
       expect(price).toEqual(expectedPrice);
