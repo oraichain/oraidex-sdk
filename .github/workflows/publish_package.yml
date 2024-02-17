@@ -71,7 +71,7 @@ jobs:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish Oraidex contracts-sdk
+      - name: Publish Oraidex contracts-build
         id: publish-oraidex-contracts-build
         continue-on-error: true
         run: yarn deploy packages/contracts-build
