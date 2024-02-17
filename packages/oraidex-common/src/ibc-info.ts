@@ -12,7 +12,8 @@ import {
   ORAIB_ORAICHAIN_CHANNELS,
   ORAIB_ORAICHAIN_CHANNELS_OLD,
   ORAIB_ORAICHAIN_CHANNELS_TEST,
-  OSMOSIS_ORAICHAIN_CHANNELS
+  OSMOSIS_ORAICHAIN_CHANNELS,
+  NEUTARO_ORAICHAIN_CHANNELS
 } from "./constant";
 import { CosmosChainId, NetworkChainId } from "./network";
 
@@ -28,6 +29,7 @@ export type IBCInfoMap = { [key in CosmosChainId]: { [key in NetworkChainId]?: I
 // ibc constants
 
 export const [atom2oraichain, oraichain2atom] = ATOM_ORAICHAIN_CHANNELS.split(/\s+/);
+export const [neutaro2oraichain, oraichain2neutaro] = NEUTARO_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [inj2oraichain, oraichain2inj] = INJECTIVE_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [osmosis2oraichain, oraichain2osmosis] = OSMOSIS_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [oraib2oraichain, oraichain2oraib] = ORAIB_ORAICHAIN_CHANNELS.split(/\s+/);
@@ -44,6 +46,13 @@ export const ibcInfos: IBCInfoMap = {
     Oraichain: {
       source: "transfer",
       channel: atom2oraichain,
+      timeout: IBC_TRANSFER_TIMEOUT
+    }
+  },
+  "Neutaro-1": {
+    Oraichain: {
+      source: "transfer",
+      channel: neutaro2oraichain,
       timeout: IBC_TRANSFER_TIMEOUT
     }
   },
@@ -84,6 +93,11 @@ export const ibcInfos: IBCInfoMap = {
     "cosmoshub-4": {
       source: "transfer",
       channel: oraichain2atom,
+      timeout: IBC_TRANSFER_TIMEOUT
+    },
+    "Neutaro-1": {
+      source: "transfer",
+      channel: oraichain2neutaro,
       timeout: IBC_TRANSFER_TIMEOUT
     },
     "injective-1": {
@@ -151,7 +165,7 @@ export const ibcInfos: IBCInfoMap = {
   }
 };
 
-export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1"> = {
+export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1" | "Neutaro-1"> = {
   Oraichain: {
     "oraibridge-subnet-2": {
       source: "transfer",
