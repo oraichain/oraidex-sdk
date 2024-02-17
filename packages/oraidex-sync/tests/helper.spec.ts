@@ -711,6 +711,61 @@ describe("test-helper", () => {
         expect(result).toEqual(expectedResult);
       }
     );
+
+    it.each([
+      [0n, 0n, 0n, 0n, 0],
+      [1n, 1n, 2n, 2n, 0.000006]
+    ])(
+      "test-getApgPairLiquidity-should-return-correctly-liquidity-by-USDT",
+      async (
+        offerPoolAmount: bigint,
+        askPoolAmount: bigint,
+        offerPoolAmount2: bigint,
+        askPoolAmount2: bigint,
+        expectedResult: number
+      ) => {
+        // setup
+        jest.spyOn(duckDb, "getLpAmountByTime").mockResolvedValue([
+          {
+            offerPoolAmount,
+            askPoolAmount,
+            timestamp: 1,
+            height: 1,
+            pairAddr: "oraiUsdtPairAddr",
+            uniqueKey: "1",
+            totalShare: "1"
+          },
+          {
+            offerPoolAmount: offerPoolAmount2,
+            askPoolAmount: askPoolAmount2,
+            timestamp: 1,
+            height: 1,
+            pairAddr: "oraiUsdtPairAddr",
+            uniqueKey: "1",
+            totalShare: "1"
+          }
+        ]);
+        jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
+
+        // act
+        const poolInfo: PairInfoData = {
+          firstAssetInfo: JSON.stringify(oraiInfo),
+          secondAssetInfo: JSON.stringify(usdtInfo),
+          commissionRate: "",
+          pairAddr: "oraiUsdtPairAddr",
+          liquidityAddr: "",
+          oracleAddr: "",
+          symbols: "1",
+          fromIconUrl: "1",
+          toIconUrl: "1"
+        };
+
+        const result = await helper.getAvgPairLiquidity(poolInfo);
+
+        // assertion
+        expect(result).toEqual(expectedResult);
+      }
+    );
   });
 
   describe("test-get-volume-pairs", () => {

@@ -46,7 +46,8 @@
           "warn"
         ],
         "@typescript-eslint/no-unused-vars": "warn",
-        "security/detect-object-injection": "off"
+        "security/detect-object-injection": "off",
+        "@typescript-eslint/ban-ts-comment": "off"
       }
     },
     {

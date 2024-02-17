@@ -315,6 +315,37 @@ describe("test-pool-helper", () => {
     expect(result).toStrictEqual(Array(pairs.length).fill(315360000));
   });
 
+  it("test-calculateBoostAprResult-should-return-correctly-APR", async () => {
+    // setup
+    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(1);
+
+    const avgLiquidities = {};
+    pairs.map((p) => {
+      avgLiquidities[p.lp_token] = 1e6;
+      return p;
+    });
+
+    const fee7Days = pairs.map((p) => {
+      return {
+        assetInfos: p.asset_infos,
+        fee: 1000n
+      };
+    });
+
+    const expectedResult = {};
+    pairs.map((p) => {
+      expectedResult[p.lp_token] = 0.000005214285714285714;
+      return p;
+    });
+
+    // act
+    const result = await poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
+
+    // assertion
+    expect(Object.keys(result).length).toEqual(pairs.length);
+    expect(result).toStrictEqual(expectedResult);
+  });
+
   it.each([
     [true, pairs.length, pairs.length],
     [false, 4, 0]

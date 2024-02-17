@@ -468,7 +468,7 @@ export const getAvgPairLiquidity = async (poolInfo: PairInfoData): Promise<numbe
 
   if (!poolAmount || !numberOfRecords) return 0;
   const totalLiquidity7Days = poolAmount.reduce((acc, cur) => {
-    acc = acc + Number(cur.offerPoolAmount) * Math.pow(10, -6);
+    acc = acc + toDisplay(cur.offerPoolAmount);
     return acc;
   }, 0);
 

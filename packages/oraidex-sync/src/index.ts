@@ -148,7 +148,7 @@ class OraiDexSync {
       // console.log("boostAor", boostAPR);
 
       const poolAprs = allAprs.map((apr, index) => {
-        const newApr = apr + boostAPR[pools[index].liquidityAddr];
+        const newApr = apr + (boostAPR[pools[index]?.liquidityAddr] || 0);
         return {
           uniqueKey: concatAprHistoryToUniqueKey({
             timestamp: Date.now(),
@@ -165,7 +165,7 @@ class OraiDexSync {
           rewardPerSec: JSON.stringify(allRewardPerSec[index]),
           apr: newApr,
           timestamp: Date.now(),
-          aprBoost: boostAPR[pools[index].liquidityAddr]
+          aprBoost: boostAPR[pools[index]?.liquidityAddr] || 0
         } as PoolApr;
       });
       await this.duckDb.insertPoolAprs(poolAprs);
