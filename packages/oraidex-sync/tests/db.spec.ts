@@ -99,12 +99,12 @@ describe("test-duckdb", () => {
           baseTokenAmount: "abcd" as any,
           baseTokenDenom: "orai",
           uniqueKey: "1",
-          quoteTokenAmount: 2 as any,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
           txheight: 1,
-          taxRate: 1 as any
+          taxRate: 1
         }
       ])
     ).rejects.toThrow();
@@ -119,17 +119,17 @@ describe("test-duckdb", () => {
     const data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1 as any,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2 as any,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
 
@@ -146,17 +146,17 @@ describe("test-duckdb", () => {
     let data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1 as any,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2 as any,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
     await duckDb.insertLpOps(data);
@@ -279,7 +279,7 @@ describe("test-duckdb", () => {
       const volumeSwap = await duckDb.getVolumeSwap(payload);
 
       // assertion
-      expect(Number(volumeSwap)).toEqual(Number(expectedResult));
+      expect(volumeSwap).toEqual(expectedResult);
     }
   );
 
@@ -291,11 +291,11 @@ describe("test-duckdb", () => {
       await duckDb.insertLpOps([
         {
           basePrice: 1,
-          baseTokenAmount: 1 as any,
+          baseTokenAmount: 1n,
           baseTokenDenom: "orai",
           opType: "withdraw",
           uniqueKey: "1",
-          quoteTokenAmount: 2 as any,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
@@ -305,11 +305,11 @@ describe("test-duckdb", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1 as any,
+          baseTokenAmount: 1n,
           baseTokenDenom: "orai",
           opType: "provide",
           uniqueKey: "2",
-          quoteTokenAmount: 2 as any,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
@@ -332,7 +332,7 @@ describe("test-duckdb", () => {
       const feeSwap = await duckDb.getFeeLiquidity(payload);
 
       // assertion
-      expect(Number(feeSwap)).toEqual(3);
+      expect(feeSwap).toEqual(3n);
     });
   });
 
@@ -427,7 +427,7 @@ describe("test-duckdb", () => {
         rewardPerSec: "1",
         apr: 2.5,
         aprBoost: 2,
-        timestamp: 1236
+        timestamp: 1236n
       });
     });
   });
