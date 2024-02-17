@@ -69,7 +69,8 @@ export type CosmosChainId =
   | "cosmoshub-4" // cosmos hub
   | "injective-1" // injective network
   | "kawaii_6886-1" // kawaii subnetwork
-  | "noble-1";
+  | "noble-1" // noble network
+  | "Neutaro-1"; //neutaro network;
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -98,7 +99,8 @@ export type CoinGeckoId =
   | "wbnb"
   | "scatom"
   | "injective-protocol"
-  | "bitcoin";
+  | "bitcoin"
+  | "neutaro";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -236,6 +238,19 @@ export const AtomToken: BridgeAppCurrency = {
     low: 0,
     average: 0.025,
     high: 0.04
+  }
+};
+
+export const NeutaroToken: BridgeAppCurrency = {
+  coinDenom: "NEUTARO",
+  coinMinimalDenom: "uneutaro",
+  coinDecimals: 6,
+  coinGeckoId: "neutaro",
+  coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png",
+  gasPriceStep: {
+    low: 0.01,
+    average: 0.025,
+    high: 0.03
   }
 };
 
