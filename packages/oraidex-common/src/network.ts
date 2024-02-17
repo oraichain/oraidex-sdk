@@ -312,7 +312,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinImageUrl: "https://dhj8dql1kzq2v.cloudfront.net/white/atom.png"
     },
     {
-      coinDenom: "NEUTARO",
+      coinDenom: "NTMPI",
       coinGeckoId: "neutaro",
       coinMinimalDenom: NEUTARO_ORAICHAIN_DENOM,
       bridgeTo: ["Neutaro-1"],
