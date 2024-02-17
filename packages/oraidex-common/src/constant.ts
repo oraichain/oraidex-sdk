@@ -75,7 +75,7 @@ export const KWT_ORAICHAIN_CHANNELS = "channel-0 channel-21";
 export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
 export const NOBLE_ORAICHAIN_CHANNELS = "channel-34 channel-147";
 export const NOBLE_ORAICHAIN_CHANNELS_TEST = "channel-35 channel-148";
-export const NEUTARO_ORAICHAIN_CHANNELS = "channel-189 channel-1";
+export const NEUTARO_ORAICHAIN_CHANNELS = "channel-1 channel-189";
 
 // config for ibc denom
 export const ATOM_ORAICHAIN_DENOM = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
