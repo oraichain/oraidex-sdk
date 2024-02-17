@@ -340,7 +340,7 @@ describe("test-pool-helper", () => {
     });
 
     // act
-    const result = await poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
+    const result = poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
 
     // assertion
     expect(Object.keys(result).length).toEqual(pairs.length);

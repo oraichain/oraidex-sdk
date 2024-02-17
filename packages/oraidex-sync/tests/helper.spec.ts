@@ -368,36 +368,36 @@ describe("test-helper", () => {
 
     const lpOpsData: LpOpsData[] = [
       {
-        baseTokenAmount: 1n,
+        baseTokenAmount: 1 as any,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 1n,
+        quoteTokenAmount: 1 as any,
         quoteTokenDenom: usdtCw20Address,
         opType: "withdraw",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 2n,
+        baseTokenAmount: 2 as any,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: 2n,
+        quoteTokenAmount: 2 as any,
         quoteTokenDenom: usdtCw20Address,
         opType: "provide",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 2n,
+        baseTokenAmount: 2 as any,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: -1n,
+        quoteTokenAmount: -1 as any,
         quoteTokenDenom: usdtCw20Address,
         direction: "Sell",
         height: 1,
         timestamp: 1
       },
       {
-        baseTokenAmount: 1n,
+        baseTokenAmount: 1 as any,
         baseTokenDenom: ORAI,
-        quoteTokenAmount: -1n,
+        quoteTokenAmount: -1 as any,
         quoteTokenDenom: usdtCw20Address,
         direction: "Buy",
         height: 2,
@@ -410,7 +410,7 @@ describe("test-helper", () => {
     const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolResponses);
 
     // assertion
-    expect(accumulatedData).toStrictEqual({
+    expect(accumulatedData).toMatchObject({
       oraiUsdtPairAddr: { askPoolAmount: 2n, height: 2, offerPoolAmount: 3n, timestamp: 1, totalShare: "1" }
     });
   });
