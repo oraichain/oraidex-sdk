@@ -279,7 +279,7 @@ describe("test-duckdb", () => {
       const volumeSwap = await duckDb.getVolumeSwap(payload);
 
       // assertion
-      expect(volumeSwap).toEqual(expectedResult);
+      expect(Number(volumeSwap)).toEqual(Number(expectedResult));
     }
   );
 
@@ -305,11 +305,11 @@ describe("test-duckdb", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1n,
+          baseTokenAmount: 1 as any,
           baseTokenDenom: "orai",
           opType: "provide",
           uniqueKey: "2",
-          quoteTokenAmount: 2n,
+          quoteTokenAmount: 2 as any,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
@@ -332,7 +332,7 @@ describe("test-duckdb", () => {
       const feeSwap = await duckDb.getFeeLiquidity(payload);
 
       // assertion
-      expect(feeSwap).toEqual(3n);
+      expect(Number(feeSwap)).toEqual(3);
     });
   });
 
