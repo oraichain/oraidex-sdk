@@ -1,4 +1,3 @@
-import "./polyfill";
 import { Asset, AssetInfo, OraiswapStakingTypes } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,

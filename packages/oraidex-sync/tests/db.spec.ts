@@ -1,4 +1,3 @@
-import "./polyfill";
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
 import { GetFeeSwap, GetVolumeQuery, ProvideLiquidityOperationData } from "../src/types";
@@ -100,12 +99,12 @@ describe("test-duckdb", () => {
           baseTokenAmount: "abcd" as any,
           baseTokenDenom: "orai",
           uniqueKey: "1",
-          quoteTokenAmount: 2n,
+          quoteTokenAmount: 2 as any,
           quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
           txheight: 1,
-          taxRate: 1n
+          taxRate: 1 as any
         }
       ])
     ).rejects.toThrow();
@@ -292,11 +291,11 @@ describe("test-duckdb", () => {
       await duckDb.insertLpOps([
         {
           basePrice: 1,
-          baseTokenAmount: 1n,
+          baseTokenAmount: 1 as any,
           baseTokenDenom: "orai",
           opType: "withdraw",
           uniqueKey: "1",
-          quoteTokenAmount: 2n,
+          quoteTokenAmount: 2 as any,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",

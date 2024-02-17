@@ -1,4 +1,3 @@
-import "./polyfill";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
