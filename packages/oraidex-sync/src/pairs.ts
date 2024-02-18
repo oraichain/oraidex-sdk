@@ -5,6 +5,7 @@ import {
   ORAI,
   airiCw20Adress,
   atomIbcDenom,
+  neutaroDenom,
   injAddress,
   kwtCw20Address,
   milkyCw20Address,
@@ -111,8 +112,9 @@ export const pairs: PairMapping[] = [
     symbols: ["ORAI", "BTC"]
   },
   {
-    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: usdcCw20Address } }],
-    lp_token: pairLpTokens.NTMPI_USDC,
+    asset_infos: [{ native_token: { denom: neutaroDenom } }, { token: { contract_addr: usdcCw20Address } }],
+    // lp_token: pairLpTokens.NTMPI_USDC,
+    lp_token: "orai1rmvjmwd940ztafxue7630g75px8tqma4jskjuu57fkj0eqahqfgqqwjm00",
     symbols: ["NTMPI", "USDC"]
   }
 ];
