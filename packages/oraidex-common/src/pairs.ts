@@ -95,11 +95,11 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
     symbols: ["NTMPI", "USDC"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
+    symbols: ["ORAI", "BTC"]
   }
-  // {
-  //   asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
-  //   symbols: ["ORAI", "BTC"]
-  // }
 ];
 
 // FIXME: makes this dynamic in the future so that permissionless listing is simpler
