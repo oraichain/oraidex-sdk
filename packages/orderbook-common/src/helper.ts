@@ -20,42 +20,12 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
     public readonly wallet: CosmosWallet,
     public readonly rpc: string,
     public readonly chainId: CosmosChainId,
-    public assetInfos: [AssetInfo, AssetInfo]
+    public assetInfos: [AssetInfo, AssetInfo],
+    orderbookAddress?: string
   ) {
     super(wallet, rpc, chainId, assetInfos);
+    if (orderbookAddress) this.orderbookAddress = orderbookAddress;
   }
-
-  // eg: ORAI/USDT.
-  // Buy ORAI then offer USDT, ask ORAI. if 1 ORAI = 2 USDT then offer 20 USDT, ask 10 ORAI.
-  // Sell ORAI then offer ORAI, ask USDT => offer 10 ORAI, ask 20 USDT, 20 / 10 = 2 order price
-  static calculateOrderPrice = (offerAmount: string, askAmount: string, orderDirection: OrderDirection): number => {
-    if (orderDirection === "buy") return Number(offerAmount) / Number(askAmount);
-    return Number(askAmount) / Number(offerAmount);
-  };
-
-  static buildExecuteInstruction = (
-    contractAddress: string, // can be orderbook addr or cw20 token address
-    msg: any,
-    asset: Asset
-  ) => {
-    if ("native_token" in asset.info) {
-      return {
-        contractAddress: contractAddress,
-        msg,
-        funds: [{ amount: asset.amount, denom: asset.info.native_token.denom }]
-      } as ExecuteInstruction;
-    }
-    return {
-      contractAddress: asset.info.token.contract_addr,
-      msg: {
-        send: {
-          amount: asset.amount,
-          contract: contractAddress,
-          msg: toBinary(msg)
-        }
-      }
-    };
-  };
 
   async queryAllTicks(direction: OrderDirection, orderBy: number, limit?: number): Promise<TickResponse[]> {
     let totalTicks: TickResponse[] = [];
@@ -261,7 +231,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
   }
 
   // return the last order id canceled
-  cancelOrder = async (orders: OrderResponse[]) => {
+  private cancelOrder = (orders: OrderResponse[]) => {
     const multipleCancelMsgs: ExecuteInstruction[] = orders.map((order) => ({
       contractAddress: this.orderbookAddress,
       msg: {
@@ -275,15 +245,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
   };
 
   cancelOrders = async (orders: OrderResponse[], memo?: string): Promise<string> => {
-    const multipleCancelMsgs: ExecuteInstruction[] = orders.map((order) => ({
-      contractAddress: this.orderbookAddress,
-      msg: {
-        cancel_order: {
-          asset_infos: this.assetInfos,
-          order_id: order.order_id
-        }
-      }
-    }));
+    const multipleCancelMsgs: ExecuteInstruction[] = this.cancelOrder(orders);
     if (multipleCancelMsgs.length > 0) {
       const sender = await this.wallet.getKeplrAddr();
       const client = (await this.getCosmWasmClient(true)) as SigningCosmWasmClient;
@@ -343,27 +305,5 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
       }
     }
     return totalOrders;
-  }
-
-  buildCancelPartiallyFilledOrders = async (direction?: OrderDirection, limit?: number) => {
-    const orders = direction
-      ? await this.queryAllOrdersOfBidderWithDirection(direction, limit)
-      : await this.queryAllOrdersOfBidder();
-    return this.cancelOrder(orders.filter((order) => order.status === "partial_filled"));
-  };
-
-  parseSubmitOrder(order: OraiswapLimitOrderTypes.ExecuteMsg) {
-    if ("submit_order" in order) {
-      return {
-        orderPrice: +order.submit_order.assets[1].amount / +order.submit_order.assets[0].amount,
-        direction: order.submit_order.direction
-      };
-    }
-    if ("submit_market_order" in order) {
-      return {
-        orderPrice: +order.submit_market_order.quote_amount / +order.submit_market_order.base_amount,
-        direction: order.submit_market_order.direction
-      };
-    }
   }
 }

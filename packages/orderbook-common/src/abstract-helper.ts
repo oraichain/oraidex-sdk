@@ -1,8 +1,15 @@
-import { CosmWasmClient, ExecuteResult, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import {
+  CosmWasmClient,
+  ExecuteInstruction,
+  ExecuteResult,
+  SigningCosmWasmClient,
+  toBinary
+} from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { DeliverTxResponse, GasPrice } from "@cosmjs/stargate";
 import { CosmosChainId, CosmosWallet, parseAssetInfo } from "@oraichain/oraidex-common";
-import { AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { OrderDirection } from "@oraichain/oraidex-contracts-sdk/build/OraiswapLimitOrder.types";
 
 export abstract class AbstractOrderbookClientHelper {
   protected client: CosmWasmClient;
@@ -13,6 +20,38 @@ export abstract class AbstractOrderbookClientHelper {
     public readonly chainId: CosmosChainId,
     public assetInfos: [AssetInfo, AssetInfo]
   ) {}
+
+  // eg: ORAI/USDT.
+  // Buy ORAI then offer USDT, ask ORAI. if 1 ORAI = 2 USDT then offer 20 USDT, ask 10 ORAI.
+  // Sell ORAI then offer ORAI, ask USDT => offer 10 ORAI, ask 20 USDT, 20 / 10 = 2 order price
+  static calculateOrderPrice = (offerAmount: string, askAmount: string, orderDirection: OrderDirection): number => {
+    if (orderDirection === "buy") return Number(offerAmount) / Number(askAmount);
+    return Number(askAmount) / Number(offerAmount);
+  };
+
+  static buildExecuteInstruction = (
+    contractAddress: string, // can be orderbook addr or cw20 token address
+    msg: any,
+    asset: Asset
+  ) => {
+    if ("native_token" in asset.info) {
+      return {
+        contractAddress: contractAddress,
+        msg,
+        funds: [{ amount: asset.amount, denom: asset.info.native_token.denom }]
+      } as ExecuteInstruction;
+    }
+    return {
+      contractAddress: asset.info.token.contract_addr,
+      msg: {
+        send: {
+          amount: asset.amount,
+          contract: contractAddress,
+          msg: toBinary(msg)
+        }
+      }
+    };
+  };
 
   withCosmWasmClient(client: CosmWasmClient) {
     this.client = client;
@@ -59,6 +98,12 @@ export abstract class AbstractOrderbookClientHelper {
     const client = (await this.getCosmWasmClient(true)) as SigningCosmWasmClient;
     const sender = _sender ?? (await this.wallet.getKeplrAddr(this.chainId));
     return client.signAndBroadcast(sender, encodedObjects, "auto", memo);
+  }
+
+  async executeMultiple(instructions: ExecuteInstruction[], _sender?: string, memo?: string) {
+    const client = (await this.getCosmWasmClient(true)) as SigningCosmWasmClient;
+    const sender = _sender ?? (await this.wallet.getKeplrAddr(this.chainId));
+    return client.executeMultiple(sender, instructions, "auto", memo);
   }
 
   abstract queryAllTicks(direction: unknown, orderBy: number, limit?: number): Promise<unknown[]>;
