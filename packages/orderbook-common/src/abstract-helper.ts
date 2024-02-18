@@ -7,9 +7,10 @@ import {
 } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { DeliverTxResponse, GasPrice } from "@cosmjs/stargate";
-import { CosmosChainId, CosmosWallet, parseAssetInfo } from "@oraichain/oraidex-common";
+import { CosmosChainId, CosmosWallet, ORAI, parseAssetInfo } from "@oraichain/oraidex-common";
 import { Asset, AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { OrderDirection } from "@oraichain/oraidex-contracts-sdk/build/OraiswapLimitOrder.types";
+import { gasPrices } from "./constant";
 
 export abstract class AbstractOrderbookClientHelper {
   protected client: CosmWasmClient;
@@ -64,12 +65,21 @@ export abstract class AbstractOrderbookClientHelper {
 
   async getCosmWasmClient(signing: boolean, gasPrice?: GasPrice): Promise<SigningCosmWasmClient | CosmWasmClient> {
     if (signing) {
-      return (
-        this.signingClient ??
-        (await this.wallet.getCosmWasmClient({ rpc: this.rpc, chainId: this.chainId }, { gasPrice })).client
-      );
+      const signingClient =
+        this.signingClient && !gasPrice // if client passes a different gas price then we initiate a new signing cosmwasm client
+          ? this.signingClient
+          : (
+              await this.wallet.getCosmWasmClient(
+                { rpc: this.rpc, chainId: this.chainId },
+                { gasPrice: gasPrice ?? GasPrice.fromString(`${gasPrices}${ORAI}`) }
+              )
+            ).client;
+      this.signingClient = signingClient;
+      return signingClient;
     }
-    return this.client ?? CosmWasmClient.connect(this.rpc);
+    const client = this.client ?? (await CosmWasmClient.connect(this.rpc));
+    this.client = client;
+    return client;
   }
 
   async getBalance(tokenIndex: 0 | 1, _address?: string): Promise<bigint> {
@@ -94,14 +104,14 @@ export abstract class AbstractOrderbookClientHelper {
     return result;
   };
 
-  async signAndBroadcast(encodedObjects: EncodeObject[], _sender?: string, memo?: string) {
-    const client = (await this.getCosmWasmClient(true)) as SigningCosmWasmClient;
+  async signAndBroadcast(encodedObjects: EncodeObject[], _sender?: string, memo?: string, gasPrices?: GasPrice) {
+    const client = (await this.getCosmWasmClient(true, gasPrices)) as SigningCosmWasmClient;
     const sender = _sender ?? (await this.wallet.getKeplrAddr(this.chainId));
     return client.signAndBroadcast(sender, encodedObjects, "auto", memo);
   }
 
-  async executeMultiple(instructions: ExecuteInstruction[], _sender?: string, memo?: string) {
-    const client = (await this.getCosmWasmClient(true)) as SigningCosmWasmClient;
+  async executeMultiple(instructions: ExecuteInstruction[], _sender?: string, memo?: string, gasPrices?: GasPrice) {
+    const client = (await this.getCosmWasmClient(true, gasPrices)) as SigningCosmWasmClient;
     const sender = _sender ?? (await this.wallet.getKeplrAddr(this.chainId));
     return client.executeMultiple(sender, instructions, "auto", memo);
   }
