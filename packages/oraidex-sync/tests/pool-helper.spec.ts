@@ -1,4 +1,3 @@
-import "./polyfill";
 import { Asset, AssetInfo, OraiswapStakingTypes } from "@oraichain/oraidex-contracts-sdk";
 import {
   ORAI,
@@ -341,7 +340,7 @@ describe("test-pool-helper", () => {
     });
 
     // act
-    const result = await poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
+    const result = poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
 
     // assertion
     expect(Object.keys(result).length).toEqual(pairs.length);

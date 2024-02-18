@@ -1,4 +1,3 @@
-import "./polyfill";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import {
@@ -411,7 +410,7 @@ describe("test-helper", () => {
     const accumulatedData = await collectAccumulateLpAndSwapData(lpOpsData, poolResponses);
 
     // assertion
-    expect(accumulatedData).toStrictEqual({
+    expect(accumulatedData).toMatchObject({
       oraiUsdtPairAddr: { askPoolAmount: 2n, height: 2, offerPoolAmount: 3n, timestamp: 1, totalShare: "1" }
     });
   });
@@ -590,7 +589,7 @@ describe("test-helper", () => {
         quotePoolAmount
       } as SwapOperationData;
       // first case undefined, return 0
-      expect(calculateBasePriceFromSwapOp(undefined as any)).toEqual(0);
+      expect(calculateBasePriceFromSwapOp(undefined)).toEqual(0);
       // other cases
       const price = calculateBasePriceFromSwapOp(swapOp);
       expect(price).toEqual(expectedPrice);

@@ -1,4 +1,3 @@
-import "./polyfill";
 import { DuckDb } from "../src/db";
 import { isoToTimestampNumber } from "../src/helper";
 import { GetFeeSwap, GetVolumeQuery, ProvideLiquidityOperationData } from "../src/types";
@@ -105,7 +104,7 @@ describe("test-duckdb", () => {
           txCreator: "foobar",
           opType: "provide",
           txheight: 1,
-          taxRate: 1n
+          taxRate: 1
         }
       ])
     ).rejects.toThrow();
@@ -120,17 +119,17 @@ describe("test-duckdb", () => {
     const data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1 as any,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2 as any,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: newDate,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1 as any
+        taxRate: 1n
       }
     ];
 
@@ -147,17 +146,17 @@ describe("test-duckdb", () => {
     let data: ProvideLiquidityOperationData[] = [
       {
         basePrice: 1,
-        baseTokenAmount: 1 as any,
+        baseTokenAmount: 1n,
         baseTokenDenom: "orai",
         opType: "withdraw",
         uniqueKey: "2",
-        quoteTokenAmount: 2 as any,
+        quoteTokenAmount: 2n,
         quoteTokenDenom: "atom",
         timestamp: currentTimeStamp,
         txCreator: "foobar",
         txhash: "foo",
         txheight: 1,
-        taxRate: 1
+        taxRate: 1n
       }
     ];
     await duckDb.insertLpOps(data);
@@ -428,7 +427,7 @@ describe("test-duckdb", () => {
         rewardPerSec: "1",
         apr: 2.5,
         aprBoost: 2,
-        timestamp: 1236
+        timestamp: 1236n
       });
     });
   });
