@@ -18,7 +18,7 @@ import {
   usdtCw20Address
 } from "./constants";
 import { PairMapping } from "./types";
-import { WETH_CONTRACT, NEUTARO_ORAICHAIN_DENOM, BTC_CONTRACT } from "@oraichain/oraidex-common/build/constant";
+import { WETH_CONTRACT, BTC_CONTRACT } from "@oraichain/oraidex-common/build/constant";
 import { pairLpTokens } from "@oraichain/oraidex-common/build/pairs";
 
 // the orders are important! Do not change the order of the asset_infos.
