@@ -18,6 +18,7 @@ import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom } from "./parse";
 
 async function queryPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
+  console.dir({ pairAddrs }, { depth: null });
   const calls: Call[] = pairAddrs.map((pair) => {
     return {
       address: pair,
@@ -34,7 +35,8 @@ async function queryPoolInfos(pairAddrs: string[], wantedHeight?: number): Promi
   }
 
   try {
-    const res = (await Promise.all(chunks.map((chunk) => aggregateMulticall(chunk, wantedHeight)))) as any[][];
+    const res = (await Promise.all(chunks.map((chunk) => aggregateMulticall(chunk)))) as any[][];
+    console.dir({ res }, { depth: null });
     return res.flat().filter(Boolean);
   } catch (error) {
     console.log(`Error when trying to queryPoolInfos: ${JSON.stringify(error)}`);

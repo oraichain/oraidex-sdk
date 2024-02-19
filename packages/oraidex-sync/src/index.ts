@@ -108,6 +108,7 @@ class OraiDexSync {
         pairInfos.map((pair) => pair.pairAddr),
         currentHeight
       );
+      console.dir({ poolInfos }, { depth: null });
       const INITIAL_TIMESTAMP = 1;
       await this.duckDb.insertPoolAmountHistory(
         // we check if poolInfos[index] is available because in currentHeight we query, maybe it has some pools are not created yet

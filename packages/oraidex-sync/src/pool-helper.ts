@@ -357,6 +357,7 @@ export const getPoolAmounts = async (pools: PairInfoData[]): Promise<PoolAmountH
     const poolAmount = await duckDb.getLatestLpPoolAmount(pool.pairAddr);
     allPoolAmounts.push(poolAmount);
   }
+  console.dir({ allPoolAmounts }, { depth: null });
   return allPoolAmounts;
 };
 
