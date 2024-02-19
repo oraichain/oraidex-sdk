@@ -121,7 +121,8 @@ export const defaultChartProps = {
       }
     },
     dateFormatter: {
-      format: (date) => formatTVDate(date)
+      // format: (date) => formatTVDate(date)
+      format: (date) => formatDateFn(addMinutes(date, date.getTimezoneOffset()), "dd MMM yyyy hh:mm:ss a")
     }
   }
 };
