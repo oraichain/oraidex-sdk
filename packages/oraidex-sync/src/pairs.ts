@@ -5,7 +5,6 @@ import {
   ORAI,
   airiCw20Adress,
   atomIbcDenom,
-  neutaroDenom,
   injAddress,
   kwtCw20Address,
   milkyCw20Address,
@@ -18,8 +17,7 @@ import {
   usdtCw20Address
 } from "./constants";
 import { PairMapping } from "./types";
-import { WETH_CONTRACT, BTC_CONTRACT } from "@oraichain/oraidex-common";
-import { pairLpTokens } from "@oraichain/oraidex-common";
+import { WETH_CONTRACT, BTC_CONTRACT, pairLpTokens, NEUTARO_ORAICHAIN_DENOM } from "@oraichain/oraidex-common";
 
 // the orders are important! Do not change the order of the asset_infos.
 export const pairs: PairMapping[] = [
@@ -112,9 +110,8 @@ export const pairs: PairMapping[] = [
     symbols: ["ORAI", "BTC"]
   },
   {
-    asset_infos: [{ native_token: { denom: neutaroDenom } }, { token: { contract_addr: usdcCw20Address } }],
-    // lp_token: pairLpTokens.NTMPI_USDC,
-    lp_token: "orai1rmvjmwd940ztafxue7630g75px8tqma4jskjuu57fkj0eqahqfgqqwjm00",
+    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: usdcCw20Address } }],
+    lp_token: pairLpTokens.NTMPI_USDC,
     symbols: ["NTMPI", "USDC"]
   }
 ];
