@@ -5,9 +5,13 @@ import {
   EvmChainId,
   KWT_BSC_CONTRACT,
   MILKY_BSC_CONTRACT,
+  NEUTARO_INFO,
   NetworkChainId,
+  ORAIX_INFO,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
+  ORAI_INFO,
+  USDC_INFO,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
   USDT_ETH_CONTRACT,
@@ -34,9 +38,12 @@ import {
   getSourceReceiver,
   isEvmNetworkNativeSwapSupported,
   isEvmSwappable,
-  isSupportedNoPoolSwapEvm
+  isSupportedNoPoolSwapEvm,
+  generateSwapRoute
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -428,5 +435,123 @@ describe("test helper functions", () => {
     ]
   ])("test-unmarshalOraiBridgeRoute-%s", (destination, routeData) => {
     expect(universalHelper.unmarshalOraiBridgeRoute(destination)).toEqual(routeData);
+  });
+
+  it.each<[AssetInfo, AssetInfo, AssetInfo[], SwapOperation[]]>([
+    [
+      NEUTARO_INFO,
+      ORAI_INFO,
+      [USDC_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        }
+      ]
+    ],
+    [
+      ORAI_INFO,
+      NEUTARO_INFO,
+      [USDC_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: NEUTARO_INFO
+          }
+        }
+      ]
+    ],
+    [
+      ORAI_INFO,
+      USDC_INFO,
+      [],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        }
+      ]
+    ],
+    [
+      ORAIX_INFO,
+      NEUTARO_INFO,
+      [ORAI_INFO, USDC_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAIX_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: NEUTARO_INFO
+          }
+        }
+      ]
+    ],
+    [
+      NEUTARO_INFO,
+      ORAIX_INFO,
+      [USDC_INFO, ORAI_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ]
+    ]
+  ])("test-generateSwapRoute", (offerAsset, askAsset, swapRoute, expectSwapRoute) => {
+    const getSwapRoute: SwapOperation[] = generateSwapRoute(offerAsset, askAsset, swapRoute);
+    console.dir(getSwapRoute, { depth: null });
+    console.dir(expectSwapRoute, { depth: null });
+
+    expect(getSwapRoute).toEqual(expect.arrayContaining(expectSwapRoute));
+    getSwapRoute.forEach((swap) => {
+      expect(swap).toMatchObject({
+        orai_swap: expect.objectContaining({
+          offer_asset_info: expect.any(Object),
+          ask_asset_info: expect.any(Object)
+        })
+      });
+    });
   });
 });
