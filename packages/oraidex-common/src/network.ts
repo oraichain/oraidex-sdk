@@ -244,7 +244,7 @@ export const AtomToken: BridgeAppCurrency = {
 };
 
 export const NeutaroToken: BridgeAppCurrency = {
-  coinDenom: "NEUTARO",
+  coinDenom: "NTMPI",
   coinMinimalDenom: "uneutaro",
   coinDecimals: 6,
   coinGeckoId: "neutaro",
@@ -312,7 +312,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinImageUrl: "https://dhj8dql1kzq2v.cloudfront.net/white/atom.png"
     },
     {
-      coinDenom: "NEUTARO",
+      coinDenom: "NTMPI",
       coinGeckoId: "neutaro",
       coinMinimalDenom: NEUTARO_ORAICHAIN_DENOM,
       bridgeTo: ["Neutaro-1"],
@@ -744,14 +744,14 @@ export const chainInfos: CustomChainInfo[] = [
     },
     bech32Config: defaultBech32Config("neutaro"),
     stakeCurrency: {
-      coinDenom: "neutaro",
+      coinDenom: "ntmpi",
       coinMinimalDenom: "uneutaro",
       coinDecimals: 6,
       coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png"
     },
     feeCurrencies: [
       {
-        coinDenom: "neutaro",
+        coinDenom: "ntmpi",
         coinMinimalDenom: "uneutaro",
         coinDecimals: 6,
         coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png",

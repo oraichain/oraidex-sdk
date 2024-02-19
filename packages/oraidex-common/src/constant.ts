@@ -175,6 +175,18 @@ export const ORAIXOCH_INFO = {
   }
 };
 
+export const USDC_INFO = {
+  token: {
+    contract_addr: USDC_CONTRACT
+  }
+};
+
+export const NEUTARO_INFO = {
+  native_token: {
+    denom: NEUTARO_ORAICHAIN_DENOM
+  }
+};
+
 // slippage swap
 export const OPTIONS_SLIPPAGE = [1, 3, 5];
 export const DEFAULT_SLIPPAGE = OPTIONS_SLIPPAGE[0];
