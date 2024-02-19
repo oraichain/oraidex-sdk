@@ -17,7 +17,7 @@ import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
 import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom } from "./parse";
 
-async function queryPoolInfos(pairAddrs: string[]): Promise<PoolResponse[]> {
+async function queryPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
   const calls: Call[] = pairAddrs.map((pair) => {
     return {
       address: pair,
@@ -34,11 +34,8 @@ async function queryPoolInfos(pairAddrs: string[]): Promise<PoolResponse[]> {
   }
 
   try {
-    const res = (await Promise.all(chunks.map(aggregateMulticall))) as any[][];
-    return res
-      .flat()
-      .map((data) => (data.success ? fromBinary(data.data) : undefined))
-      .filter((data) => data);
+    const res = (await Promise.all(chunks.map((chunk) => aggregateMulticall(chunk, wantedHeight)))) as any[][];
+    return res.flat().filter(Boolean);
   } catch (error) {
     console.log(`Error when trying to queryPoolInfos: ${JSON.stringify(error)}`);
     throw new Error("queryPoolInfosFails::" + error?.message);
@@ -118,8 +115,9 @@ async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRoute
   }
 }
 
-async function aggregateMulticall<T>(queries: Call[]): Promise<T[]> {
+async function aggregateMulticall<T>(queries: Call[], wantedHeight?: number): Promise<T[]> {
   const client = await getCosmwasmClient();
+  client.setQueryClientWithHeight(wantedHeight);
   const multicall = new MulticallQueryClient(client, network.multicall);
   const res = await multicall.tryAggregate({ queries });
   return res.return_data.map((data) => (data.success ? fromBinary(data.data) : undefined)) as T[];

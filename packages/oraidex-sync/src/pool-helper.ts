@@ -84,7 +84,7 @@ export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): 
   // const cosmwasmClient = await getCosmwasmClient();
   // cosmwasmClient.setQueryClientWithHeight(wantedHeight);
   // const multicall = new MulticallQueryClient(cosmwasmClient, network.multicall);
-  const res = await queryPoolInfos(pairAddrs);
+  const res = await queryPoolInfos(pairAddrs, wantedHeight);
   return res;
 };
 
