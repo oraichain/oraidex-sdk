@@ -1,5 +1,4 @@
-import { Addr, AssetInfo, Decimal, Uint128 } from "./types";
-
+import {AssetInfo, Addr, Uint128, Decimal, Binary, Cw20ReceiveMsg} from "./types";
 export interface InstantiateMsg {
   distribution_token: AssetInfo;
   max_slot: number;
@@ -8,120 +7,95 @@ export interface InstantiateMsg {
   premium_rate_per_slot: Decimal;
   underlying_token: AssetInfo;
 }
-export type ExecuteMsg =
-  | {
-      receive: Cw20ReceiveMsg;
-    }
-  | {
-      update_config: {
-        distribution_token?: AssetInfo | null;
-        max_slot?: number | null;
-        min_deposit_amount?: Uint128 | null;
-        owner?: Addr | null;
-        premium_rate_per_slot?: Decimal | null;
-        underlying_token?: AssetInfo | null;
-      };
-    }
-  | {
-      create_new_round: {
-        end_time: number;
-        start_time: number;
-        total_bid_threshold: Uint128;
-        total_distribution: Uint128;
-      };
-    }
-  | {
-      finalize_bidding_round_result: {
-        exchange_rate: Decimal;
-        round: number;
-      };
-    }
-  | {
-      distribute: {
-        limit?: number | null;
-        round: number;
-        start_after?: number | null;
-      };
-    }
-  | {
-      submit_bid: {
-        premium_slot: number;
-        round: number;
-      };
-    };
-export type Binary = string;
-export interface Cw20ReceiveMsg {
-  amount: Uint128;
-  msg: Binary;
-  sender: string;
-}
-export type QueryMsg =
-  | {
-      config: {};
-    }
-  | {
-      bid: {
-        idx: number;
-      };
-    }
-  | {
-      bidding_info: {
-        round: number;
-      };
-    }
-  | {
-      last_round_id: {};
-    }
-  | {
-      bid_pool: {
-        round: number;
-        slot: number;
-      };
-    }
-  | {
-      all_bid_pool_in_round: {
-        round: number;
-      };
-    }
-  | {
-      all_bid_in_round: {
-        limit?: number | null;
-        round: number;
-        start_after?: number | null;
-      };
-    }
-  | {
-      bids_idx_by_user: {
-        round: number;
-        user: Addr;
-      };
-    }
-  | {
-      bids_by_user: {
-        round: number;
-        user: Addr;
-      };
-    }
-  | {
-      estimate_amount_receive_of_bid: {
-        exchange_rate: Decimal;
-        idx: number;
-        round: number;
-      };
-    }
-  | {
-      estimate_amount_receive: {
-        bid_amount: Uint128;
-        exchange_rate: Decimal;
-        round: number;
-        slot: number;
-      };
-    }
-  | {
-      numbers_bid_in_round: {
-        round: number;
-      };
-    };
+export type ExecuteMsg = {
+  receive: Cw20ReceiveMsg;
+} | {
+  update_config: {
+    distribution_token?: AssetInfo | null;
+    max_slot?: number | null;
+    min_deposit_amount?: Uint128 | null;
+    owner?: Addr | null;
+    premium_rate_per_slot?: Decimal | null;
+    underlying_token?: AssetInfo | null;
+  };
+} | {
+  create_new_round: {
+    end_time: number;
+    start_time: number;
+    total_distribution: Uint128;
+  };
+} | {
+  finalize_bidding_round_result: {
+    exchange_rate: Decimal;
+    round: number;
+  };
+} | {
+  distribute: {
+    limit?: number | null;
+    round: number;
+    start_after?: number | null;
+  };
+} | {
+  submit_bid: {
+    premium_slot: number;
+    round: number;
+  };
+};
+export type QueryMsg = {
+  config: {};
+} | {
+  bid: {
+    idx: number;
+  };
+} | {
+  bidding_info: {
+    round: number;
+  };
+} | {
+  last_round_id: {};
+} | {
+  bid_pool: {
+    round: number;
+    slot: number;
+  };
+} | {
+  all_bid_pool_in_round: {
+    round: number;
+  };
+} | {
+  all_bid_in_round: {
+    limit?: number | null;
+    round: number;
+    start_after?: number | null;
+  };
+} | {
+  bids_idx_by_user: {
+    round: number;
+    user: Addr;
+  };
+} | {
+  bids_by_user: {
+    round: number;
+    user: Addr;
+  };
+} | {
+  estimate_amount_receive_of_bid: {
+    exchange_rate: Decimal;
+    idx: number;
+    round: number;
+  };
+} | {
+  estimate_amount_receive: {
+    bid_amount: Uint128;
+    exchange_rate: Decimal;
+    round: number;
+    slot: number;
+  };
+} | {
+  numbers_bid_in_round: {
+    round: number;
+  };
+};
 export interface MigrateMsg {}
 export type ArrayOfBid = Bid[];
 export interface Bid {

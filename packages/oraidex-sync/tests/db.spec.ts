@@ -99,12 +99,12 @@ describe("test-duckdb", () => {
           baseTokenAmount: "abcd" as any,
           baseTokenDenom: "orai",
           uniqueKey: "1",
-          quoteTokenAmount: 2,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           txCreator: "foobar",
           opType: "provide",
           txheight: 1,
-          taxRate: 1n
+          taxRate: 1
         }
       ])
     ).rejects.toThrow();
@@ -291,11 +291,11 @@ describe("test-duckdb", () => {
       await duckDb.insertLpOps([
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: "orai",
           opType: "withdraw",
           uniqueKey: "1",
-          quoteTokenAmount: 2,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
@@ -305,11 +305,11 @@ describe("test-duckdb", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: "orai",
           opType: "provide",
           uniqueKey: "2",
-          quoteTokenAmount: 2,
+          quoteTokenAmount: 2n,
           quoteTokenDenom: "atom",
           timestamp: 1589610068000 / 1000,
           txCreator: "foobar",
