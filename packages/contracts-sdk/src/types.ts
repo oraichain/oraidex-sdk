@@ -1,4 +1,3 @@
-export type Uint128 = string;
 export type AssetInfo = {
   token: {
     contract_addr: Addr;
@@ -9,6 +8,14 @@ export type AssetInfo = {
   };
 };
 export type Addr = string;
+export type Uint128 = string;
+export type Decimal = string;
+export type Binary = string;
+export interface Cw20ReceiveMsg {
+  amount: Uint128;
+  msg: Binary;
+  sender: string;
+}
 export type Logo = {
   url: string;
 } | {
@@ -19,7 +26,6 @@ export type EmbeddedLogo = {
 } | {
   png: Binary;
 };
-export type Binary = string;
 export interface Cw20Coin {
   address: string;
   amount: Uint128;
@@ -34,12 +40,6 @@ export interface InstantiateMarketingInfo {
   marketing?: string | null;
   project?: string | null;
 }
-export interface Cw20ReceiveMsg {
-  amount: Uint128;
-  msg: Binary;
-  sender: string;
-}
-export type Decimal = string;
 export interface PairInfo {
   asset_infos: [AssetInfo, AssetInfo];
   commission_rate: string;
