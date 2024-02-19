@@ -3363,6 +3363,24 @@
   resolved "https://registry.yarnpkg.com/@oraichain/immutable/-/immutable-4.3.9.tgz#ff8d5a7b39b5b01f3f72a902cffbfea32ccb20c3"
   integrity sha512-INpHnhL970OCkR7I71Kssb2aLl2l4Y/x8W6FlyRO0KmC8GHjxc/hlNB1t44BiI7lkOYmcWMRQoC8dwParsp1RQ==
 
+"@oraichain/oraidex-common@latest":
+  version "1.0.67"
+  resolved "https://registry.yarnpkg.com/@oraichain/oraidex-common/-/oraidex-common-1.0.67.tgz#b16221be2b70ecb118e76462306dd643b16fdc71"
+  integrity sha512-4Jj4gPZJeRSm9z3PAk8+Q8lUZ8miFPAodqooct5MaqgtJloblpJkDr0/BGZYg2783nUcd7U7Ku95vsSMUhlewg==
+  dependencies:
+    "@cosmjs/amino" "^0.31.0"
+    "@cosmjs/cosmwasm-stargate" "^0.31.0"
+    "@cosmjs/crypto" "^0.31.0"
+    "@cosmjs/proto-signing" "^0.31.0"
+    "@cosmjs/stargate" "^0.31.0"
+    "@cosmjs/tendermint-rpc" "0.31.0"
+    "@ethersproject/providers" "^5.0.10"
+    "@keplr-wallet/types" "^0.11.38"
+    "@oraichain/oraidex-contracts-sdk" "^1.0.30"
+    bignumber.js "^9.0.1"
+    cosmjs-types "^0.8.0"
+    ethers "^5.0.15"
+
 "@oraichain/oraidex-universal-swap@1.0.14":
   version "1.0.14"
   resolved "https://registry.yarnpkg.com/@oraichain/oraidex-universal-swap/-/oraidex-universal-swap-1.0.14.tgz#fd4b60e7cfc21984dbaa14a7b9a2c560f02da37d"
