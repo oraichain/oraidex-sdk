@@ -1,3 +1,5 @@
+export * as CoharvestBidPoolTypes from './CoharvestBidPool.types';
+export * from './CoharvestBidPool.client';
 export * as OraidexListingContractTypes from './OraidexListingContract.types';
 export * from './OraidexListingContract.client';
 export * as OraiswapConverterTypes from './OraiswapConverter.types';
