@@ -39,7 +39,8 @@ import {
   isEvmNetworkNativeSwapSupported,
   isEvmSwappable,
   isSupportedNoPoolSwapEvm,
-  generateSwapRoute
+  generateSwapRoute,
+  generateSwapOperationMsgs
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
@@ -541,11 +542,70 @@ describe("test helper functions", () => {
     ]
   ])("test-generateSwapRoute", (offerAsset, askAsset, swapRoute, expectSwapRoute) => {
     const getSwapRoute: SwapOperation[] = generateSwapRoute(offerAsset, askAsset, swapRoute);
-    console.dir(getSwapRoute, { depth: null });
-    console.dir(expectSwapRoute, { depth: null });
-
     expect(getSwapRoute).toEqual(expect.arrayContaining(expectSwapRoute));
     getSwapRoute.forEach((swap) => {
+      expect(swap).toMatchObject({
+        orai_swap: expect.objectContaining({
+          offer_asset_info: expect.any(Object),
+          ask_asset_info: expect.any(Object)
+        })
+      });
+    });
+  });
+
+  it.each<[AssetInfo, AssetInfo, SwapOperation[]]>([
+    [
+      ORAIX_INFO,
+      NEUTARO_INFO,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAIX_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: NEUTARO_INFO
+          }
+        }
+      ]
+    ],
+    [
+      NEUTARO_INFO,
+      ORAIX_INFO,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ]
+    ]
+  ])("test-generateSwapOperationMsgs", (offerAsset, askAsset, expectSwapRoute) => {
+    const getSwapOperationMsgsRoute = generateSwapOperationMsgs(offerAsset, askAsset);
+    expect(getSwapOperationMsgsRoute).toEqual(expect.arrayContaining(expectSwapRoute));
+    getSwapOperationMsgsRoute.forEach((swap) => {
       expect(swap).toMatchObject({
         orai_swap: expect.objectContaining({
           offer_asset_info: expect.any(Object),

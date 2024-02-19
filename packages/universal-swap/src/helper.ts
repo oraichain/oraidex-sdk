@@ -348,16 +348,15 @@ export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetIn
   });
 
   if (pairExist) return generateSwapRoute(offerInfo, askInfo, []);
-
   // TODO: hardcode NTMPI -> USDC -> ORAI -> X
   if (isEqual(offerInfo, NEUTARO_INFO)) {
-    const swapRoute = isEqual(askInfo, ORAI_INFO) ? [USDC_INFO] : [ORAI_INFO, USDC_INFO];
+    const swapRoute = isEqual(askInfo, ORAI_INFO) ? [USDC_INFO] : [USDC_INFO, ORAI_INFO];
     return generateSwapRoute(offerInfo, askInfo, swapRoute);
   }
 
   // TODO: X -> ORAI -> USDC -> NTMPI
   if (isEqual(askInfo, NEUTARO_INFO)) {
-    const swapRoute = isEqual(offerInfo, ORAI_INFO) ? [USDC_INFO] : [USDC_INFO, ORAI_INFO];
+    const swapRoute = isEqual(offerInfo, ORAI_INFO) ? [USDC_INFO] : [ORAI_INFO, USDC_INFO];
     return generateSwapRoute(offerInfo, askInfo, swapRoute);
   }
 
