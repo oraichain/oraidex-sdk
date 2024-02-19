@@ -8,7 +8,7 @@ BigInt.prototype.toJSON = function () {
 // polyfill
 
 // @ts-ignore
-Tendermint34Client.detectVersion = () => {};
+// Tendermint34Client.detectVersion = () => {};
 //@ts-ignore
 // Tendermint34Client.prototype.status = async function () {
 //   return {
