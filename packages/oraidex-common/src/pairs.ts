@@ -14,8 +14,8 @@ import {
   TRX_CONTRACT,
   USDC_CONTRACT,
   USDT_CONTRACT,
-  WETH_CONTRACT
-  // NEUTARO_ORAICHAIN_DENOM
+  WETH_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM
 } from "./constant";
 import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
