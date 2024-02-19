@@ -14,7 +14,8 @@ import {
   TRX_CONTRACT,
   USDC_CONTRACT,
   USDT_CONTRACT,
-  WETH_CONTRACT
+  WETH_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM
 } from "./constant";
 import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
@@ -90,6 +91,10 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
     symbols: ["ORAI", "WETH"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["NTMPI", "USDC"]
   },
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
