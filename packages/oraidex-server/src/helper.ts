@@ -216,7 +216,7 @@ export const getAllPoolsInfo = async () => {
     });
 
     // TODO: ignore pool ORAI/BTC and pool undefined
-    return allPoolsInfo.filter((pools) => pools.liquidityAddr !== pairLpTokens.ORAI_BTC && pools);
+    return allPoolsInfo.filter((pools) => pools && pools.liquidityAddr !== pairLpTokens.ORAI_BTC);
   } catch (error) {
     console.log({ errorGetAllPoolsInfo: error });
   }
