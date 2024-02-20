@@ -106,7 +106,7 @@ async function simulateSwapPrice(pairPaths: AssetInfo[][], router: OraiswapRoute
   }
   try {
     const res = (await Promise.all(
-      chunks.map(aggregateMulticall<OraiswapRouterTypes.SimulateSwapOperationsResponse>)
+      chunks.map((chunk) => aggregateMulticall(chunk))
     )) as OraiswapRouterTypes.SimulateSwapOperationsResponse[][];
     return res.flat().map((data, ind) => toDisplay(data?.amount || "0", dataCall[ind].sourceDecimals).toString());
   } catch (error) {
