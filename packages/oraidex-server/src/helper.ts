@@ -81,7 +81,7 @@ export const getOrderbookTicker = async () => {
   try {
     // get ticker from orderbook
     const ORDERBOOK_TICKER_API_ENDPOINT = `${
-      process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
+      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
     }/v2/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
@@ -99,7 +99,7 @@ export const getOrderbookSummary = async () => {
   try {
     // get ticker from orderbook
     const ORDERBOOK_TICKER_API_ENDPOINT = `${
-      process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
+      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
     }/v1/cmc/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
