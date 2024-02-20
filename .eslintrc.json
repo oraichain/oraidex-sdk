@@ -33,8 +33,8 @@
       "rules": {
         "@typescript-eslint/no-explicit-any": ["warn"],
         "@typescript-eslint/no-unused-vars": "warn",
-        "security/detect-object-injection": "off"
-        // "@typescript-eslint/ban-ts-comment": "off"
+        "security/detect-object-injection": "off",
+        "@typescript-eslint/ban-ts-comment": "off"
       }
     },
     {
