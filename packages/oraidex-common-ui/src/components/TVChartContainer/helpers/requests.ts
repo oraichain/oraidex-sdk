@@ -76,7 +76,6 @@ export const getTokenChartPrice = async ({
         tf: +resolution * 60
       });
     }
-
     const res = await axios.get(endpoint, {
       params: {
         pair: info,
@@ -86,6 +85,11 @@ export const getTokenChartPrice = async ({
         tf: +resolution * 60
       }
     });
+
+    if (symbol === "NTMPI/USDC") {
+      const TWO_PM_TIMESTAMP = 1708412400;
+      return res.data && res.data.filter((item) => Number(item.time) >= TWO_PM_TIMESTAMP);
+    }
 
     return res.data;
   } catch (e) {

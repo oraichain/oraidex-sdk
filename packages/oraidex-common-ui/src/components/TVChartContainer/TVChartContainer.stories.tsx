@@ -58,6 +58,27 @@ OraiAtomChartDefaultURL.args = {
   // wsUrl: BASE_SOCKET_URL.ORAIDEX
 };
 
+export const TimpiChartDefaultURL: Story = (args: TVChartContainerProsp) => (
+  <div style={{ height: "80vh" }}>
+    <TVChartContainer {...args} />;
+  </div>
+);
+TimpiChartDefaultURL.args = {
+  theme: "dark",
+  currentPair: {
+    symbol: "NTMPI/USDC",
+    info: "ibc/576B1D63E401B6A9A071C78A1D1316D016EC9333D2FEB14AD503FAC4B8731CD1-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
+  },
+  pairsChart: [
+    {
+      symbol: "NTMPI/USDC",
+      info: "ibc/576B1D63E401B6A9A071C78A1D1316D016EC9333D2FEB14AD503FAC4B8731CD1-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
+    }
+  ]
+  // baseUrl: BASE_API_URL.ORAIDEX,
+  // wsUrl: BASE_SOCKET_URL.ORAIDEX
+};
+
 export const OraiUsdcChart: Story = (args: TVChartContainerProsp) => (
   <div style={{ height: "80vh" }}>
     <TVChartContainer {...args} />;
