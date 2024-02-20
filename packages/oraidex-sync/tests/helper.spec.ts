@@ -38,7 +38,7 @@ import * as poolHelper from "../src/pool-helper";
 import * as helper from "../src/helper";
 import * as parse from "../src/parse";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
-import { WETH_CONTRACT, pairLpTokens } from "@oraichain/oraidex-common";
+import { BTC_CONTRACT, NEUTARO_ORAICHAIN_DENOM, WETH_CONTRACT, pairLpTokens } from "@oraichain/oraidex-common";
 
 describe("test-helper", () => {
   let duckDb: DuckDb;
@@ -237,6 +237,19 @@ describe("test-helper", () => {
         asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
         lp_token: pairLpTokens.ORAI_WETH,
         symbols: ["ORAI", "WETH"]
+      },
+      {
+        asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
+        lp_token: pairLpTokens.ORAI_BTC,
+        symbols: ["ORAI", "BTC"]
+      },
+      {
+        asset_infos: [
+          { native_token: { denom: NEUTARO_ORAICHAIN_DENOM } },
+          { token: { contract_addr: usdcCw20Address } }
+        ],
+        lp_token: pairLpTokens.NTMPI_USDC,
+        symbols: ["NTMPI", "USDC"]
       }
     ]);
   });
