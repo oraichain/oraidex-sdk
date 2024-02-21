@@ -1,4 +1,4 @@
-import { pairs } from "./pairs";
+import { PAIRS } from "@oraichain/oraidex-common/build/pairs";
 import { OraiswapPairTypes, AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { isEqual } from "lodash";
 
@@ -29,7 +29,7 @@ export function toObject(data: any) {
 }
 
 export const parsePairDenomToAssetInfo = ([baseDenom, quoteDenom]: [string, string]): [AssetInfo, AssetInfo] => {
-  const pair = pairs.find(
+  const pair = PAIRS.find(
     (pair) =>
       parseAssetInfoOnlyDenom(pair.asset_infos[0]) === baseDenom &&
       parseAssetInfoOnlyDenom(pair.asset_infos[1]) === quoteDenom

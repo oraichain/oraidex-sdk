@@ -7,8 +7,6 @@ import {
   ORAI,
   oraiInfo,
   oraixCw20Address,
-  PairMapping,
-  pairs,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
   usdcCw20Address,
@@ -30,7 +28,7 @@ import {
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
-import { pairLpTokens } from "@oraichain/oraidex-common";
+import { pairLpTokens, PAIRS, PairMapping } from "@oraichain/oraidex-common";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
@@ -119,7 +117,7 @@ export const fetchSimulatePrices = async () => {
     const cosmwasmClient = await CosmWasmClient.connect(rpcUrl);
     const routerContract = new OraiswapRouterQueryClient(cosmwasmClient, ROUTER_V2_CONTRACT);
 
-    const arrangedPairs = pairs.map((pair) => {
+    const arrangedPairs = PAIRS.map((pair) => {
       const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
       if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
         return {

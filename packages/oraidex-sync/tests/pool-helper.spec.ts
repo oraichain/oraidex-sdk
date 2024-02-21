@@ -11,13 +11,13 @@ import {
 } from "../src/constants";
 
 import * as helper from "../src/helper";
-import { DuckDb, pairs } from "../src/index";
+import { DuckDb } from "../src/index";
 import * as poolHelper from "../src/pool-helper";
-import { PairInfoData, PairMapping, PoolAmountHistory, ProvideLiquidityOperationData } from "../src/types";
+import { PairInfoData, PoolAmountHistory, ProvideLiquidityOperationData } from "../src/types";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import * as txParsing from "../src/tx-parsing";
-import { pairLpTokens } from "@oraichain/oraidex-common/build/pairs";
+import { PAIRS, pairLpTokens, PairMapping } from "@oraichain/oraidex-common/build/pairs";
 describe("test-pool-helper", () => {
   let duckDb: DuckDb;
   beforeAll(async () => {
@@ -140,7 +140,7 @@ describe("test-pool-helper", () => {
       };
       jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfoData);
       jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue(poolAmountHistory);
-      jest.spyOn(helper, "calculatePriceByPool").mockReturnValue(0.5);
+      jest.spyOn(helper, "calculatePriceByPoolWithCommissionrate").mockReturnValue(0.5);
 
       // assert
       const result = await poolHelper.getPriceByAsset(assetInfos, ratioDirection);
@@ -290,10 +290,10 @@ describe("test-pool-helper", () => {
 
   it("test-calculateAprResult-should-return-correctly-APR", async () => {
     // setup
-    const allLiquidities = Array(pairs.length).fill(1e6);
-    const allTotalSupplies = Array(pairs.length).fill("100000");
-    const allBondAmounts = Array(pairs.length).fill("1");
-    const allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[] = Array(pairs.length).fill({
+    const allLiquidities = Array(PAIRS.length).fill(1e6);
+    const allTotalSupplies = Array(PAIRS.length).fill("100000");
+    const allBondAmounts = Array(PAIRS.length).fill("1");
+    const allRewardPerSec: OraiswapStakingTypes.RewardsPerSecResponse[] = Array(PAIRS.length).fill({
       assets: [
         {
           amount: "1",
@@ -312,8 +312,8 @@ describe("test-pool-helper", () => {
     );
 
     // assertion
-    expect(result.length).toEqual(pairs.length);
-    expect(result).toStrictEqual(Array(pairs.length).fill(315360000));
+    expect(result.length).toEqual(PAIRS.length);
+    expect(result).toStrictEqual(Array(PAIRS.length).fill(315360000));
   });
 
   it("test-calculateBoostAprResult-should-return-correctly-APR", async () => {
@@ -321,12 +321,12 @@ describe("test-pool-helper", () => {
     jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(1);
 
     const avgLiquidities = {};
-    pairs.map((p) => {
+    PAIRS.map((p) => {
       avgLiquidities[p.lp_token] = 1e6;
       return p;
     });
 
-    const fee7Days = pairs.map((p) => {
+    const fee7Days = PAIRS.map((p) => {
       return {
         assetInfos: p.asset_infos,
         fee: 1000n
@@ -334,7 +334,7 @@ describe("test-pool-helper", () => {
     });
 
     const expectedResult = {};
-    pairs.map((p) => {
+    PAIRS.map((p) => {
       expectedResult[p.lp_token] = 0.000005214285714285714;
       return p;
     });
@@ -343,12 +343,12 @@ describe("test-pool-helper", () => {
     const result = poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
 
     // assertion
-    expect(Object.keys(result).length).toEqual(pairs.length);
+    expect(Object.keys(result).length).toEqual(PAIRS.length);
     expect(result).toStrictEqual(expectedResult);
   });
 
   it.each([
-    [true, pairs.length, pairs.length],
+    [true, PAIRS.length, PAIRS.length],
     [false, 4, 0]
   ])(
     "test-getListAssetInfoShouldRefetchApr-with-is-isTriggerRewardPerSec-%p-shoud-return-listAssetInfosPoolShouldRefetch-length-%p-and-assetInfosTriggerRewardPerSec-length-%p",

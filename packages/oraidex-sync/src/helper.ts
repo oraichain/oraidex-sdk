@@ -4,10 +4,11 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { maxBy, minBy } from "lodash";
 import { atomic, tenAmountInDecimalSix, truncDecimals } from "./constants";
 import { DuckDb } from "./db";
-import { pairs, pairsOnlyDenom } from "./pairs";
+import { pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
 import { getPriceAssetByUsdt } from "./pool-helper";
 import { Ohlcv, OraiDexType, PairInfoData, SwapDirection, SwapOperationData } from "./types";
+import { PAIRS } from "@oraichain/oraidex-common/build/pairs";
 
 export const validateNumber = (amount: number | string): number => {
   if (typeof amount === "string") return validateNumber(Number(amount));
@@ -138,6 +139,22 @@ export const calculatePriceByPool = (
   return bigIntAmount / finalOfferAmount;
 };
 
+export const calculatePriceByPoolWithCommissionrate = (
+  offerPool: bigint,
+  askPool: bigint,
+  commissionRate?: number,
+  offerAmount?: number
+): number => {
+  const finalOfferAmount = offerAmount || tenAmountInDecimalSix;
+  let returnAmount = (Number(askPool) * finalOfferAmount) / (Number(offerPool) + finalOfferAmount);
+
+  const commissionAmount = returnAmount * commissionRate;
+
+  // commission will be absorbed to pool
+  returnAmount = returnAmount - commissionAmount;
+  return returnAmount / finalOfferAmount;
+};
+
 export function groupDataByTime(data: any[], timeframe?: number): { [key: string]: any[] } {
   const ops: { [k: number]: any[] } = {};
   for (const op of data) {
@@ -173,7 +190,7 @@ export function roundTime(timeIn: number, timeframe: number): number {
 }
 
 export function isAssetInfoPairReverse(assetInfos: AssetInfo[]): boolean {
-  if (pairs.find((pair) => JSON.stringify(pair.asset_infos) === JSON.stringify(assetInfos))) return false;
+  if (PAIRS.find((pair) => JSON.stringify(pair.asset_infos) === JSON.stringify(assetInfos))) return false;
   return true;
 }
 
@@ -266,6 +283,7 @@ export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
 
 export const calculateBasePriceFromSwapOp = (op: SwapOperationData): number => {
   if (!op || !op.quotePoolAmount || !op.basePoolAmount) return 0;
+  // return calculatePriceByPoolWithCommissionrate(BigInt(op.basePoolAmount), BigInt(op.quotePoolAmount));
   return Number(op.quotePoolAmount) / Number(op.basePoolAmount);
 };
 
@@ -290,7 +308,7 @@ export function findPairIndexFromDenoms(offerDenom: string, askDenom: string): n
 }
 
 function getSymbolFromAsset(asset_infos: [AssetInfo, AssetInfo]): string {
-  const findedPair = pairs.find(
+  const findedPair = PAIRS.find(
     (p) =>
       p.asset_infos.some(
         (assetInfo) => parseAssetInfoOnlyDenom(assetInfo) === parseAssetInfoOnlyDenom(asset_infos[0])
@@ -372,7 +390,7 @@ async function getAllVolume24h(): Promise<PoolVolume[]> {
   const oneDayBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
 
   const poolVolumes = [];
-  for (const { asset_infos } of pairs) {
+  for (const { asset_infos } of PAIRS) {
     const volume = await getVolumePairByUsdt(asset_infos, oneDayBeforeNow, currentDate);
     poolVolumes.push({
       assetInfos: asset_infos,
@@ -445,7 +463,7 @@ async function getAllFees(): Promise<PoolFee[]> {
   const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf);
 
   const poolFees = [];
-  for (const { asset_infos } of pairs) {
+  for (const { asset_infos } of PAIRS) {
     const fee = await getFeePair(asset_infos, oneWeekBeforeNow, currentDate);
     poolFees.push({
       assetInfos: asset_infos,

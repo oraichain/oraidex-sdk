@@ -15,8 +15,7 @@ import {
   TRX_CONTRACT,
   USDC_CONTRACT,
   USDT_CONTRACT,
-  WETH_CONTRACT,
-  NEUTARO_ORAICHAIN_DENOM as NEUTARO_ADDRESS
+  WETH_CONTRACT
 } from "./constant";
 import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
@@ -26,86 +25,9 @@ import flatten from "lodash/flatten";
 export type PairMapping = {
   asset_infos: [AssetInfo, AssetInfo];
   symbols: [string, string];
+  lp_token: string;
   factoryV1?: boolean;
 };
-
-export const PAIRS: PairMapping[] = [
-  {
-    asset_infos: [{ token: { contract_addr: AIRI_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["AIRI", "ORAI"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ token: { contract_addr: ORAIX_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["ORAIX", "ORAI"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ token: { contract_addr: SCORAI_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["scORAI", "ORAI"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
-    symbols: ["ORAI", "ATOM"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDT_CONTRACT } }],
-    symbols: ["ORAI", "USDT"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ token: { contract_addr: KWT_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["KWT", "ORAI"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: OSMOSIS_ORAICHAIN_DENOM } }],
-    symbols: ["ORAI", "OSMO"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ token: { contract_addr: MILKY_CONTRACT } }, { token: { contract_addr: USDT_CONTRACT } }],
-    symbols: ["MILKY", "USDT"],
-    factoryV1: true
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDC_CONTRACT } }],
-    symbols: ["ORAI", "USDC"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: TRX_CONTRACT } }],
-    symbols: ["ORAI", "wTRX"]
-  },
-  {
-    asset_infos: [{ token: { contract_addr: SCATOM_CONTRACT } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
-    symbols: ["scATOM", "ATOM"]
-  },
-  {
-    asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
-    symbols: ["INJ", "ORAI"]
-  },
-  {
-    asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
-    symbols: ["USDC", "ORAIX"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
-    symbols: ["ORAI", "WETH"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: NEUTARO_ADDRESS } }, { token: { contract_addr: USDC_CONTRACT } }],
-    symbols: ["NTMPI", "USDC"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
-    symbols: ["ORAI", "BTC"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
-    symbols: ["NTMPI", "USDC"]
-  }
-];
 
 // FIXME: makes this dynamic in the future so that permissionless listing is simpler
 export enum pairLpTokens {
@@ -126,6 +48,97 @@ export enum pairLpTokens {
   ORAI_BTC = "orai1jd9lc2qt0ltjsatgnu38xsz8ngp89clp0dpeh8geyjj70yvkn4kqmrmh3m",
   NTMPI_USDC = "orai1rmvjmwd940ztafxue7630g75px8tqma4jskjuu57fkj0eqahqfgqqwjm00"
 }
+
+// the orders are important! Do not change the order of the asset_infos.
+export const PAIRS: PairMapping[] = [
+  {
+    asset_infos: [{ token: { contract_addr: AIRI_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["AIRI", "ORAI"],
+    factoryV1: true,
+    lp_token: pairLpTokens.AIRI_ORAI
+  },
+  {
+    asset_infos: [{ token: { contract_addr: ORAIX_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["ORAIX", "ORAI"],
+    factoryV1: true,
+    lp_token: pairLpTokens.ORAIX_ORAI
+  },
+  {
+    asset_infos: [{ token: { contract_addr: SCORAI_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["scORAI", "ORAI"],
+    lp_token: pairLpTokens.SCORAI_ORAI
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
+    symbols: ["ORAI", "ATOM"],
+    factoryV1: true,
+    lp_token: pairLpTokens.ATOM_ORAI
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDT_CONTRACT } }],
+    symbols: ["ORAI", "USDT"],
+    factoryV1: true,
+    lp_token: pairLpTokens.USDT_ORAI
+  },
+  {
+    asset_infos: [{ token: { contract_addr: KWT_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["KWT", "ORAI"],
+    factoryV1: true,
+    lp_token: pairLpTokens.KWT_ORAI
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { native_token: { denom: OSMOSIS_ORAICHAIN_DENOM } }],
+    symbols: ["ORAI", "OSMO"],
+    factoryV1: true,
+    lp_token: pairLpTokens.OSMO_ORAI
+  },
+  {
+    asset_infos: [{ token: { contract_addr: MILKY_CONTRACT } }, { token: { contract_addr: USDT_CONTRACT } }],
+    symbols: ["MILKY", "USDT"],
+    factoryV1: true,
+    lp_token: pairLpTokens.MILKY_USDT
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["ORAI", "USDC"],
+    lp_token: pairLpTokens.USDC_ORAI
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: TRX_CONTRACT } }],
+    symbols: ["ORAI", "wTRX"],
+    lp_token: pairLpTokens.TRX_ORAI
+  },
+  {
+    asset_infos: [{ token: { contract_addr: SCATOM_CONTRACT } }, { native_token: { denom: ATOM_ORAICHAIN_DENOM } }],
+    symbols: ["scATOM", "ATOM"],
+    lp_token: pairLpTokens.SCATOM_ATOM
+  },
+  {
+    asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["INJ", "ORAI"],
+    lp_token: pairLpTokens.INJ_ORAI
+  },
+  {
+    asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
+    symbols: ["USDC", "ORAIX"],
+    lp_token: pairLpTokens.USDC_ORAIX
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
+    symbols: ["ORAI", "WETH"],
+    lp_token: pairLpTokens.ORAI_WETH
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
+    symbols: ["ORAI", "BTC"],
+    lp_token: pairLpTokens.ORAI_BTC
+  },
+  {
+    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["NTMPI", "USDC"],
+    lp_token: pairLpTokens.NTMPI_USDC
+  }
+];
 
 // token identifier can be denom or contract addr
 export const isInPairList = (tokenIdentifier: string) => {
@@ -154,16 +167,3 @@ export const isFactoryV1 = (assetInfos: [AssetInfo, AssetInfo]): boolean => {
 export const getPoolTokens = (): TokenItemType[] => {
   return uniq(flatten(PAIRS.map((pair) => pair.asset_infos)).map((info) => assetInfoMap[parseAssetInfo(info)]));
 };
-
-export const PAIRS_CHART = PAIRS.map((pair) => {
-  const assets = pair.asset_infos.map((info) => {
-    if ("native_token" in info) return info.native_token.denom;
-    return info.token.contract_addr;
-  });
-
-  return {
-    ...pair,
-    symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
-    info: `${assets[0]}-${assets[1]}`
-  };
-});

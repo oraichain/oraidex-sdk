@@ -10,14 +10,13 @@ import {
   GetStakedByUserQuery,
   ORAI,
   OraiDexSync,
-  PairMapping,
+  
   SummaryInfo,
   TickerInfo,
   VolumeRange,
   findPairAddress,
   getOraiPrice,
   getPairLiquidity,
-  getPoolLiquidities,
   getPriceAssetByUsdt,
   getPriceByAsset,
   getVolumePairByUsdt,
@@ -25,7 +24,6 @@ import {
   oraiInfo,
   oraiUsdtPairOnlyDenom,
   oraixCw20Address,
-  pairs,
   pairsOnlyDenom,
   pairsWithDenom,
   parseAssetInfo,
@@ -57,7 +55,7 @@ import {
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
-import { ORAIX_CONTRACT, USDC_CONTRACT } from "@oraichain/oraidex-common";
+import { ORAIX_CONTRACT, USDC_CONTRACT, PAIRS , PairMapping} from "@oraichain/oraidex-common";
 
 // cache
 
@@ -92,7 +90,7 @@ app.get("/pairs", async (req, res) => {
   try {
     const pairInfos = await duckDb.queryPairInfos();
     res.status(200).send(
-      pairs.map((pair) => {
+      PAIRS.map((pair) => {
         const pairAddr = findPairAddress(pairInfos, pair.asset_infos);
         return {
           ticker_id: parseSymbolsToTickerId(pair.symbols),
@@ -115,7 +113,7 @@ app.get("/tickers", async (req, res) => {
     const then = getDate24hBeforeNow(new Date(latestTimestamp * 1000)).getTime() / 1000;
 
     // hardcode reverse order for ORAI/INJ, USDC/ORAIX
-    const arrangedPairs = pairs.map((pair) => {
+    const arrangedPairs = PAIRS.map((pair) => {
       const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
       if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
         return {
@@ -307,7 +305,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
 
   try {
     const [baseDenom, quoteDenom] = pairDenoms && pairDenoms.split("_");
-    const pair = pairs.find((pair) =>
+    const pair = PAIRS.find((pair) =>
       isEqual(
         pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
         [baseDenom, quoteDenom]
@@ -428,7 +426,7 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
     let stakingAssetDenom;
     if (req.query.pairDenoms) {
       const [baseDenom, quoteDenom] = req.query.pairDenoms && req.query.pairDenoms.split("_");
-      const pair = pairs.find((pair) =>
+      const pair = PAIRS.find((pair) =>
         isEqual(
           pair.asset_infos.map((asset_info) => parseAssetInfoOnlyDenom(asset_info)),
           [baseDenom, quoteDenom]
@@ -443,7 +441,7 @@ app.get("/v1/my-staking", async (req: Request<{}, {}, {}, GetStakedByUserQuery>,
       return accumulator;
     }, {});
 
-    const result = pairs.reduce(
+    const result = PAIRS.reduce(
       (result, item) => {
         const stakingAssetDenom = item.lp_token;
         result[stakingAssetDenom] = {
@@ -520,7 +518,7 @@ app.get("/v1/summary", async (req, res) => {
     const listLowHighPriceAll = await getListLowHighPriceOfPairs();
 
     // hardcode reverse order for ORAI/INJ, USDC/ORAIX
-    const arrangedPairs = pairs.map((pair) => {
+    const arrangedPairs = PAIRS.map((pair) => {
       const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
       if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === injAddress))
         return {

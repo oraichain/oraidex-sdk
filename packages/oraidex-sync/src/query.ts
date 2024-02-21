@@ -14,8 +14,8 @@ import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPai
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import { network, oraixCw20Address, tenAmountInDecimalSix, usdcCw20Address } from "./constants";
 import { generateSwapOperations, getCosmwasmClient, toDisplay } from "./helper";
-import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom } from "./parse";
+import { PAIRS } from "@oraichain/oraidex-common";
 
 async function queryPoolInfos(pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> {
   const calls: Call[] = pairAddrs.map((pair) => {
@@ -49,8 +49,8 @@ async function queryAllPairInfos(
   // TODO: change this to multicall
   const liquidityResults: PairInfo[] = (
     await Promise.allSettled([
-      ...pairs.map((pair) => factoryV1.pair({ assetInfos: pair.asset_infos })),
-      ...pairs.map((pair) => factoryV2.pair({ assetInfos: pair.asset_infos }))
+      ...PAIRS.map((pair) => factoryV1.pair({ assetInfos: pair.asset_infos })),
+      ...PAIRS.map((pair) => factoryV2.pair({ assetInfos: pair.asset_infos }))
     ])
   )
     .map((res) => {

@@ -20,7 +20,6 @@ import {
   isoToTimestampNumber,
   removeOpsDuplication
 } from "./helper";
-import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parseCw20DenomToAssetInfo } from "./parse";
 import {
   accumulatePoolAmount,
@@ -46,6 +45,7 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { PAIRS } from "@oraichain/oraidex-common";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -315,7 +315,7 @@ async function getFeeLiquidity(
   txheight: number
 ): Promise<bigint> {
   // we only have one pair order. If the order is reversed then we also reverse the order
-  let findedPair = pairs.find((pair) =>
+  let findedPair = PAIRS.find((pair) =>
     isEqual(
       pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
       [quoteDenom, baseDenom]
@@ -325,7 +325,7 @@ async function getFeeLiquidity(
     [baseDenom, quoteDenom] = [quoteDenom, baseDenom];
   } else {
     // otherwise find in reverse order
-    findedPair = pairs.find((pair) =>
+    findedPair = PAIRS.find((pair) =>
       isEqual(
         pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
         [baseDenom, quoteDenom]
@@ -434,7 +434,7 @@ async function extractMsgWithdrawLiquidity(
     let quoteAsset = assets[3];
     let quoteAssetAmount = BigInt(assets[2]);
     // we only have one pair order. If the order is reversed then we also reverse the order
-    const findedPair = pairs.find((pair) =>
+    const findedPair = PAIRS.find((pair) =>
       isEqual(
         pair.asset_infos.map((info) => parseAssetInfoOnlyDenom(info)),
         [quoteAsset, baseAsset]
@@ -584,7 +584,7 @@ export const processEventApr = (txs: Tx[]) => {
   };
   for (const tx of txs) {
     // guard code. Should refetch all token info if match event update_rewards_per_sec or length of staking asset equal to pairs length.
-    if (assets.isTriggerRewardPerSec || assets.infoTokenAssetPools.size === pairs.length) break;
+    if (assets.isTriggerRewardPerSec || assets.infoTokenAssetPools.size === PAIRS.length) break;
 
     const msgExecuteContracts = parseTxToMsgExecuteContractMsgs(tx);
     const msgs = parseExecuteContractToOraidexMsgs(msgExecuteContracts);

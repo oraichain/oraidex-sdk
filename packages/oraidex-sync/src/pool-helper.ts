@@ -35,10 +35,10 @@ import {
   PoolFee,
   getAvgPairLiquidity,
   getAllFees,
-  toDisplay
+  toDisplay,
+  calculatePriceByPoolWithCommissionrate
 } from "./helper";
 import { DuckDb } from "./db";
-import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 import {
   fetchAllRewardPerSecInfos,
@@ -51,13 +51,13 @@ import { processEventApr } from "./tx-parsing";
 import {
   LpOpsData,
   PairInfoData,
-  PairMapping,
   PoolAmountHistory,
   PoolApr,
   ProvideLiquidityOperationData,
   SwapOperationData,
   WithdrawLiquidityOperationData
 } from "./types";
+import { PAIRS, PairMapping } from "@oraichain/oraidex-common";
 // use this type to determine the ratio of price of base to the quote or vice versa
 export type RatioDirection = "base_in_quote" | "quote_in_base";
 
@@ -89,7 +89,7 @@ export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): 
 };
 
 export const getPairByAssetInfos = ([baseAssetInfo, quoteAssetInfo]: [AssetInfo, AssetInfo]): PairMapping => {
-  return pairs.find((pair) => {
+  return PAIRS.find((pair) => {
     const [baseAsset, quoteAsset] = pair.asset_infos;
     const denoms = [parseAssetInfoOnlyDenom(baseAsset), parseAssetInfoOnlyDenom(quoteAsset)];
     return (
@@ -132,7 +132,7 @@ export const getPriceByAsset = async (
   if (!poolAmount || !poolAmount.askPoolAmount || !poolAmount.offerPoolAmount) return 0;
   // offer: orai, ask: usdt -> price offer in ask = calculatePriceByPool([ask, offer])
   // offer: orai, ask: atom -> price ask in offer  = calculatePriceByPool([offer, ask])
-  const basePrice = calculatePriceByPool(
+  const basePrice = calculatePriceByPoolWithCommissionrate(
     BigInt(poolAmount.askPoolAmount),
     BigInt(poolAmount.offerPoolAmount),
     +poolInfo.commissionRate
@@ -173,7 +173,7 @@ export const getPriceAssetByUsdt = async (asset: AssetInfo): Promise<number> => 
     priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection);
   } else {
     // case 5.1
-    const pairWithAsset = pairs.find((pair) =>
+    const pairWithAsset = PAIRS.find((pair) =>
       pair.asset_infos.some((info) => parseAssetInfoOnlyDenom(info) === parseAssetInfoOnlyDenom(asset))
     );
     const otherAssetIndex = pairWithAsset.asset_infos.findIndex(
@@ -257,7 +257,7 @@ export const calculateAprResult = async (
 ): Promise<number[]> => {
   const aprResult = [];
   let ind = 0;
-  for (const _pair of pairs) {
+  for (const _pair of PAIRS) {
     const liquidityAmount = allLiquidities[ind] * Math.pow(10, -6);
     const totalBondAmount = allBondAmounts[ind];
     const tokenSupply = allTotalSupplies[ind];
@@ -284,7 +284,7 @@ export const calculateBoostApr = (
 ): Record<string, number> => {
   const aprResult = {};
 
-  for (const _pair of pairs) {
+  for (const _pair of PAIRS) {
     const lpTokenAddress = _pair.lp_token;
     const liquidityAmount = avgLiquidities[lpTokenAddress];
 
@@ -502,13 +502,13 @@ export const getListAssetInfoShouldRefetchApr = async (txs: Tx[], lpOps: Provide
   const { infoTokenAssetPools, isTriggerRewardPerSec } = processEventApr(txs);
   // bond/unbond trigger refetch info token asset pools
   const assetInfosTriggerTotalBond = Array.from(infoTokenAssetPools)
-    .map((stakingDenom) => pairs.find((pair) => pair.lp_token === stakingDenom)?.asset_infos)
+    .map((stakingDenom) => PAIRS.find((pair) => pair.lp_token === stakingDenom)?.asset_infos)
     .filter(Boolean);
 
   if (isTriggerRewardPerSec) {
     // update_reward_per_sec trigger refetch all info, so we clear listAssetInfosPoolShouldRefetch then add all assetInfo from pairs.
     listAssetInfosPoolShouldRefetch.clear();
-    pairs.map((pair) => pair.asset_infos).forEach((assetInfos) => listAssetInfosPoolShouldRefetch.add(assetInfos));
+    PAIRS.map((pair) => pair.asset_infos).forEach((assetInfos) => listAssetInfosPoolShouldRefetch.add(assetInfos));
   } else {
     assetInfosTriggerTotalBond.forEach((assetInfo) => listAssetInfosPoolShouldRefetch.add(assetInfo));
   }
