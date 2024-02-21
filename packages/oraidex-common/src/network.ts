@@ -599,6 +599,16 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "tether",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+      },
+      {
+        coinDenom: "OCH",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + OCH_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 18,
+        coinGeckoId: "och",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl:
+          "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
       }
     ],
     txExplorer: {
