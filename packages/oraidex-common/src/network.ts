@@ -878,7 +878,7 @@ export const chainInfos: CustomChainInfo[] = [
         coinDenom: "OCH",
         coinMinimalDenom: "erc20_och",
         contractAddress: OCH_ETH_CONTRACT,
-        coinDecimals: 6,
+        coinDecimals: 18,
         bridgeTo: ["Oraichain"],
         coinGeckoId: "och",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
