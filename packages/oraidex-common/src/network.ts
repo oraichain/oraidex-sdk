@@ -47,7 +47,9 @@ import {
   WRAP_TRON_TRX_CONTRACT,
   USDT_ETH_CONTRACT,
   BTC_CONTRACT,
-  NEUTARO_ORAICHAIN_DENOM
+  NEUTARO_ORAICHAIN_DENOM,
+  OCH_ETH_CONTRACT,
+  OCH_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -102,7 +104,8 @@ export type CoinGeckoId =
   | "scatom"
   | "injective-protocol"
   | "bitcoin"
-  | "neutaro";
+  | "neutaro"
+  | "och";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -469,6 +472,17 @@ export const oraichainNetwork: CustomChainInfo = {
       // bridgeTo: ["bitcoinTestnet"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
+    },
+    {
+      coinDenom: "OCH",
+      coinGeckoId: "och",
+      coinMinimalDenom: "och",
+      type: "cw20",
+      contractAddress: OCH_CONTRACT,
+      bridgeTo: ["0x01"],
+      coinDecimals: 6,
+      coinImageUrl:
+        "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
     }
   ]
 };
@@ -859,6 +873,17 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "tether",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+      },
+      {
+        coinDenom: "OCH",
+        coinMinimalDenom: "erc20_och",
+        contractAddress: OCH_ETH_CONTRACT,
+        coinDecimals: 6,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "och",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl:
+          "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
       }
     ],
     txExplorer: {
