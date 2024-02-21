@@ -283,7 +283,6 @@ export function buildOhlcv(ops: SwapOperationData[]): Ohlcv[] {
 
 export const calculateBasePriceFromSwapOp = (op: SwapOperationData): number => {
   if (!op || !op.quotePoolAmount || !op.basePoolAmount) return 0;
-  // return calculatePriceByPoolWithCommissionrate(BigInt(op.basePoolAmount), BigInt(op.quotePoolAmount));
   return Number(op.quotePoolAmount) / Number(op.basePoolAmount);
 };
 

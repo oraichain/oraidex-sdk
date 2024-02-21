@@ -1,4 +1,3 @@
-import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { Tx } from "@oraichain/cosmos-rpc-sync";
 import {
   Asset,
@@ -20,11 +19,9 @@ import {
   atomic,
   network,
   oraiInfo,
-  truncDecimals,
   usdtInfo
 } from "./constants";
 import {
-  calculatePriceByPool,
   getCosmwasmClient,
   isAssetInfoPairReverse,
   validateNumber,
@@ -80,10 +77,6 @@ export const isPoolHasFee = (assetInfos: [AssetInfo, AssetInfo]): boolean => {
 };
 
 export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> => {
-  // adjust the query height to get data from the past
-  // const cosmwasmClient = await getCosmwasmClient();
-  // cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-  // const multicall = new MulticallQueryClient(cosmwasmClient, network.multicall);
   const res = await queryPoolInfos(pairAddrs, wantedHeight);
   return res;
 };
