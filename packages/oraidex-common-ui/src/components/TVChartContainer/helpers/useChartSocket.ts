@@ -2,7 +2,7 @@ import { WEBSOCKET_RECONNECT_ATTEMPTS, WEBSOCKET_RECONNECT_INTERVAL } from "@ora
 import { handleTradeEvent } from "./streaming";
 import { useEffect, useState } from "react";
 import { WS_URL } from "./requests";
-import * as Sentry from "@sentry/react";
+// import * as Sentry from "@sentry/react";
 import useWebSocket from "react-use-websocket";
 import { EVENT_CHART_SOCKET } from "./constants";
 
@@ -25,8 +25,8 @@ export const useChartSocket = (currentPair, socketUrl) => {
     },
     shouldReconnect: () => true,
     onError: (error) => {
-      console.error("useChartSocket: Have something went wrong with connection.");
-      Sentry.captureException(`useChartSocket error with msg - ${error}`);
+      console.error("useChartSocket: Have something went wrong with connection.", JSON.stringify(error));
+      // Sentry.captureException(`useChartSocket error with msg - ${error}`);
     },
     reconnectAttempts: WEBSOCKET_RECONNECT_ATTEMPTS,
     reconnectInterval: WEBSOCKET_RECONNECT_INTERVAL
