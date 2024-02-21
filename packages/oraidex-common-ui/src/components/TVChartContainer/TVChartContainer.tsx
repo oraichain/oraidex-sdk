@@ -68,11 +68,11 @@ export default function TVChartContainer({
   const [period, setPeriod] = useLocalStorageSerializeKey([currentPair.symbol, "Chart-period"], DEFAULT_PERIOD);
   const symbolRef = useRef(currentPair.symbol);
 
-  const { currentPair: pairUpdate, data: socketData } = useChartSocket(currentPair, wsUrl);
+  // const { currentPair: pairUpdate, data: socketData } = useChartSocket(currentPair, wsUrl);
 
   useEffect(() => {
     if (chartReady && tvWidgetRef.current && currentPair.symbol !== tvWidgetRef.current?.activeChart?.().symbol()) {
-      tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => { });
+      tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => {});
     }
   }, [currentPair, chartReady, period]);
 
