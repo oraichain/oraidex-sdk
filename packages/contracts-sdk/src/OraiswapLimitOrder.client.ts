@@ -7,7 +7,7 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Uint128, Binary, Addr, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, CanonicalAddr, MigrateMsg, ContractInfo, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, BaseAmountResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
+import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, BaseAmountResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
 export interface OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
   contractInfo: () => Promise<ContractInfoResponse>;

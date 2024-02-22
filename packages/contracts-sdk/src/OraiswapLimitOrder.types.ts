@@ -132,22 +132,12 @@ export type OrderFilter = ("tick" | "none") | {
 } | {
   price: Decimal;
 };
-export type CanonicalAddr = Binary;
-export interface MigrateMsg {
-  new_config: ContractInfo;
-}
-export interface ContractInfo {
-  admin: CanonicalAddr;
-  commission_rate: string;
-  name: string;
-  operator?: CanonicalAddr | null;
-  reward_address: CanonicalAddr;
-  version: string;
-}
+export interface MigrateMsg {}
 export interface ContractInfoResponse {
   admin: Addr;
   commission_rate: string;
   name: string;
+  operator?: Addr | null;
   reward_address: Addr;
   version: string;
 }
