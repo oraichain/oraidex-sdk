@@ -1,4 +1,4 @@
-import { Tendermint34Client } from "@cosmjs/tendermint-rpc";
+// import { Tendermint34Client } from "@cosmjs/tendermint-rpc";
 
 //@ts-ignore
 BigInt.prototype.toJSON = function () {

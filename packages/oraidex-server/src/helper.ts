@@ -30,6 +30,7 @@ import {
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
+import { pairLpTokens } from "@oraichain/oraidex-common";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
@@ -80,7 +81,7 @@ export const getOrderbookTicker = async () => {
   try {
     // get ticker from orderbook
     const ORDERBOOK_TICKER_API_ENDPOINT = `${
-      process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
+      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
     }/v2/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
@@ -98,7 +99,7 @@ export const getOrderbookSummary = async () => {
   try {
     // get ticker from orderbook
     const ORDERBOOK_TICKER_API_ENDPOINT = `${
-      process.env.ORDERBOOK_API_ENDPOINT || "https://server.oraidex.io"
+      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
     }/v1/cmc/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
@@ -214,7 +215,8 @@ export const getAllPoolsInfo = async () => {
       } as PairInfoDataResponse;
     });
 
-    return allPoolsInfo.filter(Boolean);
+    // TODO: ignore pool ORAI/BTC and pool undefined
+    return allPoolsInfo.filter((pools) => pools && pools.liquidityAddr !== pairLpTokens.ORAI_BTC);
   } catch (error) {
     console.log({ errorGetAllPoolsInfo: error });
   }

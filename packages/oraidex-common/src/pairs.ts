@@ -6,6 +6,7 @@ import {
   INJECTIVE_CONTRACT,
   KWT_CONTRACT,
   MILKY_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM,
   ORAI,
   ORAIX_CONTRACT,
   OSMOSIS_ORAICHAIN_DENOM,
@@ -14,7 +15,9 @@ import {
   TRX_CONTRACT,
   USDC_CONTRACT,
   USDT_CONTRACT,
-  WETH_CONTRACT
+  WETH_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM as NEUTARO_ADDRESS,
+  OCH_CONTRACT
 } from "./constant";
 import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
@@ -92,8 +95,20 @@ export const PAIRS: PairMapping[] = [
     symbols: ["ORAI", "WETH"]
   },
   {
+    asset_infos: [{ native_token: { denom: NEUTARO_ADDRESS } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["NTMPI", "USDC"]
+  },
+  {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
     symbols: ["ORAI", "BTC"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["NTMPI", "USDC"]
+  },
+  {
+    asset_infos: [{ token: { contract_addr: OCH_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["OCH", "ORAI"]
   }
 ];
 
@@ -114,7 +129,8 @@ export enum pairLpTokens {
   USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3",
   ORAI_WETH = "orai1rvr9wk6mdlfysvgp72ltthqvkkd5677mp892efq86yyr9alt0tms2a6lcs",
   ORAI_BTC = "orai1jd9lc2qt0ltjsatgnu38xsz8ngp89clp0dpeh8geyjj70yvkn4kqmrmh3m",
-  NTMPI_USDC = "orai1rmvjmwd940ztafxue7630g75px8tqma4jskjuu57fkj0eqahqfgqqwjm00"
+  NTMPI_USDC = "orai1rmvjmwd940ztafxue7630g75px8tqma4jskjuu57fkj0eqahqfgqqwjm00",
+  OCH_ORAI = "orai1xs5aj90d5m8kwfp9t6ghkcpk8d7sy5jsxdsyejjdxudhhfm7wegsdg929d"
 }
 
 // token identifier can be denom or contract addr
