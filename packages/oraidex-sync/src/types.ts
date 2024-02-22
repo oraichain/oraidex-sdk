@@ -185,6 +185,7 @@ export type TickerInfo = {
   target: string;
   pool_id: string;
   liquidity_in_usd: string;
+  pair_url: string;
 };
 
 export type SummaryInfo = {
