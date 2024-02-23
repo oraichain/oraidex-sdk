@@ -57,7 +57,7 @@ import {
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
-import { ORAIX_CONTRACT, USDC_CONTRACT } from "@oraichain/oraidex-common";
+import { ORAIX_CONTRACT, USDC_CONTRACT, oraichainTokens } from "@oraichain/oraidex-common";
 
 // cache
 
@@ -175,6 +175,12 @@ app.get("/tickers", async (req, res) => {
       const targetInfo = parseAssetInfoOnlyDenom(pair.asset_infos[targetIndex]);
       const volume = await duckDb.queryAllVolumeRange(baseInfo, targetInfo, then, latestTimestamp);
       const liquidityInUsd = await getPairLiquidity(pairInfo);
+      const BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL = "https://oraidex.io/universalswap";
+
+      const [from, to] = [
+        oraichainTokens.find((token) => token.contractAddress === baseInfo || token.denom === baseInfo),
+        oraichainTokens.find((token) => token.contractAddress === targetInfo || token.denom === targetInfo)
+      ];
 
       const tickerInfo: TickerInfo = {
         ticker_id: tickerId,
@@ -186,7 +192,10 @@ app.get("/tickers", async (req, res) => {
         pool_id: pairAddr ?? "",
         base: symbols[baseIndex],
         target: symbols[targetIndex],
-        liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString()
+        liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString(),
+        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${
+          to ? to.denom : "usdt"
+        }`
       };
       data.push(tickerInfo);
     }
