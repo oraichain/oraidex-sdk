@@ -1,9 +1,10 @@
-import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
+import {Uint128, Binary, Addr, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
 export interface InstantiateMsg {
-  admin?: Addr | null;
+  admin?: string | null;
   commission_rate?: string | null;
   name?: string | null;
-  reward_address?: Addr | null;
+  operator?: string | null;
+  reward_address: string;
   version?: string | null;
 }
 export type ExecuteMsg = {
@@ -16,6 +17,10 @@ export type ExecuteMsg = {
   update_config: {
     commission_rate?: string | null;
     reward_address?: Addr | null;
+  };
+} | {
+  update_operator: {
+    operator?: string | null;
   };
 } | {
   create_order_book_pair: {
@@ -132,6 +137,7 @@ export interface ContractInfoResponse {
   admin: Addr;
   commission_rate: string;
   name: string;
+  operator?: Addr | null;
   reward_address: Addr;
   version: string;
 }

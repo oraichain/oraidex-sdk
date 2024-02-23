@@ -73,9 +73,11 @@ export interface OraiswapRouterInterface extends OraiswapRouterReadOnlyInterface
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   executeSwapOperation: ({
     operation,
+    sender,
     to
   }: {
     operation: SwapOperation;
+    sender: Addr;
     to?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   assertMinimumReceive: ({
@@ -142,14 +144,17 @@ export class OraiswapRouterClient extends OraiswapRouterQueryClient implements O
   };
   executeSwapOperation = async ({
     operation,
+    sender,
     to
   }: {
     operation: SwapOperation;
+    sender: Addr;
     to?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       execute_swap_operation: {
         operation,
+        sender,
         to
       }
     }, _fee, _memo, _funds);

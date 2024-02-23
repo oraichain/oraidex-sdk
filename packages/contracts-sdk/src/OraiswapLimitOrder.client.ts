@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
+import {Uint128, Binary, Addr, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
 import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, BaseAmountResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
 export interface OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
@@ -302,6 +302,11 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     commissionRate?: string;
     rewardAddress?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateOperator: ({
+    operator
+  }: {
+    operator?: string;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   createOrderBookPair: ({
     baseCoinInfo,
     minQuoteCoinAmount,
@@ -380,6 +385,7 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     this.receive = this.receive.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
+    this.updateOperator = this.updateOperator.bind(this);
     this.createOrderBookPair = this.createOrderBookPair.bind(this);
     this.updateOrderbookPair = this.updateOrderbookPair.bind(this);
     this.submitOrder = this.submitOrder.bind(this);
@@ -429,6 +435,17 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       update_config: {
         commission_rate: commissionRate,
         reward_address: rewardAddress
+      }
+    }, _fee, _memo, _funds);
+  };
+  updateOperator = async ({
+    operator
+  }: {
+    operator?: string;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_operator: {
+        operator
       }
     }, _fee, _memo, _funds);
   };
