@@ -133,8 +133,19 @@ export default function TVChartContainer({
     const script = document.createElement("script");
     script.async = true;
     script.src = libraryUrl;
-    script.onload = () => {
+    script.onload = async () => {
       tvWidgetRef.current = new window.TradingView.widget(widgetOptions as any as ChartingLibraryWidgetOptions);
+
+      const checkChartReady = async () => {
+        try {
+          if (tvWidgetRef.current.activeChart()) return;
+        } catch {
+          await new Promise((r) => setTimeout(r, 1000));
+          await checkChartReady();
+        }
+      };
+      await checkChartReady();
+
       tvWidgetRef.current.onChartReady(function () {
         setChartReady(true);
         tvWidgetRef.current!.applyOverrides({
