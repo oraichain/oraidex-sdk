@@ -3364,9 +3364,9 @@
   integrity sha512-INpHnhL970OCkR7I71Kssb2aLl2l4Y/x8W6FlyRO0KmC8GHjxc/hlNB1t44BiI7lkOYmcWMRQoC8dwParsp1RQ==
 
 "@oraichain/oraidex-common@latest":
-  version "1.0.67"
-  resolved "https://registry.yarnpkg.com/@oraichain/oraidex-common/-/oraidex-common-1.0.67.tgz#b16221be2b70ecb118e76462306dd643b16fdc71"
-  integrity sha512-4Jj4gPZJeRSm9z3PAk8+Q8lUZ8miFPAodqooct5MaqgtJloblpJkDr0/BGZYg2783nUcd7U7Ku95vsSMUhlewg==
+  version "1.0.70"
+  resolved "https://registry.yarnpkg.com/@oraichain/oraidex-common/-/oraidex-common-1.0.70.tgz#ec68f38b43b25affcec684183bc6514e86520aa1"
+  integrity sha512-DZY5M/4JGwhEZJULHE+rfoET7dAw8FpnS/M3404xZ/GV1q9t6935M0qSzNiy2yk4PHJaWq+DxN8hPAYiiSTe9Q==
   dependencies:
     "@cosmjs/amino" "^0.31.0"
     "@cosmjs/cosmwasm-stargate" "^0.31.0"

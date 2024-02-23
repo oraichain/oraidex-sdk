@@ -20,4 +20,6 @@ export * as OraiswapStakingTypes from './OraiswapStaking.types';
 export * from './OraiswapStaking.client';
 export * as OraiswapTokenTypes from './OraiswapToken.types';
 export * from './OraiswapToken.client';
+export * as Cw20StakingTypes from './Cw20Staking.types';
+export * from './Cw20Staking.client';
 export * from "./types";
