@@ -135,7 +135,8 @@ describe("test-pool-helper", () => {
         height: 1,
         timestamp: 1,
         pairAddr,
-        uniqueKey: "1"
+        uniqueKey: "1",
+        totalShare: "1"
       };
       jest.spyOn(duckDb, "getPoolByAssetInfos").mockResolvedValue(pairInfoData);
       jest.spyOn(duckDb, "getLatestLpPoolAmount").mockResolvedValue(poolAmountHistory);
@@ -315,6 +316,37 @@ describe("test-pool-helper", () => {
     expect(result).toStrictEqual(Array(pairs.length).fill(315360000));
   });
 
+  it("test-calculateBoostAprResult-should-return-correctly-APR", async () => {
+    // setup
+    jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(1);
+
+    const avgLiquidities = {};
+    pairs.map((p) => {
+      avgLiquidities[p.lp_token] = 1e6;
+      return p;
+    });
+
+    const fee7Days = pairs.map((p) => {
+      return {
+        assetInfos: p.asset_infos,
+        fee: 1000n
+      };
+    });
+
+    const expectedResult = {};
+    pairs.map((p) => {
+      expectedResult[p.lp_token] = 0.000005214285714285714;
+      return p;
+    });
+
+    // act
+    const result = poolHelper.calculateBoostApr(avgLiquidities, fee7Days);
+
+    // assertion
+    expect(Object.keys(result).length).toEqual(pairs.length);
+    expect(result).toStrictEqual(expectedResult);
+  });
+
   it.each([
     [true, pairs.length, pairs.length],
     [false, 4, 0]
@@ -348,9 +380,9 @@ describe("test-pool-helper", () => {
       const ops: ProvideLiquidityOperationData[] = [
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: ORAI,
-          quoteTokenAmount: 1,
+          quoteTokenAmount: 1n,
           quoteTokenDenom: usdtCw20Address,
           opType: "provide",
           uniqueKey: "1",
@@ -362,9 +394,9 @@ describe("test-pool-helper", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: ORAI,
-          quoteTokenAmount: 1,
+          quoteTokenAmount: 1n,
           quoteTokenDenom: usdtCw20Address,
           opType: "withdraw",
           uniqueKey: "2",
@@ -376,9 +408,9 @@ describe("test-pool-helper", () => {
         },
         {
           basePrice: 1,
-          baseTokenAmount: 1,
+          baseTokenAmount: 1n,
           baseTokenDenom: ORAI,
-          quoteTokenAmount: 1,
+          quoteTokenAmount: 1n,
           quoteTokenDenom: atomIbcDenom,
           opType: "withdraw",
           uniqueKey: "1",

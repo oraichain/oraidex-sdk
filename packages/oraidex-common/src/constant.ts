@@ -60,6 +60,7 @@ export const ORAI_ETH_CONTRACT = "0x4c11249814f11b9346808179Cf06e71ac328c1b5";
 export const USDC_ETH_CONTRACT = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 export const MILKY_ERC_CONTRACT = "0xd567B3d7B8FE3C79a1AD8dA978812cfC4Fa05e75";
 export const WRAP_ETH_CONTRACT = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+export const OCH_ETH_CONTRACT = "0x19373EcBB4B8cC2253D70F2a246fa299303227Ba";
 export const KWT_DENOM = ORAI_BRIDGE_EVM_DENOM_PREFIX + KWT_BSC_CONTRACT;
 export const MILKY_DENOM = ORAI_BRIDGE_EVM_DENOM_PREFIX + MILKY_BSC_CONTRACT;
 export const USDT_ETH_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
@@ -75,9 +76,11 @@ export const KWT_ORAICHAIN_CHANNELS = "channel-0 channel-21";
 export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
 export const NOBLE_ORAICHAIN_CHANNELS = "channel-34 channel-147";
 export const NOBLE_ORAICHAIN_CHANNELS_TEST = "channel-35 channel-148";
+export const NEUTARO_ORAICHAIN_CHANNELS = "channel-1 channel-189";
 
 // config for ibc denom
 export const ATOM_ORAICHAIN_DENOM = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
+export const NEUTARO_ORAICHAIN_DENOM = "ibc/576B1D63E401B6A9A071C78A1D1316D016EC9333D2FEB14AD503FAC4B8731CD1";
 export const OSMOSIS_ORAICHAIN_DENOM = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";
 export const AIRIBSC_ORAICHAIN_DENOM = "ibc/C458B4CC4F5581388B9ACB40774FDFBCEDC77A7F7CDFB112B469794AF86C4A69";
 export const USDTBSC_ORAICHAIN_DENOM = "ibc/E8B5509BE79025DD7A572430204271D3061A535CC66A3A28FDEC4573E473F32F";
@@ -102,6 +105,7 @@ export const XOCH_CONTRACT = "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq
 export const INJECTIVE_CONTRACT = "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49";
 export const WETH_CONTRACT = "orai1dqa52a7hxxuv8ghe7q5v0s36ra0cthea960q2cukznleqhk0wpnshfegez";
 export const BTC_CONTRACT = "orai10g6frpysmdgw5tdqke47als6f97aqmr8s3cljsvjce4n5enjftcqtamzsd";
+export const OCH_CONTRACT = "orai1hn8w33cqvysun2aujk5sv33tku4pgcxhhnsxmvnkfvdxagcx0p8qa4l98q";
 
 // config for oraichain contract
 export const FACTORY_CONTRACT = "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8";
@@ -170,6 +174,18 @@ export const ORAIX_INFO = {
 export const ORAIXOCH_INFO = {
   token: {
     contract_addr: XOCH_CONTRACT
+  }
+};
+
+export const USDC_INFO = {
+  token: {
+    contract_addr: USDC_CONTRACT
+  }
+};
+
+export const NEUTARO_INFO = {
+  native_token: {
+    denom: NEUTARO_ORAICHAIN_DENOM
   }
 };
 

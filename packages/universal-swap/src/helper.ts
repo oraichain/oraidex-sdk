@@ -34,7 +34,9 @@ import {
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
   isInPairList,
-  BigDecimal
+  BigDecimal,
+  NEUTARO_INFO,
+  USDC_INFO
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
 import {
@@ -301,6 +303,40 @@ export const unmarshalOraiBridgeRoute = (destination: string) => {
   return routeData;
 };
 
+export const generateSwapRoute = (offerAsset: AssetInfo, askAsset: AssetInfo, swapRoute: AssetInfo[]) => {
+  const swaps = [];
+  if (swapRoute.length === 0) {
+    swaps.push({
+      orai_swap: {
+        offer_asset_info: offerAsset,
+        ask_asset_info: askAsset
+      }
+    });
+  } else {
+    swaps.push({
+      orai_swap: {
+        offer_asset_info: offerAsset,
+        ask_asset_info: swapRoute[0]
+      }
+    });
+    for (let i = 0; i < swapRoute.length - 1; i++) {
+      swaps.push({
+        orai_swap: {
+          offer_asset_info: swapRoute[i],
+          ask_asset_info: swapRoute[i + 1]
+        }
+      });
+    }
+    swaps.push({
+      orai_swap: {
+        offer_asset_info: swapRoute[swapRoute.length - 1],
+        ask_asset_info: askAsset
+      }
+    });
+  }
+  return swaps;
+};
+
 // generate messages
 export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetInfo): SwapOperation[] => {
   const pairExist = PAIRS.some((pair) => {
@@ -311,29 +347,21 @@ export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetIn
     );
   });
 
-  return pairExist
-    ? [
-        {
-          orai_swap: {
-            offer_asset_info: offerInfo,
-            ask_asset_info: askInfo
-          }
-        }
-      ]
-    : [
-        {
-          orai_swap: {
-            offer_asset_info: offerInfo,
-            ask_asset_info: ORAI_INFO
-          }
-        },
-        {
-          orai_swap: {
-            offer_asset_info: ORAI_INFO,
-            ask_asset_info: askInfo
-          }
-        }
-      ];
+  if (pairExist) return generateSwapRoute(offerInfo, askInfo, []);
+  // TODO: hardcode NTMPI -> USDC -> ORAI -> X
+  if (isEqual(offerInfo, NEUTARO_INFO)) {
+    const swapRoute = isEqual(askInfo, ORAI_INFO) ? [USDC_INFO] : [USDC_INFO, ORAI_INFO];
+    return generateSwapRoute(offerInfo, askInfo, swapRoute);
+  }
+
+  // TODO: X -> ORAI -> USDC -> NTMPI
+  if (isEqual(askInfo, NEUTARO_INFO)) {
+    const swapRoute = isEqual(offerInfo, ORAI_INFO) ? [USDC_INFO] : [ORAI_INFO, USDC_INFO];
+    return generateSwapRoute(offerInfo, askInfo, swapRoute);
+  }
+
+  // Default case: ORAI_INFO
+  return generateSwapRoute(offerInfo, askInfo, [ORAI_INFO]);
 };
 
 // simulate swap functions
@@ -372,7 +400,7 @@ export const simulateSwap = async (query: {
     if (!isSimulatingRatio) return data;
     return { amount: data.amount.substring(0, data.amount.length - 1) };
   } catch (error) {
-    throw new Error(`Error when trying to simulate swap using router v2: ${error}`);
+    throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
   }
 };
 

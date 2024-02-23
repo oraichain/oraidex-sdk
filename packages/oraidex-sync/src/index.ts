@@ -1,11 +1,13 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
+import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getAllFees, getSymbolFromAsset } from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import {
+  calculateBoostApr,
   fetchAprResult,
   getAllPairInfos,
+  getAvgPoolLiquidities,
   getPairByAssetInfos,
   getPoolInfos,
   getPoolLiquidities,
@@ -135,19 +137,25 @@ class OraiDexSync {
     try {
       const pools = await this.duckDb.getPools();
       const allLiquidities = await getPoolLiquidities(pools);
+      const avgLiquidities = await getAvgPoolLiquidities(pools);
+      const allFee7Days = await getAllFees();
       const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
         pools,
         allLiquidities
       );
 
+      const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
+      // console.log("boostAor", boostAPR);
+
       const poolAprs = allAprs.map((apr, index) => {
+        const newApr = apr + (boostAPR[pools[index]?.liquidityAddr] || 0);
         return {
           uniqueKey: concatAprHistoryToUniqueKey({
             timestamp: Date.now(),
             supply: allTotalSupplies[index],
             bond: allBondAmounts[index],
             reward: JSON.stringify(allRewardPerSec[index]),
-            apr,
+            apr: newApr,
             pairAddr: pools[index].pairAddr
           }),
           pairAddr: pools[index].pairAddr,
@@ -155,8 +163,9 @@ class OraiDexSync {
           totalSupply: allTotalSupplies[index],
           totalBondAmount: allBondAmounts[index],
           rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-          apr,
-          timestamp: Date.now()
+          apr: newApr,
+          timestamp: Date.now(),
+          aprBoost: boostAPR[pools[index]?.liquidityAddr] || 0
         } as PoolApr;
       });
       await this.duckDb.insertPoolAprs(poolAprs);
@@ -177,6 +186,7 @@ class OraiDexSync {
       await this.duckDb.createPoolAprTable();
       await this.duckDb.createEarningHistoryTable();
       await this.duckDb.addTimestampColToPoolAprTable();
+      await this.duckDb.addAprBoostColToPoolAprTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic

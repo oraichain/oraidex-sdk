@@ -57,6 +57,7 @@ import {
 } from "./helper";
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
+import { ORAIX_CONTRACT, USDC_CONTRACT } from "@oraichain/oraidex-common";
 
 // cache
 
@@ -67,7 +68,7 @@ registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 // wait 30s to setup all init info before
 setTimeout(() => {
   updateInterval();
-}, 30000);
+}, 10000);
 
 const app = express();
 app.use(cors());
@@ -261,6 +262,29 @@ app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) =
       return res.status(400).send("Not enough query params");
 
     const candles = await duckDb.getOhlcvCandles(req.query);
+
+    // reverse data for pool oraix/usdc to display price asset in stable coin
+    const pairDenoms = req.query.pair.split("-");
+    if (pairDenoms[0] === USDC_CONTRACT && pairDenoms[1] === ORAIX_CONTRACT) {
+      const pairInfo = pairsWithDenom.find(
+        (pair) => pair.asset_denoms[0] === pairDenoms[0] && pair.asset_denoms[1] === pairDenoms[1]
+      );
+      if (!pairInfo) return res.status(400).send("Not found pair");
+
+      const currentBaseAssetPrice = await getPriceByAsset(pairInfo.asset_infos, "base_in_quote");
+      return res.status(200).send(
+        candles.map((candle) => {
+          return {
+            ...candle,
+            open: 1 / candle.open,
+            close: 1 / candle.close,
+            low: 1 / candle.low,
+            high: 1 / candle.high,
+            volume: Math.floor(Number(candle.volume) / currentBaseAssetPrice)
+          };
+        })
+      );
+    }
     res.status(200).send(candles);
   } catch (error) {
     res.status(500).send(error.message);
@@ -311,6 +335,7 @@ app.get("/v1/pool-detail", async (req: Request<{}, {}, {}, GetPoolDetailQuery>, 
       volume24Hour: poolVolume?.toString() ?? "0",
       volume24hChange: percentVolumeChange,
       apr: poolApr?.apr ?? 0,
+      aprBoost: poolApr?.aprBoost ?? 0,
       totalLiquidity: poolLiquidity,
       rewardPerSec: poolApr?.rewardPerSec
     };

@@ -4,9 +4,9 @@
 
 ```bash
 # build code:
-cwtools build ../oraiswap/contracts/* ../oraidex-listing-contract -o packages/contracts-build/data
+cwtools build ../oraiswap/contracts/* ../oraidex-listing-contract ../co-harvest-contracts/contracts/* ../cw20-staking/ -o packages/contracts-build/data
 # gen code:
-cwtools gents ../oraiswap/contracts/* ../oraidex-listing-contract -o packages/contracts-sdk/src
+cwtools gents ../oraiswap/contracts/* ../oraidex-listing-contract ../co-harvest-contracts/contracts/* ../cw20-staking/ -o packages/contracts-sdk/src
 # gen doc:
 yarn docs
 

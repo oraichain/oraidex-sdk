@@ -46,7 +46,10 @@ import {
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   USDT_ETH_CONTRACT,
-  BTC_CONTRACT
+  BTC_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM,
+  OCH_ETH_CONTRACT,
+  OCH_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -60,7 +63,8 @@ export type NetworkName =
   | "Kawaiiverse EVM"
   | "Tron Network"
   | "Injective"
-  | "Noble";
+  | "Noble"
+  | "Neutaro";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -69,7 +73,8 @@ export type CosmosChainId =
   | "cosmoshub-4" // cosmos hub
   | "injective-1" // injective network
   | "kawaii_6886-1" // kawaii subnetwork
-  | "noble-1";
+  | "noble-1" // noble network
+  | "Neutaro-1"; //neutaro network;
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -98,7 +103,9 @@ export type CoinGeckoId =
   | "wbnb"
   | "scatom"
   | "injective-protocol"
-  | "bitcoin";
+  | "bitcoin"
+  | "neutaro"
+  | "och";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -239,6 +246,19 @@ export const AtomToken: BridgeAppCurrency = {
   }
 };
 
+export const NeutaroToken: BridgeAppCurrency = {
+  coinDenom: "NTMPI",
+  coinMinimalDenom: "uneutaro",
+  coinDecimals: 6,
+  coinGeckoId: "neutaro",
+  coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png",
+  gasPriceStep: {
+    low: 0.01,
+    average: 0.025,
+    high: 0.03
+  }
+};
+
 export const NativeUsdcNobleToken: BridgeAppCurrency = {
   coinDenom: "USDC",
   coinMinimalDenom: "uusdc",
@@ -293,6 +313,14 @@ export const oraichainNetwork: CustomChainInfo = {
       bridgeTo: ["cosmoshub-4"],
       coinDecimals: 6,
       coinImageUrl: "https://dhj8dql1kzq2v.cloudfront.net/white/atom.png"
+    },
+    {
+      coinDenom: "NTMPI",
+      coinGeckoId: "neutaro",
+      coinMinimalDenom: NEUTARO_ORAICHAIN_DENOM,
+      bridgeTo: ["Neutaro-1"],
+      coinDecimals: 6,
+      coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png"
     },
     // {
     //   coinDenom: 'BEP20 AIRI',
@@ -444,6 +472,17 @@ export const oraichainNetwork: CustomChainInfo = {
       // bridgeTo: ["bitcoinTestnet"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
+    },
+    {
+      coinDenom: "OCH",
+      coinGeckoId: "och",
+      coinMinimalDenom: "och",
+      type: "cw20",
+      contractAddress: OCH_CONTRACT,
+      bridgeTo: ["0x01"],
+      coinDecimals: 6,
+      coinImageUrl:
+        "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
     }
   ]
 };
@@ -560,6 +599,16 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "tether",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+      },
+      {
+        coinDenom: "OCH",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + OCH_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 18,
+        coinGeckoId: "och",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl:
+          "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
       }
     ],
     txExplorer: {
@@ -708,6 +757,43 @@ export const chainInfos: CustomChainInfo[] = [
     }
   },
   {
+    // rpc: 'http://rpc.neutaro.tech:26657/',
+    rpc: "https://neutaro.rpc.orai.io/",
+    rest: "http://api.neutaro.tech:1317/",
+    chainId: "Neutaro-1",
+    chainName: "Neutaro",
+    networkType: "cosmos",
+    bip44: {
+      coinType: 118
+    },
+    bech32Config: defaultBech32Config("neutaro"),
+    stakeCurrency: {
+      coinDenom: "ntmpi",
+      coinMinimalDenom: "uneutaro",
+      coinDecimals: 6,
+      coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png"
+    },
+    feeCurrencies: [
+      {
+        coinDenom: "ntmpi",
+        coinMinimalDenom: "uneutaro",
+        coinDecimals: 6,
+        coinImageUrl: "https://raw.githubusercontent.com/chainapsis/keplr-chain-registry/main/images/Neutaro/chain.png",
+        gasPriceStep: {
+          low: 0.01,
+          average: 0.025,
+          high: 0.03
+        }
+      }
+    ],
+    currencies: [
+      {
+        ...NeutaroToken,
+        bridgeTo: ["Oraichain"]
+      }
+    ]
+  },
+  {
     rpc: "https://rpc.cosmos.directory/noble",
     rest: "https://rest.cosmos.directory/noble",
     chainId: "noble-1",
@@ -797,6 +883,17 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "tether",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+      },
+      {
+        coinDenom: "OCH",
+        coinMinimalDenom: "erc20_och",
+        contractAddress: OCH_ETH_CONTRACT,
+        coinDecimals: 18,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "och",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl:
+          "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
       }
     ],
     txExplorer: {
