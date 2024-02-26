@@ -70,16 +70,34 @@ export default function TVChartContainer({
 
   // const { currentPair: pairUpdate, data: socketData } = useChartSocket(currentPair, wsUrl);
 
-  useEffect(() => {
-    if (chartReady && tvWidgetRef.current && currentPair.symbol !== tvWidgetRef.current?.activeChart?.().symbol()) {
-      tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => {});
+  const checkChartReady = async () => {
+    try {
+      if (tvWidgetRef.current.activeChart()) return true;
+    } catch {
+      await new Promise((r) => setTimeout(r, 1000));
+      await checkChartReady();
     }
+  };
+
+  useEffect(() => {
+    const setChartSymbol = async () => {
+      if (
+        chartReady &&
+        tvWidgetRef.current &&
+        (await checkChartReady()) &&
+        currentPair.symbol !== tvWidgetRef.current?.activeChart?.().symbol()
+      ) {
+        tvWidgetRef.current.setSymbol(currentPair.symbol, tvWidgetRef.current.activeChart().resolution(), () => {});
+      }
+    };
+
+    setChartSymbol();
   }, [currentPair, chartReady, period]);
 
   /* Tradingview charting library only fetches the historical data once so if the tab is inactive or system is in sleep mode
   for a long time, the historical data will be outdated. */
   useEffect(() => {
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === "hidden") {
         localStorage.setItem("TV_CHART_RELOAD_TIMESTAMP_KEY", Date.now().toString());
       } else {
@@ -88,6 +106,7 @@ export default function TVChartContainer({
         if (tvReloadTimestamp && Date.now() - tvReloadTimestamp > TV_CHART_RELOAD_INTERVAL) {
           if (resetCache) {
             resetCache();
+            await checkChartReady();
             tvWidgetRef.current?.activeChart().resetData();
           }
         }
@@ -136,14 +155,6 @@ export default function TVChartContainer({
     script.onload = async () => {
       tvWidgetRef.current = new window.TradingView.widget(widgetOptions as any as ChartingLibraryWidgetOptions);
 
-      const checkChartReady = async () => {
-        try {
-          if (tvWidgetRef.current.activeChart()) return;
-        } catch {
-          await new Promise((r) => setTimeout(r, 1000));
-          await checkChartReady();
-        }
-      };
       await checkChartReady();
 
       tvWidgetRef.current.onChartReady(function () {
