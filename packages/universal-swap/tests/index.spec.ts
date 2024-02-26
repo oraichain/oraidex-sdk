@@ -546,10 +546,22 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  it.each<[TokenItemType, string, boolean]>([
-    [flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, true],
-    [flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, false]
-  ])("test-universal-swap-checkBalanceChannelIbc-%", async (toToken, channel, willThrow) => {
+  it.each<[TokenItemType, TokenItemType, string, string, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "oraichain-token")!,
+      "2",
+      channel,
+      true
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token")!,
+      "3",
+      channel,
+      false
+    ]
+  ])("test-universal-swap-checkBalanceChannelIbc-%", async (fromToken, toToken, amount, channel, willThrow) => {
     try {
       await checkBalanceChannelIbc(
         {
@@ -557,9 +569,11 @@ describe("test universal swap handler functions", () => {
           channel: channel,
           timeout: 3600
         },
+        fromToken,
         toToken,
-        simulateAmount,
-        ics20Contract
+        amount,
+        client,
+        IBC_WASM_CONTRACT
       );
       expect(willThrow).toEqual(false);
     } catch (error) {

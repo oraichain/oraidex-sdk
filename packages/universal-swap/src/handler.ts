@@ -359,7 +359,7 @@ export class UniversalSwapHandler {
   // TODO: write test cases
   async swapAndTransferToOtherNetworks(universalSwapType: UniversalSwapType) {
     let encodedObjects: EncodeObject[];
-    const { originalToToken, simulateAmount, sender } = this.swapData;
+    const { originalToToken, originalFromToken, simulateAmount, sender } = this.swapData;
     if (!this.config.cosmosWallet)
       throw generateError("Cannot transfer and swap if the cosmos wallet is not initialized");
     // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
@@ -398,8 +398,14 @@ export class UniversalSwapHandler {
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
     const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
-    const ics20Client = new CwIcs20LatestQueryClient(client, this.getCwIcs20ContractAddr());
-    await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
+    await checkBalanceChannelIbc(
+      ibcInfo,
+      originalFromToken,
+      originalToToken,
+      simulateAmount,
+      client,
+      this.getCwIcs20ContractAddr()
+    );
 
     // handle sign and broadcast transactions
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
