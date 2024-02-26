@@ -225,8 +225,8 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
   const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
   const then = startTime
     ? parseInt(startTime as string)
-    : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 259200).getTime() / 1000;
-
+    : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 25920000).getTime() / 1000;
+  console.dir({ then, latestTimestamp }, { depth: null });
   const volumeInfos = [];
   for (const { asset_infos } of pairsOnlyDenom) {
     const volume = await duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(asset_infos));
@@ -629,6 +629,35 @@ app.get("/v1/summary", async (req, res) => {
     console.log("error: ", error);
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
+});
+
+export type GetHistoricalChart = {
+  range: number;
+  type: "day" | "week" | "month";
+  pair?: string;
+};
+
+// ====== API for pool info oraidex 3.2
+app.get("/v1/liquidity/historical/chart", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.range || !req.query.type) {
+      return res.status(400).send("Not enough query params: range || type");
+    }
+    // const historicalChart = await
+    res.status(200).send({ price: 1 });
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+process.on("uncaughtException", (error) => {
+  console.log("uncaughtException", error);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (error) => {
+  console.log("unhandledRejection", error);
+  process.exit(1);
 });
 
 app

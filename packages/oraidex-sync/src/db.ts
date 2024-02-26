@@ -335,7 +335,7 @@ export class DuckDb {
     );
     return result.map((res) => ({
       ...res,
-      time: new Date(res.time * tf * 1000).toISOString()
+      time: new Date(Number(res.time) * tf * 1000).toISOString()
     })) as VolumeRange[];
   }
 
