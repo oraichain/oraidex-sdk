@@ -550,14 +550,14 @@ describe("test universal swap handler functions", () => {
     [
       flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
       flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "oraichain-token")!,
-      "2",
+      simulateAmount,
       channel,
       true
     ],
     [
       flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
       flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token")!,
-      "3",
+      simulateAmount,
       channel,
       false
     ]
@@ -573,7 +573,7 @@ describe("test universal swap handler functions", () => {
         toToken,
         amount,
         client,
-        IBC_WASM_CONTRACT
+        IBC_WASM_CONTRACT_TEST
       );
       expect(willThrow).toEqual(false);
     } catch (error) {
