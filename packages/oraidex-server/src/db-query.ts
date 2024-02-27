@@ -1,5 +1,5 @@
 import "./polyfill";
-import { DuckDb, PoolAmountHistory } from "@oraichain/oraidex-sync";
+import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
 
 export type LowHighPriceOfPairType = {
   low: number;
@@ -7,8 +7,14 @@ export type LowHighPriceOfPairType = {
   pair: string;
 };
 
+export type GetSwapHistory = {
+  offerDenom: string;
+  askDenom: string;
+  limit?: string;
+};
+
 export class DbQuery {
-  constructor(public readonly duckDb: DuckDb) {}
+  constructor(public readonly duckDb: DuckDb) { }
 
   async getLowHighPrice(query?: { timestamp: number }): Promise<LowHighPriceOfPairType[]> {
     const { timestamp } = query;
@@ -40,6 +46,15 @@ export class DbQuery {
     }
     sql += "ORDER BY timestamp DESC";
     const result = (await this.duckDb.conn.all(sql, ...params)) as PoolAmountHistory[];
+    return result;
+  }
+
+  async getSwapHistory(query: GetSwapHistory): Promise<SwapOperationData[]> {
+    const { limit, offerDenom, askDenom } = query;
+    const sql =
+      "SELECT * FROM swap_ops_data WHERE (offerDenom = ? AND askDenom = ?) OR (offerDenom = ? AND askDenom = ?) ORDER BY txheight LIMIT ?";
+    const params = [askDenom, offerDenom, offerDenom, askDenom, limit ? Math.min(100, parseInt(limit)) : 20];
+    const result = (await this.duckDb.conn.all(sql, ...params)) as SwapOperationData[];
     return result;
   }
 }
