@@ -49,7 +49,8 @@ import {
   BTC_CONTRACT,
   NEUTARO_ORAICHAIN_DENOM,
   OCH_ETH_CONTRACT,
-  OCH_CONTRACT
+  OCH_CONTRACT,
+  ORAIDEX_BID_POOL_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -123,6 +124,7 @@ export interface NetworkConfig {
   rewarder: string;
   converter: string;
   oraidex_listing: string;
+  bid_pool: string;
   multicall: string;
 }
 
@@ -758,8 +760,9 @@ export const chainInfos: CustomChainInfo[] = [
   },
   {
     // rpc: 'http://rpc.neutaro.tech:26657/',
-    rpc: "https://neutaro.rpc.orai.io/",
-    rest: "http://api.neutaro.tech:1317/",
+    rpc: "https://neutaro.rpc.orai.io",
+    rest: "https://neutaro.lcd.orai.io",
+    // rest: "http://api.neutaro.tech:1317/",
     chainId: "Neutaro-1",
     chainName: "Neutaro",
     networkType: "cosmos",
@@ -1075,6 +1078,7 @@ export const network: CustomChainInfo & NetworkConfig = {
   converter: CONVERTER_CONTRACT,
   oraidex_listing: ORAIDEX_LISTING_CONTRACT,
   multicall: MULTICALL_CONTRACT,
+  bid_pool: ORAIDEX_BID_POOL_CONTRACT,
   explorer: "https://scan.orai.io"
 };
 
