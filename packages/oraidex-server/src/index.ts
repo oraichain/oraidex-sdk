@@ -640,8 +640,8 @@ app.get("/v1/summary", async (req, res) => {
 // ====== API for pool info oraidex 3.2
 app.get("/v1/liquidity/historical/chart", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
   try {
-    if (!req.query.range || !req.query.type) {
-      return res.status(400).send("Not enough query params: range || type");
+    if (!req.query.type) {
+      return res.status(400).send("Not enough query params: type");
     }
     // const historicalChart = await
     res.status(200).send({ price: 1 });

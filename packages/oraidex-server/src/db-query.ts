@@ -1,3 +1,5 @@
+import { PAIRS_CHART, BigDecimal } from "@oraichain/oraidex-common";
+import { getBaseAssetInfoFromPairString } from "./helper";
 import "./polyfill";
 import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
 
@@ -14,9 +16,13 @@ export type GetSwapHistory = {
 };
 
 export type GetHistoricalChart = {
-  range: number;
   type: "day" | "week" | "month";
   pair?: string;
+};
+
+export type HistoricalChartResponse = {
+  time: string;
+  value: number;
 };
 
 export class DbQuery {
@@ -64,31 +70,55 @@ export class DbQuery {
     return result;
   }
 
-  async getSwapVolumeAllPair(query: GetHistoricalChart): Promise<any[]> {
-    const { type, pair } = query;
-    const sql = `SELECT
-                   date_trunc(?, to_timestamp(timestamp)) AS time,
-                   SUM(volume) AS value
-                 FROM swap_ohlcv
-                 WHERE pair = ?
-                 GROUP BY date_trunc(?, to_timestamp(timestamp))`;
-    const params = [type, pair];
-    const result = await this.duckDb.conn.all(sql, ...params);
-    return result;
+  async getSwapVolumeAllPair(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
+    const { type } = query;
+    const promiseVolumes = PAIRS_CHART.filter((item) => item.symbol == "ORAI/USDT").map((p) => {
+      return this.getSwapVolume({ pair: p.info, type });
+    });
+    const result = await Promise.all(promiseVolumes);
+    const res: {
+      [timestamp: string]: number;
+    } = {};
+    result.flat().reduce((acc, cur) => {
+      if (!acc[cur.time]) acc[cur.time] = cur.value;
+      else acc[cur.time] += cur.value;
+      return acc;
+    }, res);
+    const totalVolumeChart = [];
+    for (const [time, value] of Object.entries(res)) {
+      totalVolumeChart.push({
+        time,
+        value
+      });
+    }
+
+    return totalVolumeChart;
   }
 
-  async getSwapVolume(query: GetHistoricalChart): Promise<any[]> {
-    const { pair } = query;
+  async getSwapVolume(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
+    const { pair, type } = query;
     const sql = `SELECT
-                   DATE_TRUNC('day', to_timestamp(ANY_VALUE(timestamp))) AS time,
+                   ANY_VALUE(timestamp) as timestamp,
+                   DATE_TRUNC('${type}', to_timestamp(timestamp)) AS time,
                    SUM(volume) AS value
                  FROM swap_ohlcv
                  WHERE pair = ?
-                 GROUP BY DATE_TRUNC('day', to_timestamp(ANY_VALUE(timestamp)))
+                 GROUP BY DATE_TRUNC('${type}', to_timestamp(timestamp))
                  `;
     const params = [pair];
     const result = await this.duckDb.conn.all(sql, ...params);
-    console.dir({ result }, { depth: null });
-    return result;
+
+    const baseAssetInfo = getBaseAssetInfoFromPairString(pair);
+    if (!baseAssetInfo) throw new Error(`Cannot find base asset info for pair: ${pair}`);
+
+    const swapVolume = [];
+    for (const item of result) {
+      const basePriceInUsdt = 1 / 78;
+      swapVolume.push({
+        time: item.time,
+        value: new BigDecimal(Math.trunc(basePriceInUsdt * item.value)).div(10 ** 6).toNumber()
+      });
+    }
+    return swapVolume;
   }
 }

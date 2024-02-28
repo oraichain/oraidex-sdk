@@ -1,36 +1,36 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { PAIRS_CHART, pairLpTokens } from "@oraichain/oraidex-common";
 import { ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common/build/constant";
 import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
-  injAddress,
-  ORAI,
-  oraiInfo,
-  oraixCw20Address,
-  PairMapping,
-  pairs,
-  parseAssetInfoOnlyDenom,
-  simulateSwapPrice,
-  usdcCw20Address,
-  getAllFees,
-  getAllVolume24h,
-  getPoolAmounts,
-  getPoolLiquidities,
-  PairInfoDataResponse,
-  getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb,
-  pairsWithDenom,
   DuckDb,
+  ORAI,
+  PairInfoData,
+  PairInfoDataResponse,
+  PairMapping,
   PoolAmountHistory,
   calculatePriceByPool,
-  PairInfoData,
   findPairAddress,
-  getAvgPoolLiquidities
+  getAllFees,
+  getAllVolume24h,
+  getAvgPoolLiquidities,
+  getPoolAmounts,
+  getPoolAprsFromDuckDb,
+  getPoolLiquidities,
+  getPoolsFromDuckDb,
+  injAddress,
+  oraiInfo,
+  oraixCw20Address,
+  pairs,
+  pairsWithDenom,
+  parseAssetInfoOnlyDenom,
+  simulateSwapPrice,
+  usdcCw20Address
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
-import { pairLpTokens } from "@oraichain/oraidex-common";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
@@ -353,4 +353,11 @@ export const getPriceStatisticOfPool = (
     price: currentPrice || 0,
     price_change: percentPriceChange || 0
   };
+};
+
+export const getBaseAssetInfoFromPairString = (pair: string): AssetInfo => {
+  const pairChart = PAIRS_CHART.find((p) => p.info === pair);
+  if (!pairChart) return null;
+
+  return pairChart.asset_infos[0];
 };
