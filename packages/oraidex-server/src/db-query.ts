@@ -13,8 +13,14 @@ export type GetSwapHistory = {
   limit?: string;
 };
 
+export type GetHistoricalChart = {
+  range: number;
+  type: "day" | "week" | "month";
+  pair?: string;
+};
+
 export class DbQuery {
-  constructor(public readonly duckDb: DuckDb) { }
+  constructor(public readonly duckDb: DuckDb) {}
 
   async getLowHighPrice(query?: { timestamp: number }): Promise<LowHighPriceOfPairType[]> {
     const { timestamp } = query;
@@ -55,6 +61,34 @@ export class DbQuery {
       "SELECT * FROM swap_ops_data WHERE (offerDenom = ? AND askDenom = ?) OR (offerDenom = ? AND askDenom = ?) ORDER BY txheight LIMIT ?";
     const params = [askDenom, offerDenom, offerDenom, askDenom, limit ? Math.min(100, parseInt(limit)) : 20];
     const result = (await this.duckDb.conn.all(sql, ...params)) as SwapOperationData[];
+    return result;
+  }
+
+  async getSwapVolumeAllPair(query: GetHistoricalChart): Promise<any[]> {
+    const { type, pair } = query;
+    const sql = `SELECT
+                   date_trunc(?, to_timestamp(timestamp)) AS time,
+                   SUM(volume) AS value
+                 FROM swap_ohlcv
+                 WHERE pair = ?
+                 GROUP BY date_trunc(?, to_timestamp(timestamp))`;
+    const params = [type, pair];
+    const result = await this.duckDb.conn.all(sql, ...params);
+    return result;
+  }
+
+  async getSwapVolume(query: GetHistoricalChart): Promise<any[]> {
+    const { pair } = query;
+    const sql = `SELECT
+                   DATE_TRUNC('day', to_timestamp(ANY_VALUE(timestamp))) AS time,
+                   SUM(volume) AS value
+                 FROM swap_ohlcv
+                 WHERE pair = ?
+                 GROUP BY DATE_TRUNC('day', to_timestamp(ANY_VALUE(timestamp)))
+                 `;
+    const params = [pair];
+    const result = await this.duckDb.conn.all(sql, ...params);
+    console.dir({ result }, { depth: null });
     return result;
   }
 }

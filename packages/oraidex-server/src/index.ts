@@ -58,7 +58,7 @@ import {
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
 import { ORAIX_CONTRACT, USDC_CONTRACT, oraichainTokens } from "@oraichain/oraidex-common";
-import { DbQuery, GetSwapHistory } from "./db-query";
+import { DbQuery, GetHistoricalChart, GetSwapHistory } from "./db-query";
 
 // cache
 
@@ -194,8 +194,9 @@ app.get("/tickers", async (req, res) => {
         base: symbols[baseIndex],
         target: symbols[targetIndex],
         liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString(),
-        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${to ? to.denom : "usdt"
-          }`
+        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${
+          to ? to.denom : "usdt"
+        }`
       };
       data.push(tickerInfo);
     }
@@ -636,12 +637,6 @@ app.get("/v1/summary", async (req, res) => {
   }
 });
 
-export type GetHistoricalChart = {
-  range: number;
-  type: "day" | "week" | "month";
-  pair?: string;
-};
-
 // ====== API for pool info oraidex 3.2
 app.get("/v1/liquidity/historical/chart", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
   try {
@@ -655,38 +650,31 @@ app.get("/v1/liquidity/historical/chart", async (req: Request<{}, {}, {}, GetHis
   }
 });
 
+app.get("/v1/volume/historical/all-charts", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.type) {
+      return res.status(400).send("Not enough query params: type");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getSwapVolumeAllPair(req.query);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
 
 app.get("/v1/volume/historical/chart", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
   try {
-    if (!req.query.range || !req.query.type) {
-      return res.status(400).send("Not enough query params: range || type");
+    if (!req.query.pair || !req.query.type) {
+      return res.status(400).send("Not enough query params: pair || type");
     }
 
-    // const candles = await duckDb.getOhlcvCandles(req.query);
-
-    // // reverse data for pool oraix/usdc to display price asset in stable coin
-    // const pairDenoms = req.query.pair.split("-");
-    // if (pairDenoms[0] === USDC_CONTRACT && pairDenoms[1] === ORAIX_CONTRACT) {
-    //   const pairInfo = pairsWithDenom.find(
-    //     (pair) => pair.asset_denoms[0] === pairDenoms[0] && pair.asset_denoms[1] === pairDenoms[1]
-    //   );
-    //   if (!pairInfo) return res.status(400).send("Not found pair");
-
-    //   const currentBaseAssetPrice = await getPriceByAsset(pairInfo.asset_infos, "base_in_quote");
-    //   return res.status(200).send(
-    //     candles.map((candle) => {
-    //       return {
-    //         ...candle,
-    //         open: 1 / candle.open,
-    //         close: 1 / candle.close,
-    //         low: 1 / candle.low,
-    //         high: 1 / candle.high,
-    //         volume: Math.floor(Number(candle.volume) / currentBaseAssetPrice)
-    //       };
-    //     })
-    //   );
-    // }
-    res.status(200).send([]);
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getSwapVolume(req.query);
+    res.status(200).send(result);
   } catch (error) {
     res.status(500).send(error.message);
   }

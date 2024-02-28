@@ -510,11 +510,11 @@ export class DuckDb {
   }
 
   async addTimestampColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0");
   }
 
   async addAprBoostColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0");
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
