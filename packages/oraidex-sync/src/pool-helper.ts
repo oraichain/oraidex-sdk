@@ -81,9 +81,6 @@ export const isPoolHasFee = (assetInfos: [AssetInfo, AssetInfo]): boolean => {
 
 export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> => {
   // adjust the query height to get data from the past
-  // const cosmwasmClient = await getCosmwasmClient();
-  // cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-  // const multicall = new MulticallQueryClient(cosmwasmClient, network.multicall);
   const res = await queryPoolInfos(pairAddrs, wantedHeight);
   return res;
 };
@@ -190,6 +187,49 @@ export const getPriceAssetByUsdt = async (asset: AssetInfo): Promise<number> => 
   }
 
   const priceOraiInUsdt = await getOraiPrice();
+  return priceInOrai * priceOraiInUsdt;
+};
+
+export const getPriceAssetByUsdtWithTimestamp = async (asset: AssetInfo, timestamp?: number): Promise<number> => {
+  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(usdtInfo)) return 1;
+  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(oraiInfo)) return await getOraiPrice(timestamp);
+  let foundPair: PairMapping;
+
+  // find pair map with usdt
+  foundPair = getPairByAssetInfos([asset, usdtInfo]);
+  if (foundPair) {
+    // assume asset mapped with usdt should be base asset
+    return await getPriceByAsset(foundPair.asset_infos, "base_in_quote", timestamp);
+  }
+
+  // find pair map with orai
+  let priceInOrai = 0;
+  foundPair = getPairByAssetInfos([asset, oraiInfo]);
+  if (foundPair) {
+    const ratioDirection: RatioDirection =
+      parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
+    priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection, timestamp);
+  } else {
+    // case 5.1
+    const pairWithAsset = pairs.find((pair) =>
+      pair.asset_infos.some((info) => parseAssetInfoOnlyDenom(info) === parseAssetInfoOnlyDenom(asset))
+    );
+    const otherAssetIndex = pairWithAsset.asset_infos.findIndex(
+      (item) => parseAssetInfoOnlyDenom(item) !== parseAssetInfoOnlyDenom(asset)
+    );
+    const priceAssetVsOtherAsset = await getPriceByAsset(
+      pairWithAsset.asset_infos,
+      otherAssetIndex === 1 ? "base_in_quote" : "quote_in_base",
+      timestamp
+    );
+    const pairOtherAssetVsOrai = getPairByAssetInfos([pairWithAsset.asset_infos[otherAssetIndex], oraiInfo]);
+    const ratioDirection: RatioDirection =
+      parseAssetInfoOnlyDenom(pairOtherAssetVsOrai.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
+    priceInOrai =
+      priceAssetVsOtherAsset * (await getPriceByAsset(pairOtherAssetVsOrai.asset_infos, ratioDirection, timestamp));
+  }
+
+  const priceOraiInUsdt = await getOraiPrice(timestamp);
   return priceInOrai * priceOraiInUsdt;
 };
 

@@ -61,7 +61,7 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) {}
+  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) { }
 
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     return new OraiDexSync(duckDb, rpcUrl, env);

@@ -335,7 +335,7 @@ export class DuckDb {
     );
     return result.map((res) => ({
       ...res,
-      time: new Date(res.time * tf * 1000).toISOString()
+      time: new Date(Number(res.time) * tf * 1000).toISOString()
     })) as VolumeRange[];
   }
 
@@ -510,11 +510,11 @@ export class DuckDb {
   }
 
   async addTimestampColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0");
   }
 
   async addAprBoostColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0");
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {

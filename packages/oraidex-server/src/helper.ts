@@ -1,36 +1,36 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { ARRANGED_PAIRS_CHART, pairLpTokens } from "@oraichain/oraidex-common";
 import { ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common/build/constant";
 import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
-  injAddress,
-  ORAI,
-  oraiInfo,
-  oraixCw20Address,
-  PairMapping,
-  pairs,
-  parseAssetInfoOnlyDenom,
-  simulateSwapPrice,
-  usdcCw20Address,
-  getAllFees,
-  getAllVolume24h,
-  getPoolAmounts,
-  getPoolLiquidities,
-  PairInfoDataResponse,
-  getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb,
-  pairsWithDenom,
   DuckDb,
+  ORAI,
+  PairInfoData,
+  PairInfoDataResponse,
+  PairMapping,
   PoolAmountHistory,
   calculatePriceByPool,
-  PairInfoData,
   findPairAddress,
-  getAvgPoolLiquidities
+  getAllFees,
+  getAllVolume24h,
+  getAvgPoolLiquidities,
+  getPoolAmounts,
+  getPoolAprsFromDuckDb,
+  getPoolLiquidities,
+  getPoolsFromDuckDb,
+  injAddress,
+  oraiInfo,
+  oraixCw20Address,
+  pairs,
+  pairsWithDenom,
+  parseAssetInfoOnlyDenom,
+  simulateSwapPrice,
+  usdcCw20Address
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
-import { pairLpTokens } from "@oraichain/oraidex-common";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
@@ -80,9 +80,8 @@ export const validateOraiAddress = (contractAddress: string) => {
 export const getOrderbookTicker = async () => {
   try {
     // get ticker from orderbook
-    const ORDERBOOK_TICKER_API_ENDPOINT = `${
-      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
-    }/v2/tickers`;
+    const ORDERBOOK_TICKER_API_ENDPOINT = `${process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
+      }/v2/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
@@ -98,9 +97,8 @@ export const getOrderbookTicker = async () => {
 export const getOrderbookSummary = async () => {
   try {
     // get ticker from orderbook
-    const ORDERBOOK_TICKER_API_ENDPOINT = `${
-      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
-    }/v1/cmc/tickers`;
+    const ORDERBOOK_TICKER_API_ENDPOINT = `${process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
+      }/v1/cmc/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
@@ -353,4 +351,12 @@ export const getPriceStatisticOfPool = (
     price: currentPrice || 0,
     price_change: percentPriceChange || 0
   };
+};
+
+export const getBaseAssetInfoFromPairString = (pair: string): AssetInfo => {
+  const modifiedPair = [pair.split("-")[1], pair.split("-")[0]].join("-");
+  const pairChart = ARRANGED_PAIRS_CHART.find((p) => p.info === pair || p.info === modifiedPair);
+  if (!pairChart) return null;
+
+  return pairChart.asset_infos[0];
 };

@@ -6,7 +6,6 @@ import {
   INJECTIVE_CONTRACT,
   KWT_CONTRACT,
   MILKY_CONTRACT,
-  NEUTARO_ORAICHAIN_DENOM,
   ORAI,
   ORAIX_CONTRACT,
   OSMOSIS_ORAICHAIN_DENOM,
@@ -17,9 +16,10 @@ import {
   USDT_CONTRACT,
   WETH_CONTRACT,
   NEUTARO_ORAICHAIN_DENOM as NEUTARO_ADDRESS,
-  OCH_CONTRACT
+  OCH_CONTRACT,
+  ORAI_INFO
 } from "./constant";
-import { parseAssetInfo } from "./helper";
+import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
 import uniq from "lodash/uniq";
 import flatten from "lodash/flatten";
@@ -86,6 +86,7 @@ export const PAIRS: PairMapping[] = [
     asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
     symbols: ["INJ", "ORAI"]
   },
+  // TODO: true order is oraix/usdc, but we reverse this to serve client
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
     symbols: ["USDC", "ORAIX"]
@@ -101,10 +102,6 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
     symbols: ["ORAI", "BTC"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
-    symbols: ["NTMPI", "USDC"]
   },
   {
     asset_infos: [{ token: { contract_addr: OCH_CONTRACT } }, { native_token: { denom: ORAI } }],
@@ -167,6 +164,55 @@ export const PAIRS_CHART = PAIRS.map((pair) => {
     return info.token.contract_addr;
   });
 
+  return {
+    ...pair,
+    symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
+    info: `${assets[0]}-${assets[1]}`
+  };
+});
+
+// The pairs are rearranged in the correct order of base and quote
+export const ARRANGED_PAIRS = PAIRS.map((pair) => {
+  const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+  if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === INJECTIVE_CONTRACT))
+    return {
+      ...pair,
+      asset_infos: [
+        ORAI_INFO,
+        {
+          token: {
+            contract_addr: INJECTIVE_CONTRACT
+          }
+        } as AssetInfo
+      ],
+      symbols: ["ORAI", "INJ"]
+    } as PairMapping;
+
+  if (
+    pairDenoms.some((denom) => denom === ORAIX_CONTRACT) &&
+    pairDenoms.some((denom) => denom === USDC_CONTRACT)
+  )
+    return {
+      ...pair,
+      asset_infos: [
+        {
+          token: {
+            contract_addr: ORAIX_CONTRACT
+          }
+        } as AssetInfo,
+        {
+          token: {
+            contract_addr: USDC_CONTRACT
+          }
+        } as AssetInfo
+      ],
+      symbols: ["ORAIX", "USDC"]
+    } as PairMapping;
+  return pair;
+});
+
+export const ARRANGED_PAIRS_CHART = ARRANGED_PAIRS.map((pair) => {
+  const assets = pair.asset_infos.map(parseAssetInfoOnlyDenom);
   return {
     ...pair,
     symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,

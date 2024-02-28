@@ -100,6 +100,7 @@ export const pairs: PairMapping[] = [
     lp_token: pairLpTokens.INJ_ORAI,
     symbols: ["INJ", "ORAI"]
   },
+  // we will reverse order for this pair in api /tickers for Coingecko
   {
     asset_infos: [{ token: { contract_addr: usdcCw20Address } }, { token: { contract_addr: oraixCw20Address } }],
     lp_token: pairLpTokens.USDC_ORAIX,
