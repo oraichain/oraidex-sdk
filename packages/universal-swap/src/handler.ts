@@ -561,6 +561,10 @@ export class UniversalSwapHandler {
     if (universalSwapType === "oraichain-to-cosmos" || universalSwapType === "oraichain-to-evm")
       return this.swapAndTransferToOtherNetworks(universalSwapType);
     if (universalSwapType === "cosmos-to-cosmos") return this.swapCosmosToCosmos();
+
+    // TODO: recheck cosmos address undefined (other-chain -> oraichain)
+    if (!cosmos && !toAddress)
+      throw generateError(`Cannot transfer if the cosmos address is empty: ${JSON.stringify(swapRoute)}`);
     return this.transferAndSwap(swapRoute);
   }
 
