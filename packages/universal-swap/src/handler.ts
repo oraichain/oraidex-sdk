@@ -433,27 +433,6 @@ export class UniversalSwapHandler {
       {}
     );
 
-    await checkBalanceIBCOraichain(
-      originalToToken,
-      originalFromToken,
-      fromAmount,
-      simulateAmount,
-      client,
-      this.getCwIcs20ContractAddr()
-    );
-
-    const routerClient = new OraiswapRouterQueryClient(client, network.router);
-    const isSufficient = await checkFeeRelayer({
-      originalFromToken,
-      fromAmount,
-      relayerFee,
-      routerClient
-    });
-    if (!isSufficient)
-      throw generateError(
-        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
-      );
-
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable
     // 2nd case: BNB (bsc) -> USDT (oraichain), then find USDT on bsc. We have that and also have route => swappable
@@ -491,6 +470,28 @@ export class UniversalSwapHandler {
     if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(originalFromToken.coinGeckoId)) {
       return this.evmSwap(evmSwapData);
     }
+
+    await checkBalanceIBCOraichain(
+      originalToToken,
+      originalFromToken,
+      fromAmount,
+      simulateAmount,
+      client,
+      this.getCwIcs20ContractAddr()
+    );
+
+    const routerClient = new OraiswapRouterQueryClient(client, network.router);
+    const isSufficient = await checkFeeRelayer({
+      originalFromToken,
+      fromAmount,
+      relayerFee,
+      routerClient
+    });
+    if (!isSufficient)
+      throw generateError(
+        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+      );
+
     return this.transferEvmToIBC(swapRoute);
   }
 
