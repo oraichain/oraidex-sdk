@@ -1,7 +1,7 @@
 import { PAIRS_CHART, BigDecimal } from "@oraichain/oraidex-common";
-import { getBaseAssetInfoFromPairString } from "./helper";
+import { getBaseAssetInfoFromPairString, getPriceAssetByUsdtWithTimestamp } from "./helper";
 import "./polyfill";
-import { DuckDb, PoolAmountHistory, SwapOperationData, getPriceAssetByUsdtWithTimestamp } from "@oraichain/oraidex-sync";
+import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
 
 export type LowHighPriceOfPairType = {
   low: number;
@@ -26,7 +26,7 @@ export type HistoricalChartResponse = {
 };
 
 export class DbQuery {
-  constructor(public readonly duckDb: DuckDb) { }
+  constructor(public readonly duckDb: DuckDb) {}
 
   async getLowHighPrice(query?: { timestamp: number }): Promise<LowHighPriceOfPairType[]> {
     const { timestamp } = query;

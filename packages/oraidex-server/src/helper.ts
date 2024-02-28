@@ -10,15 +10,19 @@ import {
   PairInfoDataResponse,
   PairMapping,
   PoolAmountHistory,
+  RatioDirection,
   calculatePriceByPool,
   findPairAddress,
   getAllFees,
   getAllVolume24h,
   getAvgPoolLiquidities,
+  getOraiPrice,
+  getPairByAssetInfos,
   getPoolAmounts,
   getPoolAprsFromDuckDb,
   getPoolLiquidities,
   getPoolsFromDuckDb,
+  getPriceByAsset,
   injAddress,
   oraiInfo,
   oraixCw20Address,
@@ -26,7 +30,8 @@ import {
   pairsWithDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
-  usdcCw20Address
+  usdcCw20Address,
+  usdtInfo
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
@@ -80,8 +85,9 @@ export const validateOraiAddress = (contractAddress: string) => {
 export const getOrderbookTicker = async () => {
   try {
     // get ticker from orderbook
-    const ORDERBOOK_TICKER_API_ENDPOINT = `${process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
-      }/v2/tickers`;
+    const ORDERBOOK_TICKER_API_ENDPOINT = `${
+      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
+    }/v2/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
@@ -97,8 +103,9 @@ export const getOrderbookTicker = async () => {
 export const getOrderbookSummary = async () => {
   try {
     // get ticker from orderbook
-    const ORDERBOOK_TICKER_API_ENDPOINT = `${process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
-      }/v1/cmc/tickers`;
+    const ORDERBOOK_TICKER_API_ENDPOINT = `${
+      process.env.ORDERBOOK_API_ENDPOINT || "https://orderbook-backend.oraidex.io"
+    }/v1/cmc/tickers`;
     const response = await fetchRetry(ORDERBOOK_TICKER_API_ENDPOINT);
     if (!response.ok) {
       throw new Error(`${response.status} ${response.statusText}`);
@@ -359,4 +366,47 @@ export const getBaseAssetInfoFromPairString = (pair: string): AssetInfo => {
   if (!pairChart) return null;
 
   return pairChart.asset_infos[0];
+};
+
+export const getPriceAssetByUsdtWithTimestamp = async (asset: AssetInfo, timestamp?: number): Promise<number> => {
+  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(usdtInfo)) return 1;
+  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(oraiInfo)) return await getOraiPrice(timestamp);
+  let foundPair: PairMapping;
+
+  // find pair map with usdt
+  foundPair = getPairByAssetInfos([asset, usdtInfo]);
+  if (foundPair) {
+    // assume asset mapped with usdt should be base asset
+    return await getPriceByAsset(foundPair.asset_infos, "base_in_quote", timestamp);
+  }
+
+  // find pair map with orai
+  let priceInOrai = 0;
+  foundPair = getPairByAssetInfos([asset, oraiInfo]);
+  if (foundPair) {
+    const ratioDirection: RatioDirection =
+      parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
+    priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection, timestamp);
+  } else {
+    // case 5.1
+    const pairWithAsset = pairs.find((pair) =>
+      pair.asset_infos.some((info) => parseAssetInfoOnlyDenom(info) === parseAssetInfoOnlyDenom(asset))
+    );
+    const otherAssetIndex = pairWithAsset.asset_infos.findIndex(
+      (item) => parseAssetInfoOnlyDenom(item) !== parseAssetInfoOnlyDenom(asset)
+    );
+    const priceAssetVsOtherAsset = await getPriceByAsset(
+      pairWithAsset.asset_infos,
+      otherAssetIndex === 1 ? "base_in_quote" : "quote_in_base",
+      timestamp
+    );
+    const pairOtherAssetVsOrai = getPairByAssetInfos([pairWithAsset.asset_infos[otherAssetIndex], oraiInfo]);
+    const ratioDirection: RatioDirection =
+      parseAssetInfoOnlyDenom(pairOtherAssetVsOrai.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
+    priceInOrai =
+      priceAssetVsOtherAsset * (await getPriceByAsset(pairOtherAssetVsOrai.asset_infos, ratioDirection, timestamp));
+  }
+
+  const priceOraiInUsdt = await getOraiPrice(timestamp);
+  return priceInOrai * priceOraiInUsdt;
 };
