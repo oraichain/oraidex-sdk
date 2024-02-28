@@ -17,7 +17,6 @@ import {
   findPairAddress,
   getOraiPrice,
   getPairLiquidity,
-  getPoolLiquidities,
   getPriceAssetByUsdt,
   getPriceByAsset,
   getVolumePairByUsdt,
@@ -194,9 +193,8 @@ app.get("/tickers", async (req, res) => {
         base: symbols[baseIndex],
         target: symbols[targetIndex],
         liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString(),
-        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${
-          to ? to.denom : "usdt"
-        }`
+        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${to ? to.denom : "usdt"
+          }`
       };
       data.push(tickerInfo);
     }

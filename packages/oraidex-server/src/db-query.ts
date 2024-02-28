@@ -1,7 +1,7 @@
 import { PAIRS_CHART, BigDecimal } from "@oraichain/oraidex-common";
 import { getBaseAssetInfoFromPairString } from "./helper";
 import "./polyfill";
-import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
+import { DuckDb, PoolAmountHistory, SwapOperationData, getPriceAssetByUsdtWithTimestamp } from "@oraichain/oraidex-sync";
 
 export type LowHighPriceOfPairType = {
   low: number;
@@ -26,7 +26,7 @@ export type HistoricalChartResponse = {
 };
 
 export class DbQuery {
-  constructor(public readonly duckDb: DuckDb) {}
+  constructor(public readonly duckDb: DuckDb) { }
 
   async getLowHighPrice(query?: { timestamp: number }): Promise<LowHighPriceOfPairType[]> {
     const { timestamp } = query;
@@ -72,7 +72,7 @@ export class DbQuery {
 
   async getSwapVolumeAllPair(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { type } = query;
-    const promiseVolumes = PAIRS_CHART.filter((item) => item.symbol == "ORAI/USDT").map((p) => {
+    const promiseVolumes = PAIRS_CHART.map((p) => {
       return this.getSwapVolume({ pair: p.info, type });
     });
     const result = await Promise.all(promiseVolumes);
@@ -104,6 +104,7 @@ export class DbQuery {
                  FROM swap_ohlcv
                  WHERE pair = ?
                  GROUP BY DATE_TRUNC('${type}', to_timestamp(timestamp))
+                 ORDER BY timestamp
                  `;
     const params = [pair];
     const result = await this.duckDb.conn.all(sql, ...params);
@@ -113,7 +114,7 @@ export class DbQuery {
 
     const swapVolume = [];
     for (const item of result) {
-      const basePriceInUsdt = 1 / 78;
+      const basePriceInUsdt = await getPriceAssetByUsdtWithTimestamp(baseAssetInfo, item.timestamp);
       swapVolume.push({
         time: item.time,
         value: new BigDecimal(Math.trunc(basePriceInUsdt * item.value)).div(10 ** 6).toNumber()
