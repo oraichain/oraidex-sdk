@@ -60,7 +60,30 @@ describe("test-db-query", () => {
     });
   });
 
-  it("test-getSwapVolumeAllPair", async () => {
+  it.each<["day" | "week" | "month", { time: string; value: number }[]]>([
+    [
+      "day",
+      [
+        { time: "2024-02-19T17:00:00.000Z", value: 1 },
+        { time: "2024-02-20T17:00:00.000Z", value: 2 },
+        { time: "2024-03-19T17:00:00.000Z", value: 1 }
+      ]
+    ],
+    [
+      "week",
+      [
+        { time: "2024-02-18T17:00:00.000Z", value: 3 },
+        { time: "2024-03-17T17:00:00.000Z", value: 1 }
+      ]
+    ],
+    [
+      "month",
+      [
+        { time: "2024-01-31T17:00:00.000Z", value: 3 },
+        { time: "2024-02-29T17:00:00.000Z", value: 1 }
+      ]
+    ]
+  ])("test-getSwapVolumeAllPair", async (type, expectedResult) => {
     // setup
     const PAIR_ORAIX_USDC =
       "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
@@ -116,14 +139,9 @@ describe("test-db-query", () => {
     jest.spyOn(helper, "getPriceAssetByUsdtWithTimestamp").mockResolvedValue(1);
 
     // act
-    const type = "day";
     const result = await dbQuery.getSwapVolumeAllPair({ type });
 
     // assert
-    expect(result).toEqual([
-      { time: "2024-02-19T17:00:00.000Z", value: 1 },
-      { time: "2024-02-20T17:00:00.000Z", value: 2 },
-      { time: "2024-03-19T17:00:00.000Z", value: 1 }
-    ]);
+    expect(result).toEqual(expectedResult);
   });
 });
