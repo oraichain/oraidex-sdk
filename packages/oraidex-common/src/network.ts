@@ -910,7 +910,7 @@ export const chainInfos: CustomChainInfo[] = [
       },
       {
         coinDenom: "ORAIX",
-        coinMinimalDenom: "erc20_usdt",
+        coinMinimalDenom: "erc20_oraix",
         contractAddress: ORAIX_ETH_CONTRACT,
         coinDecimals: 18,
         bridgeTo: ["Oraichain"],
