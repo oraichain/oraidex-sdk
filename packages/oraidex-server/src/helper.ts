@@ -1,6 +1,6 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { ARRANGED_PAIRS_CHART, pairLpTokens } from "@oraichain/oraidex-common";
-import { ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common/build/constant";
+import { PAIRS, pairLpTokens } from "@oraichain/oraidex-common";
+import { INJECTIVE_CONTRACT, ORAIX_CONTRACT, ORAI_INFO, ROUTER_V2_CONTRACT, USDC_CONTRACT } from "@oraichain/oraidex-common/build/constant";
 import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
@@ -40,6 +40,52 @@ import { DbQuery, LowHighPriceOfPairType } from "./db-query";
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
 const ORAIX_USDC = "ORAIX_USDC";
+
+// The pairs are rearranged in the correct order of base and quote
+export const ARRANGED_PAIRS = PAIRS.map((pair) => {
+  const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+  if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === INJECTIVE_CONTRACT))
+    return {
+      ...pair,
+      asset_infos: [
+        ORAI_INFO,
+        {
+          token: {
+            contract_addr: INJECTIVE_CONTRACT
+          }
+        } as AssetInfo
+      ],
+      symbols: ["ORAI", "INJ"]
+    } as PairMapping;
+
+  if (pairDenoms.some((denom) => denom === ORAIX_CONTRACT) && pairDenoms.some((denom) => denom === USDC_CONTRACT))
+    return {
+      ...pair,
+      asset_infos: [
+        {
+          token: {
+            contract_addr: ORAIX_CONTRACT
+          }
+        } as AssetInfo,
+        {
+          token: {
+            contract_addr: USDC_CONTRACT
+          }
+        } as AssetInfo
+      ],
+      symbols: ["ORAIX", "USDC"]
+    } as PairMapping;
+  return pair;
+});
+
+export const ARRANGED_PAIRS_CHART = ARRANGED_PAIRS.map((pair) => {
+  const assets = pair.asset_infos.map(parseAssetInfoOnlyDenom);
+  return {
+    ...pair,
+    symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
+    info: `${assets[0]}-${assets[1]}`
+  };
+});
 
 export function parseSymbolsToTickerId([base, quote]: [string, string]) {
   return `${base}_${quote}`;
