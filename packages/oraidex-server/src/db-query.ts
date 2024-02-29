@@ -1,11 +1,5 @@
-import {
-  BigDecimal,
-  CW20_DECIMALS,
-  oraichainTokens,
-  parseAssetInfoOnlyDenom,
-  parseTokenInfoRawDenom
-} from "@oraichain/oraidex-common";
-import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
+import { BigDecimal, CW20_DECIMALS, oraichainTokens, parseTokenInfoRawDenom } from "@oraichain/oraidex-common";
+import { DuckDb, PoolAmountHistory, SwapOperationData, parseAssetInfoOnlyDenom } from "@oraichain/oraidex-sync";
 import { ARRANGED_PAIRS_CHART, getAssetInfosFromPairString } from "./helper";
 import "./polyfill";
 import { CACHE_KEY, cache } from "./map-cache";
