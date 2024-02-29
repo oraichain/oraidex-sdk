@@ -1,6 +1,12 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { PAIRS, pairLpTokens } from "@oraichain/oraidex-common";
-import { INJECTIVE_CONTRACT, ORAIX_CONTRACT, ORAI_INFO, ROUTER_V2_CONTRACT, USDC_CONTRACT } from "@oraichain/oraidex-common/build/constant";
+import {
+  INJECTIVE_CONTRACT,
+  ORAIX_CONTRACT,
+  ORAI_INFO,
+  ROUTER_V2_CONTRACT,
+  USDC_CONTRACT
+} from "@oraichain/oraidex-common/build/constant";
 import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
@@ -406,12 +412,12 @@ export const getPriceStatisticOfPool = (
   };
 };
 
-export const getBaseAssetInfoFromPairString = (pair: string): AssetInfo => {
+export const getAssetInfosFromPairString = (pair: string): [AssetInfo, AssetInfo] => {
   const modifiedPair = [pair.split("-")[1], pair.split("-")[0]].join("-");
   const pairChart = ARRANGED_PAIRS_CHART.find((p) => p.info === pair || p.info === modifiedPair);
   if (!pairChart) return null;
 
-  return pairChart.asset_infos[0];
+  return pairChart.asset_infos;
 };
 
 export const getPriceAssetByUsdtWithTimestamp = async (asset: AssetInfo, timestamp?: number): Promise<number> => {

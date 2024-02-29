@@ -642,8 +642,32 @@ app.get("/v1/liquidity/historical/chart", async (req: Request<{}, {}, {}, GetHis
     if (!req.query.type) {
       return res.status(400).send("Not enough query params: type");
     }
-    // const historicalChart = await
-    res.status(200).send({ price: 1 });
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getLiquidityChart(req.query);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/v1/liquidity/historical/all-charts", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.type) {
+      return res.status(400).send("Not enough query params: type");
+    }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getLiquidityChartAllPools(req.query);
+    res.status(200).send(result);
   } catch (error) {
     res.status(500).send(error.message);
   }

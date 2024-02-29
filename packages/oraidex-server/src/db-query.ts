@@ -1,6 +1,6 @@
-import { BigDecimal } from "@oraichain/oraidex-common";
+import { BigDecimal, CW20_DECIMALS } from "@oraichain/oraidex-common";
 import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
-import { ARRANGED_PAIRS_CHART, getBaseAssetInfoFromPairString, getPriceAssetByUsdtWithTimestamp } from "./helper";
+import { ARRANGED_PAIRS_CHART, getAssetInfosFromPairString, getPriceAssetByUsdtWithTimestamp } from "./helper";
 import "./polyfill";
 
 export type LowHighPriceOfPairType = {
@@ -111,17 +111,79 @@ export class DbQuery {
     const params = [pair];
     const result = await this.duckDb.conn.all(sql, ...params);
 
-    const baseAssetInfo = getBaseAssetInfoFromPairString(pair);
-    if (!baseAssetInfo) throw new Error(`Cannot find base asset info for pair: ${pair}`);
+    const [baseAssetInfo] = getAssetInfosFromPairString(pair);
+    if (!baseAssetInfo) throw new Error(`Cannot find  asset infos for pair: ${pair}`);
 
     const swapVolume = [];
     for (const item of result) {
       const basePriceInUsdt = await getPriceAssetByUsdtWithTimestamp(baseAssetInfo, item.timestamp);
       swapVolume.push({
         time: item.time,
-        value: new BigDecimal(Math.trunc(basePriceInUsdt * item.value)).div(10 ** 6).toNumber()
+        value: new BigDecimal(Math.trunc(basePriceInUsdt * item.value)).div(10 ** CW20_DECIMALS).toNumber()
       });
     }
     return swapVolume;
+  }
+
+  async getLiquidityChart(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
+    const { pair, type } = query;
+    const assetInfos = getAssetInfosFromPairString(pair);
+    if (!assetInfos) throw new Error(`Cannot find asset infos for pairAddr: ${pair}`);
+
+    const pairObj = await this.duckDb.getPoolByAssetInfos(assetInfos);
+    if (!pairObj) throw new Error(`Cannot find pair for assetInfos: ${JSON.stringify(assetInfos)}`);
+
+    const sql = `SELECT
+                   ANY_VALUE(timestamp) as timestamp,
+                   DATE_TRUNC('${type}', to_timestamp(timestamp)) AS time,
+                   AVG(offerPoolAmount) AS value
+                 FROM lp_amount_history
+                 WHERE pairAddr = ?
+                 GROUP BY DATE_TRUNC('${type}', to_timestamp(timestamp))
+                 ORDER BY timestamp
+                 `;
+    const params = [pairObj.pairAddr];
+    const result = await this.duckDb.conn.all(sql, ...params);
+
+    const liquiditiesAvg = [];
+    for (const item of result) {
+      const basePriceInUsdt = await getPriceAssetByUsdtWithTimestamp(assetInfos[0], item.timestamp);
+      const liquidityInUsdt = new BigDecimal(Math.trunc(basePriceInUsdt * item.value))
+        .div(10 ** CW20_DECIMALS)
+        .mul(2)
+        .toNumber();
+      liquiditiesAvg.push({
+        time: item.time,
+        value: liquidityInUsdt
+      });
+    }
+    return liquiditiesAvg;
+  }
+
+  async getLiquidityChartAllPools(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
+    const { type } = query;
+    const promiseLiquidities = ARRANGED_PAIRS_CHART.map((p) => {
+      return this.getLiquidityChart({ pair: p.info, type });
+    });
+    const result = await Promise.all(promiseLiquidities);
+    const res: {
+      [timestamp: string]: number;
+    } = {};
+    result.flat().reduce((acc, cur) => {
+      const date = new Date(cur.time);
+      const time = date.toISOString();
+      if (!acc[time]) acc[time] = cur.value;
+      else acc[time] += cur.value;
+      return acc;
+    }, res);
+    const totalLiquiditiesChart = [];
+    for (const [time, value] of Object.entries(res)) {
+      totalLiquiditiesChart.push({
+        time,
+        value
+      });
+    }
+
+    return totalLiquiditiesChart.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
   }
 }
