@@ -1,5 +1,5 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { PAIRS, pairLpTokens } from "@oraichain/oraidex-common";
+import { CoinGeckoId, CoinGeckoPrices, PAIRS, oraichainTokens, pairLpTokens } from "@oraichain/oraidex-common";
 import {
   INJECTIVE_CONTRACT,
   ORAIX_CONTRACT,
@@ -42,6 +42,7 @@ import {
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
+import { CACHE_KEY, cache } from "./map-cache";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
@@ -420,45 +421,38 @@ export const getAssetInfosFromPairString = (pair: string): [AssetInfo, AssetInfo
   return pairChart.asset_infos;
 };
 
-export const getPriceAssetByUsdtWithTimestamp = async (asset: AssetInfo, timestamp?: number): Promise<number> => {
-  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(usdtInfo)) return 1;
-  if (parseAssetInfoOnlyDenom(asset) === parseAssetInfoOnlyDenom(oraiInfo)) return await getOraiPrice(timestamp);
-  let foundPair: PairMapping;
+/**
+ * Constructs the URL to retrieve prices from CoinGecko.
+ * @param tokens
+ * @returns
+ */
+export const buildCoinGeckoPricesURL = (tokens: readonly string[]): string =>
+  `https://price.market.orai.io/simple/price?ids=${tokens.join("%2C")}&vs_currencies=usd`;
 
-  // find pair map with usdt
-  foundPair = getPairByAssetInfos([asset, usdtInfo]);
-  if (foundPair) {
-    // assume asset mapped with usdt should be base asset
-    return await getPriceByAsset(foundPair.asset_infos, "base_in_quote", timestamp);
+export const getCoingeckoPrices = async <T extends CoinGeckoId>(
+  tokens: string[],
+  signal?: AbortSignal
+): Promise<CoinGeckoPrices<string>> => {
+  const coingeckoIds = tokens?.length > 0 ? tokens : oraichainTokens.map((t) => t.coinGeckoId);
+  const coingeckoPricesURL = buildCoinGeckoPricesURL(coingeckoIds);
+
+  const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
+
+  // by default not return data then use cached version
+  try {
+    const resp = await fetchRetry(coingeckoPricesURL, { signal });
+    const rawData = (await resp.json()) as {
+      [C in T]?: {
+        usd: number;
+      };
+    };
+    // update cached
+    for (const key in rawData) {
+      prices[key] = rawData[key].usd;
+    }
+  } catch {
+    // remain old cache
+    console.log("error getting coingecko prices: ", prices);
   }
-
-  // find pair map with orai
-  let priceInOrai = 0;
-  foundPair = getPairByAssetInfos([asset, oraiInfo]);
-  if (foundPair) {
-    const ratioDirection: RatioDirection =
-      parseAssetInfoOnlyDenom(foundPair.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
-    priceInOrai = await getPriceByAsset(foundPair.asset_infos, ratioDirection, timestamp);
-  } else {
-    // case 5.1
-    const pairWithAsset = pairs.find((pair) =>
-      pair.asset_infos.some((info) => parseAssetInfoOnlyDenom(info) === parseAssetInfoOnlyDenom(asset))
-    );
-    const otherAssetIndex = pairWithAsset.asset_infos.findIndex(
-      (item) => parseAssetInfoOnlyDenom(item) !== parseAssetInfoOnlyDenom(asset)
-    );
-    const priceAssetVsOtherAsset = await getPriceByAsset(
-      pairWithAsset.asset_infos,
-      otherAssetIndex === 1 ? "base_in_quote" : "quote_in_base",
-      timestamp
-    );
-    const pairOtherAssetVsOrai = getPairByAssetInfos([pairWithAsset.asset_infos[otherAssetIndex], oraiInfo]);
-    const ratioDirection: RatioDirection =
-      parseAssetInfoOnlyDenom(pairOtherAssetVsOrai.asset_infos[0]) === ORAI ? "quote_in_base" : "base_in_quote";
-    priceInOrai =
-      priceAssetVsOtherAsset * (await getPriceByAsset(pairOtherAssetVsOrai.asset_infos, ratioDirection, timestamp));
-  }
-
-  const priceOraiInUsdt = await getOraiPrice(timestamp);
-  return priceInOrai * priceOraiInUsdt;
+  return prices;
 };

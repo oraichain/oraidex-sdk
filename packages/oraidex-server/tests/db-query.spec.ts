@@ -1,6 +1,6 @@
-import { DbQuery } from "./../src/db-query";
 import { DuckDb } from "@oraichain/oraidex-sync";
-import * as helper from "./../src/helper";
+import { CACHE_KEY, cache } from "../src/map-cache";
+import { DbQuery } from "./../src/db-query";
 
 describe("test-db-query", () => {
   it.each<["day" | "week" | "month", bigint, bigint, number[]]>([
@@ -49,7 +49,13 @@ describe("test-db-query", () => {
     ]);
 
     // mock price orai = 1 usdt
-    jest.spyOn(helper, "getPriceAssetByUsdtWithTimestamp").mockResolvedValue(1);
+    const coingeckoPrices = {
+      "oraichain-token": 1,
+      oraidex: 1,
+      tether: 1,
+      "usd-coin": 1
+    };
+    cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
 
     // act
     const result = await dbQuery.getSwapVolume({ pair, type });
@@ -136,7 +142,13 @@ describe("test-db-query", () => {
     ]);
 
     // mock price orai = 1 usdt
-    jest.spyOn(helper, "getPriceAssetByUsdtWithTimestamp").mockResolvedValue(1);
+    const coingeckoPrices = {
+      "oraichain-token": 1,
+      oraidex: 1,
+      tether: 1,
+      "usd-coin": 1
+    };
+    cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
 
     // act
     const result = await dbQuery.getSwapVolumeAllPair({ type });
