@@ -1,5 +1,5 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { PAIRS, pairLpTokens } from "@oraichain/oraidex-common";
+import { CoinGeckoId, CoinGeckoPrices, PAIRS, oraichainTokens, pairLpTokens } from "@oraichain/oraidex-common";
 import {
   INJECTIVE_CONTRACT,
   ORAIX_CONTRACT,
@@ -42,6 +42,7 @@ import {
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
+import { CACHE_KEY, cache } from "./map-cache";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
@@ -461,4 +462,40 @@ export const getPriceAssetByUsdtWithTimestamp = async (asset: AssetInfo, timesta
 
   const priceOraiInUsdt = await getOraiPrice(timestamp);
   return priceInOrai * priceOraiInUsdt;
+};
+
+/**
+ * Constructs the URL to retrieve prices from CoinGecko.
+ * @param tokens
+ * @returns
+ */
+export const buildCoinGeckoPricesURL = (tokens: readonly string[]): string =>
+  `https://price.market.orai.io/simple/price?ids=${tokens.join("%2C")}&vs_currencies=usd`;
+
+export const getCoingeckoPrices = async <T extends CoinGeckoId>(
+  tokens: string[],
+  signal?: AbortSignal
+): Promise<CoinGeckoPrices<string>> => {
+  const coingeckoIds = tokens?.length > 0 ? tokens : oraichainTokens.map((t) => t.coinGeckoId);
+  const coingeckoPricesURL = buildCoinGeckoPricesURL(coingeckoIds);
+
+  const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
+
+  // by default not return data then use cached version
+  try {
+    const resp = await fetchRetry(coingeckoPricesURL, { signal });
+    const rawData = (await resp.json()) as {
+      [C in T]?: {
+        usd: number;
+      };
+    };
+    // update cached
+    for (const key in rawData) {
+      prices[key] = rawData[key].usd;
+    }
+  } catch {
+    // remain old cache
+    console.log("error getting coingecko prices: ", prices);
+  }
+  return prices;
 };

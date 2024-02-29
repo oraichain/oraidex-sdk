@@ -42,6 +42,7 @@ import path from "path";
 import {
   fetchSimulatePrices,
   getAllPoolsInfo,
+  getCoingeckoPrices,
   getDate24hBeforeNow,
   getListLowHighPriceOfPairs,
   getListPoolAmount,
@@ -60,15 +61,12 @@ import { ORAIX_CONTRACT, USDC_CONTRACT, oraichainTokens } from "@oraichain/oraid
 import { DbQuery, GetHistoricalChart, GetSwapHistory } from "./db-query";
 
 // cache
-
-registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
+registerListener(CACHE_KEY.COINGECKO_PRICES, getCoingeckoPrices);
 registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
+registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
 registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 
-// wait 30s to setup all init info before
-setTimeout(() => {
-  updateInterval();
-}, 10000);
+updateInterval();
 
 const app = express();
 app.use(cors());

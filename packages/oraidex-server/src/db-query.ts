@@ -1,7 +1,14 @@
-import { BigDecimal, CW20_DECIMALS } from "@oraichain/oraidex-common";
+import {
+  BigDecimal,
+  CW20_DECIMALS,
+  oraichainTokens,
+  parseAssetInfoOnlyDenom,
+  parseTokenInfoRawDenom
+} from "@oraichain/oraidex-common";
 import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
-import { ARRANGED_PAIRS_CHART, getAssetInfosFromPairString, getPriceAssetByUsdtWithTimestamp } from "./helper";
+import { ARRANGED_PAIRS_CHART, getAssetInfosFromPairString } from "./helper";
 import "./polyfill";
+import { CACHE_KEY, cache } from "./map-cache";
 
 export type LowHighPriceOfPairType = {
   low: number;
@@ -99,6 +106,7 @@ export class DbQuery {
 
   async getSwapVolume(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { pair, type } = query;
+
     const sql = `SELECT
                    ANY_VALUE(timestamp) as timestamp,
                    DATE_TRUNC('${type}', to_timestamp(timestamp)) AS time,
@@ -112,11 +120,14 @@ export class DbQuery {
     const result = await this.duckDb.conn.all(sql, ...params);
 
     const [baseAssetInfo] = getAssetInfosFromPairString(pair);
-    if (!baseAssetInfo) throw new Error(`Cannot find  asset infos for pair: ${pair}`);
-
+    const baseTokenInfo = oraichainTokens.find(
+      (t) => parseTokenInfoRawDenom(t) === parseAssetInfoOnlyDenom(baseAssetInfo)
+    );
+    if (!baseTokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(baseAssetInfo)}`);
+    const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
+    const basePriceInUsdt = prices[baseTokenInfo.coinGeckoId] ?? 0;
     const swapVolume = [];
     for (const item of result) {
-      const basePriceInUsdt = await getPriceAssetByUsdtWithTimestamp(baseAssetInfo, item.timestamp);
       swapVolume.push({
         time: item.time,
         value: new BigDecimal(Math.trunc(basePriceInUsdt * item.value)).div(10 ** CW20_DECIMALS).toNumber()
@@ -145,9 +156,16 @@ export class DbQuery {
     const params = [pairObj.pairAddr];
     const result = await this.duckDb.conn.all(sql, ...params);
 
+    const baseTokenInfo = oraichainTokens.find(
+      (t) => parseTokenInfoRawDenom(t) === parseAssetInfoOnlyDenom(assetInfos[0])
+    );
+    if (!baseTokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(assetInfos[0])}`);
+
+    const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
+    const basePriceInUsdt = prices[baseTokenInfo.coinGeckoId] ?? 0;
+
     const liquiditiesAvg = [];
     for (const item of result) {
-      const basePriceInUsdt = await getPriceAssetByUsdtWithTimestamp(assetInfos[0], item.timestamp);
       const liquidityInUsdt = new BigDecimal(Math.trunc(basePriceInUsdt * item.value))
         .div(10 ** CW20_DECIMALS)
         .mul(2)
