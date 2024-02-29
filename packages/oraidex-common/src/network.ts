@@ -50,7 +50,8 @@ import {
   NEUTARO_ORAICHAIN_DENOM,
   OCH_ETH_CONTRACT,
   OCH_CONTRACT,
-  ORAIDEX_BID_POOL_CONTRACT
+  ORAIDEX_BID_POOL_CONTRACT,
+  ORAIX_ETH_CONTRACT
 } from "./constant";
 
 export type NetworkName =
@@ -408,6 +409,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "oraix",
       type: "cw20",
       contractAddress: ORAIX_CONTRACT,
+      bridgeTo: ["0x01"],
       coinGeckoId: "oraidex",
       coinDecimals: 6,
       coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
@@ -611,6 +613,15 @@ export const chainInfos: CustomChainInfo[] = [
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl:
           "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
+      },
+      {
+        coinDenom: "ORAIX",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + ORAIX_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 18,
+        coinGeckoId: "oraidex",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
       }
     ],
     txExplorer: {
@@ -897,6 +908,16 @@ export const chainInfos: CustomChainInfo[] = [
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl:
           "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
+      },
+      {
+        coinDenom: "ORAIX",
+        coinMinimalDenom: "erc20_oraix",
+        contractAddress: ORAIX_ETH_CONTRACT,
+        coinDecimals: 18,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "oraidex",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
       }
     ],
     txExplorer: {
