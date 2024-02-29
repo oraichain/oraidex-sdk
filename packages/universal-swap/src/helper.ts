@@ -393,17 +393,10 @@ export const simulateSwap = async (query: {
   console.log("operations: ", operations);
   try {
     let finalAmount = amount;
-    let isSimulatingRatio = false;
-    // hard-code for tron because the WTRX/USDT pool is having a simulation problem (returning zero / error when simulating too small value of WTRX)
-    if (fromInfo.coinGeckoId === "tron" && amount === toAmount(1, fromInfo.decimals).toString()) {
-      finalAmount = toAmount(10, fromInfo.decimals).toString();
-      isSimulatingRatio = true;
-    }
     const data = await routerClient.simulateSwapOperations({
       offerAmount: finalAmount,
       operations
     });
-    if (!isSimulatingRatio) return data;
     return { amount: data.amount.substring(0, data.amount.length - 1) };
   } catch (error) {
     throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
