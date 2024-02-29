@@ -409,6 +409,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "oraix",
       type: "cw20",
       contractAddress: ORAIX_CONTRACT,
+      bridgeTo: ["0x01"],
       coinGeckoId: "oraidex",
       coinDecimals: 6,
       coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
