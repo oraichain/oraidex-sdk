@@ -193,8 +193,9 @@ app.get("/tickers", async (req, res) => {
         base: symbols[baseIndex],
         target: symbols[targetIndex],
         liquidity_in_usd: new BigDecimal(liquidityInUsd).div(10 ** 6).toString(),
-        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${to ? to.denom : "usdt"
-          }`
+        pair_url: `${BASE_API_ORAIDEX_UNIVERSAL_SWAP_URL}?from=${from ? from.denom : "orai"}&to=${
+          to ? to.denom : "usdt"
+        }`
       };
       data.push(tickerInfo);
     }
@@ -653,6 +654,9 @@ app.get("/v1/volume/historical/all-charts", async (req: Request<{}, {}, {}, GetH
     if (!req.query.type) {
       return res.status(400).send("Not enough query params: type");
     }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
 
     const duckDb = DuckDb.instances;
     const dbQuery = new DbQuery(duckDb);
@@ -667,6 +671,9 @@ app.get("/v1/volume/historical/chart", async (req: Request<{}, {}, {}, GetHistor
   try {
     if (!req.query.pair || !req.query.type) {
       return res.status(400).send("Not enough query params: pair || type");
+    }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
     }
 
     const duckDb = DuckDb.instances;

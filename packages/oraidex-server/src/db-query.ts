@@ -1,7 +1,7 @@
-import { PAIRS_CHART, BigDecimal } from "@oraichain/oraidex-common";
-import { getBaseAssetInfoFromPairString, getPriceAssetByUsdtWithTimestamp } from "./helper";
-import "./polyfill";
+import { BigDecimal } from "@oraichain/oraidex-common";
 import { DuckDb, PoolAmountHistory, SwapOperationData } from "@oraichain/oraidex-sync";
+import { ARRANGED_PAIRS_CHART, getBaseAssetInfoFromPairString, getPriceAssetByUsdtWithTimestamp } from "./helper";
+import "./polyfill";
 
 export type LowHighPriceOfPairType = {
   low: number;
@@ -72,7 +72,7 @@ export class DbQuery {
 
   async getSwapVolumeAllPair(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { type } = query;
-    const promiseVolumes = PAIRS_CHART.map((p) => {
+    const promiseVolumes = ARRANGED_PAIRS_CHART.map((p) => {
       return this.getSwapVolume({ pair: p.info, type });
     });
     const result = await Promise.all(promiseVolumes);
@@ -80,8 +80,10 @@ export class DbQuery {
       [timestamp: string]: number;
     } = {};
     result.flat().reduce((acc, cur) => {
-      if (!acc[cur.time]) acc[cur.time] = cur.value;
-      else acc[cur.time] += cur.value;
+      const date = new Date(cur.time);
+      const time = date.toISOString();
+      if (!acc[time]) acc[time] = cur.value;
+      else acc[time] += cur.value;
       return acc;
     }, res);
     const totalVolumeChart = [];
@@ -92,7 +94,7 @@ export class DbQuery {
       });
     }
 
-    return totalVolumeChart;
+    return totalVolumeChart.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
   }
 
   async getSwapVolume(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
