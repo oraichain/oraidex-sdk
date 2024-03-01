@@ -61,7 +61,7 @@ class WriteOrders extends WriteData {
 }
 
 class OraiDexSync {
-  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) { }
+  protected constructor(private readonly duckDb: DuckDb, private readonly rpcUrl: string, private readonly env: Env) {}
 
   public static async create(duckDb: DuckDb, rpcUrl: string, env: Env): Promise<OraiDexSync> {
     return new OraiDexSync(duckDb, rpcUrl, env);
@@ -187,6 +187,7 @@ class OraiDexSync {
       await this.duckDb.createEarningHistoryTable();
       await this.duckDb.addTimestampColToPoolAprTable();
       await this.duckDb.addAprBoostColToPoolAprTable();
+      await this.duckDb.addSenderColToSwapOpsTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic

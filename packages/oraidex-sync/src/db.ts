@@ -604,4 +604,8 @@ export class DuckDb {
     const result = await this.conn.all("SELECT count(*) as count from lp_amount_history");
     return result[0].count;
   }
+
+  async addSenderColToSwapOpsTable() {
+    await this.conn.run("ALTER TABLE swap_ops_data ADD COLUMN IF NOT EXISTS sender VARCHAR DEFAULT NULL");
+  }
 }
