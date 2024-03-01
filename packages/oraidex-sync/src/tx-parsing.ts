@@ -86,6 +86,7 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   const returnAmounts: string[] = [];
   const taxAmounts: string[] = [];
   const spreadAmounts: string[] = [];
+  const senders: string[] = [];
   for (const attrs of wasmAttributes) {
     if (!attrs.find((attr) => attr.key === "action" && attr.value === "swap")) continue;
     for (const attr of attrs) {
@@ -104,10 +105,21 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
         commissionAmounts.push(attr.value);
       } else if (attr.key === "spread_amount") {
         spreadAmounts.push(attr.value);
+      } else if (attr.key === "to") {
+        senders.push(attr.value);
       }
     }
   }
-  const swapAttrs = [offerAmounts, offerDenoms, askDenoms, returnAmounts, taxAmounts, commissionAmounts, spreadAmounts];
+  const swapAttrs = [
+    offerAmounts,
+    offerDenoms,
+    askDenoms,
+    returnAmounts,
+    taxAmounts,
+    commissionAmounts,
+    spreadAmounts,
+    senders
+  ];
   // faulty swap attributes, wont collect
   if (!swapAttrs.every((array) => array.length === askDenoms.length)) return [];
   for (let i = 0; i < askDenoms.length; i++) {
@@ -132,7 +144,8 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
       taxAmount: parseInt(taxAmounts[i]),
       timestamp: txData.timestamp,
       txhash: txData.txhash,
-      txheight: txData.txheight
+      txheight: txData.txheight,
+      sender: senders[i]
     });
   }
   return swapData;
