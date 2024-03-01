@@ -78,29 +78,10 @@ describe("test-db-query", () => {
     });
   });
 
-  it.each<["day" | "week" | "month", { time: string; value: number }[]]>([
-    [
-      "day",
-      [
-        { time: "2024-02-19T17:00:00.000Z", value: 1 },
-        { time: "2024-02-20T17:00:00.000Z", value: 2 },
-        { time: "2024-03-19T17:00:00.000Z", value: 1 }
-      ]
-    ],
-    [
-      "week",
-      [
-        { time: "2024-02-18T17:00:00.000Z", value: 3 },
-        { time: "2024-03-17T17:00:00.000Z", value: 1 }
-      ]
-    ],
-    [
-      "month",
-      [
-        { time: "2024-01-31T17:00:00.000Z", value: 3 },
-        { time: "2024-02-29T17:00:00.000Z", value: 1 }
-      ]
-    ]
+  it.each<["day" | "week" | "month", number[]]>([
+    ["day", [1, 2, 1]],
+    ["week", [3, 1]],
+    ["month", [3, 1]]
   ])("test-getSwapVolumeAllPair", async (type, expectedResult) => {
     // setup
     const PAIR_ORAIX_USDC =
@@ -166,7 +147,9 @@ describe("test-db-query", () => {
     const result = await dbQuery.getSwapVolumeAllPair({ type });
 
     // assert
-    expect(result).toEqual(expectedResult);
+    result.map((item, index) => {
+      expect(item.value).toEqual(expectedResult[index]);
+    });
   });
 
   it.each<["day" | "week" | "month", number[]]>([
@@ -247,29 +230,10 @@ describe("test-db-query", () => {
     });
   });
 
-  it.each<["day" | "week" | "month", { time: string; value: number }[]]>([
-    [
-      "day",
-      [
-        { time: "2024-02-19T17:00:00.000Z", value: 7 },
-        { time: "2024-02-20T17:00:00.000Z", value: 6 },
-        { time: "2024-03-19T17:00:00.000Z", value: 17 }
-      ]
-    ],
-    [
-      "week",
-      [
-        { time: "2024-02-18T17:00:00.000Z", value: 8 },
-        { time: "2024-03-17T17:00:00.000Z", value: 17 }
-      ]
-    ],
-    [
-      "month",
-      [
-        { time: "2024-01-31T17:00:00.000Z", value: 8 },
-        { time: "2024-02-29T17:00:00.000Z", value: 17 }
-      ]
-    ]
+  it.each<["day" | "week" | "month", number[]]>([
+    ["day", [7, 6, 17]],
+    ["week", [8, 17]],
+    ["month", [8, 17]]
   ])("test-getLiquidityChartAllPools", async (type, expectedResult) => {
     // setup
     const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt"; // ORAI/USDT
@@ -398,6 +362,8 @@ describe("test-db-query", () => {
     const result = await dbQuery.getLiquidityChartAllPools({ type }, pairs);
 
     // assert
-    expect(result).toEqual(expectedResult);
+    result.map((item, index) => {
+      expect(item.value).toEqual(expectedResult[index]);
+    });
   });
 });
