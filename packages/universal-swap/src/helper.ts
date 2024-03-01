@@ -403,7 +403,7 @@ export const simulateSwap = async (query: {
       offerAmount: finalAmount,
       operations
     });
-    return { amount: data.amount.substring(0, data.amount.length - 1) };
+    return data;
   } catch (error) {
     throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
   }

@@ -946,7 +946,7 @@ describe("test universal swap handler functions", () => {
 
   it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
     ["oraichain-token", "oraichain-token", "1000000", "1000000"],
-    ["tron", "airight", "1000000", "100000"]
+    ["tron", "airight", "100000", "100000"]
   ])(
     "test simulateSwap-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
     async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {
