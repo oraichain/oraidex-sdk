@@ -85,7 +85,14 @@ export const ARRANGED_PAIRS = PAIRS.map((pair) => {
   return pair;
 });
 
-export const ARRANGED_PAIRS_CHART = ARRANGED_PAIRS.map((pair) => {
+export type AllPairsInfo = {
+  symbol: string;
+  info: string;
+  asset_infos: [AssetInfo, AssetInfo];
+  symbols: [string, string];
+  factoryV1?: boolean;
+};
+export const ARRANGED_PAIRS_CHART: AllPairsInfo[] = ARRANGED_PAIRS.map((pair) => {
   const assets = pair.asset_infos.map(parseAssetInfoOnlyDenom);
   return {
     ...pair,

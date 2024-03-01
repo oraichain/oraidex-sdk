@@ -40,6 +40,7 @@ import fs from "fs";
 import { isEqual } from "lodash";
 import path from "path";
 import {
+  ARRANGED_PAIRS_CHART,
   fetchSimulatePrices,
   getAllPoolsInfo,
   getCoingeckoPrices,
@@ -664,7 +665,7 @@ app.get("/v1/liquidity/historical/all-charts", async (req: Request<{}, {}, {}, G
 
     const duckDb = DuckDb.instances;
     const dbQuery = new DbQuery(duckDb);
-    const result = await dbQuery.getLiquidityChartAllPools(req.query);
+    const result = await dbQuery.getLiquidityChartAllPools(req.query, ARRANGED_PAIRS_CHART);
     res.status(200).send(result);
   } catch (error) {
     res.status(500).send(error.message);

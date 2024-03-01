@@ -347,13 +347,13 @@ export class DuckDb {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);
     let pool = await this.conn.all(
-      `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+      "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
       firstAssetInfo,
       secondAssetInfo
     );
     if (pool.length === 0)
       pool = await this.conn.all(
-        `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+        "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
         secondAssetInfo,
         firstAssetInfo
       );

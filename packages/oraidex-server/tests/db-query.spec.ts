@@ -1,8 +1,20 @@
-import { DuckDb } from "@oraichain/oraidex-sync";
+import { DuckDb, PairInfoData } from "@oraichain/oraidex-sync";
 import { CACHE_KEY, cache } from "../src/map-cache";
 import { DbQuery } from "./../src/db-query";
+import {
+  ORAI,
+  ORAIX_CONTRACT,
+  ORAIX_INFO,
+  ORAI_INFO,
+  USDC_CONTRACT,
+  USDC_INFO,
+  USDT_CONTRACT
+} from "@oraichain/oraidex-common";
+import { AllPairsInfo } from "../src/helper";
 
 describe("test-db-query", () => {
+  afterEach(jest.restoreAllMocks);
+
   it.each<["day" | "week" | "month", bigint, bigint, number[]]>([
     ["day", 1000000n, 2000000n, [1, 2, 2]],
     ["week", 1000000n, 2000000n, [3, 2]],
@@ -152,6 +164,238 @@ describe("test-db-query", () => {
 
     // act
     const result = await dbQuery.getSwapVolumeAllPair({ type });
+
+    // assert
+    expect(result).toEqual(expectedResult);
+  });
+
+  it.each<["day" | "week" | "month", number[]]>([
+    ["day", [3, 6, 9]],
+    ["week", [4, 9]],
+    ["month", [4, 9]]
+  ])("test-getLiquidityChart", async (type, expectedResult) => {
+    // setup
+    const pair = "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh";
+    const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt"; // ORAI/USDT
+
+    const duckdb = await DuckDb.create(":memory:");
+    const dbQuery = new DbQuery(duckdb);
+
+    await duckdb.createLpAmountHistoryTable();
+    await duckdb.insertPoolAmountHistory([
+      {
+        offerPoolAmount: 1000000n,
+        askPoolAmount: 1n,
+        height: 1,
+        timestamp: 1708387200, // Tuesday, 20 February 2024 00:00:00
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "1"
+      },
+      {
+        offerPoolAmount: 2000000n,
+        askPoolAmount: 1n,
+        height: 2,
+        timestamp: 1708387201, // Tuesday, 20 February 2024 00:00:01
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "2"
+      },
+      {
+        offerPoolAmount: 3000000n,
+        askPoolAmount: 1n,
+        height: 3,
+        timestamp: 1708473600, // Tuesday, 21 February 2024 00:00:00
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "3"
+      },
+      {
+        offerPoolAmount: 4000000n,
+        askPoolAmount: 1n,
+        height: 4,
+        timestamp: 1710906613, // Wednesday, 20 March 2024 03:50:13
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "4"
+      },
+      {
+        offerPoolAmount: 5000000n,
+        askPoolAmount: 1n,
+        height: 5,
+        timestamp: 1710906614, // Wednesday, 20 March 2024 03:50:14
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "5"
+      }
+    ]);
+
+    jest.spyOn(duckdb, "getPoolByAssetInfos").mockResolvedValue({ pairAddr } as PairInfoData);
+
+    // mock price orai = 1 usdt
+    const coingeckoPrices = {
+      "oraichain-token": 1
+    };
+    cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
+
+    // act
+    const result = await dbQuery.getLiquidityChart({ pair, type });
+
+    // assert
+    result.map((item, index) => {
+      expect(item.value).toEqual(expectedResult[index]);
+    });
+  });
+
+  it.each<["day" | "week" | "month", { time: string; value: number }[]]>([
+    [
+      "day",
+      [
+        { time: "2024-02-19T17:00:00.000Z", value: 7 },
+        { time: "2024-02-20T17:00:00.000Z", value: 6 },
+        { time: "2024-03-19T17:00:00.000Z", value: 17 }
+      ]
+    ],
+    [
+      "week",
+      [
+        { time: "2024-02-18T17:00:00.000Z", value: 8 },
+        { time: "2024-03-17T17:00:00.000Z", value: 17 }
+      ]
+    ],
+    [
+      "month",
+      [
+        { time: "2024-01-31T17:00:00.000Z", value: 8 },
+        { time: "2024-02-29T17:00:00.000Z", value: 17 }
+      ]
+    ]
+  ])("test-getLiquidityChartAllPools", async (type, expectedResult) => {
+    // setup
+    const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt"; // ORAI/USDT
+    const pairAddrOraixUsdc = "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg"; // ORAIX/USDC
+
+    const duckdb = await DuckDb.create(":memory:");
+    const dbQuery = new DbQuery(duckdb);
+
+    await duckdb.createLpAmountHistoryTable();
+    await duckdb.insertPoolAmountHistory([
+      {
+        offerPoolAmount: 1000000n,
+        askPoolAmount: 1n,
+        height: 1,
+        timestamp: 1708387200, // Tuesday, 20 February 2024 00:00:00
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "1"
+      },
+      {
+        offerPoolAmount: 2000000n,
+        askPoolAmount: 1n,
+        height: 2,
+        timestamp: 1708387201, // Tuesday, 20 February 2024 00:00:01
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "2"
+      },
+      {
+        offerPoolAmount: 2000000n,
+        askPoolAmount: 1n,
+        height: 2,
+        timestamp: 1708387201, // Tuesday, 20 February 2024 00:00:01
+        totalShare: "1",
+        pairAddr: pairAddrOraixUsdc,
+        uniqueKey: "2.1"
+      },
+      {
+        offerPoolAmount: 3000000n,
+        askPoolAmount: 1n,
+        height: 3,
+        timestamp: 1708473600, // Tuesday, 21 February 2024 00:00:00
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "3"
+      },
+      {
+        offerPoolAmount: 4000000n,
+        askPoolAmount: 1n,
+        height: 4,
+        timestamp: 1710906613, // Wednesday, 20 March 2024 03:50:13
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "4"
+      },
+      {
+        offerPoolAmount: 4000000n,
+        askPoolAmount: 1n,
+        height: 4,
+        timestamp: 1710906613, // Wednesday, 20 March 2024 03:50:13
+        totalShare: "1",
+        pairAddr: pairAddrOraixUsdc,
+        uniqueKey: "4.1"
+      },
+      {
+        offerPoolAmount: 5000000n,
+        askPoolAmount: 1n,
+        height: 5,
+        timestamp: 1710906614, // Wednesday, 20 March 2024 03:50:14
+        totalShare: "1",
+        pairAddr,
+        uniqueKey: "5"
+      }
+    ]);
+
+    // insert pair orai/usdt & oraix/usdc
+    await duckdb.createPairInfosTable();
+    await duckdb.insertPairInfos([
+      {
+        firstAssetInfo: JSON.stringify(ORAI_INFO),
+        secondAssetInfo: JSON.stringify({ token: { contract_addr: USDT_CONTRACT } }),
+        commissionRate: "1",
+        pairAddr: pairAddr,
+        liquidityAddr: "1",
+        oracleAddr: "1",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1"
+      },
+      {
+        firstAssetInfo: JSON.stringify({ token: { contract_addr: ORAIX_CONTRACT } }),
+        secondAssetInfo: JSON.stringify({ token: { contract_addr: USDC_CONTRACT } }),
+        commissionRate: "1",
+        pairAddr: pairAddrOraixUsdc,
+        liquidityAddr: "2",
+        oracleAddr: "3",
+        symbols: "1",
+        fromIconUrl: "1",
+        toIconUrl: "1"
+      }
+    ]);
+
+    // mock price orai = 1 usdt
+    const coingeckoPrices = {
+      "oraichain-token": 1,
+      oraidex: 1
+    };
+    cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
+
+    const pairs: AllPairsInfo[] = [
+      {
+        symbol: "orai/usdt",
+        info: `${ORAI}-${USDT_CONTRACT}`,
+        asset_infos: [ORAI_INFO, { token: { contract_addr: USDT_CONTRACT } }],
+        symbols: ["ORAI", "USDT"]
+      },
+      {
+        symbol: "oraix/usdc",
+        info: `${ORAIX_CONTRACT}-${USDC_CONTRACT}`,
+        asset_infos: [ORAIX_INFO, USDC_INFO],
+        symbols: ["ORAIX", "USDC"]
+      }
+    ];
+
+    // act
+    const result = await dbQuery.getLiquidityChartAllPools({ type }, pairs);
 
     // assert
     expect(result).toEqual(expectedResult);

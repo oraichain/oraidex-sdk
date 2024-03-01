@@ -1,6 +1,6 @@
 import { BigDecimal, CW20_DECIMALS, oraichainTokens, parseTokenInfoRawDenom } from "@oraichain/oraidex-common";
 import { DuckDb, PoolAmountHistory, SwapOperationData, parseAssetInfoOnlyDenom } from "@oraichain/oraidex-sync";
-import { ARRANGED_PAIRS_CHART, getAssetInfosFromPairString } from "./helper";
+import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString } from "./helper";
 import "./polyfill";
 import { CACHE_KEY, cache } from "./map-cache";
 
@@ -65,7 +65,7 @@ export class DbQuery {
   async getSwapHistory(query: GetSwapHistory): Promise<SwapOperationData[]> {
     const { limit, offerDenom, askDenom } = query;
     const sql =
-      "SELECT * FROM swap_ops_data WHERE (offerDenom = ? AND askDenom = ?) OR (offerDenom = ? AND askDenom = ?) ORDER BY txheight LIMIT ?";
+      "SELECT * FROM swap_ops_data WHERE (offerDenom = ? AND askDenom = ?) OR (offerDenom = ? AND askDenom = ?) ORDER BY txheight DESC LIMIT ?";
     const params = [askDenom, offerDenom, offerDenom, askDenom, limit ? Math.min(100, parseInt(limit)) : 20];
     const result = (await this.duckDb.conn.all(sql, ...params)) as SwapOperationData[];
     return result;
@@ -172,9 +172,12 @@ export class DbQuery {
     return liquiditiesAvg;
   }
 
-  async getLiquidityChartAllPools(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
+  async getLiquidityChartAllPools(
+    query: GetHistoricalChart,
+    pairs: AllPairsInfo[]
+  ): Promise<HistoricalChartResponse[]> {
     const { type } = query;
-    const promiseLiquidities = ARRANGED_PAIRS_CHART.map((p) => {
+    const promiseLiquidities = pairs.map((p) => {
       return this.getLiquidityChart({ pair: p.info, type });
     });
     const result = await Promise.all(promiseLiquidities);
