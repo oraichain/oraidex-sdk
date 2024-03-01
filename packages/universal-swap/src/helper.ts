@@ -36,12 +36,14 @@ import {
   isInPairList,
   BigDecimal,
   NEUTARO_INFO,
-  USDC_INFO
+  USDC_INFO,
+  network,
+  ORAIX_ETH_CONTRACT
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
 import {
   AssetInfo,
-  OraiswapRouterClient,
+  OraiswapRouterQueryClient,
   OraiswapRouterReadOnlyInterface,
   OraiswapTokenQueryClient
 } from "@oraichain/oraidex-contracts-sdk";
@@ -98,7 +100,15 @@ export const swapEvmRoutes: {
     [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
     [`${WRAP_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT],
     // TODO: hardcode fix eth -> weth (oraichain)
-    [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT]
+    [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT],
+    [`${USDC_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [USDC_ETH_CONTRACT, USDT_ETH_CONTRACT],
+    [`${USDC_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [USDC_ETH_CONTRACT, WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${USDT_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [USDT_ETH_CONTRACT, WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+
+    [`${WRAP_ETH_CONTRACT}-${ORAIX_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAIX_ETH_CONTRACT],
+    [`${ORAIX_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [ORAIX_ETH_CONTRACT, WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${ORAIX_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [ORAIX_ETH_CONTRACT, WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
+    [`${ORAIX_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [ORAIX_ETH_CONTRACT, WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT]
   }
 };
 
@@ -389,17 +399,10 @@ export const simulateSwap = async (query: {
   console.log("operations: ", operations);
   try {
     let finalAmount = amount;
-    let isSimulatingRatio = false;
-    // hard-code for tron because the WTRX/USDT pool is having a simulation problem (returning zero / error when simulating too small value of WTRX)
-    if (fromInfo.coinGeckoId === "tron" && amount === toAmount(1, fromInfo.decimals).toString()) {
-      finalAmount = toAmount(10, fromInfo.decimals).toString();
-      isSimulatingRatio = true;
-    }
     const data = await routerClient.simulateSwapOperations({
       offerAmount: finalAmount,
       operations
     });
-    if (!isSimulatingRatio) return data;
     return { amount: data.amount.substring(0, data.amount.length - 1) };
   } catch (error) {
     throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
@@ -549,15 +552,18 @@ export const checkFeeRelayerNotOrai = async (query: {
 // verify balance
 export const checkBalanceChannelIbc = async (
   ibcInfo: IBCInfo,
+  fromToken: TokenItemType,
   toToken: TokenItemType,
   toSimulateAmount: string,
-  ics20Client: CwIcs20LatestReadOnlyInterface
+  client: CosmWasmClient,
+  ibcWasmContract: string
 ) => {
   try {
     let pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, toToken.denom);
     if (toToken.prefix && toToken.contractAddress) {
       pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, `${toToken.prefix}${toToken.contractAddress}`);
     }
+    const ics20Client = new CwIcs20LatestQueryClient(client, ibcWasmContract);
     let balance: Amount;
     try {
       const { balance: channelBalance } = await ics20Client.channelWithKey({
@@ -574,18 +580,27 @@ export const checkBalanceChannelIbc = async (
     if ("native" in balance) {
       const pairMapping = await ics20Client.pairMapping({ key: pairKey });
       const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
-      const _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
-      if (trueBalance < _toAmount) {
-        throw generateError(`pair key is not enough balance!`);
+      let _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
+      if (fromToken.coinGeckoId !== toToken.coinGeckoId) {
+        const fromTokenInfo = getTokenOnOraichain(fromToken.coinGeckoId);
+        const toTokenInfo = getTokenOnOraichain(toToken.coinGeckoId);
+        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        if (!fromTokenInfo || !toTokenInfo)
+          throw generateError(
+            `Error in checking balance channel ibc: cannot simulate from: ${fromToken.coinGeckoId} to: ${toToken.coinGeckoId}`
+          );
+        const { amount } = await simulateSwap({
+          fromInfo: fromTokenInfo,
+          toInfo: toTokenInfo,
+          amount: toAmount(_toAmount, fromTokenInfo.decimals).toString(),
+          routerClient
+        });
+        _toAmount = toDisplay(amount, fromTokenInfo.decimals);
       }
+      if (trueBalance < _toAmount) throw generateError(`pair key is not enough balance!`);
     }
   } catch (error) {
-    // console.log({ CheckBalanceChannelIbcErrors: error });
-    throw generateError(
-      `Error in checking balance channel ibc: ${{
-        CheckBalanceChannelIbcErrors: error
-      }}`
-    );
+    throw generateError(`Error in checking balance channel ibc: ${JSON.stringify(error)}`);
   }
 };
 
@@ -610,7 +625,6 @@ export const checkBalanceIBCOraichain = async (
   client: CosmWasmClient,
   ibcWasmContract: string
 ) => {
-  const ics20Client = new CwIcs20LatestQueryClient(client, ibcWasmContract);
   // ORAI ( ETH ) -> check ORAI (ORAICHAIN) -> ORAI (BSC)
   // no need to check this case because users will swap directly. This case should be impossible because it is only called when transferring from evm to other networks
   if (from.chainId === "Oraichain" && to.chainId === from.chainId) return;
@@ -627,7 +641,7 @@ export const checkBalanceIBCOraichain = async (
   if (to.chainId === "0x01" || to.chainId === "0x38" || to.chainId === "0x2b6653dc") {
     const ibcInfo: IBCInfo | undefined = getIbcInfo("Oraichain", to.chainId);
     if (!ibcInfo) throw generateError("IBC Info error when checking ibc balance");
-    await checkBalanceChannelIbc(ibcInfo, to, toSimulateAmount, ics20Client);
+    await checkBalanceChannelIbc(ibcInfo, from, to, toSimulateAmount, client, ibcWasmContract);
   }
 };
 

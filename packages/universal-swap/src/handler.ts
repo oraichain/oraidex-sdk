@@ -359,7 +359,7 @@ export class UniversalSwapHandler {
   // TODO: write test cases
   async swapAndTransferToOtherNetworks(universalSwapType: UniversalSwapType) {
     let encodedObjects: EncodeObject[];
-    const { originalToToken, simulateAmount, sender } = this.swapData;
+    const { originalToToken, originalFromToken, simulateAmount, sender } = this.swapData;
     if (!this.config.cosmosWallet)
       throw generateError("Cannot transfer and swap if the cosmos wallet is not initialized");
     // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
@@ -398,8 +398,14 @@ export class UniversalSwapHandler {
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
     const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
-    const ics20Client = new CwIcs20LatestQueryClient(client, this.getCwIcs20ContractAddr());
-    await checkBalanceChannelIbc(ibcInfo, originalToToken, simulateAmount, ics20Client);
+    await checkBalanceChannelIbc(
+      ibcInfo,
+      originalFromToken,
+      originalToToken,
+      simulateAmount,
+      client,
+      this.getCwIcs20ContractAddr()
+    );
 
     // handle sign and broadcast transactions
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
@@ -426,27 +432,6 @@ export class UniversalSwapHandler {
       { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
       {}
     );
-
-    await checkBalanceIBCOraichain(
-      originalToToken,
-      originalFromToken,
-      fromAmount,
-      simulateAmount,
-      client,
-      this.getCwIcs20ContractAddr()
-    );
-
-    const routerClient = new OraiswapRouterQueryClient(client, network.router);
-    const isSufficient = await checkFeeRelayer({
-      originalFromToken,
-      fromAmount,
-      relayerFee,
-      routerClient
-    });
-    if (!isSufficient)
-      throw generateError(
-        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
-      );
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
     // first case: BNB (bsc) <-> USDT (bsc), then swappable
@@ -485,6 +470,28 @@ export class UniversalSwapHandler {
     if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(originalFromToken.coinGeckoId)) {
       return this.evmSwap(evmSwapData);
     }
+
+    await checkBalanceIBCOraichain(
+      originalToToken,
+      originalFromToken,
+      fromAmount,
+      simulateAmount,
+      client,
+      this.getCwIcs20ContractAddr()
+    );
+
+    const routerClient = new OraiswapRouterQueryClient(client, network.router);
+    const isSufficient = await checkFeeRelayer({
+      originalFromToken,
+      fromAmount,
+      relayerFee,
+      routerClient
+    });
+    if (!isSufficient)
+      throw generateError(
+        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+      );
+
     return this.transferEvmToIBC(swapRoute);
   }
 
