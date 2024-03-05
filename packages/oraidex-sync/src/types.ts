@@ -22,6 +22,7 @@ export type SwapOperationData = {
   returnAmount: number | bigint;
   spreadAmount: number;
   taxAmount: number;
+  sender?: string;
   basePoolAmount?: number | bigint;
   quotePoolAmount?: number | bigint;
 } & BasicTxData;

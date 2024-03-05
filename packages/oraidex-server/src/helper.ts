@@ -1,40 +1,105 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { ROUTER_V2_CONTRACT } from "@oraichain/oraidex-common/build/constant";
+import { CoinGeckoId, CoinGeckoPrices, PAIRS, oraichainTokens, pairLpTokens } from "@oraichain/oraidex-common";
+import {
+  INJECTIVE_CONTRACT,
+  ORAIX_CONTRACT,
+  ORAI_INFO,
+  ROUTER_V2_CONTRACT,
+  USDC_CONTRACT
+} from "@oraichain/oraidex-common/build/constant";
 import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
-  injAddress,
+  DuckDb,
   ORAI,
+  PairInfoData,
+  PairInfoDataResponse,
+  PairMapping,
+  PoolAmountHistory,
+  RatioDirection,
+  calculatePriceByPool,
+  findPairAddress,
+  getAllFees,
+  getAllVolume24h,
+  getAvgPoolLiquidities,
+  getOraiPrice,
+  getPairByAssetInfos,
+  getPoolAmounts,
+  getPoolAprsFromDuckDb,
+  getPoolLiquidities,
+  getPoolsFromDuckDb,
+  getPriceByAsset,
+  injAddress,
   oraiInfo,
   oraixCw20Address,
-  PairMapping,
   pairs,
+  pairsWithDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
   usdcCw20Address,
-  getAllFees,
-  getAllVolume24h,
-  getPoolAmounts,
-  getPoolLiquidities,
-  PairInfoDataResponse,
-  getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb,
-  pairsWithDenom,
-  DuckDb,
-  PoolAmountHistory,
-  calculatePriceByPool,
-  PairInfoData,
-  findPairAddress,
-  getAvgPoolLiquidities
+  usdtInfo
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
 import { DbQuery, LowHighPriceOfPairType } from "./db-query";
-import { pairLpTokens } from "@oraichain/oraidex-common";
+import { CACHE_KEY, cache } from "./map-cache";
 
 const rpcUrl = process.env.RPC_URL || "https://rpc.orai.io";
 const ORAI_INJ = "ORAI_INJ";
 const ORAIX_USDC = "ORAIX_USDC";
+
+// The pairs are rearranged in the correct order of base and quote
+export const ARRANGED_PAIRS = PAIRS.map((pair) => {
+  const pairDenoms = pair.asset_infos.map((assetInfo) => parseAssetInfoOnlyDenom(assetInfo));
+  if (pairDenoms.some((denom) => denom === ORAI) && pairDenoms.some((denom) => denom === INJECTIVE_CONTRACT))
+    return {
+      ...pair,
+      asset_infos: [
+        ORAI_INFO,
+        {
+          token: {
+            contract_addr: INJECTIVE_CONTRACT
+          }
+        } as AssetInfo
+      ],
+      symbols: ["ORAI", "INJ"]
+    } as PairMapping;
+
+  if (pairDenoms.some((denom) => denom === ORAIX_CONTRACT) && pairDenoms.some((denom) => denom === USDC_CONTRACT))
+    return {
+      ...pair,
+      asset_infos: [
+        {
+          token: {
+            contract_addr: ORAIX_CONTRACT
+          }
+        } as AssetInfo,
+        {
+          token: {
+            contract_addr: USDC_CONTRACT
+          }
+        } as AssetInfo
+      ],
+      symbols: ["ORAIX", "USDC"]
+    } as PairMapping;
+  return pair;
+});
+
+export type AllPairsInfo = {
+  symbol: string;
+  info: string;
+  asset_infos: [AssetInfo, AssetInfo];
+  symbols: [string, string];
+  factoryV1?: boolean;
+};
+export const ARRANGED_PAIRS_CHART: AllPairsInfo[] = ARRANGED_PAIRS.map((pair) => {
+  const assets = pair.asset_infos.map(parseAssetInfoOnlyDenom);
+  return {
+    ...pair,
+    symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
+    info: `${assets[0]}-${assets[1]}`
+  };
+});
 
 export function parseSymbolsToTickerId([base, quote]: [string, string]) {
   return `${base}_${quote}`;
@@ -353,4 +418,48 @@ export const getPriceStatisticOfPool = (
     price: currentPrice || 0,
     price_change: percentPriceChange || 0
   };
+};
+
+export const getAssetInfosFromPairString = (pair: string): [AssetInfo, AssetInfo] => {
+  const modifiedPair = [pair.split("-")[1], pair.split("-")[0]].join("-");
+  const pairChart = ARRANGED_PAIRS_CHART.find((p) => p.info === pair || p.info === modifiedPair);
+  if (!pairChart) return null;
+
+  return pairChart.asset_infos;
+};
+
+/**
+ * Constructs the URL to retrieve prices from CoinGecko.
+ * @param tokens
+ * @returns
+ */
+export const buildCoinGeckoPricesURL = (tokens: readonly string[]): string =>
+  `https://price.market.orai.io/simple/price?ids=${tokens.join("%2C")}&vs_currencies=usd`;
+
+export const getCoingeckoPrices = async <T extends CoinGeckoId>(
+  tokens: string[],
+  signal?: AbortSignal
+): Promise<CoinGeckoPrices<string>> => {
+  const coingeckoIds = tokens?.length > 0 ? tokens : oraichainTokens.map((t) => t.coinGeckoId);
+  const coingeckoPricesURL = buildCoinGeckoPricesURL(coingeckoIds);
+
+  const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
+
+  // by default not return data then use cached version
+  try {
+    const resp = await fetchRetry(coingeckoPricesURL, { signal });
+    const rawData = (await resp.json()) as {
+      [C in T]?: {
+        usd: number;
+      };
+    };
+    // update cached
+    for (const key in rawData) {
+      prices[key] = rawData[key].usd;
+    }
+  } catch {
+    // remain old cache
+    console.log("error getting coingecko prices: ", prices);
+  }
+  return prices;
 };

@@ -335,7 +335,7 @@ export class DuckDb {
     );
     return result.map((res) => ({
       ...res,
-      time: new Date(res.time * tf * 1000).toISOString()
+      time: new Date(Number(res.time) * tf * 1000).toISOString()
     })) as VolumeRange[];
   }
 
@@ -347,13 +347,13 @@ export class DuckDb {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);
     let pool = await this.conn.all(
-      `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+      "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
       firstAssetInfo,
       secondAssetInfo
     );
     if (pool.length === 0)
       pool = await this.conn.all(
-        `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+        "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
         secondAssetInfo,
         firstAssetInfo
       );
@@ -510,11 +510,11 @@ export class DuckDb {
   }
 
   async addTimestampColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0");
   }
 
   async addAprBoostColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0");
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
@@ -603,5 +603,9 @@ export class DuckDb {
   async getLpAmountHistory(): Promise<number> {
     const result = await this.conn.all("SELECT count(*) as count from lp_amount_history");
     return result[0].count;
+  }
+
+  async addSenderColToSwapOpsTable() {
+    await this.conn.run("ALTER TABLE swap_ops_data ADD COLUMN IF NOT EXISTS sender VARCHAR DEFAULT NULL");
   }
 }

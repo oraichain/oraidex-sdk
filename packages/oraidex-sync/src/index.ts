@@ -187,6 +187,7 @@ class OraiDexSync {
       await this.duckDb.createEarningHistoryTable();
       await this.duckDb.addTimestampColToPoolAprTable();
       await this.duckDb.addAprBoostColToPoolAprTable();
+      await this.duckDb.addSenderColToSwapOpsTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic

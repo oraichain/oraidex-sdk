@@ -17,7 +17,6 @@ import {
   findPairAddress,
   getOraiPrice,
   getPairLiquidity,
-  getPoolLiquidities,
   getPriceAssetByUsdt,
   getPriceByAsset,
   getVolumePairByUsdt,
@@ -41,8 +40,10 @@ import fs from "fs";
 import { isEqual } from "lodash";
 import path from "path";
 import {
+  ARRANGED_PAIRS_CHART,
   fetchSimulatePrices,
   getAllPoolsInfo,
+  getCoingeckoPrices,
   getDate24hBeforeNow,
   getListLowHighPriceOfPairs,
   getListPoolAmount,
@@ -58,17 +59,15 @@ import {
 import { CACHE_KEY, cache, registerListener, updateInterval } from "./map-cache";
 import { BigDecimal } from "@oraichain/oraidex-common/build/bigdecimal";
 import { ORAIX_CONTRACT, USDC_CONTRACT, oraichainTokens } from "@oraichain/oraidex-common";
+import { DbQuery, GetHistoricalChart, GetSwapHistory } from "./db-query";
 
 // cache
-
-registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
+registerListener(CACHE_KEY.COINGECKO_PRICES, getCoingeckoPrices);
 registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
+registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
 registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 
-// wait 30s to setup all init info before
-setTimeout(() => {
-  updateInterval();
-}, 10000);
+updateInterval();
 
 const app = express();
 app.use(cors());
@@ -220,49 +219,54 @@ app.get("/tickers", async (req, res) => {
 
 // TODO: refactor this and add unit tests
 app.get("/volume/v2/historical/chart", async (req, res) => {
-  const { startTime, endTime, tf } = req.query;
-  const timeFrame = tf ? parseInt(tf as string) : 60;
-  const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
-  const then = startTime
-    ? parseInt(startTime as string)
-    : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 259200).getTime() / 1000;
-
-  const volumeInfos = [];
-  for (const { asset_infos } of pairsOnlyDenom) {
-    const volume = await duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(asset_infos));
-    volumeInfos.push(volume);
-  }
-
-  const volumeRanges: { [time: string]: VolumeRange[] } = {};
-  for (const volumePair of volumeInfos) {
-    for (const volume of volumePair) {
-      if (!volumeRanges[volume.time]) volumeRanges[volume.time] = [{ ...volume }];
-      else volumeRanges[volume.time].push({ ...volume });
+  try {
+    const { startTime, endTime, tf } = req.query;
+    const timeFrame = tf ? parseInt(tf as string) : 60;
+    const latestTimestamp = endTime ? parseInt(endTime as string) : await duckDb.queryLatestTimestampSwapOps();
+    const then = startTime
+      ? parseInt(startTime as string)
+      : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 25920000).getTime() / 1000;
+    console.dir({ then, latestTimestamp }, { depth: null });
+    const volumeInfos = [];
+    for (const { asset_infos } of pairsOnlyDenom) {
+      const volume = await duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(asset_infos));
+      volumeInfos.push(volume);
     }
-  }
-  const result = [];
-  for (const [time, volumeData] of Object.entries(volumeRanges)) {
-    const oraiUsdtVolumeData = volumeData.find((data) => data.pair === pairToString(oraiUsdtPairOnlyDenom));
-    if (!oraiUsdtVolumeData) {
-      return res.status(500).send("Cannot find ORAI_USDT volume data in the volume list");
-    }
-    const totalVolumePrice = volumeData.reduce((acc, volData) => {
-      // console.log("base price in usdt: ", basePriceInUsdt);
-      // if base denom is orai then we calculate vol using quote vol
-      let volumePrice = 0;
-      if (volData.pair.split("-")[0] === ORAI) {
-        volumePrice = oraiUsdtVolumeData.basePrice * toDisplay(BigInt(volData.baseVolume));
-      } else if (volData.pair.split("-")[1] === ORAI) {
-        volumePrice = oraiUsdtVolumeData.basePrice * toDisplay(BigInt(volData.quoteVolume));
-      } else {
-        return acc; // skip for now cuz dont know how to calculate price if not paired if with ORAI
+
+    const volumeRanges: { [time: string]: VolumeRange[] } = {};
+    for (const volumePair of volumeInfos) {
+      for (const volume of volumePair) {
+        if (!volumeRanges[volume.time]) volumeRanges[volume.time] = [{ ...volume }];
+        else volumeRanges[volume.time].push({ ...volume });
       }
-      // volume price is calculated based on the base currency & quote volume
-      return acc + volumePrice;
-    }, 0);
-    result.push({ time, value: totalVolumePrice });
+    }
+    const result = [];
+    for (const [time, volumeData] of Object.entries(volumeRanges)) {
+      const oraiUsdtVolumeData = volumeData.find((data) => data.pair === pairToString(oraiUsdtPairOnlyDenom));
+      if (!oraiUsdtVolumeData) {
+        return res.status(500).send("Cannot find ORAI_USDT volume data in the volume list");
+      }
+      const totalVolumePrice = volumeData.reduce((acc, volData) => {
+        // console.log("base price in usdt: ", basePriceInUsdt);
+        // if base denom is orai then we calculate vol using quote vol
+        let volumePrice = 0;
+        if (volData.pair.split("-")[0] === ORAI) {
+          volumePrice = oraiUsdtVolumeData.basePrice * toDisplay(BigInt(volData.baseVolume));
+        } else if (volData.pair.split("-")[1] === ORAI) {
+          volumePrice = oraiUsdtVolumeData.basePrice * toDisplay(BigInt(volData.quoteVolume));
+        } else {
+          return acc; // skip for now cuz dont know how to calculate price if not paired if with ORAI
+        }
+        // volume price is calculated based on the base currency & quote volume
+        return acc + volumePrice;
+      }, 0);
+      result.push({ time, value: totalVolumePrice });
+    }
+    res.status(200).send(result);
+  } catch (error) {
+    console.log("error: ", error);
+    res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
-  res.status(200).send(result);
 });
 
 app.get("/v1/candles/", async (req: Request<{}, {}, {}, GetCandlesQuery>, res) => {
@@ -629,6 +633,102 @@ app.get("/v1/summary", async (req, res) => {
     console.log("error: ", error);
     res.status(500).send(`Error: ${JSON.stringify(error)}`);
   }
+});
+
+// ====== API for pool info oraidex 3.2
+app.get("/v1/liquidity/historical/chart", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.type) {
+      return res.status(400).send("Not enough query params: type");
+    }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getLiquidityChart(req.query);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/v1/liquidity/historical/all-charts", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.type) {
+      return res.status(400).send("Not enough query params: type");
+    }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getLiquidityChartAllPools(req.query, ARRANGED_PAIRS_CHART);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/v1/volume/historical/all-charts", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.type) {
+      return res.status(400).send("Not enough query params: type");
+    }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getSwapVolumeAllPair(req.query);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/v1/volume/historical/chart", async (req: Request<{}, {}, {}, GetHistoricalChart>, res) => {
+  try {
+    if (!req.query.pair || !req.query.type) {
+      return res.status(400).send("Not enough query params: pair || type");
+    }
+    if (!["day", "week", "month"].includes(req.query.type)) {
+      return res.status(400).send("Type must be: day | week | month");
+    }
+
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+    const result = await dbQuery.getSwapVolume(req.query);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+app.get("/v1/swap/historical", async (req: Request<{}, {}, {}, GetSwapHistory>, res) => {
+  try {
+    if (!req.query.offerDenom || !req.query.askDenom) {
+      return res.status(400).send("Not enough query params: offerDenom | askDenom");
+    }
+    const duckDb = DuckDb.instances;
+    const dbQuery = new DbQuery(duckDb);
+
+    const result = await dbQuery.getSwapHistory(req.query);
+    res.status(200).send(result);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+});
+
+process.on("uncaughtException", (error) => {
+  console.log("uncaughtException", error);
+});
+
+process.on("unhandledRejection", (error) => {
+  console.log("unhandledRejection", error);
 });
 
 app
