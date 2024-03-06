@@ -6,7 +6,8 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, InstantiateMsg, ExecuteMsg, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset, RewardMsg, QueryMsg, MigrateMsg, ConfigResponse, ArrayOfQueryPoolInfoResponse, QueryPoolInfoResponse, PoolInfoResponse, LockInfosResponse, LockInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse} from "./Cw20Staking.types";
+import {Addr, Uint128, Binary, AssetInfo, Cw20ReceiveMsg, Asset, RewardMsg, Decimal} from "./types";
+import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, ArrayOfQueryPoolInfoResponse, QueryPoolInfoResponse, PoolInfoResponse, LockInfosResponse, LockInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse, StakedBalanceAtHeightResponse, TotalStakedAtHeightResponse} from "./Cw20Staking.types";
 export interface Cw20StakingReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -52,6 +53,22 @@ export interface Cw20StakingReadOnlyInterface {
     stakingToken: Addr;
     startAfter?: number;
   }) => Promise<LockInfosResponse>;
+  stakedBalanceAtHeight: ({
+    address,
+    assetKey,
+    height
+  }: {
+    address: string;
+    assetKey: Addr;
+    height?: number;
+  }) => Promise<StakedBalanceAtHeightResponse>;
+  totalStakedAtHeight: ({
+    assetKey,
+    height
+  }: {
+    assetKey: Addr;
+    height?: number;
+  }) => Promise<TotalStakedAtHeightResponse>;
 }
 export class Cw20StakingQueryClient implements Cw20StakingReadOnlyInterface {
   client: CosmWasmClient;
@@ -67,6 +84,8 @@ export class Cw20StakingQueryClient implements Cw20StakingReadOnlyInterface {
     this.rewardInfos = this.rewardInfos.bind(this);
     this.getPoolsInformation = this.getPoolsInformation.bind(this);
     this.lockInfos = this.lockInfos.bind(this);
+    this.stakedBalanceAtHeight = this.stakedBalanceAtHeight.bind(this);
+    this.totalStakedAtHeight = this.totalStakedAtHeight.bind(this);
   }
 
   config = async (): Promise<ConfigResponse> => {
@@ -158,6 +177,37 @@ export class Cw20StakingQueryClient implements Cw20StakingReadOnlyInterface {
       }
     });
   };
+  stakedBalanceAtHeight = async ({
+    address,
+    assetKey,
+    height
+  }: {
+    address: string;
+    assetKey: Addr;
+    height?: number;
+  }): Promise<StakedBalanceAtHeightResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      staked_balance_at_height: {
+        address,
+        asset_key: assetKey,
+        height
+      }
+    });
+  };
+  totalStakedAtHeight = async ({
+    assetKey,
+    height
+  }: {
+    assetKey: Addr;
+    height?: number;
+  }): Promise<TotalStakedAtHeightResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      total_staked_at_height: {
+        asset_key: assetKey,
+        height
+      }
+    });
+  };
 }
 export interface Cw20StakingInterface extends Cw20StakingReadOnlyInterface {
   contractAddress: string;
@@ -216,22 +266,6 @@ export interface Cw20StakingInterface extends Cw20StakingReadOnlyInterface {
     stakerAddrs: Addr[];
     stakingToken?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  autoStake: ({
-    assets,
-    slippageTolerance
-  }: {
-    assets: Asset[];
-    slippageTolerance?: Decimal;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  autoStakeHook: ({
-    prevStakingTokenAmount,
-    stakerAddr,
-    stakingToken
-  }: {
-    prevStakingTokenAmount: Uint128;
-    stakerAddr: Addr;
-    stakingToken: Addr;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class Cw20StakingClient extends Cw20StakingQueryClient implements Cw20StakingInterface {
   client: SigningCosmWasmClient;
@@ -251,8 +285,6 @@ export class Cw20StakingClient extends Cw20StakingQueryClient implements Cw20Sta
     this.unbond = this.unbond.bind(this);
     this.withdraw = this.withdraw.bind(this);
     this.withdrawOthers = this.withdrawOthers.bind(this);
-    this.autoStake = this.autoStake.bind(this);
-    this.autoStakeHook = this.autoStakeHook.bind(this);
   }
 
   receive = async ({
@@ -360,37 +392,6 @@ export class Cw20StakingClient extends Cw20StakingQueryClient implements Cw20Sta
     return await this.client.execute(this.sender, this.contractAddress, {
       withdraw_others: {
         staker_addrs: stakerAddrs,
-        staking_token: stakingToken
-      }
-    }, _fee, _memo, _funds);
-  };
-  autoStake = async ({
-    assets,
-    slippageTolerance
-  }: {
-    assets: Asset[];
-    slippageTolerance?: Decimal;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      auto_stake: {
-        assets,
-        slippage_tolerance: slippageTolerance
-      }
-    }, _fee, _memo, _funds);
-  };
-  autoStakeHook = async ({
-    prevStakingTokenAmount,
-    stakerAddr,
-    stakingToken
-  }: {
-    prevStakingTokenAmount: Uint128;
-    stakerAddr: Addr;
-    stakingToken: Addr;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      auto_stake_hook: {
-        prev_staking_token_amount: prevStakingTokenAmount,
-        staker_addr: stakerAddr,
         staking_token: stakingToken
       }
     }, _fee, _memo, _funds);

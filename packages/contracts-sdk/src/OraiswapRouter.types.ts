@@ -14,7 +14,6 @@ export type ExecuteMsg = {
 } | {
   execute_swap_operation: {
     operation: SwapOperation;
-    sender: Addr;
     to?: Addr | null;
   };
 } | {

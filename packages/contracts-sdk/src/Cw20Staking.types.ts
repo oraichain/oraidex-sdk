@@ -1,9 +1,5 @@
-export type Addr = string;
+import {Addr, Uint128, Binary, AssetInfo, Cw20ReceiveMsg, Asset, RewardMsg, Decimal} from "./types";
 export interface InstantiateMsg {
-  base_denom?: string | null;
-  factory_addr: Addr;
-  minter?: Addr | null;
-  oracle_addr: Addr;
   owner?: Addr | null;
   rewarder: Addr;
 }
@@ -42,43 +38,7 @@ export type ExecuteMsg = {
     staker_addrs: Addr[];
     staking_token?: Addr | null;
   };
-} | {
-  auto_stake: {
-    assets: [Asset, Asset];
-    slippage_tolerance?: Decimal | null;
-  };
-} | {
-  auto_stake_hook: {
-    prev_staking_token_amount: Uint128;
-    staker_addr: Addr;
-    staking_token: Addr;
-  };
 };
-export type Uint128 = string;
-export type Binary = string;
-export type AssetInfo = {
-  token: {
-    contract_addr: Addr;
-  };
-} | {
-  native_token: {
-    denom: string;
-  };
-};
-export type Decimal = string;
-export interface Cw20ReceiveMsg {
-  amount: Uint128;
-  msg: Binary;
-  sender: string;
-}
-export interface Asset {
-  amount: Uint128;
-  info: AssetInfo;
-}
-export interface RewardMsg {
-  staking_token: Addr;
-  total_accumulation_amount: Uint128;
-}
 export type QueryMsg = {
   config: {};
 } | {
@@ -111,12 +71,20 @@ export type QueryMsg = {
     staking_token: Addr;
     start_after?: number | null;
   };
+} | {
+  staked_balance_at_height: {
+    address: string;
+    asset_key: Addr;
+    height?: number | null;
+  };
+} | {
+  total_staked_at_height: {
+    asset_key: Addr;
+    height?: number | null;
+  };
 };
 export interface MigrateMsg {}
 export interface ConfigResponse {
-  base_denom: string;
-  factory_addr: Addr;
-  oracle_addr: Addr;
   owner: Addr;
   rewarder: Addr;
 }
@@ -153,4 +121,12 @@ export interface RewardInfoResponseItem {
 export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {
   assets: Asset[];
+}
+export interface StakedBalanceAtHeightResponse {
+  balance: Uint128;
+  height: number;
+}
+export interface TotalStakedAtHeightResponse {
+  height: number;
+  total: Uint128;
 }

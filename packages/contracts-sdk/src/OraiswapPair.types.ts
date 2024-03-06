@@ -1,6 +1,5 @@
-import {Addr, AssetInfo, Uint128, Binary, Decimal, Cw20ReceiveMsg, Asset, PairInfo} from "./types";
+import {AssetInfo, Addr, Uint128, Binary, Decimal, Cw20ReceiveMsg, Asset, PairInfo} from "./types";
 export interface InstantiateMsg {
-  admin?: Addr | null;
   asset_infos: [AssetInfo, AssetInfo];
   commission_rate?: string | null;
   oracle_addr: Addr;
@@ -21,18 +20,6 @@ export type ExecuteMsg = {
     offer_asset: Asset;
     to?: Addr | null;
   };
-} | {
-  enable_whitelist: {
-    status: boolean;
-  };
-} | {
-  register_trader: {
-    traders: Addr[];
-  };
-} | {
-  deregister_trader: {
-    traders: Addr[];
-  };
 };
 export type QueryMsg = {
   pair: {};
@@ -46,17 +33,8 @@ export type QueryMsg = {
   reverse_simulation: {
     ask_asset: Asset;
   };
-} | {
-  trader_is_whitelisted: {
-    trader: Addr;
-  };
-} | {
-  admin: {};
 };
-export interface MigrateMsg {
-  admin?: string | null;
-}
-export type String = string;
+export interface MigrateMsg {}
 export interface PairResponse {
   info: PairInfo;
 }
@@ -74,4 +52,3 @@ export interface SimulationResponse {
   return_amount: Uint128;
   spread_amount: Uint128;
 }
-export type Boolean = boolean;
