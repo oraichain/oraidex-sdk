@@ -1,10 +1,10 @@
-import {Uint128, Binary, Addr, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
 export interface InstantiateMsg {
-  admin?: string | null;
+  admin?: Addr | null;
   commission_rate?: string | null;
   name?: string | null;
-  operator?: string | null;
-  reward_address: string;
+  reward_address?: Addr | null;
+  spread_address?: Addr | null;
   version?: string | null;
 }
 export type ExecuteMsg = {
@@ -17,10 +17,7 @@ export type ExecuteMsg = {
   update_config: {
     commission_rate?: string | null;
     reward_address?: Addr | null;
-  };
-} | {
-  update_operator: {
-    operator?: string | null;
+    spread_address?: Addr | null;
   };
 } | {
   create_order_book_pair: {
@@ -30,23 +27,9 @@ export type ExecuteMsg = {
     spread?: Decimal | null;
   };
 } | {
-  update_orderbook_pair: {
-    asset_infos: [AssetInfo, AssetInfo];
-    min_quote_coin_amount?: Uint128 | null;
-    spread?: Decimal | null;
-  };
-} | {
   submit_order: {
     assets: [Asset, Asset];
     direction: OrderDirection;
-  };
-} | {
-  submit_market_order: {
-    asset_infos: [AssetInfo, AssetInfo];
-    base_amount: Uint128;
-    direction: OrderDirection;
-    quote_amount: Uint128;
-    slippage?: Decimal | null;
   };
 } | {
   cancel_order: {
@@ -61,10 +44,6 @@ export type ExecuteMsg = {
 } | {
   remove_order_book_pair: {
     asset_infos: [AssetInfo, AssetInfo];
-  };
-} | {
-  withdraw_token: {
-    asset: Asset;
   };
 };
 export type OrderDirection = "buy" | "sell";
@@ -115,17 +94,6 @@ export type QueryMsg = {
   order_book_matchable: {
     asset_infos: [AssetInfo, AssetInfo];
   };
-} | {
-  mid_price: {
-    asset_infos: [AssetInfo, AssetInfo];
-  };
-} | {
-  price_by_base_amount: {
-    asset_infos: [AssetInfo, AssetInfo];
-    base_amount: Uint128;
-    direction: OrderDirection;
-    slippage?: Decimal | null;
-  };
 };
 export type OrderFilter = ("tick" | "none") | {
   bidder: string;
@@ -135,10 +103,7 @@ export type OrderFilter = ("tick" | "none") | {
 export interface MigrateMsg {}
 export interface ContractInfoResponse {
   admin: Addr;
-  commission_rate: string;
   name: string;
-  operator?: Addr | null;
-  reward_address: Addr;
   version: string;
 }
 export interface LastOrderIdResponse {
@@ -169,10 +134,6 @@ export interface OrderBooksResponse {
 }
 export interface OrdersResponse {
   orders: OrderResponse[];
-}
-export interface BaseAmountResponse {
-  expected_base_amount: Uint128;
-  market_price: Decimal;
 }
 export interface TickResponse {
   price: Decimal;

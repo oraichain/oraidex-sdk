@@ -16,6 +16,14 @@ export interface Cw20ReceiveMsg {
   msg: Binary;
   sender: string;
 }
+export interface Asset {
+  amount: Uint128;
+  info: AssetInfo;
+}
+export interface RewardMsg {
+  staking_token: Addr;
+  total_accumulation_amount: Uint128;
+}
 export type Logo = {
   url: string;
 } | {
@@ -29,10 +37,6 @@ export type EmbeddedLogo = {
 export interface Cw20Coin {
   address: string;
   amount: Uint128;
-}
-export interface Asset {
-  amount: Uint128;
-  info: AssetInfo;
 }
 export interface InstantiateMarketingInfo {
   description?: string | null;

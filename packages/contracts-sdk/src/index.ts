@@ -1,5 +1,7 @@
 export * as CoharvestBidPoolTypes from './CoharvestBidPool.types';
 export * from './CoharvestBidPool.client';
+export * as Cw20StakingTypes from './Cw20Staking.types';
+export * from './Cw20Staking.client';
 export * as OraidexListingContractTypes from './OraidexListingContract.types';
 export * from './OraidexListingContract.client';
 export * as OraiswapConverterTypes from './OraiswapConverter.types';
@@ -20,6 +22,6 @@ export * as OraiswapStakingTypes from './OraiswapStaking.types';
 export * from './OraiswapStaking.client';
 export * as OraiswapTokenTypes from './OraiswapToken.types';
 export * from './OraiswapToken.client';
-export * as Cw20StakingTypes from './Cw20Staking.types';
-export * from './Cw20Staking.client';
+export * as ProxySnapshotTypes from './ProxySnapshot.types';
+export * from './ProxySnapshot.client';
 export * from "./types";
