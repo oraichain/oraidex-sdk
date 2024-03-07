@@ -85,7 +85,7 @@ describe("test-db-query", () => {
   ])("test-getSwapVolumeAllPair", async (type, expectedResult) => {
     // setup
     const PAIR_ORAIX_USDC =
-      "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
+      "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd-orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge";
     const PAIR_ORAI_USDT = "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh";
     const duckdb = await DuckDb.create(":memory:");
     const dbQuery = new DbQuery(duckdb);
@@ -324,8 +324,8 @@ describe("test-db-query", () => {
         toIconUrl: "1"
       },
       {
-        firstAssetInfo: JSON.stringify({ token: { contract_addr: ORAIX_CONTRACT } }),
-        secondAssetInfo: JSON.stringify({ token: { contract_addr: USDC_CONTRACT } }),
+        firstAssetInfo: JSON.stringify({ token: { contract_addr: USDC_CONTRACT } }),
+        secondAssetInfo: JSON.stringify({ token: { contract_addr: ORAIX_CONTRACT } }),
         commissionRate: "1",
         pairAddr: pairAddrOraixUsdc,
         liquidityAddr: "2",
@@ -339,7 +339,8 @@ describe("test-db-query", () => {
     // mock price orai = 1 usdt
     const coingeckoPrices = {
       "oraichain-token": 1,
-      oraidex: 1
+      oraidex: 1,
+      "usd-coin": 1
     };
     cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
 
@@ -351,10 +352,10 @@ describe("test-db-query", () => {
         symbols: ["ORAI", "USDT"]
       },
       {
-        symbol: "oraix/usdc",
-        info: `${ORAIX_CONTRACT}-${USDC_CONTRACT}`,
-        asset_infos: [ORAIX_INFO, USDC_INFO],
-        symbols: ["ORAIX", "USDC"]
+        symbol: "usdc/oraix",
+        info: `${USDC_CONTRACT}-${ORAIX_CONTRACT}`,
+        asset_infos: [USDC_INFO, ORAIX_INFO],
+        symbols: ["USDC", "ORAIX"]
       }
     ];
 

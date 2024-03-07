@@ -1,5 +1,5 @@
 import { fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { Addr, MulticallQueryClient, MulticallReadOnlyInterface } from "@oraichain/common-contracts-sdk";
+import { Addr, MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { Call } from "@oraichain/common-contracts-sdk/build/Multicall.types";
 import {
   AssetInfo,

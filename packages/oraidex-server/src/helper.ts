@@ -92,7 +92,7 @@ export type AllPairsInfo = {
   symbols: [string, string];
   factoryV1?: boolean;
 };
-export const ARRANGED_PAIRS_CHART: AllPairsInfo[] = ARRANGED_PAIRS.map((pair) => {
+export const ARRANGED_PAIRS_CHART: AllPairsInfo[] = PAIRS.map((pair) => {
   const assets = pair.asset_infos.map(parseAssetInfoOnlyDenom);
   return {
     ...pair,
