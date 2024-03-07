@@ -1,4 +1,11 @@
-import { BigDecimal, CW20_DECIMALS, oraichainTokens, parseTokenInfoRawDenom } from "@oraichain/oraidex-common";
+import {
+  BigDecimal,
+  CW20_DECIMALS,
+  KWT_CONTRACT,
+  ORAI,
+  oraichainTokens,
+  parseTokenInfoRawDenom
+} from "@oraichain/oraidex-common";
 import { DuckDb, PoolAmountHistory, SwapOperationData, parseAssetInfoOnlyDenom } from "@oraichain/oraidex-sync";
 import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString } from "./helper";
 import "./polyfill";
@@ -169,6 +176,15 @@ export class DbQuery {
         value: liquidityInUsdt
       });
     }
+    const KWT_ORAI_PAIR = `${KWT_CONTRACT}-${ORAI}`;
+
+    // TODO: current harcode filter data for kwt-orai pair
+    if (pair === KWT_ORAI_PAIR)
+      return liquiditiesAvg.filter((item) => {
+        const itemTime = item?.time ? new Date(item.time) : null;
+        return itemTime && itemTime.getDate() > 1 && itemTime.getMonth() > 1 && itemTime.getFullYear() > 2023;
+      });
+
     return liquiditiesAvg;
   }
 
