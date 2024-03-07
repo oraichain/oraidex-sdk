@@ -6,7 +6,13 @@ import {
   oraichainTokens,
   parseTokenInfoRawDenom
 } from "@oraichain/oraidex-common";
-import { DuckDb, PoolAmountHistory, SwapOperationData, parseAssetInfoOnlyDenom } from "@oraichain/oraidex-sync";
+import {
+  DuckDb,
+  PoolAmountHistory,
+  SwapOperationData,
+  getDate24hBeforeNow,
+  parseAssetInfoOnlyDenom
+} from "@oraichain/oraidex-sync";
 import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString } from "./helper";
 import "./polyfill";
 import { CACHE_KEY, cache } from "./map-cache";
@@ -78,6 +84,19 @@ export class DbQuery {
     return result;
   }
 
+  async getSwapVolumeForPairByRangeTime(pair: string, then: number, now: number, basePriceInUsdt: number) {
+    const sql = `SELECT SUM(volume) AS value
+                 FROM swap_ohlcv
+                 WHERE pair = ? AND timestamp >= ? AND timestamp <= ?`;
+    const params = [pair, then, now];
+    const result = await this.duckDb.conn.all(sql, ...params);
+    if (result.length === 0) return 0;
+    const swapVolume = new BigDecimal(Math.trunc(basePriceInUsdt * result[0].value))
+      .div(10 ** CW20_DECIMALS)
+      .toNumber();
+    return swapVolume;
+  }
+
   async getSwapVolumeAllPair(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { type } = query;
     const promiseVolumes = ARRANGED_PAIRS_CHART.map((p) => {
@@ -134,6 +153,21 @@ export class DbQuery {
         value: new BigDecimal(Math.trunc(basePriceInUsdt * item.value)).div(10 ** CW20_DECIMALS).toNumber()
       });
     }
+
+    // get volume latest 24h for the last record
+    const now = new Date();
+    const then = getDate24hBeforeNow(now);
+    const swapVolumeLatest24h = await this.getSwapVolumeForPairByRangeTime(
+      pair,
+      Math.trunc(then.getTime() / 1000),
+      Math.trunc(now.getTime() / 1000),
+      basePriceInUsdt
+    );
+    if (swapVolumeLatest24h)
+      swapVolume[swapVolume.length - 1] = {
+        ...swapVolume[swapVolume.length - 1],
+        value: swapVolumeLatest24h
+      };
     return swapVolume;
   }
 

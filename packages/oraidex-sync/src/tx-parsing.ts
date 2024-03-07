@@ -105,7 +105,7 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
         commissionAmounts.push(attr.value);
       } else if (attr.key === "spread_amount") {
         spreadAmounts.push(attr.value);
-      } else if (attr.key === "to") {
+      } else if (attr.key === "receiver") {
         senders.push(attr.value);
       }
     }

@@ -226,7 +226,6 @@ app.get("/volume/v2/historical/chart", async (req, res) => {
     const then = startTime
       ? parseInt(startTime as string)
       : getSpecificDateBeforeNow(new Date(latestTimestamp * 1000), 25920000).getTime() / 1000;
-    console.dir({ then, latestTimestamp }, { depth: null });
     const volumeInfos = [];
     for (const { asset_infos } of pairsOnlyDenom) {
       const volume = await duckDb.getVolumeRange(timeFrame, then, latestTimestamp, pairToString(asset_infos));
