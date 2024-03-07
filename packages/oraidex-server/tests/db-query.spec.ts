@@ -367,4 +367,52 @@ describe("test-db-query", () => {
       expect(item.value).toEqual(expectedResult[index]);
     });
   });
+
+  it.each<[string, number, number, number, number]>([["orai-usdt", 1710820213, 1710906613, 1, 2]])(
+    "test-getSwapVolumeForPairByRangeTime",
+    async (pair, then, now, basePriceInUsdt, expectedResult) => {
+      // setup
+      const duckdb = await DuckDb.create(":memory:");
+      const dbQuery = new DbQuery(duckdb);
+
+      await duckdb.createSwapOhlcv();
+      await duckdb.insertOhlcv([
+        {
+          uniqueKey: "1",
+          timestamp: 1708387200, // Tuesday, 20 February 2024 00:00:00
+          pair,
+          volume: 1000000n,
+          open: 2,
+          close: 2,
+          low: 2,
+          high: 2
+        },
+        {
+          uniqueKey: "2",
+          timestamp: 1710906600, // Wednesday, 20 March 2024 03:50:13
+          pair,
+          volume: 1000000n,
+          open: 2,
+          close: 2,
+          low: 2,
+          high: 2
+        },
+        {
+          uniqueKey: "3",
+          timestamp: 1710906613, // Wednesday, 20 March 2024 03:50:13
+          pair,
+          volume: 1000000n,
+          open: 2,
+          close: 2,
+          low: 2,
+          high: 2
+        }
+      ]);
+
+      // act
+      const result = await dbQuery.getSwapVolumeForPairByRangeTime(pair, then, now, basePriceInUsdt);
+      // assert
+      expect(result).toEqual(expectedResult);
+    }
+  );
 });
