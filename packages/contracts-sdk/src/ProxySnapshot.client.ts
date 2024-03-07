@@ -7,9 +7,10 @@
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
 import {Addr, Uint128} from "./types";
-import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, StakedBalanceAtHeightResponse, TotalStakedAtHeightResponse} from "./ProxySnapshot.types";
+import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, Duration, ConfigTokenStakingResponse, StakedBalanceAtHeightResponse, TotalStakedAtHeightResponse} from "./ProxySnapshot.types";
 export interface ProxySnapshotReadOnlyInterface {
   contractAddress: string;
+  getConfig: () => Promise<ConfigTokenStakingResponse>;
   config: () => Promise<ConfigResponse>;
   stakedBalanceAtHeight: ({
     address,
@@ -31,11 +32,17 @@ export class ProxySnapshotQueryClient implements ProxySnapshotReadOnlyInterface 
   constructor(client: CosmWasmClient, contractAddress: string) {
     this.client = client;
     this.contractAddress = contractAddress;
+    this.getConfig = this.getConfig.bind(this);
     this.config = this.config.bind(this);
     this.stakedBalanceAtHeight = this.stakedBalanceAtHeight.bind(this);
     this.totalStakedAtHeight = this.totalStakedAtHeight.bind(this);
   }
 
+  getConfig = async (): Promise<ConfigTokenStakingResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      get_config: {}
+    });
+  };
   config = async (): Promise<ConfigResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       config: {}
