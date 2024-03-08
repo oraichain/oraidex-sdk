@@ -90,6 +90,7 @@ describe("test-db-query", () => {
     const duckdb = await DuckDb.create(":memory:");
     const dbQuery = new DbQuery(duckdb);
 
+    await duckdb.createPairInfosTable();
     await duckdb.createSwapOhlcv();
     await duckdb.insertOhlcv([
       {
