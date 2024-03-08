@@ -30,13 +30,15 @@ import {
   toDisplay,
   toTokenInfo,
   tronToEthAddress,
-  validateNumber
+  validateNumber,
+  parseTxToMsgsAndEvents
 } from "../src/helper";
 import { CoinGeckoId, NetworkChainId, OraiToken } from "../src/network";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { isFactoryV1 } from "../src/pairs";
 import { Coin } from "@cosmjs/amino";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
+import { StargateClient } from "@cosmjs/stargate";
 
 describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
@@ -393,4 +395,63 @@ describe("should helper functions in helper run exactly", () => {
     expect(getCosmosGasPrice({ low: 0, average: 0, high: 0 })).toEqual(0);
     expect(getCosmosGasPrice()).toEqual(AVERAGE_COSMOS_GAS_PRICE);
   });
+
+  // TODO: add more tests for this func
+  it("test-parseTxToMsgsAndEvents", async () => {
+    // case 1: undefined input
+    const reuslt = parseTxToMsgsAndEvents(undefined as any);
+    expect(reuslt).toEqual([]);
+
+    // case 2: real tx with multiple msgs and multiple contract calls
+    const client = await StargateClient.connect("wss://rpc.orai.io");
+    const indexedTx = await client.getTx("9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17");
+    const data = parseTxToMsgsAndEvents(indexedTx!);
+    expect(data.length).toEqual(2);
+    expect(data[0].message).toMatchObject({
+      sender: "orai16hv74w3eu3ek0muqpgp4fekhrqgpzl3hd3qeqk",
+      contract: "orai1nt58gcu4e63v7k55phnr3gaym9tvk3q4apqzqccjuwppgjuyjy6sxk8yzp",
+      msg: {
+        execute_order_book_pair: {
+          asset_infos: [
+            {
+              token: {
+                contract_addr: "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt"
+              }
+            },
+            {
+              token: {
+                contract_addr: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+              }
+            }
+          ],
+          limit: 100
+        }
+      },
+      funds: []
+    });
+    expect(data[0].attrs.length).toEqual(5);
+    expect(data[1].message).toMatchObject({
+      sender: "orai16hv74w3eu3ek0muqpgp4fekhrqgpzl3hd3qeqk",
+      contract: "orai1nt58gcu4e63v7k55phnr3gaym9tvk3q4apqzqccjuwppgjuyjy6sxk8yzp",
+      msg: {
+        execute_order_book_pair: {
+          asset_infos: [
+            { native_token: { denom: "orai" } },
+            {
+              token: {
+                contract_addr: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+              }
+            }
+          ],
+          limit: 100
+        }
+      },
+      funds: []
+    });
+    expect(data[0].attrs.length).toEqual(5);
+  });
+
+  // TODO: write test cases for these functions
+  it("test-decodeProto", () => {});
+  it("test-parseWasmEvents", () => {});
 });
