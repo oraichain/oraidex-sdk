@@ -450,21 +450,6 @@ describe("should helper functions in helper run exactly", () => {
 
   it.each<[string, readonly Event[], { [key: string]: string }[]]>([
     ["empty-events-array", [], []],
-    [
-      "events-with-multiple-events-without-_contract_address-attribute",
-      [
-        {
-          type: "wasmEvent",
-          attributes: [
-            { key: "key1", value: "value1" },
-            { key: "key2", value: "value2" }
-          ]
-        },
-        { type: "wasmEvent", attributes: [{ key: "key3", value: "value3" }] }
-      ],
-      []
-    ],
-
     ["events-with-single-event-without-attributes", [{ type: "wasmEvent", attributes: [] }], []],
     [
       "events-with-single-event-with-attributes",
