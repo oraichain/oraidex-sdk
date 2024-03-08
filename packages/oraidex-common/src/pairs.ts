@@ -16,10 +16,9 @@ import {
   USDT_CONTRACT,
   WETH_CONTRACT,
   NEUTARO_ORAICHAIN_DENOM as NEUTARO_ADDRESS,
-  OCH_CONTRACT,
-  ORAI_INFO
+  OCH_CONTRACT
 } from "./constant";
-import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
+import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
 import uniq from "lodash/uniq";
 import flatten from "lodash/flatten";

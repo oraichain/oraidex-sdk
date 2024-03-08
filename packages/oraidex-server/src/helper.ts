@@ -5,7 +5,8 @@ import {
   ORAIX_CONTRACT,
   ORAI_INFO,
   ROUTER_V2_CONTRACT,
-  USDC_CONTRACT
+  USDC_CONTRACT,
+  USDT_CONTRACT
 } from "@oraichain/oraidex-common/build/constant";
 import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
@@ -16,19 +17,15 @@ import {
   PairInfoDataResponse,
   PairMapping,
   PoolAmountHistory,
-  RatioDirection,
   calculatePriceByPool,
   findPairAddress,
   getAllFees,
   getAllVolume24h,
   getAvgPoolLiquidities,
-  getOraiPrice,
-  getPairByAssetInfos,
   getPoolAmounts,
   getPoolAprsFromDuckDb,
   getPoolLiquidities,
   getPoolsFromDuckDb,
-  getPriceByAsset,
   injAddress,
   oraiInfo,
   oraixCw20Address,
@@ -36,8 +33,7 @@ import {
   pairsWithDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
-  usdcCw20Address,
-  usdtInfo
+  usdcCw20Address
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
