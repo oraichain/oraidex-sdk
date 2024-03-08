@@ -1,20 +1,16 @@
-import {
-  AIRI_CONTRACT,
-  AVERAGE_COSMOS_GAS_PRICE,
-  MILKYBSC_ORAICHAIN_DENOM,
-  MILKY_CONTRACT,
-  ORAI,
-  USDC_CONTRACT,
-  USDT_CONTRACT
-} from "../src/constant";
-import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
+import { Coin } from "@cosmjs/amino";
+import { toBinary } from "@cosmjs/cosmwasm-stargate";
+import { StargateClient } from "@cosmjs/stargate";
+import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { AIRI_CONTRACT, AVERAGE_COSMOS_GAS_PRICE, MILKYBSC_ORAICHAIN_DENOM, ORAI } from "../src/constant";
 import {
   calculateMinReceive,
   calculateTimeoutTimestamp,
   ethToTronAddress,
   findToTokenOnOraiBridge,
-  getEvmAddress,
   getCosmosGasPrice,
+  getEvmAddress,
   getSubAmountDetails,
   getTokenOnOraichain,
   getTokenOnSpecificChainId,
@@ -24,21 +20,19 @@ import {
   parseAssetInfo,
   parseTokenInfo,
   parseTokenInfoRawDenom,
+  parseTxToMsgsAndEvents,
+  parseWasmEvents,
   toAmount,
   toAssetInfo,
   toDecimal,
   toDisplay,
   toTokenInfo,
   tronToEthAddress,
-  validateNumber,
-  parseTxToMsgsAndEvents
+  validateNumber
 } from "../src/helper";
-import { CoinGeckoId, NetworkChainId, OraiToken } from "../src/network";
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { isFactoryV1 } from "../src/pairs";
-import { Coin } from "@cosmjs/amino";
-import { toBinary } from "@cosmjs/cosmwasm-stargate";
-import { StargateClient } from "@cosmjs/stargate";
+import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
 
 describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
@@ -453,5 +447,54 @@ describe("should helper functions in helper run exactly", () => {
 
   // TODO: write test cases for these functions
   it("test-decodeProto", () => {});
-  it("test-parseWasmEvents", () => {});
+
+  it.each<[string, readonly Event[], { [key: string]: string }[]]>([
+    ["empty-events-array", [], []],
+    [
+      "events-with-multiple-events-without-_contract_address-attribute",
+      [
+        {
+          type: "wasmEvent",
+          attributes: [
+            { key: "key1", value: "value1" },
+            { key: "key2", value: "value2" }
+          ]
+        },
+        { type: "wasmEvent", attributes: [{ key: "key3", value: "value3" }] }
+      ],
+      []
+    ],
+
+    ["events-with-single-event-without-attributes", [{ type: "wasmEvent", attributes: [] }], []],
+    [
+      "events-with-single-event-with-attributes",
+      [
+        {
+          type: "wasmEvent",
+          attributes: [
+            { key: "_contract_address", value: "addr1" },
+            { key: "key1", value: "value1" }
+          ]
+        }
+      ],
+      [{ _contract_address: "addr1", key1: "value1" }]
+    ],
+    [
+      "events-with-multiple-events-with-and-without-attributes",
+      [
+        {
+          type: "wasmEvent",
+          attributes: [
+            { key: "_contract_address", value: "addr1" },
+            { key: "key2", value: "value2" }
+          ]
+        },
+        { type: "otherEvent", attributes: [{ key: "key3", value: "value3" }] },
+        { type: "wasmEvent", attributes: [{ key: "_contract_address", value: "addr2" }] }
+      ],
+      [{ _contract_address: "addr1", key2: "value2" }, { _contract_address: "addr2" }]
+    ]
+  ])("test-parseWasmEvents-with-case: %p", (_case, input, expectedOutput) => {
+    expect(parseWasmEvents(input)).toEqual(expectedOutput);
+  });
 });

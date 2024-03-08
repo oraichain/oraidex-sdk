@@ -454,9 +454,9 @@ export const decodeProto = (value: JsonObject) => {
   return value;
 };
 
-export const parseWasmEvents = (events: readonly Event[]): Attribute[] => {
+export const parseWasmEvents = (events: readonly Event[]): { [key: string]: string }[] => {
   const wasmEvents = events.filter((e) => e.type.startsWith("wasm"));
-  const attrs = [];
+  const attrs: { [key: string]: string }[] = [];
   for (const wasmEvent of wasmEvents) {
     let attr: { [key: string]: string };
     for (const { key, value } of wasmEvent.attributes) {
