@@ -228,6 +228,13 @@ export interface Cw20StakingInterface extends Cw20StakingReadOnlyInterface {
     owner?: Addr;
     rewarder?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateUnbondingPeriod: ({
+    stakingToken,
+    unbondingPeriod
+  }: {
+    stakingToken: Addr;
+    unbondingPeriod: number;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   registerAsset: ({
     stakingToken,
     unbondingPeriod
@@ -279,6 +286,7 @@ export class Cw20StakingClient extends Cw20StakingQueryClient implements Cw20Sta
     this.contractAddress = contractAddress;
     this.receive = this.receive.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
+    this.updateUnbondingPeriod = this.updateUnbondingPeriod.bind(this);
     this.registerAsset = this.registerAsset.bind(this);
     this.updateRewardsPerSec = this.updateRewardsPerSec.bind(this);
     this.depositReward = this.depositReward.bind(this);
@@ -315,6 +323,20 @@ export class Cw20StakingClient extends Cw20StakingQueryClient implements Cw20Sta
       update_config: {
         owner,
         rewarder
+      }
+    }, _fee, _memo, _funds);
+  };
+  updateUnbondingPeriod = async ({
+    stakingToken,
+    unbondingPeriod
+  }: {
+    stakingToken: Addr;
+    unbondingPeriod: number;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_unbonding_period: {
+        staking_token: stakingToken,
+        unbonding_period: unbondingPeriod
       }
     }, _fee, _memo, _funds);
   };

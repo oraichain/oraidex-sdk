@@ -11,6 +11,11 @@ export type ExecuteMsg = {
     rewarder?: Addr | null;
   };
 } | {
+  update_unbonding_period: {
+    staking_token: Addr;
+    unbonding_period: number;
+  };
+} | {
   register_asset: {
     staking_token: Addr;
     unbonding_period?: number | null;
@@ -98,6 +103,7 @@ export interface PoolInfoResponse {
   reward_index: Decimal;
   staking_token: Addr;
   total_bond_amount: Uint128;
+  unbonding_period?: number | null;
 }
 export interface LockInfosResponse {
   lock_infos: LockInfoResponse[];

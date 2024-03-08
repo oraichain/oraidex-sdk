@@ -12,6 +12,8 @@ export type ExecuteMsg = {
   };
 };
 export type QueryMsg = {
+  get_config: {};
+} | {
   config: {};
 } | {
   staked_balance_at_height: {
@@ -28,6 +30,15 @@ export interface ConfigResponse {
   asset_key: Addr;
   owner: Addr;
   staking_contract: Addr;
+}
+export type Duration = {
+  height: number;
+} | {
+  time: number;
+};
+export interface ConfigTokenStakingResponse {
+  token_address: Addr;
+  unstaking_duration?: Duration | null;
 }
 export interface StakedBalanceAtHeightResponse {
   balance: Uint128;
