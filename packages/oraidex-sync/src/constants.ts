@@ -4,7 +4,7 @@ import {
   MULTICALL_CONTRACT,
   ROUTER_V2_CONTRACT,
   STAKING_CONTRACT
-} from "@oraichain/oraidex-common";
+} from "@oraichain/oraidex-common/build/constant";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 
 export const ORAI = "orai";
@@ -18,6 +18,7 @@ export const tronCw20Address = "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40
 export const scOraiCw20Address = "orai1065qe48g7aemju045aeyprflytemx7kecxkf5m7u5h5mphd0qlcs47pclp";
 export const usdcCw20Address = "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd";
 export const atomIbcDenom = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
+export const neutaroDenom = "ibc/576B1D63E401B6A9A071C78A1D1316D016EC9333D2FEB14AD503FAC4B8731CD1";
 export const osmosisIbcDenom = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";
 export const injAddress = "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49";
 export const tenAmountInDecimalSix = 10000000;
@@ -32,6 +33,8 @@ export const ORAIXOCH_INFO = {
 };
 export const OCH_PRICE = 0.4; // usdt
 
+export const DAYS_PER_WEEK = 7;
+export const DAYS_PER_YEAR = 365;
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 export const network = {
   factory: FACTORY_CONTRACT,

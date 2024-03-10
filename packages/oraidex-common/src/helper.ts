@@ -104,7 +104,7 @@ export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItem
   if (!tokenInfo.evmDenoms) return {};
   return Object.fromEntries(
     tokenInfo.evmDenoms.map((denom) => {
-      return [denom, amounts[denom]];
+      return [denom, amounts?.[denom]];
     })
   );
 };
@@ -121,10 +121,10 @@ export const toTokenInfo = (token: TokenItemType, info?: TokenInfoResponse): Tok
 export const toAssetInfo = (token: TokenInfo): AssetInfo => {
   return token.contractAddress
     ? {
-        token: {
-          contract_addr: token.contractAddress
-        }
+      token: {
+        contract_addr: token.contractAddress
       }
+    }
     : { native_token: { denom: token.denom } };
 };
 
@@ -425,3 +425,8 @@ export const fetchRetry = async (url: RequestInfo | URL, options: RequestInit & 
     }
   }
 };
+
+export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
+  if ("native_token" in info) return info.native_token.denom;
+  return info.token.contract_addr;
+}

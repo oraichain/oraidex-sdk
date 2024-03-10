@@ -7,17 +7,19 @@ import {
   EvmChainId,
   KWT_BSC_CONTRACT,
   MILKY_BSC_CONTRACT,
+  NEUTARO_INFO,
   NetworkChainId,
+  ORAIX_INFO,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
-  ORAI_ETH_CONTRACT,
-  STABLE_DENOM,
-  TokenItemType,
-  USDC_ETH_CONTRACT,
+  ORAI_INFO,
+  USDC_INFO,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
+  USDT_ETH_CONTRACT,
   USDT_TRON_CONTRACT,
   WRAP_BNB_CONTRACT,
+  WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   flattenTokens,
   getTokenOnOraichain,
@@ -41,10 +43,13 @@ import {
   getSourceReceiver,
   isEvmNetworkNativeSwapSupported,
   isEvmSwappable,
-  isSupportedNoPoolSwapEvm
+  isSupportedNoPoolSwapEvm,
+  generateSwapRoute,
+  generateSwapOperationMsgs
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
-import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -57,7 +62,8 @@ describe("test helper functions", () => {
     ["0x38", "", USDT_TRON_CONTRACT, [WRAP_BNB_CONTRACT, USDT_BSC_CONTRACT]],
     ["0x38", USDT_BSC_CONTRACT, "", [USDT_BSC_CONTRACT, WRAP_BNB_CONTRACT]],
     ["0x38", WRAP_BNB_CONTRACT, WRAP_TRON_TRX_CONTRACT, undefined],
-    ["Oraichain", WRAP_BNB_CONTRACT, WRAP_TRON_TRX_CONTRACT, undefined]
+    ["Oraichain", WRAP_BNB_CONTRACT, WRAP_TRON_TRX_CONTRACT, undefined],
+    ["0x01", WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT, [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT]]
   ])("test-getEvmSwapRoute", (chainId, fromContractAddr, toContractAddr, expectedRoute) => {
     const result = getEvmSwapRoute(chainId, fromContractAddr, toContractAddr);
     expect(JSON.stringify(result)).toEqual(JSON.stringify(expectedRoute));
@@ -65,7 +71,7 @@ describe("test helper functions", () => {
 
   it.each<[CoinGeckoId, boolean]>([
     ["wbnb", true],
-    ["weth", true],
+    ["weth", false],
     ["binancecoin", true],
     ["ethereum", true],
     ["kawaii-islands", false]
@@ -518,5 +524,182 @@ describe("test helper functions", () => {
     ]
   ])("test-unmarshalOraiBridgeRoute-%s", (destination, routeData) => {
     expect(universalHelper.unmarshalOraiBridgeRoute(destination)).toEqual(routeData);
+  });
+
+  it.each<[AssetInfo, AssetInfo, AssetInfo[], SwapOperation[]]>([
+    [
+      NEUTARO_INFO,
+      ORAI_INFO,
+      [USDC_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        }
+      ]
+    ],
+    [
+      ORAI_INFO,
+      NEUTARO_INFO,
+      [USDC_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: NEUTARO_INFO
+          }
+        }
+      ]
+    ],
+    [
+      ORAI_INFO,
+      USDC_INFO,
+      [],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        }
+      ]
+    ],
+    [
+      ORAIX_INFO,
+      NEUTARO_INFO,
+      [ORAI_INFO, USDC_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAIX_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: NEUTARO_INFO
+          }
+        }
+      ]
+    ],
+    [
+      NEUTARO_INFO,
+      ORAIX_INFO,
+      [USDC_INFO, ORAI_INFO],
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ]
+    ]
+  ])("test-generateSwapRoute", (offerAsset, askAsset, swapRoute, expectSwapRoute) => {
+    const getSwapRoute: SwapOperation[] = generateSwapRoute(offerAsset, askAsset, swapRoute);
+    expect(getSwapRoute).toEqual(expect.arrayContaining(expectSwapRoute));
+    getSwapRoute.forEach((swap) => {
+      expect(swap).toMatchObject({
+        orai_swap: expect.objectContaining({
+          offer_asset_info: expect.any(Object),
+          ask_asset_info: expect.any(Object)
+        })
+      });
+    });
+  });
+
+  it.each<[AssetInfo, AssetInfo, SwapOperation[]]>([
+    [
+      ORAIX_INFO,
+      NEUTARO_INFO,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAIX_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: NEUTARO_INFO
+          }
+        }
+      ]
+    ],
+    [
+      NEUTARO_INFO,
+      ORAIX_INFO,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ]
+    ]
+  ])("test-generateSwapOperationMsgs", (offerAsset, askAsset, expectSwapRoute) => {
+    const getSwapOperationMsgsRoute = generateSwapOperationMsgs(offerAsset, askAsset);
+    expect(getSwapOperationMsgsRoute).toEqual(expect.arrayContaining(expectSwapRoute));
+    getSwapOperationMsgsRoute.forEach((swap) => {
+      expect(swap).toMatchObject({
+        orai_swap: expect.objectContaining({
+          offer_asset_info: expect.any(Object),
+          ask_asset_info: expect.any(Object)
+        })
+      });
+    });
   });
 });

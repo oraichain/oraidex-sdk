@@ -45,16 +45,10 @@ jobs:
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: yarn
       - name: Build
-        run: yarn build && yarn build-tsc packages/oraidex-sync && yarn --cwd packages/oraidex-server/ build
+        run: yarn build
       - name: Authenticate with private NPM package
         run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
-      - name: Publish Oraidex Server
-        id: publish
-        continue-on-error: true
-        run: yarn deploy packages/oraidex-server
-        env:
-          CI: false
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish Oraidex Common
         id: publish-common
         continue-on-error: true
@@ -69,17 +63,21 @@ jobs:
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Install latest version
-        id: install
-        if: steps.publish.outcome != 'failure'
+      - name: Publish Oraidex contracts-sdk
+        id: publish-oraidex-contracts-sdk
         continue-on-error: true
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.GIT_PAT }}
-          repository: oraichain/infra
-          event-type: install-package
-          client-payload: '{"libname": "oraidex-server", "node_version": "16"}'
+        run: yarn deploy packages/contracts-sdk
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Oraidex contracts-build
+        id: publish-oraidex-contracts-build
+        continue-on-error: true
+        run: yarn deploy packages/contracts-build
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: send result via discord
         uses: appleboy/discord-action@master
@@ -87,4 +85,4 @@ jobs:
           webhook_id: ${{ secrets.WEBHOOK_ID }}
           webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
           username: "GitBot"
-          message: "Repo oraidex-sdk has just published oraidex-server. result: ${{ steps.publish.outcome }}."
+          message: "Repo oraidex-sdk has just published. result: ${{ steps.publish.outcome }}."

@@ -226,9 +226,9 @@ export class DuckDb {
   }
 
   async queryPairInfos(): Promise<PairInfoData[]> {
-    return (await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr from pair_infos")).map(
-      (data) => data as PairInfoData
-    );
+    return (
+      await this.conn.all("SELECT firstAssetInfo, secondAssetInfo, pairAddr, commissionRate from pair_infos")
+    ).map((data) => data as PairInfoData);
   }
 
   /**
@@ -307,8 +307,9 @@ export class DuckDb {
 
     // get second
     result.forEach((item) => {
-      item.time *= tf;
+      item.time *= BigInt(+tf);
     });
+
     return result as Ohlcv[];
   }
 
@@ -334,7 +335,7 @@ export class DuckDb {
     );
     return result.map((res) => ({
       ...res,
-      time: new Date(res.time * tf * 1000).toISOString()
+      time: new Date(Number(res.time) * tf * 1000).toISOString()
     })) as VolumeRange[];
   }
 
@@ -346,13 +347,13 @@ export class DuckDb {
     const firstAssetInfo = parseAssetInfo(assetInfos[0]);
     const secondAssetInfo = parseAssetInfo(assetInfos[1]);
     let pool = await this.conn.all(
-      `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+      "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
       firstAssetInfo,
       secondAssetInfo
     );
     if (pool.length === 0)
       pool = await this.conn.all(
-        `SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?`,
+        "SELECT * from pair_infos WHERE firstAssetInfo = ? AND secondAssetInfo = ?",
         secondAssetInfo,
         firstAssetInfo
       );
@@ -476,6 +477,19 @@ export class DuckDb {
     return result[0] as PoolAmountHistory;
   }
 
+  async getLpAmountByTime(pairAddr: string, timestamp: number) {
+    const result = await this.conn.all(
+      `
+        SELECT * FROM lp_amount_history
+        WHERE pairAddr = ? AND timestamp >= ?
+        ORDER BY timestamp ASC
+      `,
+      pairAddr,
+      timestamp
+    );
+    return result as PoolAmountHistory[];
+  }
+
   async insertPoolAmountHistory(ops: PoolAmountHistory[]) {
     await this.insertBulkData(ops, "lp_amount_history");
   }
@@ -496,7 +510,11 @@ export class DuckDb {
   }
 
   async addTimestampColToPoolAprTable() {
-    await this.conn.run(`ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0`);
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS timestamp UBIGINT DEFAULT 0");
+  }
+
+  async addAprBoostColToPoolAprTable() {
+    await this.conn.run("ALTER TABLE pool_apr ADD COLUMN IF NOT EXISTS aprBoost DOUBLE DEFAULT 0");
   }
 
   async insertPoolAprs(poolAprs: PoolApr[]) {
@@ -521,16 +539,18 @@ export class DuckDb {
     const result = await this.conn.all(
       `
       WITH RankedPool AS (
-        SELECT pairAddr, apr, rewardPerSec, totalSupply, height,
+        SELECT pairAddr, apr, rewardPerSec, totalSupply, height, aprBoost,
                ROW_NUMBER() OVER (PARTITION BY pairAddr ORDER BY timestamp DESC) AS rn
         FROM pool_apr
     )
-    SELECT pairAddr, apr, rewardPerSec, totalSupply
+    SELECT pairAddr, apr, rewardPerSec, totalSupply, aprBoost
     FROM RankedPool
-    WHERE rn = 1;
+    WHERE rn = 1
+    ORDER BY apr
+    ;
       `
     );
-    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply">[];
+    return result as Pick<PoolApr, "apr" | "pairAddr" | "rewardPerSec" | "totalSupply" | "aprBoost">[];
   }
 
   async getMyEarnedAmount(stakerAddress: string, startTime: number, endTime: number, stakingAssetDenom?: string) {
@@ -583,5 +603,9 @@ export class DuckDb {
   async getLpAmountHistory(): Promise<number> {
     const result = await this.conn.all("SELECT count(*) as count from lp_amount_history");
     return result[0].count;
+  }
+
+  async addSenderColToSwapOpsTable() {
+    await this.conn.run("ALTER TABLE swap_ops_data ADD COLUMN IF NOT EXISTS sender VARCHAR DEFAULT NULL");
   }
 }

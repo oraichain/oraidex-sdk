@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-server",
-  "version": "1.0.42",
+  "version": "1.0.46",
   "main": "dist/index.js",
   "bin": "dist/index.js",
   "license": "MIT",
@@ -16,11 +16,12 @@
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "^0.31.0",
     "@oraichain/common-contracts-sdk": "^1.0.31",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.0",
     "@oraichain/oraidex-sync": "^1.0.0",
+    "@oraichain/oraidex-common": "^1.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "typescript": "^4.8.3"
+    "express": "^4.18.2"
   },
   "devDependencies": {
     "@types/cors": "^2.8.13",

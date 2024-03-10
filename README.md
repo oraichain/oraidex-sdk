@@ -4,9 +4,9 @@
 
 ```bash
 # build code:
-cwtools build ../oraiswap/contracts/* ../oraidex-listing-contract -o packages/contracts-build/data
+cwtools build ../oraiswap/contracts/* ../oraidex-listing-contract ../co-harvest-contracts/contracts/* ../cw20-staking/contracts/* -o packages/contracts-build/data
 # gen code:
-cwtools gents ../oraiswap/contracts/* ../oraidex-listing-contract -o packages/contracts-sdk/src
+cwtools gents ../oraiswap/contracts/* ../oraidex-listing-contract ../co-harvest-contracts/contracts/* ../cw20-staking/contracts/* -o packages/contracts-sdk/src
 # gen doc:
 yarn docs
 
@@ -22,4 +22,41 @@ git checkout packages/contracts-sdk
 
 ```bash
 NODE_ENV=test yarn --cwd packages/market-maker start
+```
+
+# ORAIDEX BACKEND
+
+Oraidex backend is a nodejs server that provides a REST API for aggreated events from a oraidex contracts.
+
+Features:
+
+- Syncronize events from a oraidex smart contract on-chain to a database
+- Provide a REST API to query events from the database
+
+## HOW TO RUN
+
+### Local
+
+```sh
+cp .env.example .env
+yarn && yarn build
+cd packages/oraidex-server
+node dist/index.js
+```
+
+### Docker
+
+```
+docker build . -t oraichain/defi_oraidex-backend
+docker run -it --rm \
+-v $(pwd)/.env:/app/.env \
+-v your-db-file.db:/app/your-db-file.db \
+oraichain/defi_oraidex-backend
+
+```
+
+## RUN UNIT TESTS
+
+```sh
+yarn test
 ```

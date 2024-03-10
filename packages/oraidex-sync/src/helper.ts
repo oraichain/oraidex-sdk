@@ -1,9 +1,8 @@
-import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
-import simulateClient from "./wasm-client/112023.migrate-staking-v3";
 import { maxBy, minBy } from "lodash";
-import { atomic, oraiInfo, tenAmountInDecimalSix, truncDecimals, usdtInfo } from "./constants";
+import { atomic, tenAmountInDecimalSix, truncDecimals } from "./constants";
 import { DuckDb } from "./db";
 import { pairs, pairsOnlyDenom } from "./pairs";
 import { convertDateToSecond, parseAssetInfo, parseAssetInfoOnlyDenom } from "./parse";
@@ -55,8 +54,8 @@ export const toDisplay = (amount: string | bigint, sourceDecimals = 6, desDecima
 export function concatDataToUniqueKey(data: {
   firstDenom: string;
   secondDenom: string;
-  firstAmount: number;
-  secondAmount: number;
+  firstAmount: bigint;
+  secondAmount: bigint;
   txheight: number;
 }): string {
   return `${data.txheight}-${data.firstDenom}-${data.firstAmount}-${data.secondDenom}-${data.secondAmount}`;
@@ -385,11 +384,11 @@ async function getAllVolume24h(): Promise<PoolVolume[]> {
 }
 // ===== end get volume pairs =====>
 
-async function getPoolsFromDuckDb(): Promise<PairInfoData[]> {
+export const getPoolsFromDuckDb = async (): Promise<PairInfoData[]> => {
   const duckDb = DuckDb.instances;
   const pools = await duckDb.getPools();
   return pools;
-}
+};
 
 async function getPoolAprsFromDuckDb() {
   const duckDb = DuckDb.instances;
@@ -458,6 +457,29 @@ async function getAllFees(): Promise<PoolFee[]> {
 }
 //  ==== end get fee pair ====>
 
+// get avg liquidity of pair from assetInfos by timestamp
+export const getAvgPairLiquidity = async (poolInfo: PairInfoData): Promise<number> => {
+  const tf = 7 * 24 * 60 * 60; // second of 7 days
+  const oneWeekBeforeNow = getSpecificDateBeforeNow(new Date(), tf).getTime() / 1000;
+
+  const duckDb = DuckDb.instances;
+  const poolAmount = await duckDb.getLpAmountByTime(poolInfo.pairAddr, oneWeekBeforeNow);
+  const numberOfRecords = poolAmount?.length;
+
+  if (!poolAmount || !numberOfRecords) return 0;
+  const totalLiquidity7Days = poolAmount.reduce((acc, cur) => {
+    acc = acc + toDisplay(cur.offerPoolAmount);
+    return acc;
+  }, 0);
+
+  const avgLiquidity = totalLiquidity7Days / numberOfRecords;
+
+  const baseAssetInfo = JSON.parse(poolInfo.firstAssetInfo);
+  const priceBaseAssetInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
+
+  return priceBaseAssetInUsdt * avgLiquidity * 2;
+};
+
 export function getDate24hBeforeNow(time: Date) {
   const twentyFourHoursInMilliseconds = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
   const date24hBeforeNow = new Date(time.getTime() - twentyFourHoursInMilliseconds);
@@ -471,8 +493,7 @@ export {
   getAllFees,
   getAllVolume24h,
   getCosmwasmClient,
+  getPoolAprsFromDuckDb,
   getSpecificDateBeforeNow,
-  getSymbolFromAsset,
-  getPoolsFromDuckDb,
-  getPoolAprsFromDuckDb
+  getSymbolFromAsset
 };

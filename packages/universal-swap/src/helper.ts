@@ -8,6 +8,7 @@ import {
   AIRI_BSC_CONTRACT,
   WRAP_ETH_CONTRACT,
   USDC_ETH_CONTRACT,
+  USDT_ETH_CONTRACT,
   EvmChainId,
   proxyContractInfo,
   CosmosChainId,
@@ -32,12 +33,17 @@ import {
   cosmosTokens,
   StargateMsg,
   IBC_WASM_HOOKS_CONTRACT,
-  isInPairList
+  isInPairList,
+  BigDecimal,
+  NEUTARO_INFO,
+  USDC_INFO,
+  network,
+  ORAIX_ETH_CONTRACT
 } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
 import {
   AssetInfo,
-  OraiswapRouterClient,
+  OraiswapRouterQueryClient,
   OraiswapRouterReadOnlyInterface,
   OraiswapTokenQueryClient
 } from "@oraichain/oraidex-contracts-sdk";
@@ -49,11 +55,14 @@ import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
 
+const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
+  const arr = ["ethereum", "weth"];
+  return arr.includes(fromCoingecko) && arr.includes(toCoingecko);
+};
 // evm swap helpers
 export const isSupportedNoPoolSwapEvm = (coingeckoId: CoinGeckoId) => {
   switch (coingeckoId) {
     case "wbnb":
-    case "weth":
     case "binancecoin":
     case "ethereum":
       return true;
@@ -89,7 +98,18 @@ export const swapEvmRoutes: {
   },
   "0x01": {
     [`${WRAP_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
-    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT]
+    [`${WRAP_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${WRAP_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT],
+    // TODO: hardcode fix eth -> weth (oraichain)
+    [`${WRAP_ETH_CONTRACT}-${WRAP_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, WRAP_ETH_CONTRACT],
+    [`${USDC_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [USDC_ETH_CONTRACT, USDT_ETH_CONTRACT],
+    [`${USDC_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [USDC_ETH_CONTRACT, WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    [`${USDT_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [USDT_ETH_CONTRACT, WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT]
+
+    // [`${WRAP_ETH_CONTRACT}-${ORAIX_ETH_CONTRACT}`]: [WRAP_ETH_CONTRACT, ORAIX_ETH_CONTRACT]
+    // [`${ORAIX_ETH_CONTRACT}-${ORAI_ETH_CONTRACT}`]: [ORAIX_ETH_CONTRACT, WRAP_ETH_CONTRACT, ORAI_ETH_CONTRACT],
+    // [`${ORAIX_ETH_CONTRACT}-${USDC_ETH_CONTRACT}`]: [ORAIX_ETH_CONTRACT, WRAP_ETH_CONTRACT, USDC_ETH_CONTRACT],
+    // [`${ORAIX_ETH_CONTRACT}-${USDT_ETH_CONTRACT}`]: [ORAIX_ETH_CONTRACT, WRAP_ETH_CONTRACT, USDT_ETH_CONTRACT]
   }
 };
 
@@ -258,6 +278,8 @@ export const addOraiBridgeRoute = (
   toToken: TokenItemType,
   destReceiver?: string
 ): SwapRoute => {
+  // TODO: recheck cosmos address undefined (other-chain -> oraichain)
+  if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
   const source = getSourceReceiver(sourceReceiver, fromToken.contractAddress);
   const { swapRoute, universalSwapType } = getRoute(fromToken, toToken, destReceiver);
   if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType };
@@ -317,6 +339,40 @@ export const unmarshalOraiBridgeRoute = (destination: string) => {
   return routeData;
 };
 
+export const generateSwapRoute = (offerAsset: AssetInfo, askAsset: AssetInfo, swapRoute: AssetInfo[]) => {
+  const swaps = [];
+  if (swapRoute.length === 0) {
+    swaps.push({
+      orai_swap: {
+        offer_asset_info: offerAsset,
+        ask_asset_info: askAsset
+      }
+    });
+  } else {
+    swaps.push({
+      orai_swap: {
+        offer_asset_info: offerAsset,
+        ask_asset_info: swapRoute[0]
+      }
+    });
+    for (let i = 0; i < swapRoute.length - 1; i++) {
+      swaps.push({
+        orai_swap: {
+          offer_asset_info: swapRoute[i],
+          ask_asset_info: swapRoute[i + 1]
+        }
+      });
+    }
+    swaps.push({
+      orai_swap: {
+        offer_asset_info: swapRoute[swapRoute.length - 1],
+        ask_asset_info: askAsset
+      }
+    });
+  }
+  return swaps;
+};
+
 // generate messages
 export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetInfo): SwapOperation[] => {
   const pairExist = PAIRS.some((pair) => {
@@ -327,29 +383,21 @@ export const generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetIn
     );
   });
 
-  return pairExist
-    ? [
-        {
-          orai_swap: {
-            offer_asset_info: offerInfo,
-            ask_asset_info: askInfo
-          }
-        }
-      ]
-    : [
-        {
-          orai_swap: {
-            offer_asset_info: offerInfo,
-            ask_asset_info: ORAI_INFO
-          }
-        },
-        {
-          orai_swap: {
-            offer_asset_info: ORAI_INFO,
-            ask_asset_info: askInfo
-          }
-        }
-      ];
+  if (pairExist) return generateSwapRoute(offerInfo, askInfo, []);
+  // TODO: hardcode NTMPI -> USDC -> ORAI -> X
+  if (isEqual(offerInfo, NEUTARO_INFO)) {
+    const swapRoute = isEqual(askInfo, ORAI_INFO) ? [USDC_INFO] : [USDC_INFO, ORAI_INFO];
+    return generateSwapRoute(offerInfo, askInfo, swapRoute);
+  }
+
+  // TODO: X -> ORAI -> USDC -> NTMPI
+  if (isEqual(askInfo, NEUTARO_INFO)) {
+    const swapRoute = isEqual(offerInfo, ORAI_INFO) ? [USDC_INFO] : [ORAI_INFO, USDC_INFO];
+    return generateSwapRoute(offerInfo, askInfo, swapRoute);
+  }
+
+  // Default case: ORAI_INFO
+  return generateSwapRoute(offerInfo, askInfo, [ORAI_INFO]);
 };
 
 // simulate swap functions
@@ -375,20 +423,13 @@ export const simulateSwap = async (query: {
   console.log("operations: ", operations);
   try {
     let finalAmount = amount;
-    let isSimulatingRatio = false;
-    // hard-code for tron because the WTRX/USDT pool is having a simulation problem (returning zero / error when simulating too small value of WTRX)
-    if (fromInfo.coinGeckoId === "tron" && amount === toAmount(1, fromInfo.decimals).toString()) {
-      finalAmount = toAmount(10, fromInfo.decimals).toString();
-      isSimulatingRatio = true;
-    }
     const data = await routerClient.simulateSwapOperations({
       offerAmount: finalAmount,
       operations
     });
-    if (!isSimulatingRatio) return data;
-    return { amount: data.amount.substring(0, data.amount.length - 1) };
+    return data;
   } catch (error) {
-    throw new Error(`Error when trying to simulate swap using router v2: ${error}`);
+    throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
   }
 };
 
@@ -398,12 +439,18 @@ export const simulateSwapEvm = async (query: {
   amount: string;
 }): Promise<SimulateResponse> => {
   const { amount, fromInfo, toInfo } = query;
+  // check swap native and wrap native
+  const isCheckSwapNativeAndWrapNative = caseSwapNativeAndWrapNative(fromInfo.coinGeckoId, toInfo.coinGeckoId);
 
   // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-  if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+  if (fromInfo.coinGeckoId === toInfo.coinGeckoId || isCheckSwapNativeAndWrapNative) {
     return {
-      amount,
-      displayAmount: toDisplay(amount, toInfo.decimals)
+      // amount: toDisplay(amount, fromInfo.decimals, toInfo.decimals).toString(),
+      amount: new BigDecimal(amount)
+        .mul(10n ** BigInt(toInfo.decimals))
+        .div(10n ** BigInt(fromInfo.decimals))
+        .toString(),
+      displayAmount: toDisplay(amount, fromInfo.decimals)
     };
   }
   try {
@@ -492,6 +539,7 @@ export const checkFeeRelayer = async (query: {
   return checkFeeRelayerNotOrai({
     fromTokenInOrai: getTokenOnOraichain(originalFromToken.coinGeckoId),
     fromAmount,
+    relayerAmount: relayerFee.relayerAmount,
     routerClient
   });
 };
@@ -499,9 +547,10 @@ export const checkFeeRelayer = async (query: {
 export const checkFeeRelayerNotOrai = async (query: {
   fromTokenInOrai: TokenItemType;
   fromAmount: number;
+  relayerAmount: string;
   routerClient: OraiswapRouterReadOnlyInterface;
 }): Promise<boolean> => {
-  const { fromTokenInOrai, fromAmount, routerClient } = query;
+  const { fromTokenInOrai, fromAmount, routerClient, relayerAmount } = query;
   if (!fromTokenInOrai) return true;
   if (fromTokenInOrai.chainId !== "Oraichain")
     throw generateError(
@@ -516,8 +565,9 @@ export const checkFeeRelayerNotOrai = async (query: {
       amount: toAmount(fromAmount, fromTokenInOrai.decimals).toString(),
       routerClient: routerClient
     });
-    const relayerDisplay = toDisplay(amount, fromTokenInOrai.decimals);
-    if (relayerDisplay >= fromAmount) return false;
+    const amountDisplay = toDisplay(amount, fromTokenInOrai.decimals);
+    const relayerAmountDisplay = toDisplay(relayerAmount);
+    if (relayerAmountDisplay > amountDisplay) return false;
     return true;
   }
   return true;
@@ -526,15 +576,18 @@ export const checkFeeRelayerNotOrai = async (query: {
 // verify balance
 export const checkBalanceChannelIbc = async (
   ibcInfo: IBCInfo,
+  fromToken: TokenItemType,
   toToken: TokenItemType,
   toSimulateAmount: string,
-  ics20Client: CwIcs20LatestReadOnlyInterface
+  client: CosmWasmClient,
+  ibcWasmContract: string
 ) => {
   try {
     let pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, toToken.denom);
     if (toToken.prefix && toToken.contractAddress) {
       pairKey = buildIbcWasmPairKey(ibcInfo.source, ibcInfo.channel, `${toToken.prefix}${toToken.contractAddress}`);
     }
+    const ics20Client = new CwIcs20LatestQueryClient(client, ibcWasmContract);
     let balance: Amount;
     try {
       const { balance: channelBalance } = await ics20Client.channelWithKey({
@@ -551,18 +604,27 @@ export const checkBalanceChannelIbc = async (
     if ("native" in balance) {
       const pairMapping = await ics20Client.pairMapping({ key: pairKey });
       const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
-      const _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
-      if (trueBalance < _toAmount) {
-        throw generateError("pair key is not enough balance!");
+      let _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
+      if (fromToken.coinGeckoId !== toToken.coinGeckoId) {
+        const fromTokenInfo = getTokenOnOraichain(fromToken.coinGeckoId);
+        const toTokenInfo = getTokenOnOraichain(toToken.coinGeckoId);
+        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        if (!fromTokenInfo || !toTokenInfo)
+          throw generateError(
+            `Error in checking balance channel ibc: cannot simulate from: ${fromToken.coinGeckoId} to: ${toToken.coinGeckoId}`
+          );
+        const { amount } = await simulateSwap({
+          fromInfo: fromTokenInfo,
+          toInfo: toTokenInfo,
+          amount: toAmount(_toAmount, fromTokenInfo.decimals).toString(),
+          routerClient
+        });
+        _toAmount = toDisplay(amount, fromTokenInfo.decimals);
       }
+      if (trueBalance < _toAmount) throw generateError(`pair key is not enough balance!`);
     }
   } catch (error) {
-    // console.log({ CheckBalanceChannelIbcErrors: error });
-    throw generateError(
-      `Error in checking balance channel ibc: ${{
-        CheckBalanceChannelIbcErrors: error
-      }}`
-    );
+    throw generateError(`Error in checking balance channel ibc: ${JSON.stringify(error)}`);
   }
 };
 
@@ -587,7 +649,6 @@ export const checkBalanceIBCOraichain = async (
   client: CosmWasmClient,
   ibcWasmContract: string
 ) => {
-  const ics20Client = new CwIcs20LatestQueryClient(client, ibcWasmContract);
   // ORAI ( ETH ) -> check ORAI (ORAICHAIN) -> ORAI (BSC)
   // no need to check this case because users will swap directly. This case should be impossible because it is only called when transferring from evm to other networks
   if (from.chainId === "Oraichain" && to.chainId === from.chainId) return;
@@ -604,7 +665,7 @@ export const checkBalanceIBCOraichain = async (
   if (to.chainId === "0x01" || to.chainId === "0x38" || to.chainId === "0x2b6653dc") {
     const ibcInfo: IBCInfo | undefined = getIbcInfo("Oraichain", to.chainId);
     if (!ibcInfo) throw generateError("IBC Info error when checking ibc balance");
-    await checkBalanceChannelIbc(ibcInfo, to, toSimulateAmount, ics20Client);
+    await checkBalanceChannelIbc(ibcInfo, from, to, toSimulateAmount, client, ibcWasmContract);
   }
 };
 

@@ -22,6 +22,7 @@ export type SwapOperationData = {
   returnAmount: number | bigint;
   spreadAmount: number;
   taxAmount: number;
+  sender?: string;
   basePoolAmount?: number | bigint;
   quotePoolAmount?: number | bigint;
 } & BasicTxData;
@@ -84,9 +85,9 @@ export type LiquidityOpType = "provide" | "withdraw";
 
 export type ProvideLiquidityOperationData = {
   basePrice: number;
-  baseTokenAmount: number;
+  baseTokenAmount: bigint;
   baseTokenDenom: string; // eg: orai, orai1234...
-  quoteTokenAmount: number;
+  quoteTokenAmount: bigint;
   quoteTokenDenom: string;
   opType: LiquidityOpType;
   uniqueKey: string; // concat of first, second denom, amount, and timestamp => should be unique. unique key is used to override duplication only.
@@ -104,9 +105,9 @@ export type OraiDexType =
   | EarningOperationData;
 
 export type LpOpsData = {
-  baseTokenAmount: number;
+  baseTokenAmount: bigint;
   baseTokenDenom: string; // eg: orai, orai1234...
-  quoteTokenAmount: number;
+  quoteTokenAmount: bigint;
   quoteTokenDenom: string;
   opType?: LiquidityOpType;
   direction?: SwapDirection;
@@ -184,6 +185,22 @@ export type TickerInfo = {
   base: string;
   target: string;
   pool_id: string;
+  liquidity_in_usd: string;
+  pair_url: string;
+};
+
+export type SummaryInfo = {
+  base_currency: string;
+  quote_currency: string;
+  last_price: number;
+  base_volume: number;
+  quote_volume: number;
+  trading_pairs: string;
+  lowest_ask: number;
+  highest_bid: number;
+  price_change_percent_24h: number;
+  highest_price_24h: number;
+  lowest_price_24h: number;
 };
 
 export type TotalLiquidity = {
@@ -264,6 +281,7 @@ export type PoolApr = {
   rewardPerSec: string;
   apr: number;
   timestamp: number;
+  aprBoost: number;
 };
 
 export type GetPricePairQuery = {

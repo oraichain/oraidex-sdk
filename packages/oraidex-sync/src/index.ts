@@ -1,11 +1,13 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getSymbolFromAsset } from "./helper";
+import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getAllFees, getSymbolFromAsset } from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import {
+  calculateBoostApr,
   fetchAprResult,
   getAllPairInfos,
+  getAvgPoolLiquidities,
   getPairByAssetInfos,
   getPoolInfos,
   getPoolLiquidities,
@@ -70,6 +72,7 @@ class OraiDexSync {
       console.time("timer-updateLatestPairInfos");
       const pairInfos = await getAllPairInfos();
       const allPools = await this.duckDb.getPools();
+
       if (allPools.length > 0 && pairInfos.length === allPools.length) return false;
       await this.duckDb.insertPairInfos(
         pairInfos.map((pair) => {
@@ -131,31 +134,44 @@ class OraiDexSync {
   }
 
   private async updateLatestPoolApr(height: number) {
-    const pools = await this.duckDb.getPools();
-    const allLiquidities = await getPoolLiquidities(pools);
+    try {
+      const pools = await this.duckDb.getPools();
+      const allLiquidities = await getPoolLiquidities(pools);
+      const avgLiquidities = await getAvgPoolLiquidities(pools);
+      const allFee7Days = await getAllFees();
+      const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(
+        pools,
+        allLiquidities
+      );
 
-    const { allAprs, allTotalSupplies, allBondAmounts, allRewardPerSec } = await fetchAprResult(pools, allLiquidities);
+      const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
+      // console.log("boostAor", boostAPR);
 
-    const poolAprs = allAprs.map((apr, index) => {
-      return {
-        uniqueKey: concatAprHistoryToUniqueKey({
+      const poolAprs = allAprs.map((apr, index) => {
+        const newApr = apr + (boostAPR[pools[index]?.liquidityAddr] || 0);
+        return {
+          uniqueKey: concatAprHistoryToUniqueKey({
+            timestamp: Date.now(),
+            supply: allTotalSupplies[index],
+            bond: allBondAmounts[index],
+            reward: JSON.stringify(allRewardPerSec[index]),
+            apr: newApr,
+            pairAddr: pools[index].pairAddr
+          }),
+          pairAddr: pools[index].pairAddr,
+          height,
+          totalSupply: allTotalSupplies[index],
+          totalBondAmount: allBondAmounts[index],
+          rewardPerSec: JSON.stringify(allRewardPerSec[index]),
+          apr: newApr,
           timestamp: Date.now(),
-          supply: allTotalSupplies[index],
-          bond: allBondAmounts[index],
-          reward: JSON.stringify(allRewardPerSec[index]),
-          apr,
-          pairAddr: pools[index].pairAddr
-        }),
-        pairAddr: pools[index].pairAddr,
-        height,
-        totalSupply: allTotalSupplies[index],
-        totalBondAmount: allBondAmounts[index],
-        rewardPerSec: JSON.stringify(allRewardPerSec[index]),
-        apr,
-        timestamp: Date.now()
-      } as PoolApr;
-    });
-    await this.duckDb.insertPoolAprs(poolAprs);
+          aprBoost: boostAPR[pools[index]?.liquidityAddr] || 0
+        } as PoolApr;
+      });
+      await this.duckDb.insertPoolAprs(poolAprs);
+    } catch (error) {
+      console.log("error in updateLatestPoolApr: ", error);
+    }
   }
 
   public async sync() {
@@ -170,6 +186,8 @@ class OraiDexSync {
       await this.duckDb.createPoolAprTable();
       await this.duckDb.createEarningHistoryTable();
       await this.duckDb.addTimestampColToPoolAprTable();
+      await this.duckDb.addAprBoostColToPoolAprTable();
+      await this.duckDb.addSenderColToSwapOpsTable();
       let currentInd = await this.duckDb.loadHeightSnapshot();
       const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
       // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
@@ -217,4 +235,3 @@ export * from "./parse";
 export * from "./pool-helper";
 export * from "./query";
 export * from "./types";
-export * from "./wasm-client/112023.migrate-staking-v3";

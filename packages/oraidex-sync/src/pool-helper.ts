@@ -10,15 +10,34 @@ import {
 } from "@oraichain/oraidex-contracts-sdk";
 import { PoolResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapPair.types";
 import { isEqual } from "lodash";
-import { OCH_PRICE, ORAI, ORAIXOCH_INFO, SEC_PER_YEAR, atomic, network, oraiInfo, usdtInfo } from "./constants";
-import { calculatePriceByPool, getCosmwasmClient, isAssetInfoPairReverse, validateNumber } from "./helper";
 import {
-  DuckDb,
+  DAYS_PER_WEEK,
+  DAYS_PER_YEAR,
+  OCH_PRICE,
+  ORAI,
+  ORAIXOCH_INFO,
+  SEC_PER_YEAR,
+  atomic,
+  network,
+  oraiInfo,
+  truncDecimals,
+  usdtInfo
+} from "./constants";
+import {
+  calculatePriceByPool,
+  getCosmwasmClient,
+  isAssetInfoPairReverse,
+  validateNumber,
   concatAprHistoryToUniqueKey,
   concatLpHistoryToUniqueKey,
   getPairLiquidity,
-  recalculateTotalShare
-} from "./index";
+  recalculateTotalShare,
+  PoolFee,
+  getAvgPairLiquidity,
+  getAllFees,
+  toDisplay
+} from "./helper";
+import { DuckDb } from "./db";
 import { pairs } from "./pairs";
 import { parseAssetInfoOnlyDenom, parsePairDenomToAssetInfo } from "./parse";
 import {
@@ -62,10 +81,7 @@ export const isPoolHasFee = (assetInfos: [AssetInfo, AssetInfo]): boolean => {
 
 export const getPoolInfos = async (pairAddrs: string[], wantedHeight?: number): Promise<PoolResponse[]> => {
   // adjust the query height to get data from the past
-  const cosmwasmClient = await getCosmwasmClient();
-  cosmwasmClient.setQueryClientWithHeight(wantedHeight);
-  const multicall = new MulticallQueryClient(cosmwasmClient, network.multicall);
-  const res = await queryPoolInfos(pairAddrs, multicall);
+  const res = await queryPoolInfos(pairAddrs, wantedHeight);
   return res;
 };
 
@@ -259,6 +275,28 @@ export const calculateAprResult = async (
   return aprResult;
 };
 
+export const calculateBoostApr = (
+  avgLiquidities: Record<string, number>,
+  allFee7Days: PoolFee[]
+): Record<string, number> => {
+  const aprResult = {};
+
+  for (const _pair of pairs) {
+    const lpTokenAddress = _pair.lp_token;
+    const liquidityAmount = avgLiquidities[lpTokenAddress];
+
+    const poolFee = allFee7Days.find((item) => {
+      return JSON.stringify(item.assetInfos) === JSON.stringify(_pair.asset_infos);
+    });
+
+    const yearlyFees = (DAYS_PER_YEAR * toDisplay(poolFee.fee)) / DAYS_PER_WEEK;
+
+    aprResult[lpTokenAddress] = !liquidityAmount ? 0 : (100 * yearlyFees) / liquidityAmount || 0;
+  }
+
+  return aprResult;
+};
+
 export const fetchAprResult = async (pairInfos: PairInfoData[], allLiquidities: number[]) => {
   const liquidityAddrs = pairInfos.map((pair) => pair.liquidityAddr);
   try {
@@ -295,6 +333,15 @@ export const getPoolLiquidities = async (pools: PairInfoData[]): Promise<number[
   for (const pool of pools) {
     const liquidity = await getPairLiquidity(pool);
     allLiquidities.push(liquidity);
+  }
+  return allLiquidities;
+};
+
+export const getAvgPoolLiquidities = async (pools: PairInfoData[]): Promise<Record<string, number>> => {
+  const allLiquidities: Record<string, number> = {};
+  for (const pool of pools) {
+    const liquidity = await getAvgPairLiquidity(pool);
+    allLiquidities[pool.liquidityAddr] = liquidity;
   }
   return allLiquidities;
 };
@@ -338,31 +385,40 @@ export const triggerCalculateApr = async (assetInfos: [AssetInfo, AssetInfo][], 
 
   const pools = await getAllPoolByAssetInfos(assetInfos);
   const allLiquidities = await getPoolLiquidities(pools);
-  const poolAprInfos = [];
+  const allFee7Days = await getAllFees();
+  const avgLiquidities = await getAvgPoolLiquidities(pools);
+  const poolAprInfos: {
+    aprInfo: PoolApr;
+    poolInfo: PairInfoData;
+  }[] = [];
   for (const pool of pools) {
     const aprInfo = await duckDb.getLatestPoolApr(pool.pairAddr);
-    poolAprInfos.push(aprInfo);
+    poolAprInfos.push({ aprInfo, poolInfo: pool });
   }
 
-  const allTotalSupplies = poolAprInfos.map((item) => item.totalSupply);
-  const allBondAmounts = poolAprInfos.map((info) => info.totalBondAmount);
-  const allRewardPerSecs = poolAprInfos.map((info) => (info.rewardPerSec ? JSON.parse(info.rewardPerSec) : null));
+  const allTotalSupplies = poolAprInfos.map((item) => item.aprInfo.totalSupply);
+  const allBondAmounts = poolAprInfos.map((info) => info.aprInfo.totalBondAmount);
+  const allRewardPerSecs = poolAprInfos.map((info) =>
+    info.aprInfo.rewardPerSec ? JSON.parse(info.aprInfo.rewardPerSec) : null
+  );
 
   const APRs = await calculateAprResult(allLiquidities, allTotalSupplies, allBondAmounts, allRewardPerSecs);
+  const boostAPR = calculateBoostApr(avgLiquidities, allFee7Days);
   const newPoolAprs = poolAprInfos.map((poolApr, index) => {
     return {
-      ...poolApr,
+      ...poolApr.aprInfo,
       height: newOffset,
-      apr: APRs[index],
+      apr: APRs[index] + (boostAPR[poolApr.poolInfo?.liquidityAddr] || 0),
       uniqueKey: concatAprHistoryToUniqueKey({
         timestamp: Date.now(),
         supply: allTotalSupplies[index],
         bond: allBondAmounts[index],
         reward: allRewardPerSecs[index],
-        apr: APRs[index],
+        apr: APRs[index] + (boostAPR[poolApr.poolInfo?.liquidityAddr] || 0),
         pairAddr: pools[index].pairAddr
       }),
-      timestamp: Date.now() // use timestamp date.now() because we just need to have a order of apr.
+      timestamp: Date.now(), // use timestamp date.now() because we just need to have a order of apr.
+      aprBoost: boostAPR[poolApr.poolInfo?.liquidityAddr] || 0
     };
   });
   await duckDb.insertPoolAprs(newPoolAprs);

@@ -6,8 +6,8 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, RewardMsg, QueryMsg, OldStoreType, MigrateMsg, ConfigResponse, ArrayOfQueryPoolInfoResponse, QueryPoolInfoResponse, PoolInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse} from "./OraiswapStaking.types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset, RewardMsg} from "./types";
+import {InstantiateMsg, ExecuteMsg, QueryMsg, OldStoreType, MigrateMsg, AllStakersResponse, StakerResponse, ConfigResponse, ArrayOfQueryPoolInfoResponse, QueryPoolInfoResponse, PoolInfoResponse, RewardInfoResponse, RewardInfoResponseItem, ArrayOfRewardInfoResponse, RewardsPerSecResponse} from "./OraiswapStaking.types";
 export interface OraiswapStakingReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
@@ -45,6 +45,7 @@ export interface OraiswapStakingReadOnlyInterface {
   }: {
     storeType: OldStoreType;
   }) => Promise<Binary>;
+  allStakers: () => Promise<AllStakersResponse>;
 }
 export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterface {
   client: CosmWasmClient;
@@ -60,6 +61,7 @@ export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterf
     this.rewardInfos = this.rewardInfos.bind(this);
     this.getPoolsInformation = this.getPoolsInformation.bind(this);
     this.queryOldStore = this.queryOldStore.bind(this);
+    this.allStakers = this.allStakers.bind(this);
   }
 
   config = async (): Promise<ConfigResponse> => {
@@ -137,6 +139,11 @@ export class OraiswapStakingQueryClient implements OraiswapStakingReadOnlyInterf
       query_old_store: {
         store_type: storeType
       }
+    });
+  };
+  allStakers = async (): Promise<AllStakersResponse> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      all_stakers: {}
     });
   };
 }

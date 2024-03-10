@@ -2,6 +2,7 @@ import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import {
   AIRI_CONTRACT,
   ATOM_ORAICHAIN_DENOM,
+  BTC_CONTRACT,
   INJECTIVE_CONTRACT,
   KWT_CONTRACT,
   MILKY_CONTRACT,
@@ -12,9 +13,13 @@ import {
   SCORAI_CONTRACT,
   TRX_CONTRACT,
   USDC_CONTRACT,
-  USDT_CONTRACT
+  USDT_CONTRACT,
+  WETH_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM as NEUTARO_ADDRESS,
+  OCH_CONTRACT,
+  ORAI_INFO
 } from "./constant";
-import { parseAssetInfo } from "./helper";
+import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
 import uniq from "lodash/uniq";
 import flatten from "lodash/flatten";
@@ -81,9 +86,26 @@ export const PAIRS: PairMapping[] = [
     asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
     symbols: ["INJ", "ORAI"]
   },
+  // TODO: true order is oraix/usdc, but we reverse this to serve client
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
-    symbols: ["ORAIX", "USDC"]
+    symbols: ["USDC", "ORAIX"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: WETH_CONTRACT } }],
+    symbols: ["ORAI", "WETH"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: NEUTARO_ADDRESS } }, { token: { contract_addr: USDC_CONTRACT } }],
+    symbols: ["NTMPI", "USDC"]
+  },
+  {
+    asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
+    symbols: ["ORAI", "BTC"]
+  },
+  {
+    asset_infos: [{ token: { contract_addr: OCH_CONTRACT } }, { native_token: { denom: ORAI } }],
+    symbols: ["OCH", "ORAI"]
   }
 ];
 
@@ -101,7 +123,11 @@ export enum pairLpTokens {
   TRX_ORAI = "orai1wgywgvumt5dxhm7vjpwx5es9ecrtl85qaqdspjqwx2lugy7vmw5qlwrn88",
   SCATOM_ATOM = "orai1hcjne0hmdj6pjrc3xuksucr0yplsa9ny7v047c34y8k8hfflq6yqyjapnn",
   INJ_ORAI = "orai1slqw6gfvs6l2jgvh5ryjayf4g77d7sgfv6fumtyzcr06a6g9gnrq6c4rgg",
-  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3"
+  USDC_ORAIX = "orai1nwpfd09mr4rf8d5c9mh43axzezkwyr7dq2lus23jsw4xw2jqkaxqxwmkd3",
+  ORAI_WETH = "orai1rvr9wk6mdlfysvgp72ltthqvkkd5677mp892efq86yyr9alt0tms2a6lcs",
+  ORAI_BTC = "orai1jd9lc2qt0ltjsatgnu38xsz8ngp89clp0dpeh8geyjj70yvkn4kqmrmh3m",
+  NTMPI_USDC = "orai1rmvjmwd940ztafxue7630g75px8tqma4jskjuu57fkj0eqahqfgqqwjm00",
+  OCH_ORAI = "orai1xs5aj90d5m8kwfp9t6ghkcpk8d7sy5jsxdsyejjdxudhhfm7wegsdg929d"
 }
 
 // token identifier can be denom or contract addr
