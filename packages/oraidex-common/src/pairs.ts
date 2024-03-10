@@ -19,7 +19,7 @@ import {
   OCH_CONTRACT,
   ORAI_INFO
 } from "./constant";
-import { parseAssetInfo, parseAssetInfoOnlyDenom } from "./helper";
+import { parseAssetInfo } from "./helper";
 import { TokenItemType, assetInfoMap } from "./token";
 import uniq from "lodash/uniq";
 import flatten from "lodash/flatten";
