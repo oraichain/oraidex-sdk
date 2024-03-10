@@ -12,7 +12,9 @@ import {
   ORAIX_INFO,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
+  ORAI_ETH_CONTRACT,
   ORAI_INFO,
+  TokenItemType,
   USDC_INFO,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
@@ -50,6 +52,7 @@ import {
 import { SwapRoute, UniversalSwapType } from "../src/types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
