@@ -77,6 +77,11 @@ export interface OraiswapLimitOrderReadOnlyInterface {
   }: {
     assetInfos: AssetInfo[];
   }) => Promise<OrderBookMatchableResponse>;
+  midPrice: ({
+    assetInfos
+  }: {
+    assetInfos: AssetInfo[];
+  }) => Promise<Decimal>;
 }
 export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnlyInterface {
   client: CosmWasmClient;
@@ -94,6 +99,7 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
     this.ticks = this.ticks.bind(this);
     this.lastOrderId = this.lastOrderId.bind(this);
     this.orderBookMatchable = this.orderBookMatchable.bind(this);
+    this.midPrice = this.midPrice.bind(this);
   }
 
   contractInfo = async (): Promise<ContractInfoResponse> => {
@@ -228,6 +234,17 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
       }
     });
   };
+  midPrice = async ({
+    assetInfos
+  }: {
+    assetInfos: AssetInfo[];
+  }): Promise<Decimal> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      mid_price: {
+        asset_infos: assetInfos
+      }
+    });
+  };
 }
 export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
@@ -248,12 +265,10 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
     commissionRate,
-    rewardAddress,
-    spreadAddress
+    rewardAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
-    spreadAddress?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   createOrderBookPair: ({
     baseCoinInfo,
@@ -264,6 +279,13 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     baseCoinInfo: AssetInfo;
     minQuoteCoinAmount: Uint128;
     quoteCoinInfo: AssetInfo;
+    spread?: Decimal;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateOrderbookPair: ({
+    assetInfos,
+    spread
+  }: {
+    assetInfos: AssetInfo[];
     spread?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   submitOrder: ({
@@ -307,6 +329,7 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
     this.createOrderBookPair = this.createOrderBookPair.bind(this);
+    this.updateOrderbookPair = this.updateOrderbookPair.bind(this);
     this.submitOrder = this.submitOrder.bind(this);
     this.cancelOrder = this.cancelOrder.bind(this);
     this.executeOrderBookPair = this.executeOrderBookPair.bind(this);
@@ -343,18 +366,15 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
   };
   updateConfig = async ({
     commissionRate,
-    rewardAddress,
-    spreadAddress
+    rewardAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
-    spreadAddress?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
         commission_rate: commissionRate,
-        reward_address: rewardAddress,
-        spread_address: spreadAddress
+        reward_address: rewardAddress
       }
     }, _fee, _memo, _funds);
   };
@@ -374,6 +394,20 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
         base_coin_info: baseCoinInfo,
         min_quote_coin_amount: minQuoteCoinAmount,
         quote_coin_info: quoteCoinInfo,
+        spread
+      }
+    }, _fee, _memo, _funds);
+  };
+  updateOrderbookPair = async ({
+    assetInfos,
+    spread
+  }: {
+    assetInfos: AssetInfo[];
+    spread?: Decimal;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_orderbook_pair: {
+        asset_infos: assetInfos,
         spread
       }
     }, _fee, _memo, _funds);
