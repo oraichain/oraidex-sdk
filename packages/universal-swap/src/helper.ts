@@ -211,14 +211,8 @@ export const getRoute = (
       return { swapRoute: "", universalSwapType: "oraichain-to-cosmos" };
     return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
   }
-  // TODO: support 1-step swap for kwt & injective
-  if (
-    fromToken.chainId === "kawaii_6886-1" ||
-    fromToken.chainId === "0x1ae6" ||
-    fromToken.chainId === "injective-1" ||
-    ((fromToken.coinGeckoId !== toToken.coinGeckoId || toToken.chainId !== "Oraichain") &&
-      (fromToken.chainId === "cosmoshub-4" || fromToken.chainId === "osmosis-1"))
-  ) {
+  // TODO: support 1-step swap for kwt
+  if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6") {
     throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
   }
   // cosmos to others case where from token is a cosmos token
