@@ -2,7 +2,7 @@ import { DuckDb, PairInfoData } from "@oraichain/oraidex-sync";
 import * as oraidexSyncPoolHelper from "@oraichain/oraidex-sync/build/pool-helper";
 import * as oraidexSyncHelper from "@oraichain/oraidex-sync/build/helper";
 import { CACHE_KEY, cache } from "../src/map-cache";
-import { DbQuery } from "./../src/db-query";
+import { DbQuery, GetHistoricalChart } from "./../src/db-query";
 import {
   ORAI,
   ORAIX_CONTRACT,
@@ -16,6 +16,19 @@ import { AllPairsInfo } from "../src/helper";
 
 describe("test-db-query", () => {
   afterEach(jest.restoreAllMocks);
+
+  it("test-getSwapVolume-should-throw-error-when-input-pair-invalid", async () => {
+    // arrange
+    const input: GetHistoricalChart = {
+      pair: "invalid-pair",
+      type: "day"
+    };
+    const duckdb = await DuckDb.create(":memory:");
+    const dbQuery = new DbQuery(duckdb);
+
+    // act & assertion
+    await expect(dbQuery.getSwapVolume(input)).rejects.toThrow(`Cannot find asset infos for pairAddr: ${input.pair}`);
+  });
 
   it.each<["day" | "week" | "month", bigint, bigint, number[]]>([
     ["day", 1000000n, 2000000n, [1, 2, 2]],
@@ -92,6 +105,7 @@ describe("test-db-query", () => {
     const duckdb = await DuckDb.create(":memory:");
     const dbQuery = new DbQuery(duckdb);
 
+    await duckdb.createPairInfosTable();
     await duckdb.createSwapOhlcv();
     await duckdb.insertOhlcv([
       {
@@ -152,6 +166,37 @@ describe("test-db-query", () => {
     result.map((item, index) => {
       expect(item.value).toEqual(expectedResult[index]);
     });
+  });
+
+  it("test-getLiquidityChart-should-throw-error-when-input-pair-invalid", async () => {
+    // arrange
+    const input: GetHistoricalChart = {
+      pair: "invalid-pair",
+      type: "day"
+    };
+    const duckdb = await DuckDb.create(":memory:");
+    const dbQuery = new DbQuery(duckdb);
+
+    // act & assertion
+    await expect(dbQuery.getLiquidityChart(input)).rejects.toThrow(
+      `Cannot find asset infos for pairAddr: ${input.pair}`
+    );
+  });
+
+  it("test-getLiquidityChart-should-throw-error-when-db-dont-have-pair-for-assetInfos", async () => {
+    // arrange
+    const input: GetHistoricalChart = {
+      pair: `${ORAI}-${USDT_CONTRACT}`,
+      type: "day"
+    };
+    const duckdb = await DuckDb.create(":memory:");
+    const dbQuery = new DbQuery(duckdb);
+    jest.spyOn(duckdb, "getPoolByAssetInfos").mockResolvedValue(undefined as any);
+
+    // act & assertion
+    await expect(dbQuery.getLiquidityChart(input)).rejects.toThrow(
+      `Cannot find pair for assetInfos: ${JSON.stringify([ORAI_INFO, { token: { contract_addr: USDT_CONTRACT } }])}`
+    );
   });
 
   it.each<["day" | "week" | "month", number[]]>([

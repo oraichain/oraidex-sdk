@@ -1,11 +1,4 @@
-import {
-  BigDecimal,
-  CW20_DECIMALS,
-  KWT_CONTRACT,
-  ORAI,
-  oraichainTokens,
-  parseTokenInfoRawDenom
-} from "@oraichain/oraidex-common";
+import { BigDecimal, CW20_DECIMALS, KWT_CONTRACT, ORAI } from "@oraichain/oraidex-common";
 import {
   DuckDb,
   PoolAmountHistory,
@@ -13,12 +6,11 @@ import {
   getDate24hBeforeNow,
   getPairLiquidity,
   getPoolLiquidities,
-  getPoolsFromDuckDb,
-  parseAssetInfoOnlyDenom
+  getPoolsFromDuckDb
 } from "@oraichain/oraidex-sync";
-import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString } from "./helper";
-import "./polyfill";
+import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString, getPriceAssetInUsd } from "./helper";
 import { CACHE_KEY, cache } from "./map-cache";
+import "./polyfill";
 
 export type LowHighPriceOfPairType = {
   low: number;
@@ -129,6 +121,8 @@ export class DbQuery {
 
   async getSwapVolume(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { pair, type } = query;
+    const assetInfos = getAssetInfosFromPairString(pair);
+    if (!assetInfos) throw new Error(`Cannot find asset infos for pairAddr: ${pair}`);
 
     const sql = `SELECT
                    ANY_VALUE(timestamp) as timestamp,
@@ -142,13 +136,9 @@ export class DbQuery {
     const params = [pair];
     const result = await this.duckDb.conn.all(sql, ...params);
 
-    const [baseAssetInfo] = getAssetInfosFromPairString(pair);
-    const baseTokenInfo = oraichainTokens.find(
-      (t) => parseTokenInfoRawDenom(t) === parseAssetInfoOnlyDenom(baseAssetInfo)
-    );
-    if (!baseTokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(baseAssetInfo)}`);
-    const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
-    const basePriceInUsdt = prices[baseTokenInfo.coinGeckoId] ?? 0;
+    const [baseAssetInfo] = assetInfos;
+    const basePriceInUsdt = await getPriceAssetInUsd(baseAssetInfo);
+
     const swapVolume = [];
     for (const item of result) {
       swapVolume.push({
@@ -205,13 +195,8 @@ export class DbQuery {
     const params = [pairObj.pairAddr];
     const result = await this.duckDb.conn.all(sql, ...params);
 
-    const baseTokenInfo = oraichainTokens.find(
-      (t) => parseTokenInfoRawDenom(t) === parseAssetInfoOnlyDenom(assetInfos[0])
-    );
-    if (!baseTokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(assetInfos[0])}`);
-
-    const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
-    const basePriceInUsdt = prices[baseTokenInfo.coinGeckoId] ?? 0;
+    const [baseAssetInfo] = assetInfos;
+    const basePriceInUsdt = await getPriceAssetInUsd(baseAssetInfo);
 
     const liquiditiesAvg = [];
     for (const item of result) {
