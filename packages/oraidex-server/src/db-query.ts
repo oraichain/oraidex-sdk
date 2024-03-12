@@ -11,6 +11,9 @@ import {
   PoolAmountHistory,
   SwapOperationData,
   getDate24hBeforeNow,
+  getPairLiquidity,
+  getPoolLiquidities,
+  getPoolsFromDuckDb,
   parseAssetInfoOnlyDenom
 } from "@oraichain/oraidex-sync";
 import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString } from "./helper";
@@ -171,6 +174,17 @@ export class DbQuery {
     return swapVolume;
   }
 
+  async getLatestLiquidityPools() {
+    const pools = await getPoolsFromDuckDb();
+    const allLiquidities = await getPoolLiquidities(pools);
+    const totalLiquiditesInUsdt = allLiquidities.reduce((acc, cur) => {
+      acc += cur;
+      return acc;
+    }, 0);
+
+    return totalLiquiditesInUsdt;
+  }
+
   async getLiquidityChart(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { pair, type } = query;
     const assetInfos = getAssetInfosFromPairString(pair);
@@ -182,7 +196,7 @@ export class DbQuery {
     const sql = `SELECT
                    ANY_VALUE(timestamp) as timestamp,
                    DATE_TRUNC('${type}', to_timestamp(timestamp)) AS time,
-                   AVG(offerPoolAmount) AS value
+                   MAX(offerPoolAmount) AS value
                  FROM lp_amount_history
                  WHERE pairAddr = ?
                  GROUP BY DATE_TRUNC('${type}', to_timestamp(timestamp))
@@ -201,7 +215,7 @@ export class DbQuery {
 
     const liquiditiesAvg = [];
     for (const item of result) {
-      const liquidityInUsdt = new BigDecimal(Math.trunc(basePriceInUsdt * item.value))
+      const liquidityInUsdt = new BigDecimal(Math.trunc(basePriceInUsdt * Number(item.value)))
         .div(10 ** CW20_DECIMALS)
         .mul(2)
         .toNumber();
@@ -210,6 +224,22 @@ export class DbQuery {
         value: liquidityInUsdt
       });
     }
+
+    let latestLiquidityPool = 0;
+    const poolsInfo = cache.get(CACHE_KEY.POOLS_INFO);
+    if (poolsInfo) {
+      const currentPool = poolsInfo.find((p) => p.pairAddr === pairObj.pairAddr);
+      if (currentPool) latestLiquidityPool = currentPool.totalLiquidity;
+    } else {
+      latestLiquidityPool = await getPairLiquidity(pairObj);
+    }
+
+    if (latestLiquidityPool)
+      liquiditiesAvg[liquiditiesAvg.length - 1] = {
+        ...liquiditiesAvg[liquiditiesAvg.length - 1],
+        value: new BigDecimal(latestLiquidityPool).div(10 ** 6).toNumber()
+      };
+
     const KWT_ORAI_PAIR = `${KWT_CONTRACT}-${ORAI}`;
 
     // TODO: current harcode filter data for kwt-orai pair
@@ -248,6 +278,23 @@ export class DbQuery {
         value
       });
     }
+
+    let latestLiquidityPools = 0;
+    const poolsInfo = cache.get(CACHE_KEY.POOLS_INFO);
+    if (poolsInfo) {
+      poolsInfo.reduce((acc, cur) => {
+        acc += cur.totalLiquidity;
+        return acc;
+      }, latestLiquidityPools);
+    } else {
+      latestLiquidityPools = await this.getLatestLiquidityPools();
+    }
+
+    if (latestLiquidityPools)
+      totalLiquiditiesChart[totalLiquiditiesChart.length - 1] = {
+        ...totalLiquiditiesChart[totalLiquiditiesChart.length - 1],
+        value: new BigDecimal(latestLiquidityPools).div(10 ** 6).toNumber()
+      };
 
     return totalLiquiditiesChart.sort((a, b) => new Date(a.time).getTime() - new Date(b.time).getTime());
   }

@@ -1,4 +1,6 @@
 import { DuckDb, PairInfoData } from "@oraichain/oraidex-sync";
+import * as oraidexSyncPoolHelper from "@oraichain/oraidex-sync/build/pool-helper";
+import * as oraidexSyncHelper from "@oraichain/oraidex-sync/build/helper";
 import { CACHE_KEY, cache } from "../src/map-cache";
 import { DbQuery } from "./../src/db-query";
 import {
@@ -153,9 +155,9 @@ describe("test-db-query", () => {
   });
 
   it.each<["day" | "week" | "month", number[]]>([
-    ["day", [3, 6, 9]],
-    ["week", [4, 9]],
-    ["month", [4, 9]]
+    ["day", [4, 6, 5]],
+    ["week", [6, 5]],
+    ["month", [6, 5]]
   ])("test-getLiquidityChart", async (type, expectedResult) => {
     // setup
     const pair = "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh";
@@ -194,7 +196,7 @@ describe("test-db-query", () => {
         uniqueKey: "3"
       },
       {
-        offerPoolAmount: 4000000n,
+        offerPoolAmount: 5000000n,
         askPoolAmount: 1n,
         height: 4,
         timestamp: 1710906613, // Wednesday, 20 March 2024 03:50:13
@@ -203,7 +205,7 @@ describe("test-db-query", () => {
         uniqueKey: "4"
       },
       {
-        offerPoolAmount: 5000000n,
+        offerPoolAmount: 4000000n,
         askPoolAmount: 1n,
         height: 5,
         timestamp: 1710906614, // Wednesday, 20 March 2024 03:50:14
@@ -214,12 +216,21 @@ describe("test-db-query", () => {
     ]);
 
     jest.spyOn(duckdb, "getPoolByAssetInfos").mockResolvedValue({ pairAddr } as PairInfoData);
+    jest.spyOn(oraidexSyncPoolHelper, "getPriceAssetByUsdt").mockResolvedValue(1);
 
     // mock price orai = 1 usdt
     const coingeckoPrices = {
       "oraichain-token": 1
     };
     cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
+
+    // mock cached pools info to get latest lp in usdt
+    cache.set(CACHE_KEY.POOLS_INFO, [
+      {
+        pairAddr,
+        totalLiquidity: 5e6
+      }
+    ]);
 
     // act
     const result = await dbQuery.getLiquidityChart({ pair, type });
@@ -231,9 +242,9 @@ describe("test-db-query", () => {
   });
 
   it.each<["day" | "week" | "month", number[]]>([
-    ["day", [7, 6, 17]],
-    ["week", [8, 17]],
-    ["month", [8, 17]]
+    ["day", [8, 6, 11]],
+    ["week", [10, 11]],
+    ["month", [10, 11]]
   ])("test-getLiquidityChartAllPools", async (type, expectedResult) => {
     // setup
     const pairAddr = "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt"; // ORAI/USDT
@@ -344,6 +355,18 @@ describe("test-db-query", () => {
     };
     cache.set(CACHE_KEY.COINGECKO_PRICES, coingeckoPrices);
 
+    // mock cached pools info to get latest lp in usdt
+    cache.set(CACHE_KEY.POOLS_INFO, [
+      {
+        pairAddr,
+        totalLiquidity: 5e6
+      },
+      {
+        pairAddr: pairAddrOraixUsdc,
+        totalLiquidity: 6e6
+      }
+    ]);
+
     const pairs: AllPairsInfo[] = [
       {
         symbol: "orai/usdt",
@@ -411,8 +434,24 @@ describe("test-db-query", () => {
 
       // act
       const result = await dbQuery.getSwapVolumeForPairByRangeTime(pair, then, now, basePriceInUsdt);
+
       // assert
       expect(result).toEqual(expectedResult);
     }
   );
+
+  it("test-getLatestLiquidityPools", async () => {
+    // setup
+    const duckdb = await DuckDb.create(":memory:");
+    const dbQuery = new DbQuery(duckdb);
+
+    jest.spyOn(oraidexSyncHelper, "getPoolsFromDuckDb").mockResolvedValue([]);
+    jest.spyOn(oraidexSyncPoolHelper, "getPoolLiquidities").mockResolvedValue([1, 2, 3, 4, 5]);
+
+    // act
+    const result = await dbQuery.getLatestLiquidityPools();
+
+    // assert
+    expect(result).toEqual(15);
+  });
 });

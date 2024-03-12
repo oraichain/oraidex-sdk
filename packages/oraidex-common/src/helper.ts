@@ -428,6 +428,9 @@ export const fetchRetry = async (url: RequestInfo | URL, options: RequestInit & 
   }
 };
 
+/**
+ * @deprecated since version 1.0.76. Use `parseAssetInfo` instead.
+ */
 export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
   if ("native_token" in info) return info.native_token.denom;
   return info.token.contract_addr;
