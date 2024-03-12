@@ -370,11 +370,11 @@ describe("test helper functions", () => {
       "cosmos",
       "Oraichain",
       "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
-      "0x1234",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
       {
         swapRoute: parseToIbcHookMemo(
           "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
-          "0x1234",
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
           "",
           parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "Oraichain") as TokenItemType)
         ),
@@ -388,17 +388,17 @@ describe("test helper functions", () => {
       "oraichain-token",
       "Oraichain",
       "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
-      "0x1234",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
       {
         swapRoute: parseToIbcHookMemo(
           "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
-          "0x1234",
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
           "",
           parseTokenInfoRawDenom(getTokenOnSpecificChainId("oraichain-token", "Oraichain") as TokenItemType)
         ),
         universalSwapType: "cosmos-to-others"
       },
-      true
+      false
     ],
     [
       "osmosis",
@@ -406,17 +406,17 @@ describe("test helper functions", () => {
       "cosmos",
       "cosmoshub-4",
       "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
-      "0x1234",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
       {
         swapRoute: parseToIbcHookMemo(
           "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
-          "0x1234",
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
           ibcInfos["Oraichain"]["cosmoshub-4"]?.channel as string,
           parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "cosmoshub-4") as TokenItemType)
         ),
         universalSwapType: "cosmos-to-others"
       },
-      true
+      false
     ]
   ])(
     "test-ibc-hooks-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
