@@ -161,7 +161,13 @@ export enum COSMOS_CHAIN_ID_COMMON {
   COSMOSHUB_CHAIN_ID = "cosmoshub-4",
   INJECTVE_CHAIN_ID = "injective-1",
   KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1",
-  NOBLE_CHAIN_ID = "noble-1"
+  NOBLE_CHAIN_ID = "noble-1",
+  NEUTARO_CHAIN_ID = "Neutaro-1",
+  ORAIBTC_BRIDGE_CHAIN_ID = "oraibtc-mainnet-1"
+}
+
+export enum BITCOIN_CHAIN_ID_COMMON {
+  BITCOIN_CHAIN_ID = "bitcoin"
 }
 
 // asset info token

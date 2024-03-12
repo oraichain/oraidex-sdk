@@ -66,7 +66,9 @@ export type NetworkName =
   | "Tron Network"
   | "Injective"
   | "Noble"
-  | "Neutaro";
+  | "Neutaro"
+  | "OraiBTC Bridge"
+  | "Bitcoin";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -76,7 +78,8 @@ export type CosmosChainId =
   | "injective-1" // injective network
   | "kawaii_6886-1" // kawaii subnetwork
   | "noble-1" // noble network
-  | "Neutaro-1"; //neutaro network;
+  | "Neutaro-1" //neutaro network;
+  | "oraibtc-mainnet-1"; // oraibtc;
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -84,7 +87,8 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type NetworkChainId = CosmosChainId | EvmChainId;
+export type BitcoinChainId = "bitcoin";
+export type NetworkChainId = CosmosChainId | EvmChainId | BitcoinChainId;
 
 export type CoinGeckoId =
   | "oraichain-token"
@@ -109,7 +113,7 @@ export type CoinGeckoId =
   | "neutaro"
   | "och";
 
-export type NetworkType = "cosmos" | "evm";
+export type NetworkType = "cosmos" | "evm" | "bitcoin";
 export interface NetworkConfig {
   coinType?: number;
   explorer: string;
@@ -136,12 +140,12 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
   readonly bridgeNetworkIdentifier?: EvmChainId;
-  readonly coinDecimals: 6 | 18;
+  readonly coinDecimals: 6 | 18 | 8 | 14; // 8 of bitcoin & 14 of usat
   readonly contractAddress?: string;
   readonly prefixToken?: string;
 };
 
-export type CoinType = 118 | 60 | 195;
+export type CoinType = 118 | 60 | 195 | 0;
 
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
@@ -470,10 +474,10 @@ export const oraichainNetwork: CustomChainInfo = {
     {
       coinDenom: "BTC",
       coinGeckoId: "bitcoin",
-      coinMinimalDenom: "btc",
+      coinMinimalDenom: "usat",
       type: "cw20",
       contractAddress: BTC_CONTRACT,
-      // bridgeTo: ["bitcoinTestnet"],
+      bridgeTo: ["bitcoin"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
     },
@@ -491,9 +495,104 @@ export const oraichainNetwork: CustomChainInfo = {
   ]
 };
 
+export const btcNetwork: CustomChainInfo = {
+  rest: "https://blockstream.info/api",
+  rpc: "https://blockstream.info/api",
+  chainId: "bitcoin",
+  chainName: "Bitcoin",
+  bip44: {
+    coinType: 0
+  },
+  coinType: 0,
+  stakeCurrency: {
+    coinDenom: "BTC",
+    coinMinimalDenom: "btc",
+    coinDecimals: 8,
+    coinGeckoId: "bitcoin",
+    coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+  },
+  bech32Config: defaultBech32Config("bc"),
+  networkType: "bitcoin",
+  currencies: [
+    {
+      coinDenom: "BTC",
+      coinMinimalDenom: "btc",
+      coinDecimals: 8,
+      bridgeTo: ["Oraichain"],
+      prefixToken: "oraibtc",
+      coinGeckoId: "bitcoin",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png",
+      gasPriceStep: {
+        low: 0,
+        average: 0,
+        high: 0
+      }
+    }
+  ],
+  get feeCurrencies() {
+    return this.currencies;
+  },
+
+  features: ["isBtc"],
+  txExplorer: {
+    name: "BlockStream",
+    txUrl: "https://blockstream.info/tx/{txHash}",
+    accountUrl: "https://blockstream.info/address/{address}"
+  }
+};
+
+export const oraiBTCBridgeNetwork: CustomChainInfo = {
+  rpc: "https://btc.rpc.orai.io",
+  rest: "https://btc.lcd.orai.io",
+  chainId: "oraibtc-mainnet-1",
+  chainName: "OraiBTC Bridge",
+  networkType: "cosmos",
+  stakeCurrency: {
+    coinDenom: "ORAIBTC",
+    coinMinimalDenom: "uoraibtc",
+    coinDecimals: 6,
+    coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+  },
+  bip44: {
+    coinType: 118
+  },
+  coinType: 118,
+  bech32Config: defaultBech32Config("oraibtc"),
+  currencies: [
+    {
+      coinDenom: "ORAIBTC",
+      coinMinimalDenom: "uoraibtc",
+      coinDecimals: 6,
+      gasPriceStep: {
+        low: 0,
+        average: 0,
+        high: 0
+      },
+      coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+    },
+    {
+      coinDenom: "oBTC",
+      coinMinimalDenom: "usat",
+      coinDecimals: 14,
+      gasPriceStep: {
+        low: 0,
+        average: 0,
+        high: 0
+      },
+      coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+    }
+  ],
+  features: ["stargate", "ibc-transfer", "no-legacy-stdTx"],
+  get feeCurrencies() {
+    return this.currencies;
+  }
+};
+
 export const chainInfos: CustomChainInfo[] = [
   // networks to add on keplr
   oraichainNetwork,
+  btcNetwork,
+  oraiBTCBridgeNetwork,
   {
     rpc: "https://bridge-v2.rpc.orai.io",
     rest: "https://bridge-v2.lcd.orai.io",
