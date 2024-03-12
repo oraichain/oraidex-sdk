@@ -5,9 +5,10 @@ import {
   ORAIX_CONTRACT,
   ORAI_INFO,
   ROUTER_V2_CONTRACT,
-  USDC_CONTRACT
+  USDC_CONTRACT,
+  USDT_CONTRACT
 } from "@oraichain/oraidex-common/build/constant";
-import { fetchRetry } from "@oraichain/oraidex-common/build/helper";
+import { fetchRetry, parseTokenInfoRawDenom, parseAssetInfo } from "@oraichain/oraidex-common/build/helper";
 import { AssetInfo, OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
   DuckDb,
@@ -16,19 +17,16 @@ import {
   PairInfoDataResponse,
   PairMapping,
   PoolAmountHistory,
-  RatioDirection,
   calculatePriceByPool,
   findPairAddress,
   getAllFees,
   getAllVolume24h,
   getAvgPoolLiquidities,
-  getOraiPrice,
-  getPairByAssetInfos,
   getPoolAmounts,
   getPoolAprsFromDuckDb,
   getPoolLiquidities,
   getPoolsFromDuckDb,
-  getPriceByAsset,
+  getPriceAssetByUsdt,
   injAddress,
   oraiInfo,
   oraixCw20Address,
@@ -36,8 +34,7 @@ import {
   pairsWithDenom,
   parseAssetInfoOnlyDenom,
   simulateSwapPrice,
-  usdcCw20Address,
-  usdtInfo
+  usdcCw20Address
 } from "@oraichain/oraidex-sync";
 import bech32 from "bech32";
 import "dotenv/config";
@@ -463,3 +460,19 @@ export const getCoingeckoPrices = async <T extends CoinGeckoId>(
   }
   return prices;
 };
+
+/**
+ * Get asset (in oraichain network) price in usd from coingecko
+ * otherwise, get price via pool
+ */
+export async function getPriceAssetInUsd(assetInfo: AssetInfo): Promise<number> {
+  const tokenInfo = oraichainTokens.find((t) => parseTokenInfoRawDenom(t) === parseAssetInfo(assetInfo));
+  if (!tokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(assetInfo)}`);
+
+  const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
+  let assetPriceInUsdt = prices[tokenInfo.coinGeckoId] ?? 0;
+  if (!assetPriceInUsdt) {
+    assetPriceInUsdt = await getPriceAssetByUsdt(assetInfo);
+  }
+  return assetPriceInUsdt;
+}

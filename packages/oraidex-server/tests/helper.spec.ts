@@ -1,4 +1,12 @@
-import { getAssetInfosFromPairString, getDate24hBeforeNow, validateOraiAddress } from "../src/helper";
+import { ORAIX_INFO } from "@oraichain/oraidex-common";
+import {
+  getAssetInfosFromPairString,
+  getDate24hBeforeNow,
+  getPriceAssetInUsd,
+  validateOraiAddress
+} from "../src/helper";
+import { CACHE_KEY, cache } from "../src/map-cache";
+import * as poolHelper from "@oraichain/oraidex-sync/build/pool-helper";
 
 describe("test-helper", () => {
   it("test-getDate24hBeforeNow", () => {
@@ -56,5 +64,44 @@ describe("test-helper", () => {
 
     // assert
     expect(result).toEqual(expected);
+  });
+
+  describe("test-getPriceAssetInUsd", () => {
+    it("should-throw-error-when-input-is-not-a-valid-asset", async () => {
+      const assetInfo = {
+        token: {
+          contract_addr: "invalid-asset"
+        }
+      };
+      await expect(getPriceAssetInUsd(assetInfo)).rejects.toThrow(
+        `Cannot find token for assetInfo: ${JSON.stringify(assetInfo)}`
+      );
+    });
+
+    it("should-return-price-from-cache", async () => {
+      // arrange
+      cache.set(CACHE_KEY.COINGECKO_PRICES, {
+        oraidex: 1
+      });
+
+      // act
+      const res = await getPriceAssetInUsd(ORAIX_INFO);
+
+      // assertion
+      expect(res).toEqual(1);
+
+      cache.set(CACHE_KEY.COINGECKO_PRICES, undefined);
+    });
+
+    it("should-return-price-from-pool-if-cache-is-not-available", async () => {
+      // arrange
+      jest.spyOn(poolHelper, "getPriceAssetByUsdt").mockResolvedValue(2);
+
+      // act
+      const res = await getPriceAssetInUsd(ORAIX_INFO);
+
+      // assertion
+      expect(res).toEqual(2);
+    });
   });
 });

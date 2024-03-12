@@ -1,7 +1,7 @@
-import { ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { toUtf8 } from "@cosmjs/encoding";
-import { Coin, EncodeObject } from "@cosmjs/proto-signing";
-import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { ExecuteInstruction, JsonObject, fromBinary, toBinary, wasmTypes } from "@cosmjs/cosmwasm-stargate";
+import { fromAscii, toUtf8 } from "@cosmjs/encoding";
+import { Coin, EncodeObject, Registry, decodeTxRaw } from "@cosmjs/proto-signing";
+import { Event, Attribute } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import bech32 from "bech32";
@@ -31,6 +31,8 @@ import {
 } from "./token";
 import { StargateMsg, Tx } from "./tx";
 import { BigDecimal } from "./bigdecimal";
+import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
+import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -121,10 +123,10 @@ export const toTokenInfo = (token: TokenItemType, info?: TokenInfoResponse): Tok
 export const toAssetInfo = (token: TokenInfo): AssetInfo => {
   return token.contractAddress
     ? {
-      token: {
-        contract_addr: token.contractAddress
+        token: {
+          contract_addr: token.contractAddress
+        }
       }
-    }
     : { native_token: { denom: token.denom } };
 };
 
@@ -426,7 +428,64 @@ export const fetchRetry = async (url: RequestInfo | URL, options: RequestInit & 
   }
 };
 
+/**
+ * @deprecated since version 1.0.76. Use `parseAssetInfo` instead.
+ */
 export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
   if ("native_token" in info) return info.native_token.denom;
   return info.token.contract_addr;
 }
+
+export const decodeProto = (value: JsonObject) => {
+  if (!value) throw "value is not defined";
+
+  const typeUrl = value.type_url || value.typeUrl;
+  if (typeUrl) {
+    const customRegistry = new Registry([...defaultStargateTypes, ...wasmTypes]);
+    customRegistry.register("/cosmos.gov.v1beta1.TextProposal", TextProposal);
+    // decode proto
+    return decodeProto(customRegistry.decode({ typeUrl, value: value.value }));
+  }
+
+  for (const k in value) {
+    if (typeof value[k] === "string") {
+      try {
+        value[k] = fromBinary(value[k]);
+      } catch {}
+    }
+    if (typeof value[k] === "object") value[k] = decodeProto(value[k]);
+  }
+  if (value.msg instanceof Uint8Array) value.msg = JSON.parse(fromAscii(value.msg));
+  return value;
+};
+
+export const parseWasmEvents = (events: readonly Event[]): { [key: string]: string }[] => {
+  const wasmEvents = events.filter((e) => e.type.startsWith("wasm"));
+  const attrs: { [key: string]: string }[] = [];
+  for (const wasmEvent of wasmEvents) {
+    let attr: { [key: string]: string };
+    for (const { key, value } of wasmEvent.attributes) {
+      if (key === "_contract_address") {
+        if (attr) attrs.push(attr);
+        attr = {};
+      }
+      attr[key] = value;
+    }
+    attrs.push(attr);
+  }
+  return attrs;
+};
+
+export const parseTxToMsgsAndEvents = (indexedTx: Tx, eventsParser?: (events: readonly Event[]) => Attribute[]) => {
+  if (!indexedTx) return [];
+  const { rawLog, tx } = indexedTx;
+  const { body } = decodeTxRaw(tx);
+  const messages = body.messages.map(decodeProto);
+  const logs: logs.Log[] = JSON.parse(rawLog);
+
+  return logs.map((log) => {
+    const index = log.msg_index ?? 0;
+    const attrs = eventsParser ? eventsParser(log.events) : parseWasmEvents(log.events);
+    return { attrs, message: messages[index] };
+  });
+};

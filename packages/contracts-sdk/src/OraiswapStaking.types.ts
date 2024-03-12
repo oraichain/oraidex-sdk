@@ -58,10 +58,6 @@ export type ExecuteMsg = {
     staker_addr: Addr;
     staking_token: Addr;
   };
-} | {
-  migrate_store: {
-    asset_info: AssetInfo;
-  };
 };
 export type QueryMsg = {
   config: {};
@@ -91,8 +87,6 @@ export type QueryMsg = {
   query_old_store: {
     store_type: OldStoreType;
   };
-} | {
-  all_stakers: {};
 };
 export type OldStoreType = {
   pools: {};
@@ -112,13 +106,6 @@ export type OldStoreType = {
   rewards_per_sec: {};
 };
 export interface MigrateMsg {}
-export interface AllStakersResponse {
-  stakers: StakerResponse[];
-}
-export interface StakerResponse {
-  in_pools: Addr[];
-  staker_addr: Addr;
-}
 export interface ConfigResponse {
   base_denom: string;
   factory_addr: Addr;
