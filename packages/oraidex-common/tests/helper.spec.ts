@@ -7,6 +7,7 @@ import { AIRI_CONTRACT, AVERAGE_COSMOS_GAS_PRICE, MILKYBSC_ORAICHAIN_DENOM, ORAI
 import {
   calculateMinReceive,
   calculateTimeoutTimestamp,
+  decodeProto,
   ethToTronAddress,
   findToTokenOnOraiBridge,
   getCosmosGasPrice,
@@ -399,6 +400,8 @@ describe("should helper functions in helper run exactly", () => {
     // case 2: real tx with multiple msgs and multiple contract calls
     const client = await StargateClient.connect("wss://rpc.orai.io");
     const indexedTx = await client.getTx("9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17");
+    client.disconnect();
+
     const data = parseTxToMsgsAndEvents(indexedTx!);
     expect(data.length).toEqual(2);
     expect(data[0].message).toMatchObject({
@@ -443,10 +446,75 @@ describe("should helper functions in helper run exactly", () => {
       funds: []
     });
     expect(data[0].attrs.length).toEqual(5);
+  }, 20000);
+
+  it("test-decodeProto-with-value-input-undefined", () => {
+    expect(() => decodeProto(undefined)).toThrow("value is not defined");
   });
 
-  // TODO: write test cases for these functions
-  it("test-decodeProto", () => {});
+  it.each([
+    [
+      // case 1: value with type_url and valid value
+      {
+        type_url: "/cosmos.gov.v1beta1.TextProposal",
+        value: Uint8Array.from([10, 3, 97, 98, 99]) // Example byte array
+      },
+      { title: "abc", description: "" }
+    ],
+
+    [
+      // case 2: value with typeUrl and valid value
+      {
+        type_url: "/cosmos.gov.v1beta1.TextProposal",
+        value: Uint8Array.from([10, 3, 97, 98, 99])
+      },
+      { title: "abc", description: "" }
+    ],
+
+    // case 3: value is object with binary string and object properties is binary string
+    [
+      {
+        key1: "InZhbHVlMSI=",
+        key2: {
+          nestedKey: "Im5lc3RlZC1zdHJpbmctdmFsdWUi"
+        }
+      },
+      {
+        key1: "value1",
+        key2: {
+          nestedKey: "nested-string-value"
+        }
+      }
+    ],
+
+    // case 4: value is object with text string
+    [
+      {
+        key1: "text-string"
+      },
+      {
+        key1: "text-string"
+      }
+    ],
+
+    // case 5: value.msg is instance of Uint8Array
+    [
+      {
+        msg: Uint8Array.from([123, 34, 107, 101, 121, 34, 58, 34, 118, 97, 108, 117, 101, 34, 125]) // Uint8Array representation of '{"key": "value"}'
+      },
+      {
+        msg: {
+          key: "value"
+        }
+      }
+    ]
+  ])("test-decodeProto", (value, expectation) => {
+    // act
+    const res = decodeProto(value);
+
+    // assertion
+    expect(res).toEqual(expectation);
+  });
 
   it.each<[string, readonly Event[], { [key: string]: string }[]]>([
     ["empty-events-array", [], []],
