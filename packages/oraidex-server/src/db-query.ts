@@ -1,23 +1,14 @@
-import {
-  BigDecimal,
-  CW20_DECIMALS,
-  KWT_CONTRACT,
-  ORAI,
-  oraichainTokens,
-  parseAssetInfo,
-  parseTokenInfoRawDenom
-} from "@oraichain/oraidex-common";
+import { BigDecimal, CW20_DECIMALS, KWT_CONTRACT, ORAI } from "@oraichain/oraidex-common";
 import {
   DuckDb,
   PoolAmountHistory,
   SwapOperationData,
   getDate24hBeforeNow,
-  getPriceAssetByUsdt,
   getPairLiquidity,
   getPoolLiquidities,
   getPoolsFromDuckDb
 } from "@oraichain/oraidex-sync";
-import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString } from "./helper";
+import { ARRANGED_PAIRS_CHART, AllPairsInfo, getAssetInfosFromPairString, getPriceAssetInUsd } from "./helper";
 import { CACHE_KEY, cache } from "./map-cache";
 import "./polyfill";
 
@@ -130,6 +121,8 @@ export class DbQuery {
 
   async getSwapVolume(query: GetHistoricalChart): Promise<HistoricalChartResponse[]> {
     const { pair, type } = query;
+    const assetInfos = getAssetInfosFromPairString(pair);
+    if (!assetInfos) throw new Error(`Cannot find asset infos for pairAddr: ${pair}`);
 
     const sql = `SELECT
                    ANY_VALUE(timestamp) as timestamp,
@@ -143,19 +136,8 @@ export class DbQuery {
     const params = [pair];
     const result = await this.duckDb.conn.all(sql, ...params);
 
-    // get base price in usd from coingecko
-    // otherwise, get via pool
-    const assetInfos = getAssetInfosFromPairString(pair);
-    if (!assetInfos) throw new Error(`Cannot find asset infos for pairAddr: ${pair}`);
     const [baseAssetInfo] = assetInfos;
-    const baseTokenInfo = oraichainTokens.find((t) => parseTokenInfoRawDenom(t) === parseAssetInfo(baseAssetInfo));
-    if (!baseTokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(baseAssetInfo)}`);
-
-    const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
-    let basePriceInUsdt = prices[baseTokenInfo.coinGeckoId] ?? 0;
-    if (!basePriceInUsdt) {
-      basePriceInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-    }
+    const basePriceInUsdt = await getPriceAssetInUsd(baseAssetInfo);
 
     const swapVolume = [];
     for (const item of result) {
@@ -213,17 +195,8 @@ export class DbQuery {
     const params = [pairObj.pairAddr];
     const result = await this.duckDb.conn.all(sql, ...params);
 
-    // get base price in usd from coingecko
-    // otherwise, get price via pool
     const [baseAssetInfo] = assetInfos;
-    const baseTokenInfo = oraichainTokens.find((t) => parseTokenInfoRawDenom(t) === parseAssetInfo(baseAssetInfo));
-    if (!baseTokenInfo) throw new Error(`Cannot find token for assetInfo: ${JSON.stringify(baseAssetInfo)}`);
-
-    const prices = cache.get(CACHE_KEY.COINGECKO_PRICES) ?? {};
-    let basePriceInUsdt = prices[baseTokenInfo.coinGeckoId] ?? 0;
-    if (!basePriceInUsdt) {
-      basePriceInUsdt = await getPriceAssetByUsdt(baseAssetInfo);
-    }
+    const basePriceInUsdt = await getPriceAssetInUsd(baseAssetInfo);
 
     const liquiditiesAvg = [];
     for (const item of result) {
