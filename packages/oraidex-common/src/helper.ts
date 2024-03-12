@@ -438,13 +438,15 @@ export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
 
 export const decodeProto = (value: JsonObject) => {
   if (!value) throw "value is not defined";
-  const customRegistry = new Registry([...defaultStargateTypes, ...wasmTypes]);
-  customRegistry.register("/cosmos.gov.v1beta1.TextProposal", TextProposal);
+
   const typeUrl = value.type_url || value.typeUrl;
   if (typeUrl) {
+    const customRegistry = new Registry([...defaultStargateTypes, ...wasmTypes]);
+    customRegistry.register("/cosmos.gov.v1beta1.TextProposal", TextProposal);
     // decode proto
     return decodeProto(customRegistry.decode({ typeUrl, value: value.value }));
   }
+
   for (const k in value) {
     if (typeof value[k] === "string") {
       try {
@@ -457,9 +459,9 @@ export const decodeProto = (value: JsonObject) => {
   return value;
 };
 
-export const parseWasmEvents = (events: readonly Event[]): Attribute[] => {
+export const parseWasmEvents = (events: readonly Event[]): { [key: string]: string }[] => {
   const wasmEvents = events.filter((e) => e.type.startsWith("wasm"));
-  const attrs = [];
+  const attrs: { [key: string]: string }[] = [];
   for (const wasmEvent of wasmEvents) {
     let attr: { [key: string]: string };
     for (const { key, value } of wasmEvent.attributes) {
