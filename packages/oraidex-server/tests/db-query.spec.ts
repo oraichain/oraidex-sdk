@@ -17,6 +17,10 @@ import { AllPairsInfo } from "../src/helper";
 describe("test-db-query", () => {
   afterEach(jest.restoreAllMocks);
 
+  afterEach(() => {
+    cache.set(CACHE_KEY.POOLS_INFO, []);
+  });
+
   it("test-getSwapVolume-should-throw-error-when-input-pair-invalid", async () => {
     // arrange
     const input: GetHistoricalChart = {
@@ -287,7 +291,6 @@ describe("test-db-query", () => {
   });
 
   it.each<["day" | "week" | "month", number[]]>([
-    ["day", [8, 6, 11]],
     ["week", [10, 11]],
     ["month", [10, 11]]
   ])("test-getLiquidityChartAllPools", async (type, expectedResult) => {

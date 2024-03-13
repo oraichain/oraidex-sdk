@@ -267,10 +267,10 @@ export class DbQuery {
     let latestLiquidityPools = 0;
     const poolsInfo = cache.get(CACHE_KEY.POOLS_INFO);
     if (poolsInfo) {
-      poolsInfo.reduce((acc, cur) => {
+      latestLiquidityPools = poolsInfo.reduce((acc, cur) => {
         acc += cur.totalLiquidity;
         return acc;
-      }, latestLiquidityPools);
+      }, 0);
     } else {
       latestLiquidityPools = await this.getLatestLiquidityPools();
     }
