@@ -1,5 +1,5 @@
 import { CwIcs20LatestClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
+import { CosmosWallet, EvmWallet, TokenItemType, BitcoinWallet } from "@oraichain/oraidex-common";
 import { OraiswapRouterInterface, OraiswapRouterReadOnlyInterface, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
@@ -7,6 +7,8 @@ export type UniversalSwapType =
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
+  | "oraichain-to-bitcoin"
+  | "bitcoin-to-oraichain"
   | "cosmos-to-cosmos";
 
 export enum SwapDirection {
@@ -28,11 +30,30 @@ export interface Sender {
   cosmos: string;
   evm?: string;
   tron?: string;
+  bitcoin?: string;
+  bitcoinDeposit?: string;
 }
 
 export interface RelayerFeeData {
   relayerAmount: string;
   relayerDecimals: number;
+}
+
+export interface UtxosInterface {
+  txid: string;
+  vout: number;
+  status: {
+    confirmed: boolean;
+    block_height: number;
+    block_hash: string;
+    block_time: number;
+  };
+  value: number;
+}
+
+export interface BitcoinInfo {
+  utxos: UtxosInterface[];
+  feeRate: number;
 }
 
 /**
@@ -47,6 +68,7 @@ export interface UniversalSwapData {
   readonly userSlippage?: number;
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
+  readonly bitcoinInfo?: BitcoinInfo;
 }
 
 /**
@@ -56,8 +78,15 @@ export interface UniversalSwapData {
  */
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
+  readonly bitcoinWallet?: BitcoinWallet;
   readonly evmWallet?: EvmWallet;
   readonly ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
+}
+
+export interface MultiAddresses {
+  metamaskAddress: string;
+  tronAddress: string;
+  bitcoinAddress?: string;
 }
 
 export interface SwapRoute {

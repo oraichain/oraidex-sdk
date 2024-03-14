@@ -11,6 +11,7 @@ import { TronWeb } from "./tronweb";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
 
+export type BitcoinMode = "core" | "extension" | "mobile-web" | "walletconnect";
 export interface EvmResponse {
   transactionHash: string;
 }
@@ -197,6 +198,54 @@ export abstract class EvmWallet {
       const result = await tokenContract.approve(spender, amount, { from: ownerHex });
       await result.wait();
       return { transactionHash: result.hash };
+    }
+  }
+}
+
+export interface IBitcoin {
+  readonly version: string;
+  /**
+   * mode means that how Ethereum is connected.
+   * If the connected Ethereum is browser's extension, the mode should be "extension".
+   * If the connected Ethereum is on the mobile app with the embeded web browser, the mode should be "mobile-web".
+   */
+  readonly mode: BitcoinMode;
+  signAndBroadcast(
+    chainId: string,
+    data: object
+  ): Promise<{
+    rawTxHex: string;
+  }>;
+  getKey(chainId: string): Promise<any>;
+}
+
+export abstract class BitcoinWallet {
+  constructor(public bitcoin: IBitcoin) {}
+
+  public abstract getBitcoinKey(chainId?: string): Promise<string>;
+  /**
+   * Note: Browser only. Return if you dont use the browser.
+   * This method allows switching between different evm networks.
+   * @param chainId - bitcoin chain id
+   */
+  public abstract getAddress(chainId?: string): Promise<string>;
+
+  public async signAndBroadcast(
+    chainId,
+    data
+  ): Promise<{
+    rawTxHex: string;
+  }> {
+    if (!this.bitcoin) {
+      throw new Error("You need to initialize tron web before calling signAndBroadcast.");
+    }
+    try {
+      const result = await this.bitcoin.signAndBroadcast(chainId, data);
+      console.log("transaction result: ", result);
+      return { rawTxHex: result.rawTxHex };
+    } catch (error) {
+      console.error("Error while signing and broadcasting Bitcoin transaction:", error);
+      throw new Error(error);
     }
   }
 }

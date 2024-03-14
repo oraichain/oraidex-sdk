@@ -53,6 +53,7 @@ import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
+import { script, opcodes } from "bitcoinjs-lib";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -199,6 +200,9 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
   if (fromToken.chainId === "Oraichain" && toToken.chainId === "Oraichain") {
     return { swapRoute: "", universalSwapType: "oraichain-to-oraichain" };
   }
+  if (fromToken.chainId === "Oraichain" && toToken.chainId === "bitcoin") {
+    return { swapRoute: "", universalSwapType: "oraichain-to-bitcoin" };
+  }
   // we dont need to have any swapRoute for this case
   if (fromToken.chainId === "Oraichain") {
     if (cosmosTokens.some((t) => t.chainId === toToken.chainId))
@@ -218,6 +222,14 @@ export const getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, des
   // cosmos to cosmos case where from token is a cosmos token
   if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
     return { swapRoute: "", universalSwapType: "cosmos-to-cosmos" };
+  }
+  if (fromToken.chainId === "bitcoin" && toToken.chainId === "Oraichain") {
+    if (fromToken.coinGeckoId === toToken.coinGeckoId)
+      return { swapRoute: "", universalSwapType: "bitcoin-to-oraichain" };
+    return {
+      swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
+      universalSwapType: "bitcoin-to-oraichain"
+    };
   }
   if (toToken.chainId === "Oraichain") {
     // if to token chain id is Oraichain, then we dont need to care about ibc msg case
@@ -700,3 +712,82 @@ export function filterNonPoolEvmTokens(
     return true;
   });
 }
+
+//==================================================> BTC <===========================================================================
+const TX_EMPTY_SIZE = 4 + 1 + 1 + 4; //10
+const TX_INPUT_BASE = 32 + 4 + 1 + 4; //41
+const TX_INPUT_PUBKEYHASH = 107;
+const TX_OUTPUT_BASE = 8 + 1; //9
+const TX_OUTPUT_PUBKEYHASH = 25;
+const MIN_TX_FEE = 1000;
+
+export const mapUtxos = ({ utxos, address, path = "m/84'/0'/0'/0/0", currentBlockHeight = 0 }) => {
+  let balance = 0;
+  let utxosData = [];
+  if (!utxos || utxos?.length === 0) {
+    return {
+      balance,
+      utxos: utxosData
+    };
+  }
+  utxos.forEach((utxo) => {
+    balance = balance + Number(utxo.value);
+    const data = {
+      address: address, //Required
+      path: path, //Required
+      value: utxo.value, //Required
+      confirmations: currentBlockHeight - Number(utxo.status.block_height ?? 0), //Required
+      blockHeight: utxo.status.block_height ?? 0,
+      txid: utxo.txid, //Required (Same as tx_hash_big_endian)
+      vout: utxo.vout, //Required (Same as tx_output_n)
+      tx_hash: utxo.txid,
+      tx_hash_big_endian: utxo.txid,
+      tx_output_n: utxo.vout
+    };
+    utxosData.push(data);
+  });
+  return {
+    balance,
+    utxos: utxosData
+  };
+};
+
+export const calculatorTotalFeeBtc = ({ utxos = [], transactionFee = 1, message = "" }) => {
+  if (message && message.length > 80) {
+    throw new Error("message too long, must not be longer than 80 chars.");
+  }
+  if (utxos.length === 0) return 0;
+  const feeRateWhole = Math.ceil(transactionFee);
+  const compiledMemo = message ? compileMemo(message) : null;
+  const fee = getFeeFromUtxos(utxos, feeRateWhole, compiledMemo);
+  return fee;
+};
+
+const compileMemo = (memo) => {
+  const data = Buffer.from(memo, "utf8"); // converts MEMO to buffer
+  return script.compile([opcodes.OP_RETURN, data]); // Compile OP_RETURN script
+};
+
+const inputBytes = (input) => {
+  return TX_INPUT_BASE + (input.witnessUtxo?.script ? input.witnessUtxo?.script.length : TX_INPUT_PUBKEYHASH);
+};
+
+const getFeeFromUtxos = (utxos, feeRate, data) => {
+  const inputSizeBasedOnInputs =
+    utxos.length > 0
+      ? utxos.reduce((a, x) => a + inputBytes(x), 0) + utxos.length // +1 byte for each input signature
+      : 0;
+  let sum =
+    TX_EMPTY_SIZE +
+    inputSizeBasedOnInputs +
+    TX_OUTPUT_BASE +
+    TX_OUTPUT_PUBKEYHASH +
+    TX_OUTPUT_BASE +
+    TX_OUTPUT_PUBKEYHASH;
+
+  if (data) {
+    sum += TX_OUTPUT_BASE + data.length;
+  }
+  const fee = sum * feeRate;
+  return fee > MIN_TX_FEE ? fee : MIN_TX_FEE;
+};

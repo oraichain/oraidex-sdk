@@ -35,12 +35,16 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  COSMOS_CHAIN_ID_COMMON
+  COSMOS_CHAIN_ID_COMMON,
+  findToTokenOnOraiBTCBridge,
+  ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX,
+  BigDecimal
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
   addOraiBridgeRoute,
   buildIbcWasmHooksMemo,
+  calculatorTotalFeeBtc,
   checkBalanceChannelIbc,
   checkBalanceIBCOraichain,
   checkFeeRelayer,
@@ -48,13 +52,15 @@ import {
   getEvmSwapRoute,
   getIbcInfo,
   isEvmSwappable,
-  isSupportedNoPoolSwapEvm
+  isSupportedNoPoolSwapEvm,
+  mapUtxos
 } from "./helper";
-import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
+import { MultiAddresses, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { BitcoinUnit } from "bitcoin-units";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
@@ -76,8 +82,12 @@ export class UniversalSwapHandler {
 
   async getUniversalSwapToAddress(
     toChainId: NetworkChainId,
-    address: { metamaskAddress?: string; tronAddress?: string }
+    address: { metamaskAddress?: string; tronAddress?: string; bitcoinAddress?: string }
   ): Promise<string> {
+    // bitcoin
+    if (toChainId === "bitcoin") {
+      return address.bitcoinAddress ?? (await this.config.bitcoinWallet.getAddress());
+    }
     // evm based
     if (toChainId === "0x01" || toChainId === "0x1ae6" || toChainId === "0x38") {
       return address.metamaskAddress ?? (await this.config.evmWallet.getEthAddress());
@@ -141,8 +151,10 @@ export class UniversalSwapHandler {
     return msgTransfer;
   }
 
-  getTranferAddress(metamaskAddress: string, tronAddress: string, channel: string) {
+  getTranferAddress({ metamaskAddress, tronAddress, bitcoinAddress }: MultiAddresses, channel: string) {
     let transferAddress = metamaskAddress;
+    // check oraibtc bridge and return
+    if (this.swapData.originalToToken.prefix === ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX) return bitcoinAddress;
     // check tron network and convert address
     if (this.swapData.originalToToken.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX) {
       transferAddress = tronToEthAddress(tronAddress);
@@ -156,20 +168,22 @@ export class UniversalSwapHandler {
   }
 
   getIbcMemo(
-    metamaskAddress: string,
-    tronAddress: string,
+    { metamaskAddress, tronAddress, bitcoinAddress }: MultiAddresses,
     channel: string,
     toToken: { chainId: string; prefix: string }
   ) {
-    const transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
-    return toToken.chainId === "oraibridge-subnet-2" ? toToken.prefix + transferAddress : "";
+    const transferAddress = this.getTranferAddress({ metamaskAddress, tronAddress, bitcoinAddress }, channel);
+
+    if (toToken.chainId === "oraibridge-subnet-2") return toToken.prefix + transferAddress;
+    if (toToken.chainId === "oraibtc-mainnet-1") return `withdraw:${transferAddress}`;
+    return "";
   }
 
   /**
    * Combine messages for universal swap token from Oraichain to EVM networks(BSC | Ethereum | Tron).
    * @returns combined messages
    */
-  async combineMsgEvm(metamaskAddress: string, tronAddress: string) {
+  async combineMsgEvm(metamaskAddress: string, tronAddress: string, bitcoinAddress?: string) {
     let msgExecuteSwap: EncodeObject[] = [];
     const { originalFromToken, originalToToken, sender } = this.swapData;
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
@@ -184,12 +198,41 @@ export class UniversalSwapHandler {
     if (!toAddress) throw generateError("Please login keplr!");
 
     const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, newToToken.chainId);
-    const ibcMemo = this.getIbcMemo(metamaskAddress, tronAddress, ibcInfo.channel, {
+    const ibcMemo = this.getIbcMemo({ metamaskAddress, tronAddress, bitcoinAddress }, ibcInfo.channel, {
       chainId: newToToken.chainId,
       prefix: newToToken.prefix
     });
 
     // create bridge msg
+    const msgTransfer = this.generateMsgsIbcWasm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
+    const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgTransfer);
+    return [...msgExecuteSwap, ...msgExecuteTransfer];
+  }
+
+  async combineMsgBitcoin() {
+    let msgExecuteSwap: EncodeObject[] = [];
+    const { originalFromToken, originalToToken, sender } = this.swapData;
+    if (originalFromToken.coinGeckoId !== originalToToken.coinGeckoId) {
+      const msgSwap = this.generateMsgsSwap();
+      msgExecuteSwap = getEncodedExecuteContractMsgs(sender.cosmos, msgSwap);
+    }
+
+    // then find new _toToken in OraiBTCbridge that have same coingeckoId with originalToToken.
+    const newToToken = findToTokenOnOraiBTCBridge(originalToToken.coinGeckoId, originalToToken.chainId);
+    const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
+    if (!toAddress) throw generateError("Please login keplr!");
+
+    const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, newToToken.chainId);
+    const ibcMemo = this.getIbcMemo(
+      { metamaskAddress: sender.evm, tronAddress: sender.tron, bitcoinAddress: sender.bitcoin },
+      ibcInfo.channel,
+      {
+        chainId: newToToken.chainId,
+        prefix: newToToken.prefix
+      }
+    );
+
+    // // create bridge msg
     const msgTransfer = this.generateMsgsIbcWasm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
     const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgTransfer);
     return [...msgExecuteSwap, ...msgExecuteTransfer];
@@ -375,24 +418,30 @@ export class UniversalSwapHandler {
         `There is a mismatch between the sender ${sender.cosmos} versus the Oraichain address ${oraiAddress}. Should not swap!`
       );
 
+    if (["oraichain-to-cosmos", "oraichain-to-bitcoin"].includes(universalSwapType)) {
+      const routerClient = new OraiswapRouterQueryClient(client, network.router);
+      const isSufficient = await checkFeeRelayer({
+        originalFromToken: this.swapData.originalFromToken,
+        fromAmount: this.swapData.fromAmount,
+        relayerFee: this.swapData.relayerFee,
+        routerClient
+      });
+      if (!isSufficient)
+        throw generateError(
+          `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+        );
+    }
+
     switch (universalSwapType) {
       case "oraichain-to-cosmos":
         encodedObjects = await this.combineSwapMsgOraichain();
         break;
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
-        const routerClient = new OraiswapRouterQueryClient(client, network.router);
-        const isSufficient = await checkFeeRelayer({
-          originalFromToken: this.swapData.originalFromToken,
-          fromAmount: this.swapData.fromAmount,
-          relayerFee: this.swapData.relayerFee,
-          routerClient
-        });
-        if (!isSufficient)
-          throw generateError(
-            `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
-          );
         encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
+        break;
+      case "oraichain-to-bitcoin":
+        encodedObjects = await this.combineMsgBitcoin();
         break;
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
@@ -409,6 +458,119 @@ export class UniversalSwapHandler {
 
     // handle sign and broadcast transactions
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
+  }
+
+  // TODO: write test cases
+  transferBitcoinToIBC = async (swapRoute: string): Promise<EvmResponse> => {
+    const from = this.swapData.originalFromToken;
+    const fromAmount = this.swapData.fromAmount;
+    const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(from.chainId, {
+      metamaskAddress: this.swapData.sender.evm,
+      tronAddress: this.swapData.sender.tron
+    });
+    const gravityContractAddr = gravityContracts[from!.chainId!];
+    if (!gravityContractAddr || !from) {
+      throw generateError("No gravity contract addr or no from token");
+    }
+
+    const finalFromAmount = toAmount(fromAmount, from.decimals).toString();
+    await this.config.evmWallet.checkOrIncreaseAllowance(
+      from,
+      finalTransferAddress,
+      gravityContractAddr,
+      finalFromAmount
+    );
+    return this.transferToGravity(swapRoute);
+  };
+
+  // TODO: write test cases
+  // transfer bitcoin to ibc
+  async transferBitcoinAndSwap(swapRoute: string): Promise<any> {
+    const {
+      sender,
+      originalFromToken,
+      originalToToken,
+      fromAmount,
+      userSlippage,
+      simulatePrice,
+      relayerFee,
+      simulateAmount,
+      bitcoinInfo
+    } = this.swapData;
+    const { bitcoin: bitcoinAddress, bitcoinDeposit: bitcoinDepositAddress } = sender;
+    if (!bitcoinAddress) throw generateError("Cannot call btc swap if the btc address is empty");
+    if (!this.config.cosmosWallet) throw generateError("Cannot transfer and swap if cosmos wallet is not initialized");
+
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+      { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+      {}
+    );
+
+    await checkBalanceIBCOraichain(
+      originalToToken,
+      originalFromToken,
+      fromAmount,
+      simulateAmount,
+      client,
+      this.getCwIcs20ContractAddr()
+    );
+
+    const routerClient = new OraiswapRouterQueryClient(client, network.router);
+    const isSufficient = await checkFeeRelayer({
+      originalFromToken,
+      fromAmount,
+      relayerFee,
+      routerClient
+    });
+    if (!isSufficient)
+      throw generateError(
+        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+      );
+
+    if (!this.config.bitcoinWallet)
+      throw generateError("Cannot transfer and swap if bitcoin wallet is not initialized");
+
+    const amount = new BitcoinUnit(fromAmount, "BTC").to("satoshi").getValue();
+    const utxosMapped = mapUtxos({
+      utxos: bitcoinInfo.utxos,
+      address: bitcoinAddress
+    });
+
+    const totalFee = calculatorTotalFeeBtc({
+      utxos: utxosMapped.utxos,
+      message: "",
+      transactionFee: bitcoinInfo.feeRate
+    });
+    const amountLasted = new BigDecimal(amount).sub(totalFee).toNumber();
+    const dataRequest = {
+      memo: "",
+      fee: {
+        gas: "200000",
+        amount: [
+          {
+            denom: "btc",
+            amount: `${totalFee}`
+          }
+        ]
+      },
+      address: bitcoinAddress,
+      msgs: {
+        address: bitcoinDepositAddress,
+        changeAddress: bitcoinAddress,
+        amount: amountLasted,
+        message: "",
+        totalFee: totalFee,
+        selectedCrypto: originalFromToken.chainId,
+        confirmedBalance: utxosMapped.balance,
+        feeRate: bitcoinInfo.feeRate
+      },
+      confirmedBalance: utxosMapped.balance,
+      utxos: utxosMapped.utxos,
+      blacklistedUtxos: [],
+      amount: amountLasted,
+      feeRate: bitcoinInfo.feeRate
+    };
+    return await this.config.bitcoinWallet.signAndBroadcast(originalFromToken.chainId, dataRequest);
   }
 
   // TODO: write test cases
@@ -553,10 +715,11 @@ export class UniversalSwapHandler {
   }
 
   async processUniversalSwap() {
-    const { cosmos, evm, tron } = this.swapData.sender;
+    const { cosmos, evm, tron, bitcoin } = this.swapData.sender;
     const toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
       metamaskAddress: evm,
-      tronAddress: tron
+      tronAddress: tron,
+      bitcoinAddress: bitcoin
     });
     const { swapRoute, universalSwapType } = addOraiBridgeRoute(
       cosmos,
@@ -565,9 +728,14 @@ export class UniversalSwapHandler {
       toAddress
     );
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
-    if (universalSwapType === "oraichain-to-cosmos" || universalSwapType === "oraichain-to-evm")
+    if (
+      universalSwapType === "oraichain-to-cosmos" ||
+      universalSwapType === "oraichain-to-evm" ||
+      universalSwapType === "oraichain-to-bitcoin"
+    )
       return this.swapAndTransferToOtherNetworks(universalSwapType);
     if (universalSwapType === "cosmos-to-cosmos") return this.swapCosmosToCosmos();
+    if (universalSwapType === "bitcoin-to-oraichain") return this.transferBitcoinAndSwap(swapRoute);
     return this.transferAndSwap(swapRoute);
   }
 
