@@ -27,11 +27,8 @@ import {
   ethToTronAddress,
   network,
   EvmResponse,
-  IBC_WASM_HOOKS_CONTRACT,
   getTokenOnOraichain,
-  isInPairList,
   getCosmosGasPrice,
-  marshalEncodeObjsToStargateMsgs,
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
@@ -40,7 +37,6 @@ import {
 import { ethers } from "ethers";
 import {
   addOraiBridgeRoute,
-  buildIbcWasmHooksMemo,
   checkBalanceChannelIbc,
   checkBalanceIBCOraichain,
   checkFeeRelayer,
@@ -56,8 +52,6 @@ import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
-import * as protobuf from "protobufjs";
-import path from "path";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
