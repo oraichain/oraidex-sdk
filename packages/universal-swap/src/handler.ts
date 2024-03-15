@@ -498,6 +498,8 @@ export class UniversalSwapHandler {
       bitcoinInfo
     } = this.swapData;
     const { bitcoin: bitcoinAddress, bitcoinDeposit: bitcoinDepositAddress } = sender;
+    if (originalFromToken.coinGeckoId === "bitcoin" && originalFromToken.coinGeckoId !== originalToToken.coinGeckoId)
+      throw generateError("Cannot not support universal swap btc");
     if (!bitcoinAddress) throw generateError("Cannot call btc swap if the btc address is empty");
     if (!this.config.cosmosWallet) throw generateError("Cannot transfer and swap if cosmos wallet is not initialized");
 

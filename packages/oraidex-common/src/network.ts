@@ -474,7 +474,7 @@ export const oraichainNetwork: CustomChainInfo = {
     {
       coinDenom: "BTC",
       coinGeckoId: "bitcoin",
-      coinMinimalDenom: "usat",
+      coinMinimalDenom: "btc",
       type: "cw20",
       contractAddress: BTC_CONTRACT,
       bridgeTo: ["bitcoin"],
@@ -562,6 +562,7 @@ export const oraiBTCBridgeNetwork: CustomChainInfo = {
     {
       coinDenom: "ORAIBTC",
       coinMinimalDenom: "uoraibtc",
+      coinGeckoId: "bitcoin",
       coinDecimals: 6,
       gasPriceStep: {
         low: 0,
@@ -573,6 +574,7 @@ export const oraiBTCBridgeNetwork: CustomChainInfo = {
     {
       coinDenom: "oBTC",
       coinMinimalDenom: "usat",
+      coinGeckoId: "bitcoin",
       coinDecimals: 14,
       gasPriceStep: {
         low: 0,
@@ -583,9 +585,14 @@ export const oraiBTCBridgeNetwork: CustomChainInfo = {
     }
   ],
   features: ["stargate", "ibc-transfer", "no-legacy-stdTx"],
-  get feeCurrencies() {
-    return this.currencies;
-  }
+  feeCurrencies: [
+    {
+      coinDenom: "ORAIBTC",
+      coinMinimalDenom: "uoraibtc",
+      coinDecimals: 6,
+      coinImageUrl: "https://assets.coingecko.com/coins/images/1/small/bitcoin.png"
+    }
+  ]
 };
 
 export const chainInfos: CustomChainInfo[] = [
