@@ -275,6 +275,7 @@ export const addOraiBridgeRoute = (
   // TODO: recheck cosmos address undefined (other-chain -> oraichain)
   if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
   const source = getSourceReceiver(sourceReceiver, fromToken.contractAddress);
+
   const { swapRoute, universalSwapType } = getRoute(fromToken, toToken, destReceiver);
   if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType };
   return { swapRoute: source, universalSwapType };

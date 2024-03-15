@@ -527,11 +527,21 @@ export class UniversalSwapHandler {
 
     const msgTransfer = MsgTransfer.fromPartial({
       sourcePort: ibcInfo.source,
-      receiver: IBC_WASM_CONTRACT,
+      receiver: this.getCwIcs20ContractAddr(),
       sourceChannel: ibcInfo.channel,
       token: coin(amount, this.swapData.originalFromToken.denom),
       sender: this.swapData.sender.cosmos,
-      memo: swapRoute,
+      memo: JSON.stringify({
+        wasm: {
+          contract: this.getCwIcs20ContractAddr(),
+          msg: {
+            ibc_hooks_receive: {
+              func: "universal_swap",
+              args: swapRoute
+            }
+          }
+        }
+      }),
       timeoutTimestamp: calculateTimeoutTimestamp(ibcInfo.timeout)
     });
 

@@ -21,7 +21,7 @@ export const parseToIbcHookMemo = (
 ): string => {
   const wasmMemo = new IbcHooksMemo();
   // we will encode receiver from Orai address to canonicalize address
-  wasmMemo.setReceiver(Buffer.from(fromWords(decode(receiver).words)));
+  if (receiver) wasmMemo.setReceiver(Buffer.from(fromWords(decode(receiver).words)));
   wasmMemo.setDestinationReceiver(destinationReceiver);
   wasmMemo.setDestinationChannel(destinationChannel);
   wasmMemo.setDestinationDenom(destinationDenom);
