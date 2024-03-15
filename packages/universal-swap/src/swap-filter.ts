@@ -7,14 +7,24 @@ const notAllowSwapFromChainIds = [
   "osmosis-1",
   "cosmoshub-4",
   "oraibridge-subnet-2",
+  "oraibtc-mainnet-1",
   "injective-1",
-  "noble-1"
+  "noble-1",
+  "bitcoin",
+  "Neutaro-1"
 ];
 export const swapFromTokens = flattenTokens.filter(
   (token) => !notAllowSwapCoingeckoIds.includes(token.coinGeckoId) && !notAllowSwapFromChainIds.includes(token.chainId)
 );
 // universal swap. We dont support kwt & milky & injective for simplicity. We also skip OraiBridge tokens because users dont care about them
-const notAllowSwapToChainIds = ["oraibridge-subnet-2", "injective-1", "noble-1"];
+const notAllowSwapToChainIds = [
+  "oraibridge-subnet-2",
+  "oraibtc-mainnet-1",
+  "injective-1",
+  "noble-1",
+  "bitcoin",
+  "Neutaro-1"
+];
 export const swapToTokens = flattenTokens.filter(
   (token) => !notAllowSwapCoingeckoIds.includes(token.coinGeckoId) && !notAllowSwapToChainIds.includes(token.chainId)
 );

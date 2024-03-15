@@ -228,6 +228,16 @@ export const findToTokenOnOraiBridge = (fromCoingeckoId: CoinGeckoId, toNetwork:
   );
 };
 
+export const findToTokenOnOraiBTCBridge = (fromCoingeckoId: CoinGeckoId, toNetwork: NetworkChainId) => {
+  return cosmosTokens.find(
+    (t) =>
+      t.chainId === "oraibtc-mainnet-1" &&
+      t.coinGeckoId === fromCoingeckoId &&
+      t.bridgeNetworkIdentifier &&
+      t.bridgeNetworkIdentifier === toNetwork
+  );
+};
+
 export const parseAssetInfo = (assetInfo: AssetInfo): string => {
   if ("native_token" in assetInfo) return assetInfo.native_token.denom;
   return assetInfo.token.contract_addr;

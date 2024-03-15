@@ -20,7 +20,8 @@ import {
   IBC_TRANSFER_TIMEOUT,
   toTokenInfo,
   IBC_WASM_CONTRACT_TEST,
-  USDC_CONTRACT
+  USDC_CONTRACT,
+  ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import * as dexCommonNetwork from "@oraichain/oraidex-common/build/network"; // import like this to enable jest.spyOn & avoid redefine property error
@@ -504,12 +505,47 @@ describe("test universal swap handler functions", () => {
   });
 
   it.each([
-    ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0xae1ae6"],
-    ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0x1234"],
-    ["", "", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "this-case-throw-error"]
+    [
+      "0x1234",
+      "T123456789",
+      "B123456789",
+      flattenTokens.find((t) => t.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!,
+      "0xae1ae6"
+    ],
+    [
+      "0x1234",
+      "T123456789",
+      "B123456789",
+      flattenTokens.find((t) => t.prefix === ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX)!,
+      "B123456789"
+    ],
+    [
+      "0x1234",
+      "T123456789",
+      "B123456789",
+      flattenTokens.find(
+        (t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX && t.prefix !== ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX
+      )!,
+      "0x1234"
+    ],
+    [
+      "",
+      "",
+      "",
+      flattenTokens.find(
+        (t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX && t.prefix !== ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX
+      )!,
+      "this-case-throw-error"
+    ]
   ])(
     "test getTranferAddress should return transferAddress correctly & throw error correctly",
-    (metamaskAddress: string, tronAddress: string, toToken: TokenItemType, expectedTransferAddr: string) => {
+    (
+      metamaskAddress: string,
+      tronAddress: string,
+      bitcoinAddress: string,
+      toToken: TokenItemType,
+      expectedTransferAddr: string
+    ) => {
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         originalToToken: toToken
@@ -519,7 +555,10 @@ describe("test universal swap handler functions", () => {
         .spyOn(dexCommonHelper, "getTokenOnOraichain")
         .mockReturnValue(oraichainTokens.find((t) => t.coinGeckoId === "airight")!);
       try {
-        const transferAddress = universalSwap.getTranferAddress(metamaskAddress, tronAddress, ibcInfo);
+        const transferAddress = universalSwap.getTranferAddress(
+          { metamaskAddress, tronAddress, bitcoinAddress },
+          ibcInfo
+        );
         expect(transferAddress).toEqual(expectedTransferAddr);
       } catch (error) {
         expect(error?.ex?.message).toEqual("Please login metamask / tronlink!");
@@ -529,7 +568,8 @@ describe("test universal swap handler functions", () => {
 
   it.each([
     ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "oraib0x1234"],
-    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, ""]
+    ["bc1234", flattenTokens.find((t) => t.chainId === "oraibtc-mainnet-1")!, "withdraw:bc1234"],
+    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2" && t.chainId !== "oraibtc-mainnet-1")!, ""]
   ])(
     "test getIbcMemo should return ibc memo correctly",
     (transferAddress: string, toToken: TokenItemType, expectedIbcMemo: string) => {
@@ -538,10 +578,14 @@ describe("test universal swap handler functions", () => {
         originalToToken: toToken
       });
       jest.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
-      const ibcMemo = universalSwap.getIbcMemo("john doe", "john doe", "john doe", {
-        chainId: toToken.chainId,
-        prefix: toToken.prefix!
-      });
+      const ibcMemo = universalSwap.getIbcMemo(
+        { metamaskAddress: "john doe", tronAddress: "john doe", bitcoinAddress: "john doe" },
+        "john doe",
+        {
+          chainId: toToken.chainId,
+          prefix: toToken.prefix!
+        }
+      );
       expect(ibcMemo).toEqual(expectedIbcMemo);
     }
   );

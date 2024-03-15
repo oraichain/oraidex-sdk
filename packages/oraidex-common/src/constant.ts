@@ -39,6 +39,7 @@ export const KWT_SCAN = "https://scan.kawaii.global";
 
 export const ORAI_BRIDGE_UDENOM = "uoraib";
 export const ORAI_BRIDGE_EVM_DENOM_PREFIX = "oraib";
+export const ORAI_BTC_BRIDGE_EVM_DENOM_PREFIX = "oraibtc";
 export const ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX = "eth-mainnet";
 export const ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX = "trontrx-mainnet";
 export const ORAI_BRIDGE_EVM_FEE = "1";
@@ -78,6 +79,7 @@ export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
 export const NOBLE_ORAICHAIN_CHANNELS = "channel-34 channel-147";
 export const NOBLE_ORAICHAIN_CHANNELS_TEST = "channel-35 channel-148";
 export const NEUTARO_ORAICHAIN_CHANNELS = "channel-1 channel-189";
+export const BITCOIN_ORAICHAIN_CHANNELS = "channel-0 channel-227";
 
 // config for ibc denom
 export const ATOM_ORAICHAIN_DENOM = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
@@ -161,7 +163,13 @@ export enum COSMOS_CHAIN_ID_COMMON {
   COSMOSHUB_CHAIN_ID = "cosmoshub-4",
   INJECTVE_CHAIN_ID = "injective-1",
   KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1",
-  NOBLE_CHAIN_ID = "noble-1"
+  NOBLE_CHAIN_ID = "noble-1",
+  NEUTARO_CHAIN_ID = "Neutaro-1",
+  ORAIBTC_BRIDGE_CHAIN_ID = "oraibtc-mainnet-1"
+}
+
+export enum BITCOIN_CHAIN_ID_COMMON {
+  BITCOIN_CHAIN_ID = "bitcoin"
 }
 
 // asset info token

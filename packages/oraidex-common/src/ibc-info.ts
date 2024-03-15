@@ -13,7 +13,8 @@ import {
   ORAIB_ORAICHAIN_CHANNELS_OLD,
   ORAIB_ORAICHAIN_CHANNELS_TEST,
   OSMOSIS_ORAICHAIN_CHANNELS,
-  NEUTARO_ORAICHAIN_CHANNELS
+  NEUTARO_ORAICHAIN_CHANNELS,
+  BITCOIN_ORAICHAIN_CHANNELS
 } from "./constant";
 import { CosmosChainId, NetworkChainId } from "./network";
 
@@ -30,6 +31,7 @@ export type IBCInfoMap = { [key in CosmosChainId]: { [key in NetworkChainId]?: I
 
 export const [atom2oraichain, oraichain2atom] = ATOM_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [neutaro2oraichain, oraichain2neutaro] = NEUTARO_ORAICHAIN_CHANNELS.split(/\s+/);
+export const [bitcoin2oraichain, oraichain2bitcoin] = BITCOIN_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [inj2oraichain, oraichain2inj] = INJECTIVE_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [osmosis2oraichain, oraichain2osmosis] = OSMOSIS_ORAICHAIN_CHANNELS.split(/\s+/);
 export const [oraib2oraichain, oraichain2oraib] = ORAIB_ORAICHAIN_CHANNELS.split(/\s+/);
@@ -42,6 +44,13 @@ const [kwt2oraichain, oraichain2kwt] = KWT_ORAICHAIN_CHANNELS.split(/\s+/);
 // exclude evm chain
 
 export const ibcInfos: IBCInfoMap = {
+  "oraibtc-mainnet-1": {
+    Oraichain: {
+      source: "transfer",
+      channel: bitcoin2oraichain,
+      timeout: IBC_TRANSFER_TIMEOUT
+    }
+  },
   "cosmoshub-4": {
     Oraichain: {
       source: "transfer",
@@ -110,6 +119,11 @@ export const ibcInfos: IBCInfoMap = {
       channel: oraichain2osmosis,
       timeout: IBC_TRANSFER_TIMEOUT
     },
+    "oraibtc-mainnet-1": {
+      source: `wasm.${IBC_WASM_CONTRACT}`,
+      channel: oraichain2bitcoin,
+      timeout: IBC_TRANSFER_TIMEOUT
+    },
     "oraibridge-subnet-2": {
       source: `wasm.${IBC_WASM_CONTRACT}`,
       channel: oraichain2oraib,
@@ -165,7 +179,10 @@ export const ibcInfos: IBCInfoMap = {
   }
 };
 
-export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1" | "Neutaro-1"> = {
+export const ibcInfosOld: Omit<
+  IBCInfoMap,
+  "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1" | "Neutaro-1" | "oraibtc-mainnet-1"
+> = {
   Oraichain: {
     "oraibridge-subnet-2": {
       source: "transfer",
