@@ -1,4 +1,4 @@
-import { EncodeObject, coin } from "@cosmjs/proto-signing";
+import { Coin, EncodeObject, coin } from "@cosmjs/proto-signing";
 import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ExecuteInstruction, ExecuteResult, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
@@ -32,7 +32,9 @@ import {
   CoinGeckoId,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  COSMOS_CHAIN_ID_COMMON
+  tokenMap,
+  AmountDetails,
+  buildMultipleExecuteMessages
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -47,7 +49,7 @@ import {
   isEvmSwappable,
   isSupportedNoPoolSwapEvm
 } from "./helper";
-import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
+import { ConvertReverse, ConvertType, Type, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
@@ -95,16 +97,22 @@ export class UniversalSwapHandler {
    */
   async combineSwapMsgOraichain(timeoutTimestamp?: string): Promise<EncodeObject[]> {
     // if to token is on Oraichain then we wont need to transfer IBC to the other chain
-    const { chainId: toChainId } = this.swapData.originalToToken;
+    const { chainId: toChainId, coinGeckoId: toCoinGeckoId } = this.swapData.originalToToken;
+    const { coinGeckoId: fromCoinGeckoId } = this.swapData.originalFromToken;
     const { cosmos: sender } = this.swapData.sender;
     if (toChainId === "Oraichain") {
       const msgSwap = this.generateMsgsSwap();
-      return getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgSwap);
+      return getEncodedExecuteContractMsgs(sender, msgSwap);
     }
     const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
     const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
     if (!ibcReceiveAddr) throw generateError("Please login keplr!");
-    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
+    let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
+    if (toChainId === "injective-1") {
+      const INJ_DECIMALS = 18;
+      toTokenInOrai = getTokenOnOraichain(toCoinGeckoId, INJ_DECIMALS);
+    }
+
     let msgTransfer: EncodeObject[];
     // if ibc info source has wasm in it, it means we need to transfer IBC using IBC wasm contract, not normal ibc transfer
     if (ibcInfo.source.includes("wasm")) {
@@ -129,8 +137,32 @@ export class UniversalSwapHandler {
       ];
     }
 
+    const isNotMatchCoingeckoId = fromCoinGeckoId !== toCoinGeckoId;
+    if (toChainId === "injective-1") {
+      // 1. = coingeckoId => convert + bridge
+      const evmToken = tokenMap[toTokenInOrai.denom];
+      const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
+      const msgConvertReverses = this.generateConvertCw20Erc20Message(
+        this.swapData.amounts,
+        getTokenOnOraichain("injective-protocol"),
+        sender,
+        evmAmount
+      );
+      const executeContractMsgs = buildMultipleExecuteMessages(undefined, ...msgConvertReverses);
+      const getEncodedExecuteMsgs = getEncodedExecuteContractMsgs(sender, executeContractMsgs);
+
+      // 2. != coingeckoId => swap + convert + bridge
+      // if not same coingeckoId, swap first then transfer token that have same coingeckoid.
+      if (isNotMatchCoingeckoId) {
+        const msgSwap = this.generateMsgsSwap();
+        const msgExecuteSwap = getEncodedExecuteContractMsgs(sender, msgSwap);
+        return [...msgExecuteSwap, ...getEncodedExecuteMsgs, ...msgTransfer];
+      }
+      return [...getEncodedExecuteMsgs, ...msgTransfer];
+    }
+
     // if not same coingeckoId, swap first then transfer token that have same coingeckoid.
-    if (this.swapData.originalFromToken.coinGeckoId !== this.swapData.originalToToken.coinGeckoId) {
+    if (isNotMatchCoingeckoId) {
       const msgSwap = this.generateMsgsSwap();
       const msgExecuteSwap = getEncodedExecuteContractMsgs(sender, msgSwap);
       return [...msgExecuteSwap, ...msgTransfer];
@@ -691,5 +723,118 @@ export class UniversalSwapHandler {
     } catch (error) {
       console.log({ error });
     }
+  }
+
+  generateConvertCw20Erc20Message(
+    amounts: AmountDetails,
+    tokenInfo: TokenItemType,
+    sender: string,
+    sendCoin: Coin
+  ): ExecuteInstruction[] {
+    if (!tokenInfo.evmDenoms) return [];
+    // we convert all mapped tokens to cw20 to unify the token
+    for (let denom of tokenInfo.evmDenoms) {
+      // optimize. Only convert if not enough balance & match denom
+      if (denom !== sendCoin.denom) continue;
+
+      // if this wallet already has enough native ibc bridge balance => no need to convert reverse
+      if (+amounts[sendCoin.denom] >= +sendCoin.amount) break;
+
+      const balance = amounts[tokenInfo.denom];
+      const evmToken = tokenMap[denom];
+
+      if (balance) {
+        const outputToken: TokenItemType = {
+          ...tokenInfo,
+          denom: evmToken.denom,
+          contractAddress: undefined,
+          decimals: evmToken.decimals
+        };
+        const msgConvert = this.generateConvertMsgs({
+          type: Type.CONVERT_TOKEN_REVERSE,
+          sender,
+          inputAmount: balance,
+          inputToken: tokenInfo,
+          outputToken
+        });
+        return [msgConvert];
+      }
+    }
+    return [];
+  }
+
+  generateConvertMsgs(data: ConvertType): ExecuteInstruction {
+    const { type, sender, inputToken, inputAmount } = data;
+    let funds: Coin[] | null;
+    // for withdraw & provide liquidity methods, we need to interact with the oraiswap pair contract
+    let contractAddr = network.converter;
+    let input: any;
+    switch (type) {
+      case Type.CONVERT_TOKEN: {
+        // currently only support cw20 token pool
+        let { info: assetInfo, fund } = parseTokenInfo(inputToken, inputAmount);
+        // native case
+        if ("native_token" in assetInfo) {
+          input = {
+            convert: {}
+          };
+          funds = handleSentFunds(fund);
+        } else {
+          // cw20 case
+          input = {
+            send: {
+              contract: network.converter,
+              amount: inputAmount,
+              msg: toBinary({
+                convert: {}
+              })
+            }
+          };
+          contractAddr = assetInfo.token.contract_addr;
+        }
+        break;
+      }
+      case Type.CONVERT_TOKEN_REVERSE: {
+        const { outputToken } = data as ConvertReverse;
+
+        // currently only support cw20 token pool
+        let { info: assetInfo, fund } = parseTokenInfo(inputToken, inputAmount);
+        let { info: outputAssetInfo } = parseTokenInfo(outputToken, "0");
+        // native case
+        if ("native_token" in assetInfo) {
+          input = {
+            convert_reverse: {
+              from_asset: outputAssetInfo
+            }
+          };
+          funds = handleSentFunds(fund);
+        } else {
+          // cw20 case
+          input = {
+            send: {
+              contract: network.converter,
+              amount: inputAmount,
+              msg: toBinary({
+                convert_reverse: {
+                  from: outputAssetInfo
+                }
+              })
+            }
+          };
+          contractAddr = assetInfo.token.contract_addr;
+        }
+        break;
+      }
+      default:
+        break;
+    }
+
+    const msg: ExecuteInstruction = {
+      contractAddress: contractAddr,
+      msg: input,
+      funds
+    };
+
+    return msg;
   }
 }
