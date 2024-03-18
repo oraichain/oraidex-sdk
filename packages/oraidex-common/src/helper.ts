@@ -242,9 +242,6 @@ export const getTokenOnSpecificChainId = (
 };
 
 export const getTokenOnOraichain = (coingeckoId: CoinGeckoId, decimals?: number) => {
-  if (coingeckoId === "kawaii-islands" || coingeckoId === "milky-token") {
-    throw new Error("KWT and MILKY not supported in this function");
-  }
   return oraichainTokens.find(
     (token) => token.coinGeckoId === coingeckoId && token.decimals === (decimals || CW20_DECIMALS)
   );

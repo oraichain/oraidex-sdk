@@ -108,7 +108,9 @@ export class UniversalSwapHandler {
     const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
     if (!ibcReceiveAddr) throw generateError("Please login keplr!");
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
-    if (toChainId === "injective-1") {
+    const INJECTIVE_COINGECKO = "injective-protocol";
+    const INJECTIVE_CHAINID = "injective-1";
+    if (toChainId === INJECTIVE_CHAINID && this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO) {
       const INJ_DECIMALS = 18;
       toTokenInOrai = getTokenOnOraichain(toCoinGeckoId, INJ_DECIMALS);
     }
@@ -138,18 +140,21 @@ export class UniversalSwapHandler {
     }
 
     const isNotMatchCoingeckoId = fromCoinGeckoId !== toCoinGeckoId;
-    if (toChainId === "injective-1") {
+    if (toChainId === INJECTIVE_CHAINID) {
       // 1. = coingeckoId => convert + bridge
-      const evmToken = tokenMap[toTokenInOrai.denom];
-      const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
-      const msgConvertReverses = this.generateConvertCw20Erc20Message(
-        this.swapData.amounts,
-        getTokenOnOraichain("injective-protocol"),
-        sender,
-        evmAmount
-      );
-      const executeContractMsgs = buildMultipleExecuteMessages(undefined, ...msgConvertReverses);
-      const getEncodedExecuteMsgs = getEncodedExecuteContractMsgs(sender, executeContractMsgs);
+      let getEncodedExecuteMsgs = [];
+      if (this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO) {
+        const evmToken = tokenMap[toTokenInOrai.denom];
+        const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
+        const msgConvertReverses = this.generateConvertCw20Erc20Message(
+          this.swapData.amounts,
+          getTokenOnOraichain(INJECTIVE_COINGECKO),
+          sender,
+          evmAmount
+        );
+        const executeContractMsgs = buildMultipleExecuteMessages(undefined, ...msgConvertReverses);
+        getEncodedExecuteMsgs = getEncodedExecuteContractMsgs(sender, executeContractMsgs);
+      }
 
       // 2. != coingeckoId => swap + convert + bridge
       // if not same coingeckoId, swap first then transfer token that have same coingeckoid.

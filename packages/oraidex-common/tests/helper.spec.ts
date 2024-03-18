@@ -77,12 +77,7 @@ describe("should helper functions in helper run exactly", () => {
   it.each<[CoinGeckoId, TokenItemType, string]>([
     ["airight", cosmosTokens.find((token) => token.coinGeckoId === "airight" && token.chainId === "Oraichain")!, ""],
     ["tether", cosmosTokens.find((token) => token.coinGeckoId === "tether" && token.chainId === "Oraichain")!, ""],
-    ["tron", cosmosTokens.find((token) => token.coinGeckoId === "tron" && token.chainId === "Oraichain")!, ""],
-    [
-      "kawaii-islands",
-      cosmosTokens.find((token) => token.coinGeckoId === "kawaii-islands" && token.chainId === "Oraichain")!,
-      "KWT and MILKY not supported in this function"
-    ]
+    ["tron", cosmosTokens.find((token) => token.coinGeckoId === "tron" && token.chainId === "Oraichain")!, ""]
   ])("test-getTokenOnOraichain-given-%s-should-receive-%j", (coingeckoId, expectedToken, err) => {
     try {
       expect(getTokenOnOraichain(coingeckoId)).toEqual(expectedToken);
@@ -322,12 +317,7 @@ describe("should helper functions in helper run exactly", () => {
   it.each<[CoinGeckoId, TokenItemType, string]>([
     ["airight", cosmosTokens.find((token) => token.coinGeckoId === "airight" && token.chainId === "Oraichain")!, ""],
     ["tether", cosmosTokens.find((token) => token.coinGeckoId === "tether" && token.chainId === "Oraichain")!, ""],
-    ["tron", cosmosTokens.find((token) => token.coinGeckoId === "tron" && token.chainId === "Oraichain")!, ""],
-    [
-      "kawaii-islands",
-      cosmosTokens.find((token) => token.coinGeckoId === "kawaii-islands" && token.chainId === "Oraichain")!,
-      "KWT and MILKY not supported in this function"
-    ]
+    ["tron", cosmosTokens.find((token) => token.coinGeckoId === "tron" && token.chainId === "Oraichain")!, ""]
   ])("test-getTokenOnOraichain-given-%s-should-receive-%j", (coingeckoId, expectedToken, err) => {
     try {
       expect(getTokenOnOraichain(coingeckoId)).toEqual(expectedToken);
