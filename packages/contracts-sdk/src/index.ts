@@ -1,3 +1,5 @@
+export * as CoharvestBidPoolTypes from './CoharvestBidPool.types';
+export * from './CoharvestBidPool.client';
 export * as Cw20StakingTypes from './Cw20Staking.types';
 export * from './Cw20Staking.client';
 export * as OraidexListingContractTypes from './OraidexListingContract.types';
