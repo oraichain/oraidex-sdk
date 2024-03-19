@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary, AssetInfo, Cw20ReceiveMsg, Asset, RewardMsg, Decimal} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Cw20ReceiveMsg, Asset, RewardMsg, Decimal, RewardInfoResponseItem} from "./types";
 export interface InstantiateMsg {
   owner?: Addr | null;
   rewarder: Addr;
@@ -42,6 +42,10 @@ export type ExecuteMsg = {
   withdraw_others: {
     staker_addrs: Addr[];
     staking_token?: Addr | null;
+  };
+} | {
+  restake: {
+    staking_token: Addr;
   };
 };
 export type QueryMsg = {
@@ -117,12 +121,6 @@ export interface LockInfoResponse {
 export interface RewardInfoResponse {
   reward_infos: RewardInfoResponseItem[];
   staker_addr: Addr;
-}
-export interface RewardInfoResponseItem {
-  bond_amount: Uint128;
-  pending_reward: Uint128;
-  pending_withdraw: Asset[];
-  staking_token: Addr;
 }
 export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {
