@@ -6,15 +6,15 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, Uint128} from "./types";
+import {Addr, AssetInfo, Uint128} from "./types";
 import {InstantiateMsg, ExecuteMsg, QueryMsg, MigrateMsg, ConfigResponse, DistributionInfoResponse, RewardAmountPerSecondResponse} from "./OraiswapRewarder.types";
 export interface OraiswapRewarderReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<ConfigResponse>;
   distributionInfo: ({
-    stakingToken
+    assetInfo
   }: {
-    stakingToken: Addr;
+    assetInfo: AssetInfo;
   }) => Promise<DistributionInfoResponse>;
   rewardAmountPerSec: ({
     stakingToken
@@ -40,13 +40,13 @@ export class OraiswapRewarderQueryClient implements OraiswapRewarderReadOnlyInte
     });
   };
   distributionInfo = async ({
-    stakingToken
+    assetInfo
   }: {
-    stakingToken: Addr;
+    assetInfo: AssetInfo;
   }): Promise<DistributionInfoResponse> => {
     return this.client.queryContractSmart(this.contractAddress, {
       distribution_info: {
-        staking_token: stakingToken
+        asset_info: assetInfo
       }
     });
   };

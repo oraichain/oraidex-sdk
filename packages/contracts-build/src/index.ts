@@ -3,14 +3,14 @@ import { readFileSync } from "fs";
 import path from "path";
 
 export type ContractName =
-  | "oraiswap_token"
+  | "oraiswap-token"
   | "oraiswap_limit_order"
-  | "oraiswap_pair"
-  | "oraiswap_oracle"
+  | "oraiswap-pair"
+  | "oraiswap-oracle"
   | "oraiswap_converter"
-  | "oraiswap_factory"
+  | "oraiswap-factory"
   | "oraiswap_rewarder"
-  | "oraiswap_router"
+  | "oraiswap-router"
   | "oraiswap_staking"
   | "oraidex-listing-contract";
 
