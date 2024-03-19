@@ -46,6 +46,7 @@ import {
   TxAnlysisResult,
   WithdrawLiquidityOperationData
 } from "./types";
+import { parseWasmEvents as parseWasmEventsV2 } from "@oraichain/oraidex-common";
 
 function parseWasmEvents(events: readonly Event[]): (readonly Attribute[])[] {
   return events.filter((event) => event.type === "wasm").map((event) => event.attributes);
@@ -77,7 +78,7 @@ function parseTxToMsgExecuteContractMsgs(tx: Tx): MsgExecuteContractWithLogs[] {
   return msgs;
 }
 
-function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly Attribute[])[]): SwapOperationData[] {
+function extractSwapOperations(txData: BasicTxData, wasmAttributes: { [key: string]: string }[]): SwapOperationData[] {
   const swapData: SwapOperationData[] = [];
   const offerDenoms: string[] = [];
   const askDenoms: string[] = [];
@@ -87,29 +88,21 @@ function extractSwapOperations(txData: BasicTxData, wasmAttributes: (readonly At
   const taxAmounts: string[] = [];
   const spreadAmounts: string[] = [];
   const senders: string[] = [];
+
   for (const attrs of wasmAttributes) {
-    if (!attrs.find((attr) => attr.key === "action" && attr.value === "swap")) continue;
-    for (const attr of attrs) {
-      if (attr.key === "offer_asset") {
-        offerDenoms.push(attr.value);
-      } else if (attr.key === "ask_asset") {
-        askDenoms.push(attr.value);
-      } else if (attr.key === "offer_amount") {
-        offerAmounts.push(attr.value);
-      } else if (attr.key === "return_amount") {
-        returnAmounts.push(attr.value);
-      } else if (attr.key === "tax_amount") {
-        taxAmounts.push(attr.value);
-      } else if (attr.key === "commission_amount") {
-        // for commission_amount & spread_amount: its unit is calculated according to return amount
-        commissionAmounts.push(attr.value);
-      } else if (attr.key === "spread_amount") {
-        spreadAmounts.push(attr.value);
-      } else if (attr.key === "receiver") {
-        senders.push(attr.value);
-      }
-    }
+    // TODO: filter by pair address whitelist
+    // if (![].includes(attrs["_contract_address"])) continue;
+    if (attrs["action"] !== "swap") continue;
+    offerDenoms.push(attrs["offer_asset"]);
+    askDenoms.push(attrs["ask_asset"]);
+    offerAmounts.push(attrs["offer_amount"]);
+    returnAmounts.push(attrs["return_amount"]);
+    taxAmounts.push(attrs["tax_amount"]);
+    commissionAmounts.push(attrs["commission_amount"]); // for commission_amount & spread_amount: its unit is calculated according to return amount
+    spreadAmounts.push(attrs["spread_amount"]);
+    senders.push(attrs["receiver"]);
   }
+
   const swapAttrs = [
     offerAmounts,
     offerDenoms,
@@ -553,8 +546,9 @@ async function parseTxs(txs: Tx[]): Promise<TxAnlysisResult> {
     for (const msg of msgs) {
       const sender = msg.sender;
       const wasmAttributes = parseWasmEvents(msg.logs.events);
+      const wasmAttributesV2 = parseWasmEventsV2(msg.logs.events);
       const transferAttributes = parseTransferEvents(msg.logs.events);
-      swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributes));
+      swapOpsData.push(...extractSwapOperations(basicTxData, wasmAttributesV2));
       claimOpsData.push(...(await extractClaimOperations(basicTxData, wasmAttributes, msg.msg, transferAttributes)));
       const provideLiquidityData = await extractMsgProvideLiquidity(basicTxData, msg.msg, sender, wasmAttributes);
       if (provideLiquidityData) provideLiquidityOpsData.push(provideLiquidityData);
