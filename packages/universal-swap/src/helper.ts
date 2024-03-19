@@ -38,9 +38,21 @@ import {
   NEUTARO_INFO,
   USDC_INFO,
   network,
-  ORAIX_ETH_CONTRACT
+  ORAIX_ETH_CONTRACT,
+  AmountDetails,
+  handleSentFunds,
+  tokenMap
 } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, SimulateResponse, SwapDirection, SwapRoute, UniversalSwapConfig } from "./types";
+import {
+  ConvertReverse,
+  ConvertType,
+  OraiBridgeRouteData,
+  SimulateResponse,
+  SwapDirection,
+  SwapRoute,
+  Type,
+  UniversalSwapConfig
+} from "./types";
 import {
   AssetInfo,
   OraiswapRouterQueryClient,
@@ -51,9 +63,10 @@ import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRo
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
+import { Coin } from "@cosmjs/proto-signing";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -719,4 +732,117 @@ export function filterNonPoolEvmTokens(
     if (isSupportedNoPoolSwapEvm(t.coinGeckoId)) return t.chainId === chainId;
     return true;
   });
+}
+
+export function generateConvertCw20Erc20Message(
+  amounts: AmountDetails,
+  tokenInfo: TokenItemType,
+  sender: string,
+  sendCoin: Coin
+): ExecuteInstruction[] {
+  if (!tokenInfo.evmDenoms) return [];
+  // we convert all mapped tokens to cw20 to unify the token
+  for (const denom of tokenInfo.evmDenoms) {
+    // optimize. Only convert if not enough balance & match denom
+    if (denom !== sendCoin.denom) continue;
+
+    // if this wallet already has enough native ibc bridge balance => no need to convert reverse
+    if (+amounts[sendCoin.denom] >= +sendCoin.amount) break;
+
+    const balance = amounts[tokenInfo.denom];
+    const evmToken = tokenMap[denom];
+
+    if (balance) {
+      const outputToken: TokenItemType = {
+        ...tokenInfo,
+        denom: evmToken.denom,
+        contractAddress: undefined,
+        decimals: evmToken.decimals
+      };
+      const msgConvert = generateConvertMsgs({
+        type: Type.CONVERT_TOKEN_REVERSE,
+        sender,
+        inputAmount: balance,
+        inputToken: tokenInfo,
+        outputToken
+      });
+      return [msgConvert];
+    }
+  }
+  return [];
+}
+
+export function generateConvertMsgs(data: ConvertType): ExecuteInstruction {
+  const { type, sender, inputToken, inputAmount } = data;
+  let funds: Coin[] | null;
+  // for withdraw & provide liquidity methods, we need to interact with the oraiswap pair contract
+  let contractAddr = network.converter;
+  let input: any;
+  switch (type) {
+    case Type.CONVERT_TOKEN: {
+      // currently only support cw20 token pool
+      const { info: assetInfo, fund } = parseTokenInfo(inputToken, inputAmount);
+      // native case
+      if ("native_token" in assetInfo) {
+        input = {
+          convert: {}
+        };
+        funds = handleSentFunds(fund);
+      } else {
+        // cw20 case
+        input = {
+          send: {
+            contract: network.converter,
+            amount: inputAmount,
+            msg: toBinary({
+              convert: {}
+            })
+          }
+        };
+        contractAddr = assetInfo.token.contract_addr;
+      }
+      break;
+    }
+    case Type.CONVERT_TOKEN_REVERSE: {
+      const { outputToken } = data as ConvertReverse;
+
+      // currently only support cw20 token pool
+      const { info: assetInfo, fund } = parseTokenInfo(inputToken, inputAmount);
+      const { info: outputAssetInfo } = parseTokenInfo(outputToken, "0");
+      // native case
+      if ("native_token" in assetInfo) {
+        input = {
+          convert_reverse: {
+            from_asset: outputAssetInfo
+          }
+        };
+        funds = handleSentFunds(fund);
+      } else {
+        // cw20 case
+        input = {
+          send: {
+            contract: network.converter,
+            amount: inputAmount,
+            msg: toBinary({
+              convert_reverse: {
+                from: outputAssetInfo
+              }
+            })
+          }
+        };
+        contractAddr = assetInfo.token.contract_addr;
+      }
+      break;
+    }
+    default:
+      break;
+  }
+
+  const msg: ExecuteInstruction = {
+    contractAddress: contractAddr,
+    msg: input,
+    funds
+  };
+
+  return msg;
 }
