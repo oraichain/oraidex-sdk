@@ -34,3 +34,4 @@ dist
 cache/
 
 packages/contract-state-simulate/public/
+coverage
