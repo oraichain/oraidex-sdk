@@ -1,28 +1,31 @@
 import {AssetInfo, Addr, Uint128, Decimal, Binary, Cw20ReceiveMsg} from "./types";
 export interface InstantiateMsg {
+  bidding_duration: number;
   distribution_token: AssetInfo;
   max_slot: number;
   min_deposit_amount: Uint128;
   owner: Addr;
   premium_rate_per_slot: Decimal;
+  treasury: Addr;
   underlying_token: AssetInfo;
 }
 export type ExecuteMsg = {
   receive: Cw20ReceiveMsg;
 } | {
   update_config: {
+    bidding_duration?: number | null;
     distribution_token?: AssetInfo | null;
     max_slot?: number | null;
     min_deposit_amount?: Uint128 | null;
     owner?: Addr | null;
     premium_rate_per_slot?: Decimal | null;
+    treasury?: Addr | null;
     underlying_token?: AssetInfo | null;
   };
 } | {
   create_new_round: {
     end_time: number;
     start_time: number;
-    total_bid_threshold: Uint128;
     total_distribution: Uint128;
   };
 } | {
@@ -40,6 +43,15 @@ export type ExecuteMsg = {
   submit_bid: {
     premium_slot: number;
     round: number;
+  };
+} | {
+  create_new_round_from_treasury: {};
+} | {
+  update_round: {
+    end_time?: number | null;
+    idx: number;
+    start_time?: number | null;
+    total_distribution?: Uint128 | null;
   };
 };
 export type QueryMsg = {
@@ -66,6 +78,7 @@ export type QueryMsg = {
 } | {
   all_bid_in_round: {
     limit?: number | null;
+    order_by?: number | null;
     round: number;
     start_after?: number | null;
   };
@@ -97,7 +110,16 @@ export type QueryMsg = {
     round: number;
   };
 };
-export interface MigrateMsg {}
+export interface MigrateMsg {
+  bidding_duration: number;
+  distribution_token: AssetInfo;
+  max_slot: number;
+  min_deposit_amount: Uint128;
+  owner: Addr;
+  premium_rate_per_slot: Decimal;
+  treasury: Addr;
+  underlying_token: AssetInfo;
+}
 export type ArrayOfBid = Bid[];
 export interface Bid {
   amount: Uint128;
@@ -138,11 +160,13 @@ export interface DistributionInfo {
 }
 export type ArrayOfUint64 = number[];
 export interface Config {
+  bidding_duration: number;
   distribution_token: AssetInfo;
   max_slot: number;
   min_deposit_amount: Uint128;
   owner: Addr;
   premium_rate_per_slot: Decimal;
+  treasury: Addr;
   underlying_token: AssetInfo;
 }
 export interface EstimateAmountReceiveOfBidResponse {

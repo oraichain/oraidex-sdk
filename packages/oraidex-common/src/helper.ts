@@ -16,7 +16,8 @@ import {
   atomic,
   truncDecimals,
   GAS_ESTIMATION_BRIDGE_DEFAULT,
-  MULTIPLIER
+  MULTIPLIER,
+  CW20_DECIMALS
 } from "./constant";
 import { CoinGeckoId, NetworkChainId } from "./network";
 import {
@@ -244,7 +245,7 @@ export const getTokenOnOraichain = (coingeckoId: CoinGeckoId) => {
   if (coingeckoId === "kawaii-islands" || coingeckoId === "milky-token") {
     throw new Error("KWT and MILKY not supported in this function");
   }
-  return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId);
+  return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId && token.decimals === CW20_DECIMALS);
 };
 
 export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {

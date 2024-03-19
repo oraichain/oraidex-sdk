@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset, RewardMsg} from "./types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset, RewardMsg, RewardInfoResponseItem} from "./types";
 export interface InstantiateMsg {
   base_denom?: string | null;
   factory_addr: Addr;
@@ -58,6 +58,10 @@ export type ExecuteMsg = {
     staker_addr: Addr;
     staking_token: Addr;
   };
+} | {
+  migrate_store: {
+    asset_info: AssetInfo;
+  };
 };
 export type QueryMsg = {
   config: {};
@@ -87,6 +91,8 @@ export type QueryMsg = {
   query_old_store: {
     store_type: OldStoreType;
   };
+} | {
+  all_stakers: {};
 };
 export type OldStoreType = {
   pools: {};
@@ -106,6 +112,13 @@ export type OldStoreType = {
   rewards_per_sec: {};
 };
 export interface MigrateMsg {}
+export interface AllStakersResponse {
+  stakers: StakerResponse[];
+}
+export interface StakerResponse {
+  in_pools: Addr[];
+  staker_addr: Addr;
+}
 export interface ConfigResponse {
   base_denom: string;
   factory_addr: Addr;
@@ -129,13 +142,6 @@ export interface PoolInfoResponse {
 export interface RewardInfoResponse {
   reward_infos: RewardInfoResponseItem[];
   staker_addr: Addr;
-}
-export interface RewardInfoResponseItem {
-  bond_amount: Uint128;
-  pending_reward: Uint128;
-  pending_withdraw: Asset[];
-  should_migrate?: boolean | null;
-  staking_token: Addr;
 }
 export type ArrayOfRewardInfoResponse = RewardInfoResponse[];
 export interface RewardsPerSecResponse {

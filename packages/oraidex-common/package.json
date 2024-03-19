@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-common",
-  "version": "1.0.75",
+  "version": "1.0.77",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -21,7 +21,8 @@
     "@cosmjs/tendermint-rpc": "0.31.0",
     "bignumber.js": "^9.0.1",
     "cosmjs-types": "^0.8.0",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.30"
+    "@oraichain/oraidex-contracts-sdk": "^1.0.30",
+    "@injectivelabs/sdk-ts": "1.12.1"
   },
   "devDependencies": {},
   "resolutions": {
