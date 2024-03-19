@@ -42,6 +42,7 @@ import {
   checkBalanceChannelIbc,
   checkBalanceIBCOraichain,
   checkFeeRelayer,
+  generateConvertCw20Erc20Message,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
@@ -146,7 +147,7 @@ export class UniversalSwapHandler {
       if (this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO) {
         const evmToken = tokenMap[toTokenInOrai.denom];
         const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
-        const msgConvertReverses = this.generateConvertCw20Erc20Message(
+        const msgConvertReverses = generateConvertCw20Erc20Message(
           this.swapData.amounts,
           getTokenOnOraichain(INJECTIVE_COINGECKO),
           sender,
@@ -728,118 +729,5 @@ export class UniversalSwapHandler {
     } catch (error) {
       console.log({ error });
     }
-  }
-
-  generateConvertCw20Erc20Message(
-    amounts: AmountDetails,
-    tokenInfo: TokenItemType,
-    sender: string,
-    sendCoin: Coin
-  ): ExecuteInstruction[] {
-    if (!tokenInfo.evmDenoms) return [];
-    // we convert all mapped tokens to cw20 to unify the token
-    for (let denom of tokenInfo.evmDenoms) {
-      // optimize. Only convert if not enough balance & match denom
-      if (denom !== sendCoin.denom) continue;
-
-      // if this wallet already has enough native ibc bridge balance => no need to convert reverse
-      if (+amounts[sendCoin.denom] >= +sendCoin.amount) break;
-
-      const balance = amounts[tokenInfo.denom];
-      const evmToken = tokenMap[denom];
-
-      if (balance) {
-        const outputToken: TokenItemType = {
-          ...tokenInfo,
-          denom: evmToken.denom,
-          contractAddress: undefined,
-          decimals: evmToken.decimals
-        };
-        const msgConvert = this.generateConvertMsgs({
-          type: Type.CONVERT_TOKEN_REVERSE,
-          sender,
-          inputAmount: balance,
-          inputToken: tokenInfo,
-          outputToken
-        });
-        return [msgConvert];
-      }
-    }
-    return [];
-  }
-
-  generateConvertMsgs(data: ConvertType): ExecuteInstruction {
-    const { type, sender, inputToken, inputAmount } = data;
-    let funds: Coin[] | null;
-    // for withdraw & provide liquidity methods, we need to interact with the oraiswap pair contract
-    let contractAddr = network.converter;
-    let input: any;
-    switch (type) {
-      case Type.CONVERT_TOKEN: {
-        // currently only support cw20 token pool
-        let { info: assetInfo, fund } = parseTokenInfo(inputToken, inputAmount);
-        // native case
-        if ("native_token" in assetInfo) {
-          input = {
-            convert: {}
-          };
-          funds = handleSentFunds(fund);
-        } else {
-          // cw20 case
-          input = {
-            send: {
-              contract: network.converter,
-              amount: inputAmount,
-              msg: toBinary({
-                convert: {}
-              })
-            }
-          };
-          contractAddr = assetInfo.token.contract_addr;
-        }
-        break;
-      }
-      case Type.CONVERT_TOKEN_REVERSE: {
-        const { outputToken } = data as ConvertReverse;
-
-        // currently only support cw20 token pool
-        let { info: assetInfo, fund } = parseTokenInfo(inputToken, inputAmount);
-        let { info: outputAssetInfo } = parseTokenInfo(outputToken, "0");
-        // native case
-        if ("native_token" in assetInfo) {
-          input = {
-            convert_reverse: {
-              from_asset: outputAssetInfo
-            }
-          };
-          funds = handleSentFunds(fund);
-        } else {
-          // cw20 case
-          input = {
-            send: {
-              contract: network.converter,
-              amount: inputAmount,
-              msg: toBinary({
-                convert_reverse: {
-                  from: outputAssetInfo
-                }
-              })
-            }
-          };
-          contractAddr = assetInfo.token.contract_addr;
-        }
-        break;
-      }
-      default:
-        break;
-    }
-
-    const msg: ExecuteInstruction = {
-      contractAddress: contractAddr,
-      msg: input,
-      funds
-    };
-
-    return msg;
   }
 }
