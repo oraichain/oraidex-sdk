@@ -2,9 +2,12 @@ import {
   AIRI_CONTRACT,
   ATOM,
   ATOM_ORAICHAIN_DENOM,
+  AmountDetails,
   CoinGeckoId,
   CosmosChainId,
   EvmChainId,
+  INJECTIVE_CONTRACT,
+  INJECTIVE_ORAICHAIN_DENOM,
   KWT_BSC_CONTRACT,
   MILKY_BSC_CONTRACT,
   NEUTARO_INFO,
@@ -14,6 +17,7 @@ import {
   ORAI_BSC_CONTRACT,
   ORAI_ETH_CONTRACT,
   ORAI_INFO,
+  TokenInfo,
   TokenItemType,
   USDC_INFO,
   USDT_BSC_CONTRACT,
@@ -30,7 +34,8 @@ import {
   oraib2oraichain,
   oraichain2atom,
   oraichain2oraib,
-  parseTokenInfoRawDenom
+  parseTokenInfoRawDenom,
+  toDisplay
 } from "@oraichain/oraidex-common";
 
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper";
@@ -53,6 +58,7 @@ import { SwapRoute, UniversalSwapType } from "../src/types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
+import { Coin, coin } from "@cosmjs/proto-signing";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -704,5 +710,30 @@ describe("test helper functions", () => {
         })
       });
     });
+  });
+
+  it.each<[AmountDetails, TokenItemType, Coin, number]>([
+    [
+      {
+        injective: "10000"
+      },
+      getTokenOnOraichain("injective-protocol"),
+      coin(1000, INJECTIVE_ORAICHAIN_DENOM),
+      1
+    ],
+    [
+      {
+        [INJECTIVE_ORAICHAIN_DENOM]: "1000",
+        injective: "10000"
+      },
+      getTokenOnOraichain("injective-protocol"),
+      coin(1000, INJECTIVE_ORAICHAIN_DENOM),
+      0
+    ],
+    [{}, getTokenOnOraichain("injective-protocol"), coin(1000, INJECTIVE_ORAICHAIN_DENOM), 0]
+  ])("test-generate-convert-msgs", async (currentBal: AmountDetails, tokenInfo, toSend, msgLength) => {
+    const msg = universalHelper.generateConvertCw20Erc20Message(currentBal, tokenInfo, "orai123", toSend);
+    console.dir(msg, { depth: null });
+    expect(msg.length).toEqual(msgLength);
   });
 });
