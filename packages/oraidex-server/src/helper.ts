@@ -240,7 +240,6 @@ export const getAllPoolsInfo = async () => {
     const allLiquidities = await getPoolLiquidities(pools);
     const avgLiquidities = await getAvgPoolLiquidities(pools);
     const allPoolAmounts = await getPoolAmounts(pools);
-
     const allPoolsInfo: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
 

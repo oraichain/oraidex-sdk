@@ -212,6 +212,9 @@ export class DbQuery {
 
     let latestLiquidityPool = 0;
     const poolsInfo = cache.get(CACHE_KEY.POOLS_INFO);
+    // wait cached
+    if (!poolsInfo) return [];
+
     if (poolsInfo) {
       const currentPool = poolsInfo.find((p) => p.pairAddr === pairObj.pairAddr);
       if (currentPool) latestLiquidityPool = currentPool.totalLiquidity;
@@ -266,6 +269,9 @@ export class DbQuery {
 
     let latestLiquidityPools = 0;
     const poolsInfo = cache.get(CACHE_KEY.POOLS_INFO);
+    // wait cached
+    if (!poolsInfo) return [];
+
     if (poolsInfo) {
       latestLiquidityPools = poolsInfo.reduce((acc, cur) => {
         acc += cur.totalLiquidity;
