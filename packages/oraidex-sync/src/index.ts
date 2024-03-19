@@ -1,7 +1,15 @@
 import { SyncData, Txs, WriteData } from "@oraichain/cosmos-rpc-sync";
 import "dotenv/config";
 import { DuckDb } from "./db";
-import { concatAprHistoryToUniqueKey, concatLpHistoryToUniqueKey, getAllFees, getSymbolFromAsset } from "./helper";
+import {
+  concatAprHistoryToUniqueKey,
+  concatLpHistoryToUniqueKey,
+  getAllFees,
+  getAllVolume24h,
+  getPoolAprsFromDuckDb,
+  getPoolsFromDuckDb,
+  getSymbolFromAsset
+} from "./helper";
 import { parseAssetInfo, parsePoolAmount } from "./parse";
 import {
   calculateBoostApr,
@@ -9,6 +17,7 @@ import {
   getAllPairInfos,
   getAvgPoolLiquidities,
   getPairByAssetInfos,
+  getPoolAmounts,
   getPoolInfos,
   getPoolLiquidities,
   handleEventApr
@@ -44,8 +53,8 @@ class WriteOrders extends WriteData {
       await handleEventApr(txs, lpOpsData, newOffset);
 
       // hash to be promise all because if inserting height pass and txs fail then we will have duplications
-      await this.duckDb.insertHeightSnapshot(newOffset);
-      await this.insertParsedTxs(result);
+      // await this.duckDb.insertHeightSnapshot(newOffset);
+      // await this.insertParsedTxs(result);
       console.log("new offset: ", newOffset);
 
       const lpOps = await this.duckDb.queryLpOps();
@@ -176,48 +185,73 @@ class OraiDexSync {
 
   public async sync() {
     try {
-      // create tables
-      await this.duckDb.createHeightSnapshot();
-      await this.duckDb.createLiquidityOpsTable();
-      await this.duckDb.createSwapOpsTable();
-      await this.duckDb.createPairInfosTable();
-      await this.duckDb.createSwapOhlcv();
-      await this.duckDb.createLpAmountHistoryTable();
-      await this.duckDb.createPoolAprTable();
-      await this.duckDb.createEarningHistoryTable();
-      await this.duckDb.addTimestampColToPoolAprTable();
-      await this.duckDb.addAprBoostColToPoolAprTable();
-      await this.duckDb.addSenderColToSwapOpsTable();
-      let currentInd = await this.duckDb.loadHeightSnapshot();
-      const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
-      // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
-      if (currentInd <= initialSyncHeight) {
-        currentInd = initialSyncHeight;
-      }
-      console.log("current ind: ", currentInd);
+      console.time("volumes");
+      const volumes = await getAllVolume24h();
+      console.timeEnd("volumes");
+      // console.time("getAllFees");
+      // const allFee7Days = await getAllFees();
+      // console.timeEnd("getAllFees");
+      console.time("getPoolsFromDuckDb");
+      const pools = await getPoolsFromDuckDb();
+      console.timeEnd("getPoolsFromDuckDb");
+      console.time("getPoolAprsFromDuckDb");
+      const allPoolApr = await getPoolAprsFromDuckDb();
+      console.timeEnd("getPoolAprsFromDuckDb");
+      console.time("getPoolLiquidities");
+      const allLiquidities = await getPoolLiquidities(pools);
+      console.timeEnd("getPoolLiquidities");
+      console.time("getAvgPoolLiquidities");
+      const avgLiquidities = await getAvgPoolLiquidities(pools);
+      console.timeEnd("getAvgPoolLiquidities");
+      console.time("getPoolAmounts");
+      const allPoolAmounts = await getPoolAmounts(pools);
+      console.timeEnd("getPoolAmounts");
+      // console.dir(
+      //   { volumes, allFee7Days, pools, allPoolApr, allLiquidities, avgLiquidities, allPoolAmounts },
+      //   { depth: null }
+      // );
+      // // create tables
+      // await this.duckDb.createHeightSnapshot();
+      // await this.duckDb.createLiquidityOpsTable();
+      // await this.duckDb.createSwapOpsTable();
+      // await this.duckDb.createPairInfosTable();
+      // await this.duckDb.createSwapOhlcv();
+      // await this.duckDb.createLpAmountHistoryTable();
+      // await this.duckDb.createPoolAprTable();
+      // await this.duckDb.createEarningHistoryTable();
+      // await this.duckDb.addTimestampColToPoolAprTable();
+      // await this.duckDb.addAprBoostColToPoolAprTable();
+      // await this.duckDb.addSenderColToSwapOpsTable();
+      // let currentInd = await this.duckDb.loadHeightSnapshot();
+      // const initialSyncHeight = parseInt(process.env.INITIAL_SYNC_HEIGHT) || 12388825;
+      // // if its' the first time, then we use the height 12388825 since its the safe height for the rpc nodes to include timestamp & new indexing logic
+      // if (currentInd <= initialSyncHeight) {
+      //   currentInd = initialSyncHeight;
+      // }
+      // console.log("current ind: ", currentInd);
 
-      const isNewPool = await this.updateLatestPairInfos();
+      // const isNewPool = await this.updateLatestPairInfos();
 
-      // update offer & ask, total share of pool history in the first time
-      await this.updateLatestLpAmountHistory(currentInd, isNewPool);
+      // // update offer & ask, total share of pool history in the first time
+      // await this.updateLatestLpAmountHistory(currentInd, isNewPool);
 
-      // NOTE: need to updateLatestLpAmountHistory before update apr in the first time
-      // to get the offerAmount, askAmount from lp amount history table.
-      await this.updateLatestPoolApr(currentInd);
+      // // NOTE: need to updateLatestLpAmountHistory before update apr in the first time
+      // // to get the offerAmount, askAmount from lp amount history table.
+      // await this.updateLatestPoolApr(currentInd);
 
-      const syncStream = new SyncData({
-        offset: currentInd,
-        rpcUrl: this.rpcUrl,
-        queryTags: [],
-        limit: parseInt(process.env.LIMIT) || 1000,
-        maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
-        interval: 10000
-      });
+      // const syncStream = new SyncData({
+      //   offset: currentInd,
+      //   rpcUrl: this.rpcUrl,
+      //   queryTags: [],
+      //   limit: parseInt(process.env.LIMIT) || 1000,
+      //   maxThreadLevel: parseInt(process.env.MAX_THREAD_LEVEL) || 3,
+      //   interval: 10000
+      // });
 
-      const writeOrders = new WriteOrders(this.duckDb);
-      for await (const orders of syncStream) {
-        await writeOrders.process(orders);
-      }
+      // const writeOrders = new WriteOrders(this.duckDb);
+      // for await (const orders of syncStream) {
+      //   await writeOrders.process(orders);
+      // }
     } catch (error) {
       console.log("error in start: ", error);
       process.exit(1);
