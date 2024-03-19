@@ -3,7 +3,7 @@ name: Check the test before merge
 on:
   # When Release Pull Request is merged
   pull_request:
-    types: [opened, synchronize, review_requested]
+    types: [opened, synchronize, ready_for_review, review_requested]
     branches:
       - main
       - staging
@@ -55,9 +55,6 @@ jobs:
       - name: Run nx reset workspace
         run: yarn nx reset
 
-      - name: Run build
-        run: yarn build
-
       - name: Run test
         run: |
           yarn test
@@ -66,7 +63,7 @@ jobs:
         uses: insightsengineering/coverage-action@v2
         with:
           # Path to the Cobertura XML report.
-          path: ./coverage/clover.xml
+          path: ./coverage/cobertura-coverage.xml
           # Minimum total coverage, if you want to the
           # workflow to enforce it as a standard.
           # This has no effect if the `fail` arg is set to `false`.

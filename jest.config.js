@@ -6,6 +6,7 @@ module.exports = {
   testEnvironment: "node",
   modulePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/packages/ibc-routing"],
   collectCoverage: true,
+  coverageReporters: ["cobertura", "html"],
   coveragePathIgnorePatterns: [
     "<rootDir>/packages/contracts-sdk",
     "<rootDir>/packages/contracts-build",
