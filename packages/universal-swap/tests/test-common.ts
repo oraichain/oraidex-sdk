@@ -36,7 +36,7 @@ export const deployToken = async (
           initial_balances
         },
         "token",
-        "oraiswap_token"
+        "oraiswap-token"
       )
     ).contractAddress
   );

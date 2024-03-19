@@ -51,3 +51,9 @@ export interface PairInfo {
   liquidity_token: Addr;
   oracle_addr: Addr;
 }
+export interface RewardInfoResponseItem {
+  bond_amount: Uint128;
+  pending_reward: Uint128;
+  pending_withdraw: Asset[];
+  staking_token: Addr;
+}

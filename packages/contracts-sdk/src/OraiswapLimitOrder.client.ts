@@ -6,8 +6,8 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Uint128, Binary, Addr, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
-import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, SimulateMarketOrderResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
+import {Addr, Uint128, Binary, AssetInfo, Decimal, Cw20ReceiveMsg, Asset} from "./types";
+import {InstantiateMsg, ExecuteMsg, OrderDirection, QueryMsg, OrderFilter, MigrateMsg, ContractInfoResponse, LastOrderIdResponse, OrderStatus, OrderResponse, OrderBookResponse, OrderBookMatchableResponse, OrderBooksResponse, OrdersResponse, TickResponse, TicksResponse} from "./OraiswapLimitOrder.types";
 export interface OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
   contractInfo: () => Promise<ContractInfoResponse>;
@@ -77,22 +77,6 @@ export interface OraiswapLimitOrderReadOnlyInterface {
   }: {
     assetInfos: AssetInfo[];
   }) => Promise<OrderBookMatchableResponse>;
-  midPrice: ({
-    assetInfos
-  }: {
-    assetInfos: AssetInfo[];
-  }) => Promise<Decimal>;
-  simulateMarketOrder: ({
-    assetInfos,
-    direction,
-    offerAmount,
-    slippage
-  }: {
-    assetInfos: AssetInfo[];
-    direction: OrderDirection;
-    offerAmount: Uint128;
-    slippage?: Decimal;
-  }) => Promise<SimulateMarketOrderResponse>;
 }
 export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnlyInterface {
   client: CosmWasmClient;
@@ -110,8 +94,6 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
     this.ticks = this.ticks.bind(this);
     this.lastOrderId = this.lastOrderId.bind(this);
     this.orderBookMatchable = this.orderBookMatchable.bind(this);
-    this.midPrice = this.midPrice.bind(this);
-    this.simulateMarketOrder = this.simulateMarketOrder.bind(this);
   }
 
   contractInfo = async (): Promise<ContractInfoResponse> => {
@@ -246,37 +228,6 @@ export class OraiswapLimitOrderQueryClient implements OraiswapLimitOrderReadOnly
       }
     });
   };
-  midPrice = async ({
-    assetInfos
-  }: {
-    assetInfos: AssetInfo[];
-  }): Promise<Decimal> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      mid_price: {
-        asset_infos: assetInfos
-      }
-    });
-  };
-  simulateMarketOrder = async ({
-    assetInfos,
-    direction,
-    offerAmount,
-    slippage
-  }: {
-    assetInfos: AssetInfo[];
-    direction: OrderDirection;
-    offerAmount: Uint128;
-    slippage?: Decimal;
-  }): Promise<SimulateMarketOrderResponse> => {
-    return this.client.queryContractSmart(this.contractAddress, {
-      simulate_market_order: {
-        asset_infos: assetInfos,
-        direction,
-        offer_amount: offerAmount,
-        slippage
-      }
-    });
-  };
 }
 export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyInterface {
   contractAddress: string;
@@ -290,8 +241,6 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     msg: Binary;
     sender: string;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  pause: (_fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  unpause: (_fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateAdmin: ({
     admin
   }: {
@@ -299,15 +248,12 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   updateConfig: ({
     commissionRate,
-    rewardAddress
+    rewardAddress,
+    spreadAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateOperator: ({
-    operator
-  }: {
-    operator?: string;
+    spreadAddress?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   createOrderBookPair: ({
     baseCoinInfo,
@@ -320,30 +266,12 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     quoteCoinInfo: AssetInfo;
     spread?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  updateOrderbookPair: ({
-    assetInfos,
-    minQuoteCoinAmount,
-    spread
-  }: {
-    assetInfos: AssetInfo[];
-    minQuoteCoinAmount?: Uint128;
-    spread?: Decimal;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   submitOrder: ({
     assets,
     direction
   }: {
     assets: Asset[];
     direction: OrderDirection;
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  submitMarketOrder: ({
-    assetInfos,
-    direction,
-    slippage
-  }: {
-    assetInfos: AssetInfo[];
-    direction: OrderDirection;
-    slippage?: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   cancelOrder: ({
     assetInfos,
@@ -352,15 +280,17 @@ export interface OraiswapLimitOrderInterface extends OraiswapLimitOrderReadOnlyI
     assetInfos: AssetInfo[];
     orderId: number;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  executeOrderBookPair: ({
+    assetInfos,
+    limit
+  }: {
+    assetInfos: AssetInfo[];
+    limit?: number;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   removeOrderBookPair: ({
     assetInfos
   }: {
     assetInfos: AssetInfo[];
-  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
-  withdrawToken: ({
-    asset
-  }: {
-    asset: Asset;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient implements OraiswapLimitOrderInterface {
@@ -374,18 +304,13 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     this.sender = sender;
     this.contractAddress = contractAddress;
     this.receive = this.receive.bind(this);
-    this.pause = this.pause.bind(this);
-    this.unpause = this.unpause.bind(this);
     this.updateAdmin = this.updateAdmin.bind(this);
     this.updateConfig = this.updateConfig.bind(this);
-    this.updateOperator = this.updateOperator.bind(this);
     this.createOrderBookPair = this.createOrderBookPair.bind(this);
-    this.updateOrderbookPair = this.updateOrderbookPair.bind(this);
     this.submitOrder = this.submitOrder.bind(this);
-    this.submitMarketOrder = this.submitMarketOrder.bind(this);
     this.cancelOrder = this.cancelOrder.bind(this);
+    this.executeOrderBookPair = this.executeOrderBookPair.bind(this);
     this.removeOrderBookPair = this.removeOrderBookPair.bind(this);
-    this.withdrawToken = this.withdrawToken.bind(this);
   }
 
   receive = async ({
@@ -405,16 +330,6 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       }
     }, _fee, _memo, _funds);
   };
-  pause = async (_fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      pause: {}
-    }, _fee, _memo, _funds);
-  };
-  unpause = async (_fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      unpause: {}
-    }, _fee, _memo, _funds);
-  };
   updateAdmin = async ({
     admin
   }: {
@@ -428,26 +343,18 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
   };
   updateConfig = async ({
     commissionRate,
-    rewardAddress
+    rewardAddress,
+    spreadAddress
   }: {
     commissionRate?: string;
     rewardAddress?: Addr;
+    spreadAddress?: Addr;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       update_config: {
         commission_rate: commissionRate,
-        reward_address: rewardAddress
-      }
-    }, _fee, _memo, _funds);
-  };
-  updateOperator = async ({
-    operator
-  }: {
-    operator?: string;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      update_operator: {
-        operator
+        reward_address: rewardAddress,
+        spread_address: spreadAddress
       }
     }, _fee, _memo, _funds);
   };
@@ -471,23 +378,6 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       }
     }, _fee, _memo, _funds);
   };
-  updateOrderbookPair = async ({
-    assetInfos,
-    minQuoteCoinAmount,
-    spread
-  }: {
-    assetInfos: AssetInfo[];
-    minQuoteCoinAmount?: Uint128;
-    spread?: Decimal;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      update_orderbook_pair: {
-        asset_infos: assetInfos,
-        min_quote_coin_amount: minQuoteCoinAmount,
-        spread
-      }
-    }, _fee, _memo, _funds);
-  };
   submitOrder = async ({
     assets,
     direction
@@ -499,23 +389,6 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       submit_order: {
         assets,
         direction
-      }
-    }, _fee, _memo, _funds);
-  };
-  submitMarketOrder = async ({
-    assetInfos,
-    direction,
-    slippage
-  }: {
-    assetInfos: AssetInfo[];
-    direction: OrderDirection;
-    slippage?: Decimal;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      submit_market_order: {
-        asset_infos: assetInfos,
-        direction,
-        slippage
       }
     }, _fee, _memo, _funds);
   };
@@ -533,6 +406,20 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
       }
     }, _fee, _memo, _funds);
   };
+  executeOrderBookPair = async ({
+    assetInfos,
+    limit
+  }: {
+    assetInfos: AssetInfo[];
+    limit?: number;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      execute_order_book_pair: {
+        asset_infos: assetInfos,
+        limit
+      }
+    }, _fee, _memo, _funds);
+  };
   removeOrderBookPair = async ({
     assetInfos
   }: {
@@ -541,17 +428,6 @@ export class OraiswapLimitOrderClient extends OraiswapLimitOrderQueryClient impl
     return await this.client.execute(this.sender, this.contractAddress, {
       remove_order_book_pair: {
         asset_infos: assetInfos
-      }
-    }, _fee, _memo, _funds);
-  };
-  withdrawToken = async ({
-    asset
-  }: {
-    asset: Asset;
-  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
-    return await this.client.execute(this.sender, this.contractAddress, {
-      withdraw_token: {
-        asset
       }
     }, _fee, _memo, _funds);
   };

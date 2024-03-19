@@ -89,12 +89,12 @@ describe("test universal swap handler functions", () => {
     // deploy oracle addr
     const { codeId: pairCodeId } = await client.upload(
       testSenderAddress,
-      readFileSync(oraidexArtifacts.getContractDir("oraiswap_pair")),
+      readFileSync(oraidexArtifacts.getContractDir("oraiswap-pair")),
       "auto"
     );
     const { codeId: lpCodeId } = await client.upload(
       testSenderAddress,
-      readFileSync(oraidexArtifacts.getContractDir("oraiswap_token")),
+      readFileSync(oraidexArtifacts.getContractDir("oraiswap-token")),
       "auto"
     );
     lpId = lpCodeId;
@@ -103,7 +103,7 @@ describe("test universal swap handler functions", () => {
       testSenderAddress,
       {},
       "oraiswap-oracle",
-      "oraiswap_oracle"
+      "oraiswap-oracle"
     );
     // deploy factory contract
     oracleContract = new OraiswapOracleClient(client, testSenderAddress, oracleAddress);
@@ -117,7 +117,7 @@ describe("test universal swap handler functions", () => {
         token_code_id: lpCodeId
       },
       "oraiswap-factory",
-      "oraiswap_factory"
+      "oraiswap-factory"
     );
     const { contractAddress: routerAddress } = await oraidexArtifacts.deployContract(
       client,
@@ -127,7 +127,7 @@ describe("test universal swap handler functions", () => {
         factory_addr_v2: factoryAddress
       },
       "oraiswap-router",
-      "oraiswap_router"
+      "oraiswap-router"
     );
     factoryContract = new OraiswapFactoryClient(client, testSenderAddress, factoryAddress);
     routerContract = new OraiswapRouterClient(client, testSenderAddress, routerAddress);

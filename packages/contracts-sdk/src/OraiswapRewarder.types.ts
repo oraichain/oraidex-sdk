@@ -1,4 +1,4 @@
-import {Addr, Uint128} from "./types";
+import {Addr, AssetInfo, Uint128} from "./types";
 export interface InstantiateMsg {
   distribution_interval?: number | null;
   staking_contract: Addr;
@@ -18,7 +18,7 @@ export type QueryMsg = {
   config: {};
 } | {
   distribution_info: {
-    staking_token: Addr;
+    asset_info: AssetInfo;
   };
 } | {
   reward_amount_per_sec: {

@@ -240,10 +240,8 @@ export const getAllPoolsInfo = async () => {
     const allLiquidities = await getPoolLiquidities(pools);
     const avgLiquidities = await getAvgPoolLiquidities(pools);
     const allPoolAmounts = await getPoolAmounts(pools);
-
     const allPoolsInfo: PairInfoDataResponse[] = pools.map((pool, index) => {
       const poolApr = allPoolApr.find((item) => item.pairAddr === pool.pairAddr);
-      if (!poolApr) return null;
 
       const poolFee = allFee7Days.find((item) => {
         const [baseAssetInfo, quoteAssetInfo] = item.assetInfos;
@@ -260,13 +258,12 @@ export const getAllPoolsInfo = async () => {
           JSON.stringify(quoteAssetInfo) === pool.secondAssetInfo
         );
       });
-      if (!poolVolume) return null;
 
       return {
         ...pool,
-        volume24Hour: poolVolume.volume.toString(),
+        volume24Hour: poolVolume?.volume ? poolVolume.volume.toString() : "0",
         fee7Days: poolFee.fee.toString(),
-        apr: poolApr.apr,
+        apr: poolApr?.apr ?? 0,
         aprBoost: poolApr?.aprBoost ?? 0,
         totalLiquidity: allLiquidities[index],
         avgLiquidities: avgLiquidities[pool.liquidityAddr],
@@ -277,8 +274,7 @@ export const getAllPoolsInfo = async () => {
       } as PairInfoDataResponse;
     });
 
-    // TODO: ignore pool ORAI/BTC and pool undefined
-    return allPoolsInfo.filter((pools) => pools && pools.liquidityAddr !== pairLpTokens.ORAI_BTC);
+    return allPoolsInfo;
   } catch (error) {
     console.log({ errorGetAllPoolsInfo: error });
   }
