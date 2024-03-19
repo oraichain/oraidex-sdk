@@ -67,7 +67,9 @@ registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
 registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
 registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 
-updateInterval();
+setTimeout(() => {
+  updateInterval();
+}, 10000);
 
 const app = express();
 app.use(cors());
