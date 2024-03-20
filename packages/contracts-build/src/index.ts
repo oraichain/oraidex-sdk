@@ -4,19 +4,19 @@ import path from "path";
 
 export type ContractName =
   | "oraiswap-token"
-  | "oraiswap_limit_order"
+  | "oraiswap-orderbook"
   | "oraiswap-pair"
   | "oraiswap-oracle"
-  | "oraiswap_converter"
+  | "oraiswap-converter"
   | "oraiswap-factory"
   | "oraiswap_rewarder"
   | "oraiswap-router"
-  | "oraiswap_staking"
+  | "oraiswap-staking"
   | "oraidex-listing-contract";
 
 const contractDir = path.join(path.dirname(module.filename), "..", "data");
 
-export const getContractDir = (name: ContractName = "oraiswap_limit_order") => {
+export const getContractDir = (name: ContractName = "oraiswap-orderbook") => {
   return path.join(contractDir, name + ".wasm");
 };
 

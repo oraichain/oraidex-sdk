@@ -138,7 +138,7 @@ describe("test-duckdb", () => {
     expect(queryResult[0]).toEqual(data[0]);
   });
 
-  test("test-insert-same-unique-key-should-replace-data", async () => {
+  it("test-insert-same-unique-key-should-replace-data", async () => {
     // setup
     duckDb = await DuckDb.create(":memory:");
     await duckDb.createLiquidityOpsTable();
