@@ -35,3 +35,4 @@ cache/
 
 packages/contract-state-simulate/public/
 coverage
+packages/oraidex-server/cache-data.json
