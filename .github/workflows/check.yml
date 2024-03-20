@@ -3,10 +3,13 @@ name: Check the test before merge
 on:
   # When Release Pull Request is merged
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, ready_for_review, review_requested]
     branches:
       - main
       - staging
+  push:
+    branches:
+      - main
 
 env:
   NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -42,7 +45,7 @@ jobs:
           key: ${{ runner.os }}-yarn-${{ hashFiles('./yarn.lock') }}
           restore-keys: |
             ${{ runner.os }}-yarn-
-              
+
       - name: Install Dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
@@ -52,9 +55,34 @@ jobs:
       - name: Run nx reset workspace
         run: yarn nx reset
 
-      - name: Run build
-        run: yarn build
-
       - name: Run test
         run: |
           yarn test
+
+      - name: Produce the coverage report
+        uses: insightsengineering/coverage-action@v2
+        with:
+          # Path to the Cobertura XML report.
+          path: ./coverage/cobertura-coverage.xml
+          # Minimum total coverage, if you want to the
+          # workflow to enforce it as a standard.
+          # This has no effect if the `fail` arg is set to `false`.
+          # threshold: 90
+          # Fail the workflow if the minimum code coverage
+          # reuqirements are not satisfied.
+          fail: false
+          # Publish the rendered output as a PR comment
+          publish: true
+          # Create a coverage diff report.
+          diff: true
+          # Branch to diff against.
+          # Compare the current coverage to the coverage
+          # determined on this branch.
+          diff-branch: main
+          # This is where the coverage reports for the
+          # `diff-branch` are stored.
+          # Branch is created if it doesn't already exist'.
+          # diff-storage: _xml_coverage_reports
+          coverage-summary-title: "Code Coverage Summary"
+          new-uncovered-statements-failure: true
+          # new-uncovered-statements-failure: true

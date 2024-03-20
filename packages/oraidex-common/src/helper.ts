@@ -241,11 +241,10 @@ export const getTokenOnSpecificChainId = (
   return flattenTokens.find((t) => t.coinGeckoId === coingeckoId && t.chainId === chainId);
 };
 
-export const getTokenOnOraichain = (coingeckoId: CoinGeckoId) => {
-  if (coingeckoId === "kawaii-islands" || coingeckoId === "milky-token") {
-    throw new Error("KWT and MILKY not supported in this function");
-  }
-  return oraichainTokens.find((token) => token.coinGeckoId === coingeckoId && token.decimals === CW20_DECIMALS);
+export const getTokenOnOraichain = (coingeckoId: CoinGeckoId, decimals?: number) => {
+  return oraichainTokens.find(
+    (token) => token.coinGeckoId === coingeckoId && token.decimals === (decimals || CW20_DECIMALS)
+  );
 };
 
 export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {

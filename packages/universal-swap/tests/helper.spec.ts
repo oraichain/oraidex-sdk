@@ -1,8 +1,13 @@
 import {
+  AIRI_CONTRACT,
+  ATOM,
   ATOM_ORAICHAIN_DENOM,
+  AmountDetails,
   CoinGeckoId,
   CosmosChainId,
   EvmChainId,
+  INJECTIVE_CONTRACT,
+  INJECTIVE_ORAICHAIN_DENOM,
   KWT_BSC_CONTRACT,
   MILKY_BSC_CONTRACT,
   NEUTARO_INFO,
@@ -10,7 +15,10 @@ import {
   ORAIX_INFO,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
+  ORAI_ETH_CONTRACT,
   ORAI_INFO,
+  TokenInfo,
+  TokenItemType,
   USDC_INFO,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
@@ -20,10 +28,14 @@ import {
   WRAP_ETH_CONTRACT,
   WRAP_TRON_TRX_CONTRACT,
   flattenTokens,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
   ibcInfos,
   oraib2oraichain,
   oraichain2atom,
-  oraichain2oraib
+  oraichain2oraib,
+  parseTokenInfoRawDenom,
+  toDisplay
 } from "@oraichain/oraidex-common";
 
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper";
@@ -45,6 +57,8 @@ import {
 import { SwapRoute, UniversalSwapType } from "../src/types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
+import { Coin, coin } from "@cosmjs/proto-signing";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -219,7 +233,7 @@ describe("test helper functions", () => {
       "Oraichain",
       "orai1234",
       {
-        swapRoute: `orai1234:${ATOM_ORAICHAIN_DENOM}`,
+        swapRoute: parseToIbcWasmMemo("orai1234", "", ATOM_ORAICHAIN_DENOM),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -249,7 +263,8 @@ describe("test helper functions", () => {
       "cosmoshub-4",
       "orai1234",
       {
-        swapRoute: `${oraichain2atom}/orai1234:${ATOM_ORAICHAIN_DENOM}`,
+        // swapRoute: `${oraichain2atom}/orai1234:uatom`,
+        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2atom, "uatom"),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -260,7 +275,11 @@ describe("test helper functions", () => {
       "oraichain-token",
       "0x01",
       "orai1234",
-      { swapRoute: `${oraichain2oraib}/orai1234:orai`, universalSwapType: "other-networks-to-oraichain" },
+      {
+        // swapRoute: `${oraichain2oraib}/orai1234:${ORAI_ETH_CONTRACT}`,
+        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, ORAI_ETH_CONTRACT),
+        universalSwapType: "other-networks-to-oraichain"
+      },
       false
     ],
     [
@@ -270,7 +289,8 @@ describe("test helper functions", () => {
       "0x38",
       "orai1234",
       {
-        swapRoute: `${oraichain2oraib}/orai1234:${USDT_CONTRACT}`,
+        // swapRoute: `${oraichain2oraib}/orai1234:${USDT_BSC_CONTRACT}`,
+        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, USDT_BSC_CONTRACT),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -282,7 +302,8 @@ describe("test helper functions", () => {
       "0x2b6653dc",
       "orai1234",
       {
-        swapRoute: `${oraichain2oraib}/orai1234:${USDT_CONTRACT}`,
+        // swapRoute: `${oraichain2oraib}/orai1234:${USDT_TRON_CONTRACT}`,
+        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, USDT_TRON_CONTRACT),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -294,7 +315,12 @@ describe("test helper functions", () => {
       "0x2b6653dc",
       "0x1234",
       {
-        swapRoute: `${oraichain2oraib}/${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234:${USDT_CONTRACT}`,
+        // swapRoute: `${oraichain2oraib}/${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234:${USDT_TRON_CONTRACT}`,
+        swapRoute: parseToIbcWasmMemo(
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234`,
+          oraichain2oraib,
+          USDT_TRON_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -310,33 +336,6 @@ describe("test helper functions", () => {
         universalSwapType: "other-networks-to-oraichain"
       },
       false
-    ],
-    [
-      "cosmos",
-      "cosmoshub-4",
-      "cosmos",
-      "Oraichain",
-      "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-cosmos" },
-      false
-    ],
-    [
-      "cosmos",
-      "cosmoshub-4",
-      "oraichain-token",
-      "Oraichain",
-      "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-cosmos" },
-      true
-    ],
-    [
-      "osmosis",
-      "osmosis-1",
-      "cosmos",
-      "cosmoshub-4",
-      "0x1234",
-      { swapRoute: "", universalSwapType: "cosmos-to-cosmos" },
-      true
     ]
   ])(
     "test-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
@@ -359,6 +358,102 @@ describe("test helper functions", () => {
     }
   );
 
+  it.each<
+    [
+      CoinGeckoId,
+      EvmChainId | CosmosChainId,
+      CoinGeckoId,
+      EvmChainId | CosmosChainId,
+      string,
+      string,
+      SwapRoute,
+      boolean
+    ]
+  >([
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "cosmos",
+      "Oraichain",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "",
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "Oraichain") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "oraichain-token",
+      "Oraichain",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "",
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("oraichain-token", "Oraichain") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "osmosis",
+      "osmosis-1",
+      "cosmos",
+      "cosmoshub-4",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          ibcInfos["Oraichain"]["cosmoshub-4"]?.channel as string,
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "cosmoshub-4") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ]
+  ])(
+    "test-ibc-hooks-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
+    (
+      fromCoingeckoId,
+      fromChainId,
+      toCoingeckoId,
+      toChainId,
+      receiverOnOrai,
+      destinationReceiver,
+      swapRoute,
+      willThrow
+    ) => {
+      jest
+        .spyOn(dexCommonHelper, "isEthAddress")
+        .mockImplementation((address) => (address.includes("0x") ? true : false));
+      const fromToken = flattenTokens.find(
+        (item) => item.coinGeckoId === fromCoingeckoId && item.chainId === fromChainId
+      )!;
+      const toToken = flattenTokens.find((item) => item.coinGeckoId === toCoingeckoId && item.chainId === toChainId);
+      try {
+        const receiverAddress = getRoute(fromToken, toToken, destinationReceiver, receiverOnOrai);
+        expect(receiverAddress).toEqual(swapRoute);
+        expect(willThrow).toEqual(false);
+      } catch (error) {
+        expect(willThrow).toEqual(true);
+        expect(error).toEqual(new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`));
+      }
+    }
+  );
+
   it("test-addOraiBridgeRoute-empty-swapRoute", () => {
     const result = addOraiBridgeRoute("receiver", "any" as any, "any" as any);
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
@@ -370,7 +465,9 @@ describe("test helper functions", () => {
       flattenTokens.find((item) => item.coinGeckoId === "oraichain-token" && item.chainId === "Oraichain")!,
       "foobar"
     );
-    expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver:foobar:orai`);
+    // expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver:foobar:orai`);
+    const memo = parseToIbcWasmMemo("foobar", "", "orai");
+    expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver:${memo}`);
   });
 
   it.each<[string, any]>([
@@ -613,5 +710,30 @@ describe("test helper functions", () => {
         })
       });
     });
+  });
+
+  it.each<[AmountDetails, TokenItemType, Coin, number]>([
+    [
+      {
+        injective: "10000"
+      },
+      getTokenOnOraichain("injective-protocol"),
+      coin(1000, INJECTIVE_ORAICHAIN_DENOM),
+      1
+    ],
+    [
+      {
+        [INJECTIVE_ORAICHAIN_DENOM]: "1000",
+        injective: "10000"
+      },
+      getTokenOnOraichain("injective-protocol"),
+      coin(1000, INJECTIVE_ORAICHAIN_DENOM),
+      0
+    ],
+    [{}, getTokenOnOraichain("injective-protocol"), coin(1000, INJECTIVE_ORAICHAIN_DENOM), 0]
+  ])("test-generate-convert-msgs", async (currentBal: AmountDetails, tokenInfo, toSend, msgLength) => {
+    const msg = universalHelper.generateConvertCw20Erc20Message(currentBal, tokenInfo, "orai123", toSend);
+    console.dir(msg, { depth: null });
+    expect(msg.length).toEqual(msgLength);
   });
 });
