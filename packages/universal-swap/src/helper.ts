@@ -32,7 +32,6 @@ import {
   IUniswapV2Router02__factory,
   cosmosTokens,
   StargateMsg,
-  IBC_WASM_HOOKS_CONTRACT,
   isInPairList,
   BigDecimal,
   NEUTARO_INFO,
@@ -675,20 +674,6 @@ export const checkBalanceIBCOraichain = async (
     if (!ibcInfo) throw generateError("IBC Info error when checking ibc balance");
     await checkBalanceChannelIbc(ibcInfo, from, to, toSimulateAmount, client, ibcWasmContract);
   }
-};
-
-export const buildIbcWasmHooksMemo = (func: string, args: string): string => {
-  return JSON.stringify({
-    wasm: {
-      contract_addr: IBC_WASM_HOOKS_CONTRACT,
-      msg: {
-        ibc_hooks_receive: {
-          func,
-          args
-        }
-      }
-    }
-  });
 };
 
 export function filterNonPoolEvmTokens(
