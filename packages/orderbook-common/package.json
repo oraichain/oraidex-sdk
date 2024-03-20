@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/orderbook-common",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -15,11 +15,11 @@
     "@cosmjs/crypto": "^0.31.0",
     "@cosmjs/proto-signing": "^0.31.0",
     "@cosmjs/stargate": "^0.31.0",
+    "@oraichain/oraidex-common": "^1.0.78",
     "@oraichain/oraidex-contracts-build": "^1.0.32",
-    "bignumber.js": "^9.1.2",
-    "cosmjs-types": "^0.9.0",
     "@oraichain/oraidex-contracts-sdk": "^1.0.43",
-    "@oraichain/oraidex-common": "^1.0.78"
+    "bignumber.js": "^9.1.2",
+    "cosmjs-types": "^0.9.0"
   },
   "devDependencies": {},
   "resolutions": {
