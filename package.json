@@ -4,7 +4,7 @@
   "license": "MIT",
   "scripts": {
     "postinstall": "patch-package",
-    "test": "jest",
+    "test": "yarn build && jest",
     "docs": "typedoc --entryPointStrategy expand --name 'Oraidex SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
     "clean": "lerna clean --yes && lerna exec -- rimraf build/ dist/ cache/",
     "build": "lerna run build --concurrency 1",
@@ -29,7 +29,7 @@
     "@cosmjs/proto-signing": "^0.31.0",
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "0.31.0",
-    "@oraichain/common-contracts-build": "1.0.32",
+    "@oraichain/common-contracts-build": "1.0.35",
     "@oraichain/common-contracts-sdk": "1.0.31"
   },
   "devDependencies": {

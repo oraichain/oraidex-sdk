@@ -22,6 +22,7 @@ export type SwapOperationData = {
   returnAmount: number | bigint;
   spreadAmount: number;
   taxAmount: number;
+  sender?: string;
   basePoolAmount?: number | bigint;
   quotePoolAmount?: number | bigint;
 } & BasicTxData;
@@ -185,6 +186,7 @@ export type TickerInfo = {
   target: string;
   pool_id: string;
   liquidity_in_usd: string;
+  pair_url: string;
 };
 
 export type SummaryInfo = {

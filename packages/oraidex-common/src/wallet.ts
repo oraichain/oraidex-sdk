@@ -3,6 +3,7 @@ import { EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import { SigningStargateClient, SigningStargateClientOptions } from "@cosmjs/stargate";
 import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
 import { JsonRpcSigner } from "@ethersproject/providers";
+import { Stargate } from "@injectivelabs/sdk-ts";
 import { ethers } from "ethers";
 import { ethToTronAddress, tronToEthAddress } from "./helper";
 import { CosmosChainId, EvmChainId, NetworkChainId, Networks } from "./network";
@@ -40,7 +41,12 @@ export abstract class CosmosWallet {
     const { chainId, rpc } = config;
     const wallet = await this.createCosmosSigner(chainId);
     const tmClient = await Tendermint37Client.connect(rpc);
-    const client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, options);
+    let client;
+    if (chainId === "injective-1") {
+      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(tmClient as any, wallet, options as any);
+    } else {
+      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, options);
+    }
     const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, options);
     return { wallet, client, stargateClient };
   }

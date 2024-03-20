@@ -59,7 +59,7 @@ describe("test-orderbook-helper", () => {
       ORDERBOOK_CONTRACT_ADDRESS,
       "orderbook",
       orderbookData,
-      fs.readFileSync(getContractDir("oraiswap_limit_order"))
+      fs.readFileSync(getContractDir("oraiswap-orderbook"))
     );
     helper = new OraichainOrderbookClientHelper(wallet, ORDERBOOK_CONTRACT_ADDRESS, "Oraichain", assetInfos);
     helper.withCosmWasmClient(client);
@@ -71,10 +71,12 @@ describe("test-orderbook-helper", () => {
     await cw20Client.mint({ amount: initialOrderbookOraiAmount, recipient: ORDERBOOK_CONTRACT_ADDRESS });
 
     // init limit orders for testing
-    const limitAmount = toAmount(1).toString();
+    const midPrice = await helper.getOrderbookPrice();
+    const limitBuyAmount = toAmount(midPrice - 1).toString();
+    const limitSellAmount = toAmount(midPrice + 1).toString();
     for (let i = 1; i < 9; i++) {
-      await helper.submitLimitOrder(limitAmount, limitAmount, "buy");
-      await helper.submitLimitOrder(limitAmount, limitAmount, "sell");
+      await helper.submitLimitOrder(limitBuyAmount, toAmount(1).toString(), "buy"); // price = mid price - 1
+      await helper.submitLimitOrder(toAmount(1).toString(), limitSellAmount, "sell"); // price = mid price + 1
     }
   });
 
@@ -87,7 +89,6 @@ describe("test-orderbook-helper", () => {
   });
 
   it("test-mm-helper-cancelAllOrders-with-direction-should-only-cancel-given-orders-with-direction", async () => {
-    // query list orders. Should have 308 orders in total
     let buyOrders = await helper.queryAllOrdersOfBidderWithDirection("buy");
     expect(buyOrders.length).toEqual(8);
     await helper.cancelAllOrders("buy");
@@ -119,7 +120,7 @@ describe("test-orderbook-helper", () => {
     const buyTicks = await helper.queryAllTicks("buy", 1, 1);
     // console.log({ buyTicks });
 
-    expect(buyTicks.length).toEqual(28);
+    expect(buyTicks.length).toEqual(29);
 
     const sellTicks = await helper.queryAllTicks("sell", 1, 1);
     expect(sellTicks.length).toEqual(90);
@@ -130,7 +131,7 @@ describe("test-orderbook-helper", () => {
     const lowestSellPrice = await helper.queryBestTick("sell");
     console.log({ highestBuyPrice, lowestSellPrice });
     expect(highestBuyPrice).toEqual(6.801);
-    expect(lowestSellPrice).toEqual(6.73299);
+    expect(lowestSellPrice).toEqual(7.069999822638081);
   });
 
   it.each<[string, string, OrderDirection, number]>([

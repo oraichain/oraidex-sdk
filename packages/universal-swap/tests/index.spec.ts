@@ -67,13 +67,13 @@ describe("test universal swap handler functions", () => {
   });
   let oraiPort: string;
   let lpId: number;
-  let channel = "channel-29";
-  let ibcTransferAmount = "100000000";
-  let initialBalanceAmount = "10000000000000";
-  let airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
-  let bobAddress = "orai1ur2vsjrjarygawpdwtqteaazfchvw4fg6uql76";
-  let oraiAddress = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
-  let cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
+  const channel = "channel-29";
+  const ibcTransferAmount = "100000000";
+  const initialBalanceAmount = "10000000000000";
+  const airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
+  const bobAddress = "orai1ur2vsjrjarygawpdwtqteaazfchvw4fg6uql76";
+  const oraiAddress = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
+  const cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
 
   let ics20Contract: CwIcs20LatestClient;
   let factoryContract: OraiswapFactoryClient;
@@ -89,12 +89,12 @@ describe("test universal swap handler functions", () => {
     // deploy oracle addr
     const { codeId: pairCodeId } = await client.upload(
       testSenderAddress,
-      readFileSync(oraidexArtifacts.getContractDir("oraiswap_pair")),
+      readFileSync(oraidexArtifacts.getContractDir("oraiswap-pair")),
       "auto"
     );
     const { codeId: lpCodeId } = await client.upload(
       testSenderAddress,
-      readFileSync(oraidexArtifacts.getContractDir("oraiswap_token")),
+      readFileSync(oraidexArtifacts.getContractDir("oraiswap-token")),
       "auto"
     );
     lpId = lpCodeId;
@@ -103,7 +103,7 @@ describe("test universal swap handler functions", () => {
       testSenderAddress,
       {},
       "oraiswap-oracle",
-      "oraiswap_oracle"
+      "oraiswap-oracle"
     );
     // deploy factory contract
     oracleContract = new OraiswapOracleClient(client, testSenderAddress, oracleAddress);
@@ -117,7 +117,7 @@ describe("test universal swap handler functions", () => {
         token_code_id: lpCodeId
       },
       "oraiswap-factory",
-      "oraiswap_factory"
+      "oraiswap-factory"
     );
     const { contractAddress: routerAddress } = await oraidexArtifacts.deployContract(
       client,
@@ -127,13 +127,13 @@ describe("test universal swap handler functions", () => {
         factory_addr_v2: factoryAddress
       },
       "oraiswap-router",
-      "oraiswap_router"
+      "oraiswap-router"
     );
     factoryContract = new OraiswapFactoryClient(client, testSenderAddress, factoryAddress);
     routerContract = new OraiswapRouterClient(client, testSenderAddress, routerAddress);
     ics20Contract = await deployIcs20Token(client, { swap_router_contract: routerAddress });
     oraiPort = "wasm." + ics20Contract.contractAddress;
-    let cosmosPort: string = "transfer";
+    const cosmosPort: string = "transfer";
     airiToken = await deployToken(client, {
       decimals: 6,
       symbol: "AIRI",
@@ -145,7 +145,7 @@ describe("test universal swap handler functions", () => {
       bech32Prefix: "cosmos"
     });
 
-    let newPacketData = {
+    const newPacketData = {
       src: {
         port_id: cosmosPort,
         channel_id: channel
@@ -546,10 +546,22 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  it.each<[TokenItemType, string, boolean]>([
-    [flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, true],
-    [flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!, channel, false]
-  ])("test-universal-swap-checkBalanceChannelIbc-%", async (toToken, channel, willThrow) => {
+  it.each<[TokenItemType, TokenItemType, string, string, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "oraichain-token")!,
+      simulateAmount,
+      channel,
+      true
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token")!,
+      simulateAmount,
+      channel,
+      false
+    ]
+  ])("test-universal-swap-checkBalanceChannelIbc-%", async (fromToken, toToken, amount, channel, willThrow) => {
     try {
       await checkBalanceChannelIbc(
         {
@@ -557,9 +569,11 @@ describe("test universal swap handler functions", () => {
           channel: channel,
           timeout: 3600
         },
+        fromToken,
         toToken,
-        simulateAmount,
-        ics20Contract
+        amount,
+        client,
+        IBC_WASM_CONTRACT_TEST
       );
       expect(willThrow).toEqual(false);
     } catch (error) {
@@ -571,7 +585,7 @@ describe("test universal swap handler functions", () => {
     [oraichainTokens.find((t) => t.coinGeckoId === "airight")!, 10000000],
     [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, 0]
   ])("test-universal-swap-getBalanceIBCOraichain-ibc-%", async (token: TokenItemType, expectedBalance: number) => {
-    let mockToken = { ...token };
+    const mockToken = { ...token };
     if (mockToken.contractAddress) {
       if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
     }
@@ -627,7 +641,7 @@ describe("test universal swap handler functions", () => {
     ["oraichain-to-oraichain", "swap"],
     ["oraichain-to-evm", "swapAndTransferToOtherNetworks"],
     ["oraichain-to-cosmos", "swapAndTransferToOtherNetworks"],
-    ["cosmos-to-cosmos", "swapCosmosToCosmos"]
+    ["cosmos-to-others", "swapCosmosToOtherNetwork"]
   ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
@@ -640,7 +654,7 @@ describe("test universal swap handler functions", () => {
     jest
       .spyOn(universalSwap, "swapAndTransferToOtherNetworks")
       .mockResolvedValue("swapAndTransferToOtherNetworks" as any);
-    jest.spyOn(universalSwap, "swapCosmosToCosmos").mockResolvedValue("swapCosmosToCosmos" as any);
+    jest.spyOn(universalSwap, "swapCosmosToOtherNetwork").mockResolvedValue("swapCosmosToOtherNetwork" as any);
     jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
     jest.spyOn(universalHelper, "addOraiBridgeRoute").mockReturnValue({ swapRoute: "", universalSwapType });
     const result = await universalSwap.processUniversalSwap();
@@ -932,7 +946,7 @@ describe("test universal swap handler functions", () => {
 
   it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
     ["oraichain-token", "oraichain-token", "1000000", "1000000"],
-    ["tron", "airight", "1000000", "100000"]
+    ["tron", "airight", "100000", "100000"]
   ])(
     "test simulateSwap-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
     async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {

@@ -3,8 +3,8 @@ import { CosmosChainId, CosmosWallet, truncDecimals } from "@oraichain/oraidex-c
 import {
   Asset,
   AssetInfo,
-  OraiswapLimitOrderQueryClient,
-  OraiswapLimitOrderTypes
+  OraiswapOrderbookQueryClient,
+  OraiswapOrderbookTypes
 } from "@oraichain/oraidex-contracts-sdk";
 import {
   OrderDirection,
@@ -36,7 +36,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
       direction
     };
     const client = await this.getCosmWasmClient(false);
-    const orderbookClient = new OraiswapLimitOrderQueryClient(client, this.orderbookAddress);
+    const orderbookClient = new OraiswapOrderbookQueryClient(client, this.orderbookAddress);
     while (true) {
       try {
         const ticks = (await orderbookClient.ticks(tickQuery)).ticks;
@@ -58,7 +58,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
       direction
     };
     const client = await this.getCosmWasmClient(false);
-    const orderbookClient = new OraiswapLimitOrderQueryClient(client, this.orderbookAddress);
+    const orderbookClient = new OraiswapOrderbookQueryClient(client, this.orderbookAddress);
     const ticks = await orderbookClient.ticks(tickQuery);
     if (!ticks || ticks.ticks.length === 0) return -1;
     return +ticks.ticks[0].price;
@@ -79,7 +79,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
       direction
     };
     const cosmwasmClient = await this.getCosmWasmClient(false);
-    const orderbookClient = new OraiswapLimitOrderQueryClient(cosmwasmClient, this.orderbookAddress);
+    const orderbookClient = new OraiswapOrderbookQueryClient(cosmwasmClient, this.orderbookAddress);
     while (true) {
       try {
         const mmOrders = await orderbookClient.orders(orderQuery);
@@ -109,7 +109,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
 
   getOrderbookPrice = async () => {
     const cosmwasmClient = await this.getCosmWasmClient(false);
-    const orderbookClient = new OraiswapLimitOrderQueryClient(cosmwasmClient, this.orderbookAddress);
+    const orderbookClient = new OraiswapOrderbookQueryClient(cosmwasmClient, this.orderbookAddress);
     const price = await orderbookClient.midPrice({
       assetInfos: this.assetInfos
     });
@@ -120,7 +120,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
     offerAmount: string,
     askAmount: string,
     direction: OrderDirection
-  ): OraiswapLimitOrderTypes.ExecuteMsg {
+  ): OraiswapOrderbookTypes.ExecuteMsg {
     const baseAmount = direction === "buy" ? askAmount : offerAmount;
     const quoteAmount = direction === "buy" ? offerAmount : askAmount;
     return {
@@ -140,19 +140,10 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
     };
   }
 
-  buildMarketOrder(
-    offerAmount: string,
-    askAmount: string,
-    direction: OrderDirection,
-    slippage: number
-  ): OraiswapLimitOrderTypes.ExecuteMsg {
-    const baseAmount = direction === "buy" ? askAmount : offerAmount;
-    const quoteAmount = direction === "buy" ? offerAmount : askAmount;
+  buildMarketOrder(direction: OrderDirection, slippage: number): OraiswapOrderbookTypes.ExecuteMsg {
     return {
       submit_market_order: {
         asset_infos: this.assetInfos,
-        base_amount: baseAmount,
-        quote_amount: quoteAmount,
         direction,
         slippage: Math.abs(slippage).toFixed(truncDecimals) // since we use price impact of amm which can be negative, we need to make sure slippage is always positive
       }
@@ -161,7 +152,8 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
 
   buildOrderbookExecuteInstructions = (
     contractAddress: string,
-    executeMsgs: OraiswapLimitOrderTypes.ExecuteMsg[]
+    executeMsgs: OraiswapOrderbookTypes.ExecuteMsg[],
+    sendAmount?: string
   ): ExecuteInstruction[] => {
     let instructions: ExecuteInstruction[] = [];
     if (executeMsgs.length === 0) return [];
@@ -179,19 +171,19 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
         instructions.push(this.buildOrderbookExecuteInstruction(contractAddress, msg, assets[0]));
       }
       if ("submit_market_order" in msg) {
-        const { asset_infos, base_amount, quote_amount } = msg.submit_market_order;
-
+        const { asset_infos } = msg.submit_market_order;
+        if (!sendAmount) throw "For subbmitting a market order. We need sendAmount";
         // when buying, we send quote amount, and want to receive base amount => compare quote balance
         if (msg.submit_market_order.direction === "buy") {
           // otherwise we create a new execute instruction
           instructions.push(
-            this.buildOrderbookExecuteInstruction(contractAddress, msg, { info: asset_infos[1], amount: quote_amount })
+            this.buildOrderbookExecuteInstruction(contractAddress, msg, { info: asset_infos[1], amount: sendAmount })
           );
           continue;
         }
         // sell case, compare base amount
         instructions.push(
-          this.buildOrderbookExecuteInstruction(contractAddress, msg, { info: asset_infos[0], amount: base_amount })
+          this.buildOrderbookExecuteInstruction(contractAddress, msg, { info: asset_infos[0], amount: sendAmount })
         );
       }
     }
@@ -292,7 +284,7 @@ export class OraichainOrderbookClientHelper extends AbstractOrderbookClientHelpe
       direction
     };
     const cosmwasmClient = await this.getCosmWasmClient(false);
-    const orderbookClient = new OraiswapLimitOrderQueryClient(cosmwasmClient, this.orderbookAddress);
+    const orderbookClient = new OraiswapOrderbookQueryClient(cosmwasmClient, this.orderbookAddress);
     while (true) {
       try {
         const mmOrders = await orderbookClient.orders(orderQuery);

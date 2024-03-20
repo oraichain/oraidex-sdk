@@ -3,20 +3,20 @@ import { readFileSync } from "fs";
 import path from "path";
 
 export type ContractName =
-  | "oraiswap_token"
-  | "oraiswap_limit_order"
-  | "oraiswap_pair"
-  | "oraiswap_oracle"
-  | "oraiswap_converter"
-  | "oraiswap_factory"
+  | "oraiswap-token"
+  | "oraiswap-orderbook"
+  | "oraiswap-pair"
+  | "oraiswap-oracle"
+  | "oraiswap-converter"
+  | "oraiswap-factory"
   | "oraiswap_rewarder"
-  | "oraiswap_router"
-  | "oraiswap_staking"
+  | "oraiswap-router"
+  | "oraiswap-staking"
   | "oraidex-listing-contract";
 
 const contractDir = path.join(path.dirname(module.filename), "..", "data");
 
-export const getContractDir = (name: ContractName = "oraiswap_limit_order") => {
+export const getContractDir = (name: ContractName = "oraiswap-orderbook") => {
   return path.join(contractDir, name + ".wasm");
 };
 

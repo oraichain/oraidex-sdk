@@ -6,7 +6,6 @@ import {
   INJECTIVE_CONTRACT,
   KWT_CONTRACT,
   MILKY_CONTRACT,
-  NEUTARO_ORAICHAIN_DENOM,
   ORAI,
   ORAIX_CONTRACT,
   OSMOSIS_ORAICHAIN_DENOM,
@@ -86,6 +85,7 @@ export const PAIRS: PairMapping[] = [
     asset_infos: [{ token: { contract_addr: INJECTIVE_CONTRACT } }, { native_token: { denom: ORAI } }],
     symbols: ["INJ", "ORAI"]
   },
+  // TODO: true order is oraix/usdc, but we reverse this to serve client
   {
     asset_infos: [{ token: { contract_addr: USDC_CONTRACT } }, { token: { contract_addr: ORAIX_CONTRACT } }],
     symbols: ["USDC", "ORAIX"]
@@ -101,10 +101,6 @@ export const PAIRS: PairMapping[] = [
   {
     asset_infos: [{ native_token: { denom: ORAI } }, { token: { contract_addr: BTC_CONTRACT } }],
     symbols: ["ORAI", "BTC"]
-  },
-  {
-    asset_infos: [{ native_token: { denom: NEUTARO_ORAICHAIN_DENOM } }, { token: { contract_addr: USDC_CONTRACT } }],
-    symbols: ["NTMPI", "USDC"]
   },
   {
     asset_infos: [{ token: { contract_addr: OCH_CONTRACT } }, { native_token: { denom: ORAI } }],
