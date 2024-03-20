@@ -9,7 +9,7 @@ import { EncodeObject } from "@cosmjs/proto-signing";
 import { DeliverTxResponse, GasPrice } from "@cosmjs/stargate";
 import { CosmosChainId, CosmosWallet, ORAI, parseAssetInfo } from "@oraichain/oraidex-common";
 import { Asset, AssetInfo, OraiswapTokenQueryClient } from "@oraichain/oraidex-contracts-sdk";
-import { OrderDirection } from "@oraichain/oraidex-contracts-sdk/build/OraiswapLimitOrder.types";
+import { OrderDirection } from "@oraichain/oraidex-contracts-sdk/build/OraiswapOrderbook.types";
 import { gasPrices } from "./constant";
 
 export abstract class AbstractOrderbookClientHelper {

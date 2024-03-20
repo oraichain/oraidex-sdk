@@ -10,7 +10,7 @@ import {
   OrderDirection,
   OrderResponse,
   TickResponse
-} from "@oraichain/oraidex-contracts-sdk/build/OraiswapLimitOrder.types";
+} from "@oraichain/oraidex-contracts-sdk/build/OraiswapOrderbook.types";
 import { AbstractOrderbookClientHelper } from "./abstract-helper";
 import { ORDERBOOK_CONTRACT_ADDRESS } from "./constant";
 
