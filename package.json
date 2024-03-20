@@ -29,7 +29,7 @@
     "@cosmjs/proto-signing": "^0.31.0",
     "@cosmjs/stargate": "^0.31.0",
     "@cosmjs/tendermint-rpc": "0.31.0",
-    "@oraichain/common-contracts-build": "1.0.32",
+    "@oraichain/common-contracts-build": "1.0.35",
     "@oraichain/common-contracts-sdk": "1.0.31"
   },
   "devDependencies": {

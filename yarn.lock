@@ -3629,10 +3629,10 @@
   dependencies:
     "@octokit/openapi-types" "^18.0.0"
 
-"@oraichain/common-contracts-build@1.0.32":
-  version "1.0.32"
-  resolved "https://registry.npmjs.org/@oraichain/common-contracts-build/-/common-contracts-build-1.0.32.tgz"
-  integrity sha512-g9wk2oeTWPkOUDwvr19XkDDtH3OkXQGAQKEFlAVn8t4/8KvOC5Jo5XrQwqSd5O4tvfxW6vX+XVpbkhEDcsOkRw==
+"@oraichain/common-contracts-build@1.0.35":
+  version "1.0.35"
+  resolved "https://registry.yarnpkg.com/@oraichain/common-contracts-build/-/common-contracts-build-1.0.35.tgz#049ed62380106820692838d9723e68948bda7f30"
+  integrity sha512-Alx1pZbUeaLCCz5WsNgk6XepQLBeKCWxJkbucPBF9ptszL0ad26L9mTrttbXcmA/V5pYyrnnw3R5/HRyPmNkPQ==
   dependencies:
     "@oraichain/common-contracts-sdk" "1.0.31"
 
