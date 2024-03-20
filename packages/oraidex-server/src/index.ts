@@ -67,7 +67,9 @@ registerListener(CACHE_KEY.POOLS_INFO, getAllPoolsInfo);
 registerListener(CACHE_KEY.SIMULATE_PRICE, fetchSimulatePrices);
 registerListener(CACHE_KEY.TICKER_ORDER_BOOK, getOrderbookSummary);
 
-updateInterval();
+setTimeout(() => {
+  updateInterval();
+}, 10000);
 
 const app = express();
 app.use(cors());
@@ -622,6 +624,8 @@ app.get("/v1/summary", async (req, res) => {
     });
 
     let tickerOrderbook = cache.get(CACHE_KEY.TICKER_ORDER_BOOK) || [];
+    if (!tickerOrderbook.length) return res.status(200).send([]);
+
     if (!tickerOrderbook.length) {
       tickerOrderbook = await getOrderbookSummary();
     }
