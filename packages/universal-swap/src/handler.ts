@@ -34,7 +34,8 @@ import {
   IBC_WASM_CONTRACT_TEST,
   tokenMap,
   AmountDetails,
-  buildMultipleExecuteMessages
+  buildMultipleExecuteMessages,
+  COSMOS_CHAIN_ID_COMMON
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -110,8 +111,10 @@ export class UniversalSwapHandler {
     if (!ibcReceiveAddr) throw generateError("Please login keplr!");
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
     const INJECTIVE_COINGECKO = "injective-protocol";
-    const INJECTIVE_CHAINID = "injective-1";
-    if (toChainId === INJECTIVE_CHAINID && this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO) {
+    if (
+      toChainId === COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID &&
+      this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO
+    ) {
       const INJ_DECIMALS = 18;
       toTokenInOrai = getTokenOnOraichain(toCoinGeckoId, INJ_DECIMALS);
     }
@@ -139,9 +142,8 @@ export class UniversalSwapHandler {
         }
       ];
     }
-
     const isNotMatchCoingeckoId = fromCoinGeckoId !== toCoinGeckoId;
-    if (toChainId === INJECTIVE_CHAINID) {
+    if (toChainId === COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID) {
       // 1. = coingeckoId => convert + bridge
       let getEncodedExecuteMsgs = [];
       if (this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO) {
@@ -601,7 +603,8 @@ export class UniversalSwapHandler {
       cosmos,
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
-      toAddress
+      toAddress,
+      this.swapData.isSourceReceiverTest
     );
 
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();

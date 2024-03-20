@@ -40,7 +40,8 @@ import {
   ORAIX_ETH_CONTRACT,
   AmountDetails,
   handleSentFunds,
-  tokenMap
+  tokenMap,
+  oraib2oraichainTest
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -189,8 +190,17 @@ export const buildIbcWasmPairKey = (ibcPort: string, ibcChannel: string, denom: 
  * @param contractAddress - BSC / ETH token contract address
  * @returns converted receiver address
  */
-export const getSourceReceiver = (oraiAddress: string, contractAddress?: string): string => {
+export const getSourceReceiver = (
+  oraiAddress: string,
+  contractAddress?: string,
+  isSourceReceiverTest?: boolean
+): string => {
   let sourceReceiver = `${oraib2oraichain}/${oraiAddress}`;
+  // TODO: test retire v2 (change structure memo evm -> oraichain)
+  if (isSourceReceiverTest) {
+    sourceReceiver = `${oraib2oraichainTest}/${oraiAddress}`;
+  }
+
   // we only support the old oraibridge ibc channel <--> Oraichain for MILKY & KWT
   if (contractAddress === KWT_BSC_CONTRACT || contractAddress === MILKY_BSC_CONTRACT) {
     sourceReceiver = oraiAddress;
@@ -282,11 +292,12 @@ export const addOraiBridgeRoute = (
   sourceReceiver: string,
   fromToken: TokenItemType,
   toToken: TokenItemType,
-  destReceiver?: string
+  destReceiver?: string,
+  isSourceReceiverTest?: boolean
 ): SwapRoute => {
   // TODO: recheck cosmos address undefined (other-chain -> oraichain)
   if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
-  const source = getSourceReceiver(sourceReceiver, fromToken.contractAddress);
+  const source = getSourceReceiver(sourceReceiver, fromToken.contractAddress, isSourceReceiverTest);
 
   const { swapRoute, universalSwapType } = getRoute(fromToken, toToken, destReceiver);
   if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType };

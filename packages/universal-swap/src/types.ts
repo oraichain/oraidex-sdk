@@ -48,6 +48,7 @@ export interface UniversalSwapData {
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
+  readonly isSourceReceiverTest?: boolean;
 }
 
 /**
