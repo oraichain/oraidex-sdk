@@ -1,3 +1,4 @@
+/* eslint-disable security/detect-non-literal-fs-filename */
 import fs from "fs";
 import fsPromise from "fs/promises";
 import path from "path";
@@ -9,15 +10,17 @@ export enum CACHE_KEY {
   COINGECKO_PRICES = "COINGECKO_PRICES"
 }
 
-const cacheFilePath = path.join(__dirname, "../cache-data.json");
+const FILE_PATH = process.env.CACHE_FILE_PATH ?? "../cache-data.json";
+const cacheFilePath = path.join(__dirname, FILE_PATH);
 let updateTimeout: NodeJS.Timeout;
 
 export const readCacheData = () => {
   try {
+    if (!fs.existsSync(cacheFilePath)) return {};
+
     const cachedData = fs.readFileSync(cacheFilePath, { encoding: "utf-8" });
     return JSON.parse(cachedData);
   } catch (error) {
-    console.error("Error reading cache data:", error);
     return {}; // Return empty object on error
   }
 };
