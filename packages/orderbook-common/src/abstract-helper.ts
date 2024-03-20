@@ -135,7 +135,11 @@ export abstract class AbstractOrderbookClientHelper {
 
   abstract buildMarketOrder(direction: unknown, slippage: number): unknown;
 
-  abstract buildOrderbookExecuteInstructions(contractAddress: string, executeMsgs: unknown[], sendAmount: string): unknown[];
+  abstract buildOrderbookExecuteInstructions(
+    contractAddress: string,
+    executeMsgs: unknown[],
+    sendAmount?: string
+  ): unknown[];
 
   abstract submitLimitOrder(
     offerAmount: string,
