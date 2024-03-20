@@ -1,5 +1,5 @@
 import { ExecuteResult, SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { OraiswapLimitOrderQueryClient, OraiswapLimitOrderTypes } from "@oraichain/oraidex-contracts-sdk";
+import { OraiswapOrderbookQueryClient, OraiswapOrderbookTypes } from "@oraichain/oraidex-contracts-sdk";
 import { UserWallet } from "@oraichain/oraitrading-common";
 
 const minimumOraiBalance = 1000000; // 1 ORAI;
@@ -29,7 +29,7 @@ export async function matchingOrders(
   limit = 100,
   denom = "orai"
 ): Promise<ExecuteResult> {
-  const orderbook = new OraiswapLimitOrderQueryClient(sender.client, contractAddr);
+  const orderbook = new OraiswapOrderbookQueryClient(sender.client, contractAddr);
   const query_pairs = await orderbook.orderBooks({});
 
   console.log(`Excecuting orderbook contract ${contractAddr}`);
@@ -38,7 +38,7 @@ export async function matchingOrders(
 
   // for (let pair in query_pairs.order_books) {
   //   let orderbook_pair = query_pairs.order_books[pair];
-  //   const matchableMsg: OraiswapLimitOrderTypes.QueryMsg = {
+  //   const matchableMsg: OraiswapOrderbookTypes.QueryMsg = {
   //     order_book_matchable: {
   //       asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info]
   //     }
@@ -47,7 +47,7 @@ export async function matchingOrders(
   //   console.dir(orderbook_pair, { depth: null });
   //   console.log({ isMatchable });
   //   if (isMatchable.is_matchable === true) {
-  //     let ex_pair: OraiswapLimitOrderTypes.ExecuteMsg = {
+  //     let ex_pair: OraiswapOrderbookTypes.ExecuteMsg = {
   //       execute_order_book_pair: {
   //         asset_infos: [orderbook_pair.base_coin_info, orderbook_pair.quote_coin_info],
   //         limit
