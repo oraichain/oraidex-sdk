@@ -3,7 +3,7 @@ name: Check the test before merge
 on:
   # When Release Pull Request is merged
   pull_request:
-    types: [opened, synchronize, ready_for_review, review_requested]
+    types: [opened, synchronize, ready_for_review]
     branches:
       - main
       - staging
