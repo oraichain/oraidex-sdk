@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="2664" lines-covered="1670" line-rate="0.6268" branches-valid="827" branches-covered="416" branch-rate="0.503" timestamp="1710978800181" complexity="0" version="0.1">
+<coverage lines-valid="2652" lines-covered="1657" line-rate="0.6248" branches-valid="824" branches-covered="414" branch-rate="0.5024000000000001" timestamp="1710996978265" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -1234,9 +1234,9 @@
         </class>
       </classes>
     </package>
-    <package name="oraidex-server.src" line-rate="0.5898" branch-rate="0.3392">
+    <package name="oraidex-server.src" line-rate="0.5868" branch-rate="0.33030000000000004">
       <classes>
-        <class name="db-query.ts" filename="packages/oraidex-server/src/db-query.ts" line-rate="0.7812" branch-rate="0.4482">
+        <class name="db-query.ts" filename="packages/oraidex-server/src/db-query.ts" line-rate="0.7734000000000001" branch-rate="0.41369999999999996">
           <methods>
             <method name="(anonymous_0)" hits="16" signature="()V">
               <lines>
@@ -1405,8 +1405,8 @@
             <line number="151" hits="54" branch="false"/>
             <line number="152" hits="54" branch="false"/>
             <line number="153" hits="54" branch="false"/>
-            <line number="159" hits="54" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="160" hits="6" branch="false"/>
+            <line number="159" hits="54" branch="true" condition-coverage="0% (0/1)"/>
+            <line number="160" hits="0" branch="false"/>
             <line number="164" hits="54" branch="false"/>
             <line number="168" hits="1" branch="false"/>
             <line number="169" hits="1" branch="false"/>
@@ -5505,38 +5505,6 @@
             <line number="67" hits="6" branch="false"/>
             <line number="68" hits="6" branch="false"/>
             <line number="74" hits="6" branch="false"/>
-          </lines>
-        </class>
-      </classes>
-    </package>
-    <package name="universal-swap.tests" line-rate="1" branch-rate="0.3333">
-      <classes>
-        <class name="test-common.ts" filename="packages/universal-swap/tests/test-common.ts" line-rate="1" branch-rate="0.3333">
-          <methods>
-            <method name="(anonymous_6)" hits="1" signature="()V">
-              <lines>
-                <line number="14" hits="1"/>
-              </lines>
-            </method>
-            <method name="(anonymous_7)" hits="1" signature="()V">
-              <lines>
-                <line number="45" hits="1"/>
-              </lines>
-            </method>
-          </methods>
-          <lines>
-            <line number="1" hits="1" branch="false"/>
-            <line number="2" hits="1" branch="false"/>
-            <line number="3" hits="1" branch="false"/>
-            <line number="4" hits="1" branch="false"/>
-            <line number="5" hits="1" branch="false"/>
-            <line number="7" hits="1" branch="false"/>
-            <line number="9" hits="1" branch="false"/>
-            <line number="14" hits="1" branch="false"/>
-            <line number="23" hits="1" branch="false"/>
-            <line number="45" hits="1" branch="false"/>
-            <line number="49" hits="1" branch="false"/>
-            <line number="61" hits="1" branch="false"/>
           </lines>
         </class>
       </classes>
