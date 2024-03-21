@@ -12,10 +12,10 @@
     "copy-files": "cp -r ./src/wasm-client/migrate ./build/wasm-client &&  cp -r ./src/wasm-client/wasm ./build/wasm-client"
   },
   "dependencies": {
-    "@cosmjs/tendermint-rpc": "^0.31.0",
+    "@cosmjs/tendermint-rpc": "0.31.3",
     "@oraichain/common-contracts-sdk": "^1.0.31",
     "@oraichain/cosmos-rpc-sync": "^1.0.7",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.24",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.43",
     "@oraichain/cw-simulate": "^2.8.72",
     "@oraichain/oraidex-common": "latest",
     "duckdb-async": "^0.9.2",
@@ -24,6 +24,6 @@
     "lodash": "^4.17.21"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.195"
+    "@types/lodash": "^4.17.0"
   }
 }

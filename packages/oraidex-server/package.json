@@ -12,19 +12,19 @@
     "build": "ncc build src/index.ts --no-source-map-register -t"
   },
   "dependencies": {
-    "@cosmjs/cosmwasm-stargate": "^0.31.0",
-    "@cosmjs/stargate": "^0.31.0",
-    "@cosmjs/tendermint-rpc": "^0.31.0",
+    "@cosmjs/cosmwasm-stargate": "0.31.3",
+    "@cosmjs/stargate": "0.31.3",
+    "@cosmjs/tendermint-rpc": "0.31.3",
     "@oraichain/common-contracts-sdk": "^1.0.31",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.0",
-    "@oraichain/oraidex-sync": "^1.0.0",
-    "@oraichain/oraidex-common": "^1.0.0",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.43",
+    "@oraichain/oraidex-sync": "1.0.0",
+    "@oraichain/oraidex-common": "^1.0.78",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2"
+    "dotenv": "^16.4.5",
+    "express": "^4.19.1"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.13",
-    "@types/express": "^4.17.17"
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21"
   }
 }

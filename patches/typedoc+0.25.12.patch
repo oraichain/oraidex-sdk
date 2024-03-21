@@ -1,5 +1,5 @@
 diff --git a/node_modules/typedoc/dist/lib/output/themes/default/partials/footer.js b/node_modules/typedoc/dist/lib/output/themes/default/partials/footer.js
-index d78f8a2..173bdfd 100644
+index d78f8a2..8772dbe 100644
 --- a/node_modules/typedoc/dist/lib/output/themes/default/partials/footer.js
 +++ b/node_modules/typedoc/dist/lib/output/themes/default/partials/footer.js
 @@ -7,7 +7,7 @@ function footer(context) {

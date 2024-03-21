@@ -1,18 +1,25 @@
 {
   "tasksRunnerOptions": {
     "default": {
-      "options": {
-        "cacheableOperations": ["build", "test"],
-        "cacheDirectory": "node_modules/.cache"
-      }
+      "options": {}
     }
   },
   "targetDefaults": {
     "build": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "cache": true
     },
     "cli": {
       "packageManager": "yarn"
+    },
+    "test": {
+      "cache": true
     }
-  }
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "sharedGlobals": [],
+    "production": ["default"]
+  },
+  "cacheDirectory": "node_modules/.cache"
 }
