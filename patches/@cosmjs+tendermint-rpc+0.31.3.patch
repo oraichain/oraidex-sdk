@@ -24,10 +24,10 @@ index 8c72817..2b810d2 100644
      }
  }
 diff --git a/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js b/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js
-index b9e9e57..1f11a22 100644
+index a426641..9f33204 100644
 --- a/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js
 +++ b/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js
-@@ -310,6 +310,7 @@ function decodeTxProof(data) {
+@@ -320,6 +320,7 @@ function decodeTxProof(data) {
  }
  function decodeTxResponse(data) {
      return {

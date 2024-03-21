@@ -12,9 +12,9 @@
     "build": "ncc build src/index.ts --no-source-map-register -t"
   },
   "dependencies": {
-    "@cosmjs/cosmwasm-stargate": "^0.31.0",
-    "@cosmjs/stargate": "^0.31.0",
-    "@cosmjs/tendermint-rpc": "^0.31.0",
+    "@cosmjs/cosmwasm-stargate": "0.31.3",
+    "@cosmjs/stargate": "0.31.3",
+    "@cosmjs/tendermint-rpc": "0.31.3",
     "@oraichain/common-contracts-sdk": "^1.0.31",
     "@oraichain/oraidex-contracts-sdk": "^1.0.43",
     "@oraichain/oraidex-sync": "1.0.0",

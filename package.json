@@ -23,17 +23,17 @@
     "node": ">=18.18.0"
   },
   "dependencies": {
-    "@cosmjs/amino": "^0.31.0",
-    "@cosmjs/cosmwasm-stargate": "^0.31.0",
-    "@cosmjs/crypto": "^0.31.0",
-    "@cosmjs/proto-signing": "^0.31.0",
-    "@cosmjs/stargate": "^0.31.0",
-    "@cosmjs/tendermint-rpc": "0.31.0",
+    "@cosmjs/amino": "0.31.3",
+    "@cosmjs/cosmwasm-stargate": "0.31.3",
+    "@cosmjs/crypto": "0.31.3",
+    "@cosmjs/proto-signing": "0.31.3",
+    "@cosmjs/stargate": "0.31.3",
+    "@cosmjs/tendermint-rpc": "0.31.3",
     "@oraichain/common-contracts-build": "1.0.35",
     "@oraichain/common-contracts-sdk": "1.0.31"
   },
   "devDependencies": {
-    "@cosmjs/encoding": "^0.31.0",
+    "@cosmjs/encoding": "0.31.3",
     "@oraichain/cw-simulate": "^2.8.68",
     "@types/jest": "^29.5.12",
     "@types/lodash": "^4.17.0",
