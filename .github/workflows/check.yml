@@ -49,7 +49,7 @@ jobs:
       - name: Install Dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
-          rm -rf node_modules
+          rm -rf node_modules yarn.lock
           npm install -g yarn
           yarn
 
