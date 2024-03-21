@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="2652" lines-covered="1658" line-rate="0.6251" branches-valid="824" branches-covered="415" branch-rate="0.5036" timestamp="1710985435216" complexity="0" version="0.1">
+<coverage lines-valid="2652" lines-covered="1657" line-rate="0.6248" branches-valid="824" branches-covered="414" branch-rate="0.5024000000000001" timestamp="1710998250286" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -1234,9 +1234,9 @@
         </class>
       </classes>
     </package>
-    <package name="oraidex-server.src" line-rate="0.5898" branch-rate="0.3392">
+    <package name="oraidex-server.src" line-rate="0.5868" branch-rate="0.33030000000000004">
       <classes>
-        <class name="db-query.ts" filename="packages/oraidex-server/src/db-query.ts" line-rate="0.7812" branch-rate="0.4482">
+        <class name="db-query.ts" filename="packages/oraidex-server/src/db-query.ts" line-rate="0.7734000000000001" branch-rate="0.41369999999999996">
           <methods>
             <method name="(anonymous_0)" hits="16" signature="()V">
               <lines>
@@ -1405,8 +1405,8 @@
             <line number="151" hits="54" branch="false"/>
             <line number="152" hits="54" branch="false"/>
             <line number="153" hits="54" branch="false"/>
-            <line number="159" hits="54" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="160" hits="6" branch="false"/>
+            <line number="159" hits="54" branch="true" condition-coverage="0% (0/1)"/>
+            <line number="160" hits="0" branch="false"/>
             <line number="164" hits="54" branch="false"/>
             <line number="168" hits="1" branch="false"/>
             <line number="169" hits="1" branch="false"/>
