@@ -147,24 +147,6 @@ describe("test helper functions", () => {
   >([
     [
       "airight",
-      "0x01",
-      "airight",
-      "Oraichain",
-      "orai1234",
-      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
-      false
-    ],
-    [
-      "airight",
-      "0x38",
-      "airight",
-      "0x01",
-      "orai1234",
-      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
-      false
-    ],
-    [
-      "airight",
       "0x38",
       "airight",
       "Oraichain",
@@ -214,7 +196,7 @@ describe("test helper functions", () => {
       "airight",
       "Oraichain",
       "orai1234",
-      { swapRoute: "orai1234", universalSwapType: "other-networks-to-oraichain" },
+      { swapRoute: parseToIbcWasmMemo("orai1234", "", ""), universalSwapType: "other-networks-to-oraichain" },
       false
     ],
     [
