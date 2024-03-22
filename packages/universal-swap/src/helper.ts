@@ -261,7 +261,7 @@ export const getRoute = (
     // if to token chain id is Oraichain, then we dont need to care about ibc msg case
     // first case, two tokens are the same, only different in network => simple swap
     if (fromToken.coinGeckoId === toToken.coinGeckoId)
-      return { swapRoute: destReceiver, universalSwapType: "other-networks-to-oraichain" };
+      return { swapRoute: parseToIbcWasmMemo(destReceiver, "", ""), universalSwapType: "other-networks-to-oraichain" };
     // if they are not the same then we set dest denom
     return {
       // swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
