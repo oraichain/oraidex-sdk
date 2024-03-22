@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="2652" lines-covered="1657" line-rate="0.6248" branches-valid="824" branches-covered="414" branch-rate="0.5024000000000001" timestamp="1711081109218" complexity="0" version="0.1">
+<coverage lines-valid="2654" lines-covered="1659" line-rate="0.625" branches-valid="826" branches-covered="416" branch-rate="0.5036" timestamp="1711103184085" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -4532,7 +4532,7 @@
         </class>
       </classes>
     </package>
-    <package name="universal-swap.src" line-rate="0.6078" branch-rate="0.5877">
+    <package name="universal-swap.src" line-rate="0.6091" branch-rate="0.591">
       <classes>
         <class name="handler.ts" filename="packages/universal-swap/src/handler.ts" line-rate="0.4338" branch-rate="0.4239">
           <methods>
@@ -5376,19 +5376,21 @@
             </method>
             <method name="(anonymous_1)" hits="126" signature="()V">
               <lines>
-                <line number="30" hits="126"/>
+                <line number="26" hits="126"/>
               </lines>
             </method>
           </methods>
           <lines>
             <line number="1" hits="2" branch="false"/>
-            <line number="3" hits="2" branch="false"/>
-            <line number="5" hits="2" branch="false"/>
+            <line number="8" hits="2" branch="false"/>
+            <line number="13" hits="2" branch="false"/>
+            <line number="15" hits="2" branch="false"/>
             <line number="16" hits="2" branch="false"/>
-            <line number="17" hits="126" branch="true" condition-coverage="100% (2/2)"/>
-            <line number="21" hits="2" branch="false"/>
-            <line number="29" hits="2" branch="false"/>
-            <line number="30" hits="126" branch="true" condition-coverage="100% (2/2)"/>
+            <line number="17" hits="2" branch="false"/>
+            <line number="18" hits="126" branch="false"/>
+            <line number="25" hits="2" branch="false"/>
+            <line number="26" hits="2" branch="false"/>
+            <line number="27" hits="126" branch="false"/>
           </lines>
         </class>
         <class name="types.ts" filename="packages/universal-swap/src/types.ts" line-rate="1" branch-rate="1">
