@@ -470,7 +470,7 @@ export const oraichainNetwork: CustomChainInfo = {
     {
       coinDenom: "BTC",
       coinGeckoId: "bitcoin",
-      coinMinimalDenom: "btc",
+      coinMinimalDenom: "usat",
       type: "cw20",
       contractAddress: BTC_CONTRACT,
       // bridgeTo: ["bitcoinTestnet"],
