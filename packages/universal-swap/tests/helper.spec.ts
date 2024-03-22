@@ -196,7 +196,7 @@ describe("test helper functions", () => {
       "airight",
       "Oraichain",
       "orai1234",
-      { swapRoute: "CghvcmFpMTIzNBIAGgA=", universalSwapType: "other-networks-to-oraichain" },
+      { swapRoute: parseToIbcWasmMemo("orai1234", "", ""), universalSwapType: "other-networks-to-oraichain" },
       false
     ],
     [
