@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="2652" lines-covered="1657" line-rate="0.6248" branches-valid="824" branches-covered="414" branch-rate="0.5024000000000001" timestamp="1711080308257" complexity="0" version="0.1">
+<coverage lines-valid="2652" lines-covered="1657" line-rate="0.6248" branches-valid="824" branches-covered="414" branch-rate="0.5024000000000001" timestamp="1711080866585" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -5480,9 +5480,9 @@
       <classes>
         <class name="proto-gen.ts" filename="packages/universal-swap/src/proto/proto-gen.ts" line-rate="1" branch-rate="0.5">
           <methods>
-            <method name="(anonymous_1)" hits="15" signature="()V">
+            <method name="(anonymous_1)" hits="16" signature="()V">
               <lines>
-                <line number="4" hits="15"/>
+                <line number="4" hits="16"/>
               </lines>
             </method>
             <method name="(anonymous_2)" hits="6" signature="()V">
@@ -5495,10 +5495,10 @@
             <line number="1" hits="2" branch="false"/>
             <line number="2" hits="2" branch="false"/>
             <line number="4" hits="2" branch="false"/>
-            <line number="9" hits="15" branch="false"/>
-            <line number="30" hits="15" branch="false"/>
-            <line number="31" hits="15" branch="false"/>
-            <line number="32" hits="15" branch="false"/>
+            <line number="9" hits="16" branch="false"/>
+            <line number="30" hits="16" branch="false"/>
+            <line number="31" hits="16" branch="false"/>
+            <line number="32" hits="16" branch="false"/>
             <line number="35" hits="2" branch="false"/>
             <line number="41" hits="6" branch="false"/>
             <line number="66" hits="6" branch="true" condition-coverage="50% (1/2)"/>
