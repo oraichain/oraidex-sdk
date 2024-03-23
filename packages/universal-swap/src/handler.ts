@@ -565,7 +565,7 @@ export class UniversalSwapHandler {
       oraiAddress
     );
 
-    const msgTransfer = MsgTransfer.fromPartial({
+    let msgTransfer = MsgTransfer.fromPartial({
       sourcePort: ibcInfo.source,
       receiver: this.getCwIcs20ContractAddr(),
       sourceChannel: ibcInfo.channel,
@@ -584,6 +584,12 @@ export class UniversalSwapHandler {
       }),
       timeoutTimestamp: calculateTimeoutTimestamp(ibcInfo.timeout)
     });
+
+    // check if from chain is noble, use ibc-wasm instead of ibc-hooks
+    if (originalFromToken.chainId === "noble-1") {
+      msgTransfer.receiver = oraiAddress;
+      msgTransfer.memo = swapRoute;
+    }
 
     const msgTransferEncodeObj: EncodeObject = {
       typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",

@@ -240,23 +240,18 @@ export const getRoute = (
   // cosmos to others case where from token is a cosmos token
   // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
   if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
-    // case 1: Cosmos to Oraichain
-    if (toToken.chainId == "Oraichain") {
-      return {
-        swapRoute: parseToIbcHookMemo(receiverOnOrai, destReceiver, "", parseTokenInfoRawDenom(toToken)),
-        universalSwapType: "cosmos-to-others"
-      };
+    let swapRoute = "";
+    const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
+    // if from chain is noble, use ibc wasm instead of ibc hooks
+    if (fromToken.chainId == "noble-1") {
+      swapRoute = parseToIbcWasmMemo(destReceiver, dstChannel, parseTokenInfoRawDenom(toToken));
+    } else {
+      swapRoute = parseToIbcHookMemo(receiverOnOrai, destReceiver, dstChannel, parseTokenInfoRawDenom(toToken));
     }
 
-    // case 2: Cosmos to cosmos or evm
-    const ibcInfo: IBCInfo = ibcInfos["Oraichain"][toToken.chainId];
-    return {
-      swapRoute: parseToIbcHookMemo(receiverOnOrai, destReceiver, ibcInfo.channel, parseTokenInfoRawDenom(toToken)),
-      universalSwapType: "cosmos-to-others"
-    };
-
-    // return { swapRoute: parseToIbcHookMemo(receiverOnOrai, destReceiver), universalSwapType: "cosmos-to-others" };
+    return { swapRoute, universalSwapType: "cosmos-to-others" };
   }
+
   if (toToken.chainId === "Oraichain") {
     // if to token chain id is Oraichain, then we dont need to care about ibc msg case
     // first case, two tokens are the same, only different in network => simple swap
