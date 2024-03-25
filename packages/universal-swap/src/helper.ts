@@ -725,6 +725,40 @@ export function filterNonPoolEvmTokens(
   });
 }
 
+export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItemType): AmountDetails => {
+  if (!tokenInfo.evmDenoms) return {};
+  return Object.fromEntries(
+    tokenInfo.evmDenoms.map((denom) => {
+      return [denom, amounts[denom]];
+    })
+  );
+};
+
+export function generateConvertErc20Cw20Message(
+  amounts: AmountDetails,
+  tokenInfo: TokenItemType,
+  sender?: string
+): ExecuteInstruction[] {
+  if (!tokenInfo.evmDenoms) return [];
+  const subAmounts = getSubAmountDetails(amounts, tokenInfo);
+  // we convert all mapped tokens to cw20 to unify the token
+  for (const denom in subAmounts) {
+    const balance = BigInt(subAmounts[denom] ?? "0");
+    // reset so we convert using native first
+    const erc20TokenInfo = tokenMap[denom];
+    if (balance > 0) {
+      const msgConvert: ExecuteInstruction = generateConvertMsgs({
+        type: Type.CONVERT_TOKEN,
+        sender,
+        inputAmount: balance.toString(),
+        inputToken: erc20TokenInfo
+      });
+      return [msgConvert];
+    }
+  }
+  return [];
+}
+
 export function generateConvertCw20Erc20Message(
   amounts: AmountDetails,
   tokenInfo: TokenItemType,
