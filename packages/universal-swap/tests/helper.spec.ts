@@ -405,6 +405,40 @@ describe("test helper functions", () => {
         universalSwapType: "cosmos-to-others"
       },
       false
+    ],
+    [
+      "usd-coin",
+      "noble-1",
+      "cosmos",
+      "cosmoshub-4",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "cosmos1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      {
+        swapRoute: parseToIbcWasmMemo(
+          "cosmos1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          ibcInfos["Oraichain"]["cosmoshub-4"]?.channel as string,
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("cosmos", "cosmoshub-4") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "usd-coin",
+      "noble-1",
+      "oraichain-token",
+      "Oraichain",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      {
+        swapRoute: parseToIbcWasmMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          "",
+          parseTokenInfoRawDenom(getTokenOnSpecificChainId("oraichain-token", "Oraichain") as TokenItemType)
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
     ]
   ])(
     "test-ibc-hooks-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
