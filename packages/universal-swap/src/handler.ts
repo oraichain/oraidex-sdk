@@ -35,7 +35,7 @@ import {
   tokenMap,
   AmountDetails,
   buildMultipleExecuteMessages,
-  COSMOS_CHAIN_ID_COMMON
+  ibcInfosOld
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -110,13 +110,11 @@ export class UniversalSwapHandler {
     const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
     if (!ibcReceiveAddr) throw generateError("Please login keplr!");
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
-    const INJECTIVE_COINGECKO = "injective-protocol";
-    if (
-      toChainId === COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID &&
-      this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO
-    ) {
-      const INJ_DECIMALS = 18;
-      toTokenInOrai = getTokenOnOraichain(toCoinGeckoId, INJ_DECIMALS);
+    const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
+    const isSpecialCoingecko = ["kawaii-islands", "milky-token", "injective-protocol"].includes(toCoinGeckoId);
+    if (isSpecialChain && isSpecialCoingecko) {
+      const IBC_DECIMALS = 18;
+      toTokenInOrai = getTokenOnOraichain(toCoinGeckoId, IBC_DECIMALS);
     }
 
     let msgTransfer: EncodeObject[];
@@ -143,15 +141,15 @@ export class UniversalSwapHandler {
       ];
     }
     const isNotMatchCoingeckoId = fromCoinGeckoId !== toCoinGeckoId;
-    if (toChainId === COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID) {
+    let getEncodedExecuteMsgs = [];
+    if (isSpecialChain) {
       // 1. = coingeckoId => convert + bridge
-      let getEncodedExecuteMsgs = [];
-      if (this.swapData.originalToToken.coinGeckoId === INJECTIVE_COINGECKO) {
+      if (fromCoinGeckoId === toCoinGeckoId && isSpecialCoingecko) {
         const evmToken = tokenMap[toTokenInOrai.denom];
         const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
         const msgConvertReverses = generateConvertCw20Erc20Message(
           this.swapData.amounts,
-          getTokenOnOraichain(INJECTIVE_COINGECKO),
+          getTokenOnOraichain(toCoinGeckoId),
           sender,
           evmAmount
         );
@@ -226,8 +224,43 @@ export class UniversalSwapHandler {
       prefix: newToToken.prefix
     });
 
+    let ibcInfos = ibcInfo;
+    let getEncodedExecuteMsgs = [];
+    if (["kawaii-islands", "milky-token"].includes(originalToToken.coinGeckoId)) {
+      const IBC_DECIMALS = 18;
+      const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId, IBC_DECIMALS);
+      const evmToken = tokenMap[toTokenInOrai.denom];
+      const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
+      const msgConvertReverses = generateConvertCw20Erc20Message(
+        this.swapData.amounts,
+        getTokenOnOraichain(originalToToken.coinGeckoId),
+        this.swapData.sender.cosmos,
+        evmAmount
+      );
+      // for KWT & MILKY tokens, we use the old ibc info channel
+      const { chainId: fromChainId } = originalFromToken;
+      const { chainId: toChainId } = newToToken;
+      ibcInfos = ibcInfosOld[fromChainId][toChainId];
+
+      const executeContractMsgs = buildMultipleExecuteMessages(undefined, ...msgConvertReverses);
+      getEncodedExecuteMsgs = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, executeContractMsgs);
+      const msgTransfer = {
+        typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
+        value: MsgTransfer.fromPartial({
+          sourcePort: ibcInfos.source,
+          sourceChannel: ibcInfos.channel,
+          token: evmAmount,
+          sender: this.swapData.sender.cosmos,
+          receiver: toAddress,
+          memo: ibcMemo,
+          timeoutTimestamp: calculateTimeoutTimestamp(ibcInfos.timeout)
+        })
+      };
+      return [...msgExecuteSwap, ...getEncodedExecuteMsgs, msgTransfer];
+    }
+
     // create bridge msg
-    const msgTransfer = this.generateMsgsIbcWasm(ibcInfo, toAddress, newToToken.denom, ibcMemo);
+    const msgTransfer = this.generateMsgsIbcWasm(ibcInfos, toAddress, newToToken.denom, ibcMemo);
     const msgExecuteTransfer = getEncodedExecuteContractMsgs(this.swapData.sender.cosmos, msgTransfer);
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
