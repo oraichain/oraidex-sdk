@@ -206,7 +206,7 @@ export const CW20_DECIMALS = 6;
 // type switch wallet between keplr and owallet
 export type WalletType = "keplr" | "owallet" | "leapSnap";
 
-export const gravityContracts: Omit<Record<EvmChainId, string>, "0x1ae6" | "0x5afe"> = {
+export const gravityContracts: Omit<Record<EvmChainId, string>, "0x1ae6"> = {
   "0x38": GRAVITY_EVM_CONTRACT,
   "0x01": GRAVITY_EVM_CONTRACT,
   "0x2b6653dc": GRAVITY_TRON_CONTRACT
