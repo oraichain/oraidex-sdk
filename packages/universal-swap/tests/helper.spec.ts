@@ -752,4 +752,16 @@ describe("test helper functions", () => {
     console.dir(msg, { depth: null });
     expect(msg.length).toEqual(msgLength);
   });
+
+  it.each<[AmountDetails, TokenItemType, number]>([
+    [{}, getTokenOnOraichain("cosmos"), 0],
+    [{ [`${INJECTIVE_ORAICHAIN_DENOM}`]: "10" }, getTokenOnOraichain("injective-protocol"), 1],
+    [{ injective: "10" }, getTokenOnOraichain("injective-protocol"), 0]
+  ])(
+    "test-generateConvertErc20Cw20Message-should-return-correct-message-length",
+    (amountDetails, tokenInfo, expectedMessageLength) => {
+      const result = universalHelper.generateConvertErc20Cw20Message(amountDetails, tokenInfo, "john doe");
+      expect(result.length).toEqual(expectedMessageLength);
+    }
+  );
 });

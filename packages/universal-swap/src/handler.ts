@@ -44,6 +44,7 @@ import {
   checkBalanceIBCOraichain,
   checkFeeRelayer,
   generateConvertCw20Erc20Message,
+  generateConvertErc20Cw20Message,
   generateSwapOperationMsgs,
   getEvmSwapRoute,
   getIbcInfo,
@@ -662,7 +663,8 @@ export class UniversalSwapHandler {
     const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
-
+      const msgConvertsFrom = generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
+      const msgConvertTo = generateConvertErc20Cw20Message(this.swapData.amounts, toTokenInOrai);
       const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
       if (!this.swapData.simulatePrice || !isValidSlippage)
         throw generateError(
@@ -701,8 +703,7 @@ export class UniversalSwapHandler {
         msg: input,
         funds
       };
-
-      return [msg];
+      return buildMultipleExecuteMessages(msg, ...msgConvertsFrom, ...msgConvertTo);
     } catch (error) {
       throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error)}`);
     }

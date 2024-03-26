@@ -41,7 +41,8 @@ import {
   AmountDetails,
   handleSentFunds,
   tokenMap,
-  oraib2oraichainTest
+  oraib2oraichainTest,
+  getSubAmountDetails
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -723,6 +724,31 @@ export function filterNonPoolEvmTokens(
     if (isSupportedNoPoolSwapEvm(t.coinGeckoId)) return t.chainId === chainId;
     return true;
   });
+}
+
+export function generateConvertErc20Cw20Message(
+  amounts: AmountDetails,
+  tokenInfo: TokenItemType,
+  sender?: string
+): ExecuteInstruction[] {
+  if (!tokenInfo.evmDenoms) return [];
+  const subAmounts = getSubAmountDetails(amounts, tokenInfo);
+  // we convert all mapped tokens to cw20 to unify the token
+  for (const denom in subAmounts) {
+    const balance = BigInt(subAmounts[denom] ?? "0");
+    // reset so we convert using native first
+    const erc20TokenInfo = tokenMap[denom];
+    if (balance > 0) {
+      const msgConvert: ExecuteInstruction = generateConvertMsgs({
+        type: Type.CONVERT_TOKEN,
+        sender,
+        inputAmount: balance.toString(),
+        inputToken: erc20TokenInfo
+      });
+      return [msgConvert];
+    }
+  }
+  return [];
 }
 
 export function generateConvertCw20Erc20Message(
