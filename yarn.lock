@@ -3331,6 +3331,11 @@
     cosmjs-types "^0.8.0"
     ethers "^5.0.15"
 
+"@oraichain/oraidex-contracts-sdk@latest":
+  version "1.0.43"
+  resolved "https://registry.yarnpkg.com/@oraichain/oraidex-contracts-sdk/-/oraidex-contracts-sdk-1.0.43.tgz#d8c8e425d8104356dc0afaa78530d2e9df3c4fe9"
+  integrity sha512-FpCnSjgMPsyTnkwiq/myYtOE4fN6B0gStJfskDen3TxYZc0SKxYzCt7jLP02gkEHnMl4QAiaa4QFBlnC2Lcm8g==
+
 "@oraichain/oraidex-universal-swap@1.0.14":
   version "1.0.14"
   resolved "https://registry.yarnpkg.com/@oraichain/oraidex-universal-swap/-/oraidex-universal-swap-1.0.14.tgz#fd4b60e7cfc21984dbaa14a7b9a2c560f02da37d"
