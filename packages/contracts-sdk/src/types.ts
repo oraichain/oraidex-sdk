@@ -51,6 +51,12 @@ export interface PairInfo {
   liquidity_token: Addr;
   oracle_addr: Addr;
 }
+export type SwapOperation = {
+  orai_swap: {
+    ask_asset_info: AssetInfo;
+    offer_asset_info: AssetInfo;
+  };
+};
 export interface RewardInfoResponseItem {
   bond_amount: Uint128;
   pending_reward: Uint128;

@@ -1,6 +1,6 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { maxBy, minBy } from "lodash";
 import { atomic, tenAmountInDecimalSix, truncDecimals } from "./constants";
 import { DuckDb } from "./db";
