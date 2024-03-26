@@ -41,7 +41,8 @@ import {
   AmountDetails,
   handleSentFunds,
   tokenMap,
-  oraib2oraichainTest
+  oraib2oraichainTest,
+  getSubAmountDetails
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -724,15 +725,6 @@ export function filterNonPoolEvmTokens(
     return true;
   });
 }
-
-export const getSubAmountDetails = (amounts: AmountDetails, tokenInfo: TokenItemType): AmountDetails => {
-  if (!tokenInfo.evmDenoms) return {};
-  return Object.fromEntries(
-    tokenInfo.evmDenoms.map((denom) => {
-      return [denom, amounts[denom]];
-    })
-  );
-};
 
 export function generateConvertErc20Cw20Message(
   amounts: AmountDetails,
