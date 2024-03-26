@@ -669,7 +669,12 @@ export const checkBalanceIBCOraichain = async (
   // always check from token in ibc wasm should have enough tokens to swap / send to destination
   const token = getTokenOnOraichain(from.coinGeckoId);
   if (!token) return;
-  const { balance } = await getBalanceIBCOraichain(token, client, ibcWasmContract);
+  let ibcWasmContractAddr = ibcWasmContract;
+  // TODO: check balance with kawaii token and milky token
+  if (["kawaii-islands", "milky-token"].includes(from.coinGeckoId) && ["0x38"].includes(from.chainId)) {
+    ibcWasmContractAddr = network.converter;
+  }
+  const { balance } = await getBalanceIBCOraichain(token, client, ibcWasmContractAddr);
   if (balance < fromAmount) {
     throw generateError(
       `The bridge contract does not have enough balance to process this bridge transaction. Wanted ${fromAmount}, have ${balance}`
