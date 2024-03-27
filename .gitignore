@@ -27,7 +27,6 @@ typings/
 
 .npmrc
 build
-*oraidex-sync-data*
 
 dist
 .DS_Store
@@ -35,6 +34,5 @@ cache/
 
 packages/contract-state-simulate/public/
 coverage
-packages/oraidex-server/cache-data.json
 
 .nx/cache
