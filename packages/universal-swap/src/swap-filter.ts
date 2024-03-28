@@ -10,7 +10,7 @@ export const evmDenomsMap = {
   milky: [MILKYBSC_ORAICHAIN_DENOM],
   injective: [INJECTIVE_ORAICHAIN_DENOM]
 };
-const notAllowSwapCoingeckoIds = ["bitcoin"];
+const notAllowSwapCoingeckoIds = [];
 // universal swap. Currently we dont support from tokens that are not using the ibc wasm channel
 const notAllowSwapFromChainIds = ["0x1ae6", "kawaii_6886-1", "oraibridge-subnet-2", "oraibtc-mainnet-1", "Neutaro-1"];
 const notAllowDenom = Object.values(evmDenomsMap).flat();
