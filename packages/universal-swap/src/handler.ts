@@ -35,7 +35,8 @@ import {
   tokenMap,
   AmountDetails,
   buildMultipleExecuteMessages,
-  ibcInfosOld
+  ibcInfosOld,
+  BROADCAST_POLL_INTERVAL
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -271,7 +272,10 @@ export class UniversalSwapHandler {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { chainId: "Oraichain", rpc: network.rpc },
-      { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
+      {
+        gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`),
+        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+      }
     );
     const result = await client.executeMultiple(this.swapData.sender.cosmos, messages, "auto");
     return result;
@@ -437,7 +441,8 @@ export class UniversalSwapHandler {
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
       {
-        gasPrice: this.getGasPriceFromToken()
+        gasPrice: this.getGasPriceFromToken(),
+        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
       }
     );
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
@@ -501,7 +506,9 @@ export class UniversalSwapHandler {
     // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
-      {}
+      {
+        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+      }
     );
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
@@ -579,7 +586,8 @@ export class UniversalSwapHandler {
         rpc: originalFromToken.rpc
       },
       {
-        gasPrice: this.getGasPriceFromToken()
+        gasPrice: this.getGasPriceFromToken(),
+        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
       }
     );
     const amount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
