@@ -35,8 +35,7 @@ import {
   tokenMap,
   AmountDetails,
   buildMultipleExecuteMessages,
-  ibcInfosOld,
-  BROADCAST_POLL_INTERVAL
+  ibcInfosOld
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -273,8 +272,7 @@ export class UniversalSwapHandler {
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { chainId: "Oraichain", rpc: network.rpc },
       {
-        gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`),
-        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+        gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`)
       }
     );
     const result = await client.executeMultiple(this.swapData.sender.cosmos, messages, "auto");
@@ -441,8 +439,7 @@ export class UniversalSwapHandler {
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
       {
-        gasPrice: this.getGasPriceFromToken(),
-        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+        gasPrice: this.getGasPriceFromToken()
       }
     );
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
@@ -506,9 +503,7 @@ export class UniversalSwapHandler {
     // we get cosmwasm client on Oraichain because this is checking channel balance on Oraichain
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
-      {
-        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
-      }
+      {}
     );
 
     // normal case, we will transfer evm to ibc like normal when two tokens can not be swapped on evm
@@ -586,8 +581,7 @@ export class UniversalSwapHandler {
         rpc: originalFromToken.rpc
       },
       {
-        gasPrice: this.getGasPriceFromToken(),
-        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+        gasPrice: this.getGasPriceFromToken()
       }
     );
     const amount = toAmount(this.swapData.fromAmount, this.swapData.originalFromToken.decimals).toString();
