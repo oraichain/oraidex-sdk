@@ -18,6 +18,8 @@ export * as OraiswapRewarderTypes from './OraiswapRewarder.types';
 export * from './OraiswapRewarder.client';
 export * as OraiswapRouterTypes from './OraiswapRouter.types';
 export * from './OraiswapRouter.client';
+export * as OraiswapSmartrouterTypes from './OraiswapSmartrouter.types';
+export * from './OraiswapSmartrouter.client';
 export * as OraiswapStakingTypes from './OraiswapStaking.types';
 export * from './OraiswapStaking.client';
 export * as OraiswapTokenTypes from './OraiswapToken.types';

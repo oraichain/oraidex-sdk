@@ -1,4 +1,4 @@
-import {Addr, Uint128, Binary, AssetInfo, Cw20ReceiveMsg} from "./types";
+import {Addr, Uint128, Binary, SwapOperation, AssetInfo, Cw20ReceiveMsg} from "./types";
 export interface InstantiateMsg {
   factory_addr: Addr;
   factory_addr_v2: Addr;
@@ -23,12 +23,6 @@ export type ExecuteMsg = {
     minimum_receive: Uint128;
     prev_balance: Uint128;
     receiver: Addr;
-  };
-};
-export type SwapOperation = {
-  orai_swap: {
-    ask_asset_info: AssetInfo;
-    offer_asset_info: AssetInfo;
   };
 };
 export type QueryMsg = {
