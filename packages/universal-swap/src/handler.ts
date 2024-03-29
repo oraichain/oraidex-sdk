@@ -271,9 +271,7 @@ export class UniversalSwapHandler {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       { chainId: "Oraichain", rpc: network.rpc },
-      {
-        gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`)
-      }
+      { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
     );
     const result = await client.executeMultiple(this.swapData.sender.cosmos, messages, "auto");
     return result;

@@ -44,15 +44,20 @@ export abstract class CosmosWallet {
     const wallet = await this.createCosmosSigner(chainId);
     const tmClient = await Tendermint37Client.connect(rpc);
     let client;
+    const optionsClient = {
+      ...options,
+      broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+    };
     if (chainId === "injective-1") {
-      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(tmClient as any, wallet, {
-        ...options,
-        broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
-      } as any);
+      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(
+        tmClient as any,
+        wallet,
+        optionsClient as any
+      );
     } else {
-      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, options);
+      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, optionsClient);
     }
-    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, options);
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, optionsClient);
     return { wallet, client, stargateClient };
   }
 
