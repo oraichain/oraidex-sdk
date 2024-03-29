@@ -3,8 +3,10 @@ import { CosmosWalletImpl } from "./offline-wallet";
 import { UniversalSwapHandler } from "../handler";
 import {
   CoinGeckoId,
+  KWT_BSC_CONTRACT,
   USDC_CONTRACT,
   cosmosTokens,
+  flattenTokens,
   generateError,
   getTokenOnOraichain,
   toAmount
@@ -24,6 +26,11 @@ const cosmosToOraichain = async (
 
   if (!originalFromToken) throw generateError("Could not find original from token");
   if (!originalToToken) throw generateError("Could not find original to token");
+  console.log({
+    originalToToken,
+    originalFromToken
+  });
+
   const universalHandler = new UniversalSwapHandler(
     {
       originalFromToken,
@@ -32,17 +39,17 @@ const cosmosToOraichain = async (
       fromAmount,
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString()
     },
-    { cosmosWallet: wallet, ibcInfoTestMode: true }
+    { cosmosWallet: wallet }
   );
 
   try {
     const result = await universalHandler.processUniversalSwap();
     console.log("result: ", result);
   } catch (error) {
-    console.log("error: ", error);
+    console.trace("error: ", error);
   }
 };
 
 (() => {
-  cosmosToOraichain("cosmoshub-4", "oraidex");
+  cosmosToOraichain("injective-1", "tether");
 })();

@@ -23,6 +23,8 @@ export const AVERAGE_COSMOS_GAS_PRICE = 0.025; // average based on Keplr
 
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 
+export const BROADCAST_POLL_INTERVAL = 600;
+
 // commission_rate pool
 export const COMMISSION_RATE = "0.003";
 
