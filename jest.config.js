@@ -1,8 +1,7 @@
 // jest.config.js
 module.exports = {
   transform: {
-    "^.+packages/universal-swap/src/helper\\.ts$": "ts-jest", // use ts-jest for tests that have spyOn mocking
-    "^.+\\.ts?$": ["@swc/jest"]
+    "^.+\\.ts?$": "ts-jest"
   },
   testEnvironment: "node",
   modulePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/packages/ibc-routing"],
