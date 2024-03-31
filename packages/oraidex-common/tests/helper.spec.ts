@@ -390,7 +390,7 @@ describe("should helper functions in helper run exactly", () => {
     expect(reuslt).toEqual([]);
 
     // case 2: real tx with multiple msgs and multiple contract calls
-    // got data from tx hash 9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17 Oraichain
+    // got data from tx hash 9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17 Oraichain.
     const rawLog = fs.readFileSync(path.join(__dirname, "indexed-tx-raw-log.json")).toString();
     const tx = Buffer.from(fs.readFileSync(path.join(__dirname, "indexed-tx-tx.json")).toString(), "base64");
     const data = parseTxToMsgsAndEvents({ rawLog, tx } as any);
