@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="1212" lines-covered="893" line-rate="0.7367" branches-valid="415" branches-covered="256" branch-rate="0.6168" timestamp="1711846478967" complexity="0" version="0.1">
+<coverage lines-valid="1212" lines-covered="893" line-rate="0.7367" branches-valid="415" branches-covered="256" branch-rate="0.6168" timestamp="1711846620218" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
