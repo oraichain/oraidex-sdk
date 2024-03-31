@@ -1,6 +1,5 @@
-import { CwIcs20LatestClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
-import { OraiswapRouterInterface, OraiswapRouterReadOnlyInterface, Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"

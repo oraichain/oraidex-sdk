@@ -63,7 +63,7 @@ import {
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
-import { Amount, CwIcs20LatestQueryClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
+import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
@@ -691,13 +691,13 @@ export const checkBalanceIBCOraichain = async (
   }
 };
 
-export function filterNonPoolEvmTokens(
+export const filterNonPoolEvmTokens = (
   chainId: string,
   coingeckoId: CoinGeckoId,
   denom: string,
   searchTokenName: string,
   direction: SwapDirection // direction = to means we are filtering to tokens
-) {
+) => {
   // basic filter. Dont include itself & only collect tokens with searched letters
   const listTokens = direction === SwapDirection.From ? swapFromTokens : swapToTokens;
   let filteredToTokens = listTokens.filter(
@@ -732,13 +732,13 @@ export function filterNonPoolEvmTokens(
     if (isSupportedNoPoolSwapEvm(t.coinGeckoId)) return t.chainId === chainId;
     return true;
   });
-}
+};
 
-export function generateConvertErc20Cw20Message(
+export const generateConvertErc20Cw20Message = (
   amounts: AmountDetails,
   tokenInfo: TokenItemType,
   sender?: string
-): ExecuteInstruction[] {
+): ExecuteInstruction[] => {
   if (!tokenInfo.evmDenoms) return [];
   const subAmounts = getSubAmountDetails(amounts, tokenInfo);
   // we convert all mapped tokens to cw20 to unify the token
@@ -757,14 +757,14 @@ export function generateConvertErc20Cw20Message(
     }
   }
   return [];
-}
+};
 
-export function generateConvertCw20Erc20Message(
+export const generateConvertCw20Erc20Message = (
   amounts: AmountDetails,
   tokenInfo: TokenItemType,
   sender: string,
   sendCoin: Coin
-): ExecuteInstruction[] {
+): ExecuteInstruction[] => {
   if (!tokenInfo.evmDenoms) return [];
   // we convert all mapped tokens to cw20 to unify the token
   for (const denom of tokenInfo.evmDenoms) {
@@ -795,9 +795,9 @@ export function generateConvertCw20Erc20Message(
     }
   }
   return [];
-}
+};
 
-export function generateConvertMsgs(data: ConvertType): ExecuteInstruction {
+export const generateConvertMsgs = (data: ConvertType): ExecuteInstruction => {
   const { type, sender, inputToken, inputAmount } = data;
   let funds: Coin[] | null;
   // for withdraw & provide liquidity methods, we need to interact with the oraiswap pair contract
@@ -870,4 +870,4 @@ export function generateConvertMsgs(data: ConvertType): ExecuteInstruction {
   };
 
   return msg;
-}
+};
