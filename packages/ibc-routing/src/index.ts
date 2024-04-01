@@ -1,11 +1,12 @@
 /* Non-SSL is simply App() */
 
-import uws from "uWebSockets.js";
 import "dotenv/config";
-import { DuckDbNode, DuckDbWasm } from "./db";
-import { EventHandler, EthEvent, OraiBridgeEvent, OraichainEvent } from "./event";
 import { ethers } from "ethers";
+import uws from "uWebSockets.js";
 import { autoForwardTag, onRecvPacketTag } from "./constants";
+import { DuckDbNode } from "./db";
+import { EthEvent, OraiBridgeEvent, OraichainEvent } from "./event";
+import { EvmEventHandler } from "./event-handler/evm-handler";
 
 uws
   .App({
@@ -44,12 +45,16 @@ uws
     const duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME || ":memory:");
     await duckDb.createTable();
 
-    const eventHandler = new EventHandler(duckDb);
+    const evmEventHandler = new EvmEventHandler(duckDb);
+    const oraichainEventHandler = new EvmEventHandler(duckDb);
+    const oraibridgeEventHandler = new EvmEventHandler(duckDb);
     // recover all previous intepreters so that we can be at the current states for all contexts
-    await eventHandler.recoverIntepreters();
-    const ethEvent = new EthEvent(eventHandler);
-    const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "bridge-v2.rpc.orai.io");
-    const oraichainEvent = new OraichainEvent(duckDb, eventHandler, "rpc.orai.io");
+    await evmEventHandler.recoverInterpreters();
+    await oraichainEventHandler.recoverInterpreters();
+    await oraibridgeEventHandler.recoverInterpreters();
+    const ethEvent = new EthEvent(evmEventHandler);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, "bridge-v2.rpc.orai.io");
+    const oraichainEvent = new OraichainEvent(oraichainEventHandler, "rpc.orai.io");
     // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
     ethEvent.listenToEthEvent(
       new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),

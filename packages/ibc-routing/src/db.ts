@@ -1,9 +1,9 @@
 import * as duckdb from "@duckdb/duckdb-wasm";
+import { generateError, toObject } from "@oraichain/oraidex-common";
 import { Connection, Database } from "duckdb-async";
+import fs from "fs";
 import { resolve } from "path";
 import Worker from "web-worker";
-import fs from "fs";
-import { generateError, toObject } from "@oraichain/oraidex-common";
 
 export const sqlCommands = {
   create: {
@@ -85,12 +85,10 @@ export abstract class DuckDB {
   abstract insertData(data: any, tableName: string): Promise<void>;
 }
 
+// TODO: use vector instead of writing to files
 export class DuckDbNode extends DuckDB {
   static instances: DuckDbNode;
-  protected constructor(
-    public readonly conn: Connection,
-    private db: Database
-  ) {
+  protected constructor(public readonly conn: Connection, private db: Database) {
     super();
   }
 
@@ -168,10 +166,7 @@ export class DuckDbNode extends DuckDB {
 
 export class DuckDbWasm extends DuckDB {
   static instances: DuckDbWasm;
-  protected constructor(
-    public readonly conn: duckdb.AsyncDuckDBConnection,
-    private db: duckdb.AsyncDuckDB
-  ) {
+  protected constructor(public readonly conn: duckdb.AsyncDuckDBConnection, private db: duckdb.AsyncDuckDB) {
     super();
   }
 

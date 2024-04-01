@@ -1,14 +1,13 @@
-import { createMachine, interpret } from "xstate";
-import { DuckDB } from "./db";
-import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
-import { invokableMachineStateKeys, oraiBridgeAutoForwardEventType } from "./constants";
-import { convertTxHashToHex } from "./helpers";
+import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
+import { createMachine, interpret } from "xstate";
+import { invokableMachineStateKeys, oraiBridgeAutoForwardEventType } from "../constants";
+import { DuckDB } from "../db";
+import { convertTxHashToHex } from "../helpers";
 
-// TODO: add more cases for each state to make the machine more resistent
-// for example, if server down / socket down, miss oraibridge event, but still receive oraichain event with no found packet sequence then we will need to adapt somehow
-export const createEvmToEvmIntepreter = (db: DuckDB) => {
+// TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
+export const createEvmToEvmInterpreter = (db: DuckDB) => {
   const machine = createMachine({
     predictableActionArguments: true,
     preserveActionOrder: true,
