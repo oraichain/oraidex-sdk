@@ -60,13 +60,9 @@ const chartOverrides = {
   "paneProperties.backgroundGradientStartColor": "#16182e",
   "paneProperties.backgroundGradientEndColor": "#16182e",
   "paneProperties.backgroundType": "solid",
-  "paneProperties.vertGridProperties.color": "rgba(35, 38, 59, 1)",
   "paneProperties.vertGridProperties.style": 2,
-  "paneProperties.horzGridProperties.color": "rgba(35, 38, 59, 1)",
   "paneProperties.horzGridProperties.style": 2,
   "mainSeriesProperties.priceLineColor": "#3a3e5e",
-  "scalesProperties.textColor": "#fff",
-  "scalesProperties.lineColor": "#16182e",
   ...chartStyleOverrides
 };
 
