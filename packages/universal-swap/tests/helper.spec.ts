@@ -13,6 +13,8 @@ import {
   NEUTARO_INFO,
   NetworkChainId,
   ORAIX_INFO,
+  ORAI_BRIDGE_EVM_DENOM_PREFIX,
+  ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
   ORAI_ETH_CONTRACT,
@@ -259,7 +261,11 @@ describe("test helper functions", () => {
       "orai1234",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${ORAI_ETH_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, ORAI_ETH_CONTRACT),
+        swapRoute: parseToIbcWasmMemo(
+          "orai1234",
+          oraichain2oraib,
+          ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + ORAI_ETH_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -272,7 +278,7 @@ describe("test helper functions", () => {
       "orai1234",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${USDT_BSC_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, USDT_BSC_CONTRACT),
+        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, ORAI_BRIDGE_EVM_DENOM_PREFIX + USDT_BSC_CONTRACT),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -285,7 +291,11 @@ describe("test helper functions", () => {
       "orai1234",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${USDT_TRON_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, USDT_TRON_CONTRACT),
+        swapRoute: parseToIbcWasmMemo(
+          "orai1234",
+          oraichain2oraib,
+          ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX + USDT_TRON_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -301,7 +311,7 @@ describe("test helper functions", () => {
         swapRoute: parseToIbcWasmMemo(
           `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234`,
           oraichain2oraib,
-          USDT_TRON_CONTRACT
+          ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX + USDT_TRON_CONTRACT
         ),
         universalSwapType: "other-networks-to-oraichain"
       },
