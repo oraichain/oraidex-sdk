@@ -42,7 +42,8 @@ import {
   handleSentFunds,
   tokenMap,
   oraib2oraichainTest,
-  getSubAmountDetails
+  getSubAmountDetails,
+  evmChains
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -240,14 +241,18 @@ export const getRoute = (
   }
   // cosmos to others case where from token is a cosmos token
   // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
+  let toDenom = parseTokenInfoRawDenom(toToken);
+  if (!toToken.cosmosBased && evmChains.map((e) => e.chainId).includes(toToken.chainId))
+    toDenom = toToken.prefix + toDenom;
+
   if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
     let swapRoute = "";
     const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
     // if from chain is noble, use ibc wasm instead of ibc hooks
     if (fromToken.chainId == "noble-1") {
-      swapRoute = parseToIbcWasmMemo(destReceiver, dstChannel, parseTokenInfoRawDenom(toToken));
+      swapRoute = parseToIbcWasmMemo(destReceiver, dstChannel, toDenom);
     } else {
-      swapRoute = parseToIbcHookMemo(receiverOnOrai, destReceiver, dstChannel, parseTokenInfoRawDenom(toToken));
+      swapRoute = parseToIbcHookMemo(receiverOnOrai, destReceiver, dstChannel, toDenom);
     }
 
     return { swapRoute, universalSwapType: "cosmos-to-others" };
@@ -264,7 +269,7 @@ export const getRoute = (
     // if they are not the same then we set dest denom
     return {
       // swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
-      swapRoute: parseToIbcWasmMemo(destReceiver, "", parseTokenInfoRawDenom(toToken)),
+      swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
       universalSwapType: "other-networks-to-oraichain"
     };
   }
@@ -282,7 +287,7 @@ export const getRoute = (
   if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
   return {
     // swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
-    swapRoute: parseToIbcWasmMemo(`${receiverPrefix}${destReceiver}`, ibcInfo.channel, parseTokenInfoRawDenom(toToken)),
+    swapRoute: parseToIbcWasmMemo(`${receiverPrefix}${destReceiver}`, ibcInfo.channel, toDenom),
     universalSwapType: "other-networks-to-oraichain"
   };
 };
