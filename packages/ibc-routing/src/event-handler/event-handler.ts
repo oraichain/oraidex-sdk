@@ -6,5 +6,6 @@ export abstract class EventHandler {
   constructor(public readonly db: DuckDB) {}
   public abstract transitionInterpreters(type: string, payload: any): any;
   public abstract handleEvent(eventData: any[]): any;
+  // potential method to recover interpreters: https://stately.ai/docs/persistence#event-sourcing
   public abstract recoverInterpreters(): any;
 }
