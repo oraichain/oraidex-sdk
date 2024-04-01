@@ -1,5 +1,5 @@
 import { CwIcs20LatestClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
-import { CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
+import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
 import { OraiswapRouterInterface, OraiswapRouterReadOnlyInterface, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
@@ -7,7 +7,7 @@ export type UniversalSwapType =
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
-  | "cosmos-to-cosmos";
+  | "cosmos-to-others";
 
 export enum SwapDirection {
   From,
@@ -47,6 +47,8 @@ export interface UniversalSwapData {
   readonly userSlippage?: number;
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
+  readonly amounts?: AmountDetails;
+  readonly isSourceReceiverTest?: boolean;
 }
 
 /**
@@ -72,3 +74,29 @@ export interface OraiBridgeRouteData {
   finalReceiver: string;
   tokenIdentifier: string;
 }
+
+export enum Type {
+  "TRANSFER" = "Transfer",
+  "SWAP" = "Swap",
+  "INCREASE_ALLOWANCE" = "Increase allowance",
+  "BOND_STAKING_CW20" = "StakingCw20",
+  "CONVERT_TOKEN" = "Convert IBC or CW20 Tokens",
+  "CONVERT_TOKEN_REVERSE" = "Convert reverse IBC or CW20 Tokens"
+}
+
+export type Convert = {
+  type: Type.CONVERT_TOKEN;
+  sender: string;
+  inputToken: TokenItemType;
+  inputAmount: string;
+};
+
+export type ConvertReverse = {
+  type: Type.CONVERT_TOKEN_REVERSE;
+  sender: string;
+  inputToken: TokenItemType;
+  inputAmount: string;
+  outputToken: TokenItemType;
+};
+
+export type ConvertType = Convert | ConvertReverse;

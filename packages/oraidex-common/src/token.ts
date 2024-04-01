@@ -1,4 +1,7 @@
+import { FeeCurrency } from "@keplr-wallet/types";
 import { PairInfo } from "@oraichain/oraidex-contracts-sdk";
+import { flatten, uniqBy } from "lodash";
+import { INJECTIVE_ORAICHAIN_DENOM, KWTBSC_ORAICHAIN_DENOM, MILKYBSC_ORAICHAIN_DENOM } from "./constant";
 import {
   CoinGeckoId,
   CoinIcon,
@@ -8,9 +11,6 @@ import {
   chainInfos,
   oraichainNetwork
 } from "./network";
-import { flatten, uniqBy } from "lodash";
-import { INJECTIVE_ORAICHAIN_DENOM, KWTBSC_ORAICHAIN_DENOM, MILKYBSC_ORAICHAIN_DENOM } from "./constant";
-import { FeeCurrency } from "@keplr-wallet/types";
 
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };

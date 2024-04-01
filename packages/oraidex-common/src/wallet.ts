@@ -10,6 +10,8 @@ import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
+import { Stargate } from "@injectivelabs/sdk-ts";
+import { BROADCAST_POLL_INTERVAL } from "./constant";
 
 export interface EvmResponse {
   transactionHash: string;
@@ -41,8 +43,21 @@ export abstract class CosmosWallet {
     const { chainId, rpc } = config;
     const wallet = await this.createCosmosSigner(chainId);
     const tmClient = await Tendermint37Client.connect(rpc);
-    const client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, options);
-    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, options);
+    let client;
+    const optionsClient = {
+      ...options,
+      broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+    };
+    if (chainId === "injective-1") {
+      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(
+        tmClient as any,
+        wallet,
+        optionsClient as any
+      );
+    } else {
+      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, optionsClient);
+    }
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, optionsClient);
     return { wallet, client, stargateClient };
   }
 

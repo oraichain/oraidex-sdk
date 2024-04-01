@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-universal-swap",
-  "version": "1.0.53",
+  "version": "1.0.67",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -10,14 +10,16 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@oraichain/oraidex-common": "^1.0.58",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.24",
+    "@oraichain/oraidex-common": "^1.0.78",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.43",
     "bech32": "1.1.4",
     "ethers": "^5.0.15",
-    "tronweb": "5.3.0"
+    "tronweb": "5.3.2",
+    "ts-protoc-gen": "^0.15.0"
   },
   "devDependencies": {
-    "cosmjs-types": "^0.8.0",
-    "ts-results": "^3.3.0"
+    "cosmjs-types": "0.8.0",
+    "ts-results": "^3.3.0",
+    "protobufjs": "7.2.6"
   }
 }

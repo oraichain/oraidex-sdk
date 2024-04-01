@@ -1,9 +1,8 @@
 import { SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { OraiswapTokenClient } from "@oraichain/oraidex-contracts-sdk";
-import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
+import { CwIcs20LatestClient , Cw20Coin } from "@oraichain/common-contracts-sdk";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import * as commonArtifacts from "@oraichain/common-contracts-build";
-import { Cw20Coin } from "@oraichain/common-contracts-sdk";
 
 export const testSenderAddress = "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g";
 
@@ -37,7 +36,7 @@ export const deployToken = async (
           initial_balances
         },
         "token",
-        "oraiswap_token"
+        "oraiswap-token"
       )
     ).contractAddress
   );

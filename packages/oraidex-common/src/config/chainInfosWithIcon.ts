@@ -18,6 +18,8 @@ const InjIcon = "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png";
 const OraixLightIcon = "https://assets.coingecko.com/coins/images/28104/standard/oraix.png?1696527113";
 const NobleIcon = "https://raw.githubusercontent.com/cosmos/chain-registry/master/noble/images/stake.png";
 const BtcIcon = "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png";
+const OCHIcon =
+  "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670";
 
 import { flatten } from "lodash";
 import { chainInfos as customChainInfos, CustomChainInfo } from "../network";
@@ -117,6 +119,11 @@ export const tokensIcon: TokenIcon[] = [
     coinGeckoId: "scatom",
     Icon: ScAtomIcon,
     IconLight: ScAtomIcon
+  },
+  {
+    coinGeckoId: "och",
+    Icon: OCHIcon,
+    IconLight: OCHIcon
   }
 ];
 

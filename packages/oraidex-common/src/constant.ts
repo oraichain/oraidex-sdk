@@ -23,6 +23,8 @@ export const AVERAGE_COSMOS_GAS_PRICE = 0.025; // average based on Keplr
 
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
 
+export const BROADCAST_POLL_INTERVAL = 600;
+
 // commission_rate pool
 export const COMMISSION_RATE = "0.003";
 
@@ -64,6 +66,7 @@ export const OCH_ETH_CONTRACT = "0x19373EcBB4B8cC2253D70F2a246fa299303227Ba";
 export const KWT_DENOM = ORAI_BRIDGE_EVM_DENOM_PREFIX + KWT_BSC_CONTRACT;
 export const MILKY_DENOM = ORAI_BRIDGE_EVM_DENOM_PREFIX + MILKY_BSC_CONTRACT;
 export const USDT_ETH_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+export const ORAIX_ETH_CONTRACT = "0x2d869aE129e308F94Cc47E66eaefb448CEe0d03e";
 
 // config for relayer
 export const ATOM_ORAICHAIN_CHANNELS = "channel-301 channel-15";
@@ -116,8 +119,13 @@ export const STAKING_CONTRACT = "orai19p43y0tqnr5qlhfwnxft2u5unph5yn60y7tuvu";
 export const REWARDER_CONTRACT = "orai15hua2q83fp666nwhnyrn9g8gt9ueenl32qnugh";
 export const CONVERTER_CONTRACT = "orai14wy8xndhnvjmx6zl2866xqvs7fqwv2arhhrqq9";
 export const ORAIDEX_LISTING_CONTRACT = "orai1mkr02jzz0jfh34ps6z966uyueu4tlmnyg57nn72pxfq9t9a706tsha5znh";
-export const IBC_WASM_HOOKS_CONTRACT = "orai1w0h4ua3k8w2udju97nlws6dfh2ppwkhcewg09zp8gera4mf8lxxs6q086g";
 export const ORAIDEX_BID_POOL_CONTRACT = "orai1r4v3f8p2xethczvw5l5ed8cr05a9dqp6auy2zmz5dyvcq5h5g5kqg6m7vu";
+export const ORAIDEX_SMART_ROUTER_CONTRACT = "orai107rze07vst8gzw82vzds6tvpnf2yru6pgutcfsscvxjww8z88ktsgyqgcm";
+
+// Cw20-staking contract
+export const CW20_STAKING_CONTRACT = "orai1xu9yw2xwd55d09pjce28yjklvk2kwwrqw4ql9gvyrs607z26kv0sl99040";
+export const CW20_REWARDER_CONTRACT = "orai1qcktymq49m0ylagwt7jzd7u4phajhgk0ruxr0g3ssxyrkte4u9zqy896gf";
+export const CW20_SNAPSHOT_CONTRACT = "orai1hmlnhwu3p2kkzac64un5zkz3za8hscklkyaqu4gagdc756zjyemsyp96kd"; // DAODAO support querrier
 
 // config for evm
 export const GRAVITY_EVM_CONTRACT = "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5";
