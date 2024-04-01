@@ -9,7 +9,10 @@ export class EvmEventHandler extends EventHandler {
     for (let i = 0; i < this.intepreters.length; i++) {
       const currentState = this.intepreters[i].send({ type, payload });
       // this means that the entire state machine has reached the final state => done, we can remove the intepreter from the list (it is also stopped automatically as well)
-      if (currentState.done) this.intepreters.splice(i, 1);
+      if (currentState.done) {
+        
+        this.intepreters.splice(i, 1);
+      }
     }
   }
 

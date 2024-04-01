@@ -64,9 +64,17 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
             // rejected promise data is on event.data property
             actions: (ctx, event) => console.log("error storing data into evm state: ", event.data)
           }
+        },
+        // after 1 min, if still at sendToCosmosEvm -> we move to timeout state and actively poll data instead of websocket
+        after: {
+          60000: {
+            target: "SendToCosmosEvmTimeout",
+            actions: (ctx, event) => console.log("Timeout evm state: ", event.data)
+          }
         }
       },
       SendToCosmosEvmFailure: {},
+      SendToCosmosEvmTimeout: {},
       oraibridge: {
         on: {
           [invokableMachineStateKeys.STORE_AUTO_FORWARD]: "checkAutoForward"
