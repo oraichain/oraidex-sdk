@@ -40,7 +40,7 @@ export function formatTVTime(date: Date) {
 const RED = "#fa3c58";
 const GREEN = "#0ecc83";
 export const DEFAULT_PERIOD = "4h";
-export const DARK_BACKGROUND_CHART = "#151619";
+export const DARK_BACKGROUND_CHART = "#1b1c1a";
 export const LIGHT_BACKGROUND_CHART = "#fff";
 
 const chartStyleOverrides = ["candleStyle", "hollowCandleStyle", "haStyle"].reduce((acc, cv) => {
