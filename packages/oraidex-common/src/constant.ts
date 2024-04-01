@@ -1,4 +1,4 @@
-import { CosmosChainId, EvmChainId } from "./network";
+import { CosmosChainId, EvmChainId, chainInfos, cosmosChains, evmChains } from "./network";
 
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
@@ -22,6 +22,8 @@ export const HIGH_GAS_PRICE = 0.007;
 export const AVERAGE_COSMOS_GAS_PRICE = 0.025; // average based on Keplr
 
 export const SEC_PER_YEAR = 60 * 60 * 24 * 365;
+
+export const BROADCAST_POLL_INTERVAL = 600;
 
 // commission_rate pool
 export const COMMISSION_RATE = "0.003";
@@ -60,8 +62,11 @@ export const ORAI_ETH_CONTRACT = "0x4c11249814f11b9346808179Cf06e71ac328c1b5";
 export const USDC_ETH_CONTRACT = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
 export const MILKY_ERC_CONTRACT = "0xd567B3d7B8FE3C79a1AD8dA978812cfC4Fa05e75";
 export const WRAP_ETH_CONTRACT = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+export const OCH_ETH_CONTRACT = "0x19373EcBB4B8cC2253D70F2a246fa299303227Ba";
 export const KWT_DENOM = ORAI_BRIDGE_EVM_DENOM_PREFIX + KWT_BSC_CONTRACT;
 export const MILKY_DENOM = ORAI_BRIDGE_EVM_DENOM_PREFIX + MILKY_BSC_CONTRACT;
+export const USDT_ETH_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
+export const ORAIX_ETH_CONTRACT = "0x2d869aE129e308F94Cc47E66eaefb448CEe0d03e";
 
 // config for relayer
 export const ATOM_ORAICHAIN_CHANNELS = "channel-301 channel-15";
@@ -74,9 +79,11 @@ export const KWT_ORAICHAIN_CHANNELS = "channel-0 channel-21";
 export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
 export const NOBLE_ORAICHAIN_CHANNELS = "channel-34 channel-147";
 export const NOBLE_ORAICHAIN_CHANNELS_TEST = "channel-35 channel-148";
+export const NEUTARO_ORAICHAIN_CHANNELS = "channel-1 channel-189";
 
 // config for ibc denom
 export const ATOM_ORAICHAIN_DENOM = "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78";
+export const NEUTARO_ORAICHAIN_DENOM = "ibc/576B1D63E401B6A9A071C78A1D1316D016EC9333D2FEB14AD503FAC4B8731CD1";
 export const OSMOSIS_ORAICHAIN_DENOM = "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC";
 export const AIRIBSC_ORAICHAIN_DENOM = "ibc/C458B4CC4F5581388B9ACB40774FDFBCEDC77A7F7CDFB112B469794AF86C4A69";
 export const USDTBSC_ORAICHAIN_DENOM = "ibc/E8B5509BE79025DD7A572430204271D3061A535CC66A3A28FDEC4573E473F32F";
@@ -99,6 +106,9 @@ export const TRX_CONTRACT = "orai1c7tpjenafvgjtgm9aqwm7afnke6c56hpdms8jc6md40xs3
 export const SCATOM_CONTRACT = "orai19q4qak2g3cj2xc2y3060t0quzn3gfhzx08rjlrdd3vqxhjtat0cq668phq";
 export const XOCH_CONTRACT = "orai1lplapmgqnelqn253stz6kmvm3ulgdaytn89a8mz9y85xq8wd684s6xl3lt";
 export const INJECTIVE_CONTRACT = "orai19rtmkk6sn4tppvjmp5d5zj6gfsdykrl5rw2euu5gwur3luheuuusesqn49";
+export const WETH_CONTRACT = "orai1dqa52a7hxxuv8ghe7q5v0s36ra0cthea960q2cukznleqhk0wpnshfegez";
+export const BTC_CONTRACT = "orai10g6frpysmdgw5tdqke47als6f97aqmr8s3cljsvjce4n5enjftcqtamzsd";
+export const OCH_CONTRACT = "orai1hn8w33cqvysun2aujk5sv33tku4pgcxhhnsxmvnkfvdxagcx0p8qa4l98q";
 
 // config for oraichain contract
 export const FACTORY_CONTRACT = "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8";
@@ -109,10 +119,16 @@ export const STAKING_CONTRACT = "orai19p43y0tqnr5qlhfwnxft2u5unph5yn60y7tuvu";
 export const REWARDER_CONTRACT = "orai15hua2q83fp666nwhnyrn9g8gt9ueenl32qnugh";
 export const CONVERTER_CONTRACT = "orai14wy8xndhnvjmx6zl2866xqvs7fqwv2arhhrqq9";
 export const ORAIDEX_LISTING_CONTRACT = "orai1mkr02jzz0jfh34ps6z966uyueu4tlmnyg57nn72pxfq9t9a706tsha5znh";
-export const IBC_WASM_HOOKS_CONTRACT = "orai1w0h4ua3k8w2udju97nlws6dfh2ppwkhcewg09zp8gera4mf8lxxs6q086g";
+export const ORAIDEX_BID_POOL_CONTRACT = "orai1r4v3f8p2xethczvw5l5ed8cr05a9dqp6auy2zmz5dyvcq5h5g5kqg6m7vu";
+export const ORAIDEX_SMART_ROUTER_CONTRACT = "orai107rze07vst8gzw82vzds6tvpnf2yru6pgutcfsscvxjww8z88ktsgyqgcm";
+
+// Cw20-staking contract
+export const CW20_STAKING_CONTRACT = "orai1xu9yw2xwd55d09pjce28yjklvk2kwwrqw4ql9gvyrs607z26kv0sl99040";
+export const CW20_REWARDER_CONTRACT = "orai1qcktymq49m0ylagwt7jzd7u4phajhgk0ruxr0g3ssxyrkte4u9zqy896gf";
+export const CW20_SNAPSHOT_CONTRACT = "orai1hmlnhwu3p2kkzac64un5zkz3za8hscklkyaqu4gagdc756zjyemsyp96kd"; // DAODAO support querrier
 
 // config for evm
-export const GRAVITY_EVM_CONTRACT = "0x758191e89ff9E898D884ca3426e486e5d8476A44";
+export const GRAVITY_EVM_CONTRACT = "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5";
 // export const GRAVITY_TRON_CONTRACT in tron format TLXrPtQor6xxF2HeQtmKJUUkVNjJZVsgTM
 export const GRAVITY_TRON_CONTRACT = "0x73Ddc880916021EFC4754Cb42B53db6EAB1f9D64";
 
@@ -132,16 +148,23 @@ export const WEBSOCKET_RECONNECT_INTERVAL = 20000;
 export const UNISWAP_ROUTER_DEADLINE = 15000; // swap deadline in ms
 export const EVM_BALANCE_RETRY_COUNT = 5;
 
-export const EVM_CHAIN_ID: EvmChainId[] = ["0x38", "0x01", "0x1ae6", "0x2b6653dc"];
-export const COSMOS_CHAIN_ID: CosmosChainId[] = [
-  "Oraichain",
-  "oraibridge-subnet-2",
-  "osmosis-1",
-  "cosmoshub-4",
-  "injective-1",
-  "kawaii_6886-1",
-  "noble-1"
-];
+// evm chainID
+export enum EVM_CHAIN_ID_COMMON {
+  ETH_CHAIN_ID = "0x01",
+  BSC_CHAIN_ID = "0x38",
+  KAWAII_EVM_CHAIN_ID = "0x1ae6",
+  TRON_CHAIN_ID = "0x2b6653dc"
+}
+// cosmos chainId
+export enum COSMOS_CHAIN_ID_COMMON {
+  ORAICHAIN_CHAIN_ID = "Oraichain",
+  ORAIBRIDGE_CHAIN_ID = "oraibridge-subnet-2",
+  OSMOSIS_CHAIN_ID = "osmosis-1",
+  COSMOSHUB_CHAIN_ID = "cosmoshub-4",
+  INJECTVE_CHAIN_ID = "injective-1",
+  KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1",
+  NOBLE_CHAIN_ID = "noble-1"
+}
 
 // asset info token
 export const ORAI_INFO = {
@@ -162,6 +185,18 @@ export const ORAIXOCH_INFO = {
   }
 };
 
+export const USDC_INFO = {
+  token: {
+    contract_addr: USDC_CONTRACT
+  }
+};
+
+export const NEUTARO_INFO = {
+  native_token: {
+    denom: NEUTARO_ORAICHAIN_DENOM
+  }
+};
+
 // slippage swap
 export const OPTIONS_SLIPPAGE = [1, 3, 5];
 export const DEFAULT_SLIPPAGE = OPTIONS_SLIPPAGE[0];
@@ -172,7 +207,7 @@ export const CODE_ID_CW20 = 761;
 export const CW20_DECIMALS = 6;
 
 // type switch wallet between keplr and owallet
-export type WalletType = "keplr" | "owallet";
+export type WalletType = "keplr" | "owallet" | "leapSnap";
 
 export const gravityContracts: Omit<Record<EvmChainId, string>, "0x1ae6"> = {
   "0x38": GRAVITY_EVM_CONTRACT,

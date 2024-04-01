@@ -9,6 +9,9 @@ import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
 import { TronWeb } from "./tronweb";
 import { EncodeObject } from "@cosmjs/proto-signing";
+import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
+import { Stargate } from "@injectivelabs/sdk-ts";
+import { BROADCAST_POLL_INTERVAL } from "./constant";
 
 export interface EvmResponse {
   transactionHash: string;
@@ -39,8 +42,22 @@ export abstract class CosmosWallet {
   }> {
     const { chainId, rpc } = config;
     const wallet = await this.createCosmosSigner(chainId);
-    const client = await SigningCosmWasmClient.connectWithSigner(rpc, wallet, options);
-    const stargateClient = await SigningStargateClient.connectWithSigner(rpc, wallet, options);
+    const tmClient = await Tendermint37Client.connect(rpc);
+    let client;
+    const optionsClient = {
+      ...options,
+      broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+    };
+    if (chainId === "injective-1") {
+      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(
+        tmClient as any,
+        wallet,
+        optionsClient as any
+      );
+    } else {
+      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, optionsClient);
+    }
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, optionsClient);
     return { wallet, client, stargateClient };
   }
 
@@ -112,6 +129,19 @@ export abstract class EvmWallet {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
     try {
+      const uint256Index = parameters.findIndex((param) => param.type === "uint256");
+
+      // type uint256 is bigint, so we need to convert to string if its uint256 because the JSONUint8Array can not stringify bigint
+      if (uint256Index && parameters.length > uint256Index) {
+        parameters[uint256Index] = {
+          ...parameters[uint256Index],
+          value:
+            typeof parameters[uint256Index].value === "bigint"
+              ? parameters[uint256Index].value.toString()
+              : parameters[uint256Index].value
+        };
+      }
+
       console.log("before building tx: ", issuerAddress);
       const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
         address,
@@ -171,6 +201,14 @@ export abstract class EvmWallet {
       // using window.ethereum for signing
       // if you call this function on evm, you have to switch network before calling. Otherwise, unexpected errors may happen
       const tokenContract = IERC20Upgradeable__factory.connect(token.contractAddress, this.getSigner());
+
+      // TODO: hardcode check currentAllowance USDT ERC20
+      const isUsdtErc20 = token.chainId === "0x01" && token.coinGeckoId === "tether";
+      if (isUsdtErc20 && !!currentAllowance.toString()) {
+        const approveUsdtErc20 = await tokenContract.approve(spender, "0", { from: ownerHex });
+        await approveUsdtErc20.wait();
+      }
+
       const result = await tokenContract.approve(spender, amount, { from: ownerHex });
       await result.wait();
       return { transactionHash: result.hash };

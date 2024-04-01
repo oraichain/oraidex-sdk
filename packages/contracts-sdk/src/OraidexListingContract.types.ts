@@ -7,6 +7,7 @@ export type ExecuteMsg = {
   list_token: ListTokenMsg;
 };
 export interface ListTokenMsg {
+  cw20_admin?: string | null;
   initial_balances?: Cw20Coin[] | null;
   label?: string | null;
   liquidity_pool_reward_assets: Asset[];
@@ -14,7 +15,8 @@ export interface ListTokenMsg {
   mint?: MinterResponse | null;
   name?: string | null;
   pair_asset_info: AssetInfo;
-  symbol: string;
+  symbol?: string | null;
+  targeted_asset_info?: AssetInfo | null;
 }
 export interface MinterResponse {
   cap?: Uint128 | null;

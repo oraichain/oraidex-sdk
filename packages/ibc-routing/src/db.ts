@@ -87,7 +87,10 @@ export abstract class DuckDB {
 
 export class DuckDbNode extends DuckDB {
   static instances: DuckDbNode;
-  protected constructor(public readonly conn: Connection, private db: Database) {
+  protected constructor(
+    public readonly conn: Connection,
+    private db: Database
+  ) {
     super();
   }
 
@@ -165,7 +168,10 @@ export class DuckDbNode extends DuckDB {
 
 export class DuckDbWasm extends DuckDB {
   static instances: DuckDbWasm;
-  protected constructor(public readonly conn: duckdb.AsyncDuckDBConnection, private db: duckdb.AsyncDuckDB) {
+  protected constructor(
+    public readonly conn: duckdb.AsyncDuckDBConnection,
+    private db: duckdb.AsyncDuckDB
+  ) {
     super();
   }
 

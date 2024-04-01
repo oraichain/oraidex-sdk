@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module": "esnext",
+    "target": "esnext",
+    "sourceMap": true,
+    "declaration": true,
+    "declarationDir": "./dist/umd/types",
+    "declarationMap": true,
+    "noEmitOnError": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "strict": false,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "jsx": "react",
+    "lib": ["esnext", "dom"],
+    "types": ["jest", "@types/jest"],
+    "baseUrl": "src",
+    "outDir": "dist",
+    "emitDeclarationOnly": true
+  },
+  "include": ["./src"],
+  "exclude": ["node_modules"]
+}

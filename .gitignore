@@ -27,8 +27,12 @@ typings/
 
 .npmrc
 build
-*oraidex-sync-data*
 
 dist
 .DS_Store
 cache/
+
+packages/contract-state-simulate/public/
+coverage
+
+.nx/cache

@@ -116,6 +116,43 @@ export class BigDecimal {
     return this;
   }
 
+  private ipow(other: bigint | boolean | number | string) {
+    const coeff = 10n ** BigInt(this._decimals);
+    const power = BigInt(other);
+    this.bigInt = this.bigInt ** power / coeff ** (power - 1n);
+    return this;
+  }
+
+  static rootNth(value: DecimalLike, k = 2n) {
+    const big = new BigDecimal(value);
+
+    // re-calculate bigInt
+    const bigValue = big.bigInt * 10n ** BigInt(big._decimals);
+    if (bigValue < 0n) {
+      throw "negative number is not supported";
+    }
+
+    let o = 0n;
+    let x = bigValue;
+    let limit = 100;
+
+    while (x ** k !== k && x !== o && --limit) {
+      o = x;
+      x = ((k - 1n) * x + bigValue / x ** (k - 1n)) / k;
+    }
+
+    big.bigInt = x;
+    return big;
+  }
+
+  static sqrt(value: DecimalLike) {
+    return BigDecimal.rootNth(value);
+  }
+
+  sqrt() {
+    return BigDecimal.rootNth(this);
+  }
+
   add(other: DecimalLike) {
     return this.clone().iadd(other);
   }
@@ -130,6 +167,10 @@ export class BigDecimal {
 
   mul(other: DecimalLike) {
     return this.clone().imul(other);
+  }
+
+  pow(other: bigint | boolean | number | string) {
+    return this.clone().ipow(other);
   }
 
   valueOf() {
