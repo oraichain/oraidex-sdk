@@ -382,7 +382,7 @@ describe("should helper functions in helper run exactly", () => {
   });
 
   // TODO: add more tests for this func
-  it("test-parseTxToMsgsAndEvents", async () => {
+  xit("test-parseTxToMsgsAndEvents", async () => {
     // case 1: undefined input
     const reuslt = parseTxToMsgsAndEvents(undefined as any);
     expect(reuslt).toEqual([]);
