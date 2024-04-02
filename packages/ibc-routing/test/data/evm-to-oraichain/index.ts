@@ -1,15 +1,8 @@
 import { BigNumber } from "ethers";
-import { getSigners } from "hardhat";
-import { autoForwardTag, onRecvPacketTag } from "../src/constants";
-import { DuckDbNode } from "../src/db";
-import { EthEvent, OraiBridgeEvent, OraichainEvent } from "../src/event";
-import { EvmEventHandler } from "../src/event-handlers/evm.handler";
-import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
-import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
-import IntepreterManager from "../src/managers/intepreter.manager";
-import { onRecvPacketTx, oraiBridgeAutoForwardTx, unmarshalTxEvent } from "./common";
+import fs from "fs";
+import path from "path";
 
-const testSendToCosmosData = [
+export const SendToCosmosData = [
   "0x55d398326f99059fF775485246999027B3197955",
   "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5",
   "channel-1/orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy:CitvcmFpMXJxaGpxcGFxcnYyNnd1cTYyN2dhdjNrYTQ5OTR1MzllODRsbmN5EgAaK29yYWkxMmh6anhmaDc3d2w1NzJnZHpjdDJmeHYyYXJ4Y3doNmd5a2M3cWg=",
@@ -46,39 +39,9 @@ const testSendToCosmosData = [
   }
 ];
 
-describe("test-integration", () => {
-  let duckDb: DuckDbNode;
-  let evmHandler: EvmEventHandler;
-  let oraibridgeHandler: OraiBridgeHandler;
-  let oraichainHandler: OraichainHandler;
-
-  beforeEach(async () => {
-    duckDb = await DuckDbNode.create();
-    await duckDb.createTable();
-
-    let im = new IntepreterManager();
-    evmHandler = new EvmEventHandler(duckDb, im);
-    oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
-    oraichainHandler = new OraichainHandler(duckDb, im);
-  });
-
-  const sleep = async (timeout: number) => new Promise((resolve) => setTimeout(resolve, timeout));
-
-  const [owner] = getSigners(1);
-  it("[EVM->Cosmos] full-flow happy test", async () => {
-    const ethEvent = new EthEvent(evmHandler);
-    const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
-    gravity.emit("SendToCosmosEvent", ...testSendToCosmosData);
-    // TODO: how to wait for emit event to finish then start the next
-    await sleep(300);
-    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
-    const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
-    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
-    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
-    // has to convert back to bytes because javascript object is not friendly with Uint8Array
-    stream.shamefullySendNext(unmarshalTxEvent(oraiBridgeAutoForwardTx));
-    await sleep(300);
-    oraiStream.shamefullySendNext(unmarshalTxEvent(onRecvPacketTx));
-    await sleep(300);
-  });
-});
+export const OraiBridgeAutoForwardTxData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "./auto_forward.json")).toString("utf-8")
+);
+export const OnRecvPacketTxData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "./on_recv_packet.json")).toString("utf-8")
+);

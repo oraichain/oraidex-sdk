@@ -17,6 +17,14 @@ class IntepreterManager {
     this.intepreters.push(intepreter);
   }
 
+  public getIntepreter(index: number): AnyInterpreter {
+    return this.intepreters[index];
+  }
+
+  public getLengthIntepreters(): number {
+    return this.intepreters.length;
+  }
+
   // potential method to recover interpreters: https://stately.ai/docs/persistence#event-sourcing
   public recoverInterpreters(): any {}
 }
