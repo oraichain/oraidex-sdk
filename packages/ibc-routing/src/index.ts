@@ -1,12 +1,7 @@
 /* Non-SSL is simply App() */
 
 import "dotenv/config";
-import { ethers } from "ethers";
 import uws from "uWebSockets.js";
-import { autoForwardTag, onRecvPacketTag } from "./constants";
-import { DuckDbNode } from "./db";
-import { EthEvent, OraiBridgeEvent, OraichainEvent } from "./event";
-import { EvmEventHandler } from "./event-handler/evm-handler";
 
 uws
   .App({
@@ -42,26 +37,26 @@ uws
     // } else {
     //   duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
     // }
-    const duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME || ":memory:");
-    await duckDb.createTable();
+    // const duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME || ":memory:");
+    // await duckDb.createTable();
 
-    const evmEventHandler = new EvmEventHandler(duckDb);
-    const oraichainEventHandler = new EvmEventHandler(duckDb);
-    const oraibridgeEventHandler = new EvmEventHandler(duckDb);
-    // recover all previous intepreters so that we can be at the current states for all contexts
-    await evmEventHandler.recoverInterpreters();
-    await oraichainEventHandler.recoverInterpreters();
-    await oraibridgeEventHandler.recoverInterpreters();
-    const ethEvent = new EthEvent(evmEventHandler);
-    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, "bridge-v2.rpc.orai.io");
-    const oraichainEvent = new OraichainEvent(oraichainEventHandler, "rpc.orai.io");
-    // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
-    ethEvent.listenToEthEvent(
-      new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),
-      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"
-    );
-    await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
-    await oraichainEvent.connectCosmosSocket([onRecvPacketTag]);
+    // const evmEventHandler = new EvmEventHandler(duckDb);
+    // const oraichainEventHandler = new EvmEventHandler(duckDb);
+    // const oraibridgeEventHandler = new EvmEventHandler(duckDb);
+    // // recover all previous intepreters so that we can be at the current states for all contexts
+    // await evmEventHandler.recoverInterpreters();
+    // await oraichainEventHandler.recoverInterpreters();
+    // await oraibridgeEventHandler.recoverInterpreters();
+    // const ethEvent = new EthEvent(evmEventHandler);
+    // const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, "bridge-v2.rpc.orai.io");
+    // const oraichainEvent = new OraichainEvent(oraichainEventHandler, "rpc.orai.io");
+    // // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
+    // ethEvent.listenToEthEvent(
+    //   new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),
+    //   "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"
+    // );
+    // await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    // await oraichainEvent.connectCosmosSocket([onRecvPacketTag]);
 
     // const { evmToOraichainMachine } = createMachines(duckDb);
   });

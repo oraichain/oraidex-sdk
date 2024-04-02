@@ -1,8 +1,12 @@
-import { DuckDbNode } from "../src/db";
-import { EventHandler, EthEvent, OraiBridgeEvent, OraichainEvent } from "../src/event";
-import { ethers, getSigners } from "hardhat";
 import { BigNumber } from "ethers";
+import { getSigners } from "hardhat";
 import { autoForwardTag, onRecvPacketTag } from "../src/constants";
+import { DuckDbNode } from "../src/db";
+import { EthEvent, OraiBridgeEvent, OraichainEvent } from "../src/event";
+import { EvmEventHandler } from "../src/event-handlers/evm.handler";
+import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
+import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import IntepreterManager from "../src/managers/intepreter.manager";
 import { onRecvPacketTx, oraiBridgeAutoForwardTx, unmarshalTxEvent } from "./common";
 
 const testSendToCosmosData = [
@@ -44,27 +48,32 @@ const testSendToCosmosData = [
 
 describe("test-integration", () => {
   let duckDb: DuckDbNode;
-  let eventHandler: EventHandler;
+  let evmHandler: EvmEventHandler;
+  let oraibridgeHandler: OraiBridgeHandler;
+  let oraichainHandler: OraichainHandler;
 
   beforeEach(async () => {
     duckDb = await DuckDbNode.create();
     await duckDb.createTable();
 
-    eventHandler = new EventHandler(duckDb);
+    let im = new IntepreterManager();
+    evmHandler = new EvmEventHandler(duckDb, im);
+    oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
+    oraichainHandler = new OraichainHandler(duckDb, im);
   });
 
   const sleep = async (timeout: number) => new Promise((resolve) => setTimeout(resolve, timeout));
 
   const [owner] = getSigners(1);
   it("test-complete-flow-mock-ws", async () => {
-    const ethEvent = new EthEvent(eventHandler);
+    const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
     gravity.emit("SendToCosmosEvent", ...testSendToCosmosData);
     // TODO: how to wait for emit event to finish then start the next
     await sleep(300);
-    const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "localhost:26657");
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
-    const oraiEvent = new OraichainEvent(duckDb, eventHandler, "localhost:26657");
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     stream.shamefullySendNext(unmarshalTxEvent(oraiBridgeAutoForwardTx));

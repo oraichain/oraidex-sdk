@@ -4,7 +4,7 @@ import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/
 import { Gravity, Gravity__factory } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { evmGravityEvents } from "./constants";
-import { EventHandler } from "./event-handler/event-handler";
+import { EventHandler } from "./event-handlers/event.handler";
 import { keccak256HashString } from "./helpers";
 
 export class EthEvent {
