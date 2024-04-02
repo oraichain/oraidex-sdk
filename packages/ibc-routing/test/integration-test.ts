@@ -65,7 +65,7 @@ describe("test-integration", () => {
   const sleep = async (timeout: number) => new Promise((resolve) => setTimeout(resolve, timeout));
 
   const [owner] = getSigners(1);
-  it("test-complete-flow-mock-ws", async () => {
+  it("[EVM->Cosmos] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
     gravity.emit("SendToCosmosEvent", ...testSendToCosmosData);
