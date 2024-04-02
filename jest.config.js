@@ -4,7 +4,7 @@ module.exports = {
     "^.+\\.ts?$": ["ts-jest", { isolatedModules: true }]
   },
   testEnvironment: "node",
-  modulePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/packages/ibc-routing"],
+  modulePathIgnorePatterns: ["<rootDir>/dist/"],
   collectCoverage: true,
   coverageReporters: ["cobertura", "html"],
   coveragePathIgnorePatterns: [

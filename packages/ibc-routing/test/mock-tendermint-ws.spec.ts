@@ -1,16 +1,13 @@
-import { EventHandler, OraiBridgeEvent } from "../src/event";
-import { DuckDbNode } from "../src/db";
-import { oraiBridgeAutoForwardTx } from "./common";
+// import { EventHandler } from "../src/event";
 
 describe("test-mock-websocket", () => {
-  let duckDb: DuckDbNode;
-  let eventHandler: EventHandler;
+  // let duckDb: DuckDbNode;
+  // let eventHandler: EventHandler;
 
   beforeEach(async () => {
-    duckDb = await DuckDbNode.create();
-    await duckDb.createTable();
-
-    eventHandler = new EventHandler(duckDb);
+    // duckDb = await DuckDbNode.create();
+    // await duckDb.createTable();
+    // eventHandler = new EventHandler(duckDb);
   });
   it("test-oraibridge-ws", async () => {
     // const oraiBridgeEvent = new OraiBridgeEvent(duckDb, eventHandler, "localhost:26657");
