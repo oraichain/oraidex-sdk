@@ -3,7 +3,16 @@ import { EventHandler } from "./event.handler";
 
 export class OraichainHandler extends EventHandler {
   public handleEvent(eventData: any[]) {
-    // TODO: we also have the transfer_back_to_remote_chain case where we need to create a new intepreter
-    this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET, eventData[0]);
+    for (const eventItem of eventData) {
+      const events = eventItem.result.events;
+      switch (true) {
+        case events.find((attr) => attr.type === "recv_packet") !== undefined:
+          this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET, eventItem);
+          break;
+        case events.find((attr) => attr.type === "acknowledge_packet") !== undefined:
+          this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT, eventItem);
+          break;
+      }
+    }
   }
 }

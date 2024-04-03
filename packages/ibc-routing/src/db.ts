@@ -1,10 +1,9 @@
-import * as duckdb from "@duckdb/duckdb-wasm";
-import { generateError, toObject } from "@oraichain/oraidex-common";
+import { toObject } from "@oraichain/oraidex-common";
 import { Connection, Database } from "duckdb-async";
 import fs from "fs";
-import { resolve } from "path";
-import Worker from "web-worker";
+import { StateDBStatus } from "./@types";
 
+// The below state field to confirm whether a state is completedly finished or not
 export const sqlCommands = {
   create: {
     EvmState: `create table if not exists EvmState 
@@ -22,6 +21,7 @@ export const sqlCommands = {
       destinationChannelId varchar,
       destinationReceiver varchar,
       eventNonce uinteger primary key,
+      status varchar,
     )`,
     OraiBridgeState: `create table if not exists OraiBridgeState 
     (
@@ -41,21 +41,23 @@ export const sqlCommands = {
       srcChannel varchar,
       dstPort varchar,
       dstChannel varchar,
+      status varchar,
     )`,
     OraichainState: `create table if not exists OraichainState 
     (
-        txHash varchar,
-        height uinteger,
-        prevState varchar,
-        prevTxHash varchar,
-        nextState varchar,
-        packetSequence uinteger primary key,
-        packetAck varchar,
-        nextPacketSequence uinteger,
-        nextMemo varchar,
-        nextAmount hugeint,
-        nextReceiver varchar,
-        nextDestinationDenom varchar,
+      txHash varchar,
+      height uinteger,
+      prevState varchar,
+      prevTxHash varchar,
+      nextState varchar,
+      packetSequence uinteger primary key,
+      packetAck varchar,
+      nextPacketSequence uinteger,
+      nextMemo varchar,
+      nextAmount hugeint,
+      nextReceiver varchar,
+      nextDestinationDenom varchar,
+      status varchar,
     )`
   },
   query: {
@@ -71,6 +73,9 @@ export const sqlCommands = {
       SELECT * from OraichainState where packetSequence = ?
       `,
     stateDataByPacketSequence: (tableName: string) => `SELECT * from ${tableName} where packetSequence = ?`
+  },
+  update: {
+    updateStatusByTxHash: (tableName: string) => `UPDATE ${tableName} SET status = ? WHERE txHash = ?`
   }
 };
 
@@ -83,6 +88,7 @@ export abstract class DuckDB {
   abstract queryOraichainStateBySequence(packetSequence: number): Promise<any>;
   abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
   abstract insertData(data: any, tableName: string): Promise<void>;
+  abstract updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string): Promise<void>;
 }
 
 // TODO: use vector instead of writing to files
@@ -162,97 +168,102 @@ export class DuckDbNode extends DuckDB {
     await this.conn.run(query, tableFile);
     await fs.promises.unlink(tableFile);
   }
-}
 
-export class DuckDbWasm extends DuckDB {
-  static instances: DuckDbWasm;
-  protected constructor(public readonly conn: duckdb.AsyncDuckDBConnection, private db: duckdb.AsyncDuckDB) {
-    super();
-  }
-
-  static async create(currentRootDir: string): Promise<DuckDbWasm> {
-    const DUCKDB_DIST = resolve(currentRootDir, "node_modules/@duckdb/duckdb-wasm/dist");
-    const getDuckDbDist = (type: string) => {
-      return {
-        mainModule: resolve(DUCKDB_DIST, `./duckdb-${type}.wasm`),
-        mainWorker: resolve(DUCKDB_DIST, `./duckdb-node-${type}.worker.cjs`)
-      };
-    };
-    const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
-      mvp: getDuckDbDist("mvp"),
-      eh: getDuckDbDist("eh")
-    };
-    // Select a bundle based on browser checks
-    // Select a bundle based on browser checks
-    const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-    // Instantiate the asynchronus version of DuckDB-wasm
-    const worker = new Worker(bundle.mainWorker!);
-    const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.INFO);
-    const db = new duckdb.AsyncDuckDB(logger, worker);
-    // Instantiate the asynchronus version of DuckDB-wasm
-    await db.instantiate(MANUAL_BUNDLES.eh.mainModule);
-    const conn = await db.connect();
-    DuckDbWasm.instances = new DuckDbWasm(conn, db);
-    return DuckDbWasm.instances;
-  }
-
-  async createTable() {
-    for (const createCommand of Object.values(sqlCommands.create)) {
-      await this.conn.send(createCommand);
-    }
-  }
-
-  async queryInitialEvmStateByHash(txHash: string) {
-    const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
-    const result = (await stmt.query(txHash)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryInitialEvmStateByNonce(nonce: number) {
-    const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
-    const result = (await stmt.query(nonce)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraiBridgeStateByNonce(eventNonce: number) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateByNonce);
-    const result = (await stmt.query(eventNonce)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateBySequence);
-    const result = (await stmt.query(packetSequence)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraichainStateBySequence(packetSequence: number) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraichainStateByPacketSequence);
-    const result = (await stmt.query(packetSequence)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async findStateByPacketSequence(packetSequence: number): Promise<any> {
-    throw generateError("Not implemented");
-  }
-
-  async insertData(data: any, tableName: string) {
-    // TODO: FIXME
-    //   try {
-    //     const tableFile = `${tableName}.json`;
-    //     // the file written out is temporary only. Will be deleted after insertion
-    //     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-    //     const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
-    //     const stmt = await this.conn.prepare(query);
-    //     await stmt.send(query, tableFile);
-    //     await fs.promises.unlink(tableFile);
-    //   } catch (error) {
-    //     console.log("insert data error: ", error);
-    //   }
+  async updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string) {
+    const sql = sqlCommands.update.updateStatusByTxHash(tableName);
+    await this.conn.run(sql, status, txHash);
   }
 }
+
+// export class DuckDbWasm extends DuckDB {
+//   static instances: DuckDbWasm;
+//   protected constructor(public readonly conn: duckdb.AsyncDuckDBConnection, private db: duckdb.AsyncDuckDB) {
+//     super();
+//   }
+
+//   static async create(currentRootDir: string): Promise<DuckDbWasm> {
+//     const DUCKDB_DIST = resolve(currentRootDir, "node_modules/@duckdb/duckdb-wasm/dist");
+//     const getDuckDbDist = (type: string) => {
+//       return {
+//         mainModule: resolve(DUCKDB_DIST, `./duckdb-${type}.wasm`),
+//         mainWorker: resolve(DUCKDB_DIST, `./duckdb-node-${type}.worker.cjs`)
+//       };
+//     };
+//     const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
+//       mvp: getDuckDbDist("mvp"),
+//       eh: getDuckDbDist("eh")
+//     };
+//     // Select a bundle based on browser checks
+//     // Select a bundle based on browser checks
+//     const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
+//     // Instantiate the asynchronus version of DuckDB-wasm
+//     const worker = new Worker(bundle.mainWorker!);
+//     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.INFO);
+//     const db = new duckdb.AsyncDuckDB(logger, worker);
+//     // Instantiate the asynchronus version of DuckDB-wasm
+//     await db.instantiate(MANUAL_BUNDLES.eh.mainModule);
+//     const conn = await db.connect();
+//     DuckDbWasm.instances = new DuckDbWasm(conn, db);
+//     return DuckDbWasm.instances;
+//   }
+
+//   async createTable() {
+//     for (const createCommand of Object.values(sqlCommands.create)) {
+//       await this.conn.send(createCommand);
+//     }
+//   }
+
+//   async queryInitialEvmStateByHash(txHash: string) {
+//     const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
+//     const result = (await stmt.query(txHash)).toArray();
+//     if (result.length > 0) return result[0];
+//     return [];
+//   }
+
+//   async queryInitialEvmStateByNonce(nonce: number) {
+//     const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
+//     const result = (await stmt.query(nonce)).toArray();
+//     if (result.length > 0) return result[0];
+//     return [];
+//   }
+
+//   async queryOraiBridgeStateByNonce(eventNonce: number) {
+//     const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateByNonce);
+//     const result = (await stmt.query(eventNonce)).toArray();
+//     if (result.length > 0) return result[0];
+//     return [];
+//   }
+
+//   async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
+//     const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateBySequence);
+//     const result = (await stmt.query(packetSequence)).toArray();
+//     if (result.length > 0) return result[0];
+//     return [];
+//   }
+
+//   async queryOraichainStateBySequence(packetSequence: number) {
+//     const stmt = await this.conn.prepare(sqlCommands.query.oraichainStateByPacketSequence);
+//     const result = (await stmt.query(packetSequence)).toArray();
+//     if (result.length > 0) return result[0];
+//     return [];
+//   }
+
+//   async findStateByPacketSequence(packetSequence: number): Promise<any> {
+//     throw generateError("Not implemented");
+//   }
+
+//   async insertData(data: any, tableName: string) {
+//     // TODO: FIXME
+//     //   try {
+//     //     const tableFile = `${tableName}.json`;
+//     //     // the file written out is temporary only. Will be deleted after insertion
+//     //     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
+//     //     const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
+//     //     const stmt = await this.conn.prepare(query);
+//     //     await stmt.send(query, tableFile);
+//     //     await fs.promises.unlink(tableFile);
+//     //   } catch (error) {
+//     //     console.log("insert data error: ", error);
+//     //   }
+//   }
+// }
