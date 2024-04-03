@@ -1,5 +1,6 @@
 export const autoForwardTag = { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" };
 export const onRecvPacketTag = { key: "message.action", value: "/ibc.core.channel.v1.MsgRecvPacket" };
+export const onAcknowledgementTag = { key: "message.action", value: "/ibc.core.channel.v1.MsgAcknowledgement" };
 
 export const sendToCosmosEvent = "SendToCosmosEvent(address,address,string,uint256,uint256)";
 export const oraiBridgeAutoForwardEvent = {
@@ -19,5 +20,10 @@ export enum NetworkEventType {
 export const invokableMachineStateKeys = {
   STORE_SEND_TO_COSMOS: "STORE_SEND_TO_COSMOS",
   STORE_AUTO_FORWARD: "STORE_AUTO_FORWARD",
-  STORE_ON_RECV_PACKET: "STORE_ON_RECV_PACKET"
+  STORE_ON_RECV_PACKET: "STORE_ON_RECV_PACKET",
+  STORE_ON_ACKNOWLEDGEMENT: "STORE_ON_ACKNOWLEDGEMENT"
 };
+
+export const PathsToEvm = ["eth-mainnet", "oraib"];
+
+export const FinalTag = "Final";

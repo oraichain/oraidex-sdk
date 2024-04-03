@@ -2,7 +2,8 @@ import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
 import { createMachine, interpret } from "xstate";
-import { invokableMachineStateKeys, oraiBridgeAutoForwardEventType } from "../constants";
+import { ForwardTagOnOraichain, StateDBStatus } from "../@types";
+import { FinalTag, invokableMachineStateKeys, oraiBridgeAutoForwardEventType } from "../constants";
 import { DuckDB } from "../db";
 import { convertTxHashToHex } from "../helpers";
 
@@ -19,7 +20,7 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
       oraiBridgeEventNonce: -1,
       oraiBridgePacketSequence: -1,
       oraiReceivePacketSequence: -1, // sequence when OnRecvPacket
-      oraiSendPacketSequence: -1, // sequence when SendPacket
+      oraiSendPacketSequence: -1, // sequence when SendPacket,
       finalMemo: ""
     },
     states: {
@@ -49,11 +50,11 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
               destinationDenom: routeData.tokenIdentifier,
               destinationChannel: routeData.finalDestinationChannel,
               destinationReceiver: routeData.finalReceiver,
-              eventNonce: parseInt(eventData[4].toString())
+              eventNonce: parseInt(eventData[4].toString()),
+              status: StateDBStatus.PENDING
             };
             // this context data will be used for querying in the next state
             ctx.evmEventNonce = sendToCosmosData.eventNonce;
-            console.log("send to cosmos data: ", sendToCosmosData);
             await ctx.db.insertData(sendToCosmosData, "EvmState");
             return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
           },
@@ -134,6 +135,8 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
             if (!packetDataAttr) {
               throw generateError("Cannot find the packet data in send_packet of auto forward");
             }
+
+            await ctx.db.updateStatusByTxHash("EvmState", StateDBStatus.FINISHED, prevEvmState.txHash);
             const packetData = JSON.parse(packetDataAttr.value);
             // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
             const srcPort = sendPacketEvent.attributes.find((attr) => attr.key === "packet_src_port").value;
@@ -154,9 +157,9 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
               srcPort,
               srcChannel,
               dstPort,
-              dstChannel
+              dstChannel,
+              status: StateDBStatus.PENDING
             };
-            console.log("auto forward data: ", autoForwardData);
             await ctx.db.insertData(autoForwardData, "OraiBridgeState");
             ctx.oraiBridgeEventNonce = event.data.eventNonce;
             ctx.oraiBridgePacketSequence = packetSequence;
@@ -227,7 +230,6 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
             // packet ack format: {"result":"MQ=="} or {"result":"<something-else-in-base-64"}
             const packetAck = Buffer.from(JSON.parse(packetAckAttr.value).result, "base64").toString("ascii");
             // if equals 1 it means the ack is successful. Otherwise, this packet has some errors
-            console.log("packet ack: ", packetAck);
             if (packetAck != "1") {
               console.log("in here");
               throw generateError(`The packet ack is not successful: ${packetAck}`);
@@ -237,15 +239,36 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
             // collect packet sequence
             // now we try finding send_packet, if not found then we finalize the state
             let nextState = "";
+            let nextPacketData = {
+              nextPacketSequence: 0,
+              nextMemo: "",
+              nextAmount: 0,
+              nextReceiver: "",
+              nextDestinationDenom: ""
+            };
             const sendPacketEvent = events.find((e) => e.type === "send_packet");
             if (sendPacketEvent) {
-              // TODO: do something here to move to the next state
+              let nextPacketJson = JSON.parse(
+                sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value
+              );
+              nextPacketData = {
+                ...nextPacketData,
+                nextPacketSequence: parseInt(
+                  sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value
+                ),
+                nextMemo: "",
+                nextAmount: parseInt(nextPacketJson.amount),
+                nextDestinationDenom: nextPacketJson.denom,
+                nextReceiver: nextPacketJson.receiver
+              };
+              ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
             }
             const { tableName, state } = await ctx.db.findStateByPacketSequence(event.data.packetSequence);
             if (!tableName)
               throw generateError(
                 `Could not find the row with packet sequence ${event.data.packetSequence} in any table`
               );
+            await ctx.db.updateStatusByTxHash(tableName, StateDBStatus.FINISHED, state.txHash);
             let onRecvPacketData = {
               txHash: convertTxHashToHex(txEvent.hash),
               height: txEvent.height,
@@ -255,37 +278,66 @@ export const createEvmToEvmInterpreter = (db: DuckDB) => {
               packetSequence: event.data.packetSequence,
               packetAck,
               // the below fields are reserved for cases if we send packet to another chain
-              nextPacketSequence: 0,
-              nextMemo: "",
-              nextAmount: 0,
-              nextReceiver: "",
-              nextDestinationDenom: ""
+              ...nextPacketData,
+              status: nextPacketData.nextPacketSequence != 0 ? StateDBStatus.PENDING : StateDBStatus.FINISHED
             };
             await ctx.db.insertData(onRecvPacketData, "OraichainState");
             // now we have verified everything, lets store the result into the db
             // TODO: if there's a next state, prepare to return a valid result here
-            if (nextState) return new Promise((resolve) => resolve(""));
+            if (nextState || nextPacketData.nextPacketSequence != 0) {
+              return new Promise((resolve) => resolve(ForwardTagOnOraichain.COSMOS));
+            }
             // no next state, we move to final state of the machine
-            return new Promise((resolve) => resolve("final"));
+            return new Promise((resolve) => resolve(FinalTag));
           },
           onDone: [
             {
               target: "cosmos",
               cond: (ctx, event) => {
-                return event.data === "";
+                return event.data === ForwardTagOnOraichain.COSMOS;
               }
             },
             {
               target: "finalState",
               cond: (ctx, event) => {
-                return event.data === "final";
+                return event.data === FinalTag;
               }
             }
           ]
         }
       },
       checkOnRecvPacketFailure: {},
-      cosmos: {},
+      cosmos: {
+        on: {
+          [invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT]: "checkOnAcknowledgementOnCosmos"
+        }
+      },
+      checkOnAcknowledgementOnCosmos: {
+        invoke: {
+          src: async (ctx, event) => {
+            const ackPacketData = event.payload.result.events.find((attr) => attr.type === "acknowledge_packet");
+            const value = ackPacketData.attributes.find(
+              (attr: any) => Buffer.from(attr.key, "base64").toString() === "packet_sequence"
+            )?.value;
+            const data = typeof value == "string" ? parseInt(Buffer.from(value, "base64").toString()) : 0;
+            return new Promise((resolve) => resolve(data));
+          },
+          onDone: [
+            {
+              target: "oraichain",
+              cond: (ctx, event) => {
+                return event.data !== ctx.oraiSendPacketSequence;
+              }
+            },
+            {
+              target: "finalState",
+              cond: (ctx, event) => {
+                return event.data === ctx.oraiSendPacketSequence;
+              }
+            }
+          ]
+        }
+      },
       finalState: {
         type: "final"
       }
