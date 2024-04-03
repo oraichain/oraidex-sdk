@@ -23,7 +23,6 @@ import {
   USDC_CONTRACT
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
-import * as universalHelper from "../src/helper";
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 import TronWeb from "tronweb";
@@ -47,6 +46,7 @@ import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common"
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { readFileSync } from "fs";
 import { UniversalSwapHandler } from "../src/handler";
+import { UniversalSwapHelper } from "../src/helper";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -321,7 +321,7 @@ describe("test universal swap handler functions", () => {
                 contract: IBC_WASM_CONTRACT,
                 amount: simulateAmount,
                 msg: toBinary({
-                  local_channel_id: universalHelper.getIbcInfo("Oraichain", "noble-1").channel,
+                  local_channel_id: UniversalSwapHelper.getIbcInfo("Oraichain", "noble-1").channel,
                   remote_address: "noble1234",
                   remote_denom: "uusdc",
                   timeout: IBC_TRANSFER_TIMEOUT,
@@ -428,8 +428,8 @@ describe("test universal swap handler functions", () => {
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
       // TODO: run tests without mocking to simulate actual swap logic
-      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
-      const result = await universalHelper.checkFeeRelayer({
+      jest.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
+      const result = await UniversalSwapHelper.checkFeeRelayer({
         originalFromToken: originalFromToken as TokenItemType,
         fromAmount: 1,
         relayerFee: {
@@ -450,8 +450,8 @@ describe("test universal swap handler functions", () => {
     async (fromDenom, mockSimulateAmount, mockRelayerFee, isSufficient) => {
       const originalFromToken = oraichainTokens.find((item) => item.coinGeckoId === fromDenom);
       // TODO: run tests without mocking to simulate actual swap
-      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
-      const result = await universalHelper.checkFeeRelayerNotOrai({
+      jest.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
+      const result = await UniversalSwapHelper.checkFeeRelayerNotOrai({
         fromTokenInOrai: originalFromToken as TokenItemType,
         fromAmount: 1,
         relayerAmount: mockRelayerFee,
@@ -551,7 +551,7 @@ describe("test universal swap handler functions", () => {
     ]
   ])("test-universal-swap-checkBalanceChannelIbc-%", async (fromToken, toToken, amount, channel, willThrow) => {
     try {
-      await universalHelper.checkBalanceChannelIbc(
+      await UniversalSwapHelper.checkBalanceChannelIbc(
         {
           source: oraiPort,
           channel: channel,
@@ -577,7 +577,7 @@ describe("test universal swap handler functions", () => {
     if (mockToken.contractAddress) {
       if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
     }
-    const { balance } = await universalHelper.getBalanceIBCOraichain(
+    const { balance } = await UniversalSwapHelper.getBalanceIBCOraichain(
       mockToken,
       ics20Contract.client,
       ics20Contract.contractAddress
@@ -612,9 +612,9 @@ describe("test universal swap handler functions", () => {
     async (from: TokenItemType, to: TokenItemType, fromAmount: number, toAmount: string, willThrow: boolean) => {
       try {
         jest
-          .spyOn(universalHelper, "getBalanceIBCOraichain")
+          .spyOn(UniversalSwapHelper, "getBalanceIBCOraichain")
           .mockReturnValue(new Promise((resolve) => resolve({ balance: +toAmount })));
-        universalHelper.checkBalanceIBCOraichain(
+        UniversalSwapHelper.checkBalanceIBCOraichain(
           from,
           to,
           fromAmount,
@@ -637,6 +637,8 @@ describe("test universal swap handler functions", () => {
   ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
+    const spy = jest.spyOn(UniversalSwapHelper, "addOraiBridgeRoute");
+    spy.mockReturnValue({ swapRoute: "", universalSwapType });
     const universalSwap = new FakeUniversalSwapHandler({
       ...universalSwapData,
       originalFromToken: fromToken,
@@ -648,8 +650,8 @@ describe("test universal swap handler functions", () => {
       .mockResolvedValue("swapAndTransferToOtherNetworks" as any);
     jest.spyOn(universalSwap, "swapCosmosToOtherNetwork").mockResolvedValue("swapCosmosToOtherNetwork" as any);
     jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
-    jest.spyOn(universalHelper, "addOraiBridgeRoute").mockReturnValue({ swapRoute: "", universalSwapType });
     const result = await universalSwap.processUniversalSwap();
+    expect(spy).toHaveBeenCalled();
     expect(result).toEqual(expectedFunction);
   });
 
@@ -805,7 +807,7 @@ describe("test universal swap handler functions", () => {
         ...universalSwapData,
         originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId)!
       });
-      const ibcInfo = universalHelper.getIbcInfo("Oraichain", "oraibridge-subnet-2");
+      const ibcInfo = UniversalSwapHelper.getIbcInfo("Oraichain", "oraibridge-subnet-2");
       const toAddress = "foobar";
       const ibcMemo = "";
       const msg = universalSwap.generateMsgsIbcWasm(ibcInfo, toAddress, "john doe", ibcMemo)!;
@@ -948,7 +950,7 @@ describe("test universal swap handler functions", () => {
       jest.spyOn(routerClient, "simulateSwapOperations").mockReturnValue(new Promise((resolve) => resolve({ amount })));
       const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
       const query = { fromInfo, toInfo, amount, routerClient };
-      const simulateData = await universalHelper.simulateSwap(query);
+      const simulateData = await UniversalSwapHelper.simulateSwap(query);
       expect(simulateData.amount).toEqual(expectedSimulateData);
     }
   );
@@ -959,15 +961,15 @@ describe("test universal swap handler functions", () => {
     [true, false, "2"],
     [true, true, "2"]
   ])("test handleSimulateSwap", async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, expectedSimulateAmount) => {
-    const simulateSwapSpy = jest.spyOn(universalHelper, "simulateSwap");
-    const simulateSwapEvmSpy = jest.spyOn(universalHelper, "simulateSwapEvm");
+    const simulateSwapSpy = jest.spyOn(UniversalSwapHelper, "simulateSwap");
+    const simulateSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "simulateSwapEvm");
     simulateSwapSpy.mockResolvedValue({ amount: "1" });
     simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
-    const isSupportedNoPoolSwapEvmSpy = jest.spyOn(universalHelper, "isSupportedNoPoolSwapEvm");
-    const isEvmSwappableSpy = jest.spyOn(universalHelper, "isEvmSwappable");
+    const isSupportedNoPoolSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm");
+    const isEvmSwappableSpy = jest.spyOn(UniversalSwapHelper, "isEvmSwappable");
     isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
     isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
-    const simulateData = await universalHelper.handleSimulateSwap({
+    const simulateData = await UniversalSwapHelper.handleSimulateSwap({
       originalFromInfo: oraichainTokens[0],
       originalToInfo: oraichainTokens[0],
       originalAmount: 0,

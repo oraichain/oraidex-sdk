@@ -39,6 +39,7 @@ import {
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
+  UniversalSwapHelper,
   addOraiBridgeRoute,
   checkBalanceChannelIbc,
   checkBalanceIBCOraichain,
@@ -639,7 +640,7 @@ export class UniversalSwapHandler {
       tronAddress: tron
     });
 
-    const { swapRoute, universalSwapType } = addOraiBridgeRoute(
+    const { swapRoute, universalSwapType } = UniversalSwapHelper.addOraiBridgeRoute(
       cosmos,
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
