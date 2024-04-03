@@ -8,7 +8,7 @@ import { DuckDB } from "../db";
 import { convertTxHashToHex } from "../helpers";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
-export const createEvmToEvmInterpreter = (db: DuckDB) => {
+export const createEvmIntepreter = (db: DuckDB) => {
   const machine = createMachine({
     predictableActionArguments: true,
     preserveActionOrder: true,

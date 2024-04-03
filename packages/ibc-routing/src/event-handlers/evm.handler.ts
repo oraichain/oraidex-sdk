@@ -1,7 +1,7 @@
 import { generateError } from "@oraichain/oraidex-common";
 import { invokableMachineStateKeys, sendToCosmosEvent } from "../constants";
 import { keccak256HashString } from "../helpers";
-import { createEvmToEvmInterpreter } from "../intepreters/evm-evm.intepreter";
+import { createEvmIntepreter } from "../intepreters/evm.intepreter";
 import { EventHandler } from "./event.handler";
 
 export class EvmEventHandler extends EventHandler {
@@ -17,7 +17,7 @@ export class EvmEventHandler extends EventHandler {
 
     if (topics.includes(keccak256HashString(sendToCosmosEvent))) {
       // create new machine so we start a new context for the transaction
-      const intepreter = createEvmToEvmInterpreter(this.db);
+      const intepreter = createEvmIntepreter(this.db);
       this.im.appendIntepreter(intepreter);
 
       // we wont need to loop through the intepreter list because we know this event starts a new machine already
