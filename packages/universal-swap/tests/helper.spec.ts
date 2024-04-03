@@ -399,6 +399,66 @@ describe("test helper functions", () => {
       false
     ],
     [
+      "cosmos",
+      "cosmoshub-4",
+      "tether",
+      "0x01",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          `${ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          ibcInfos["Oraichain"]["0x01"]?.channel ?? "",
+          `${ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX}${parseTokenInfoRawDenom(
+            getTokenOnSpecificChainId("tether", "0x01") as TokenItemType
+          )}`
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "tether",
+      "0x38",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          `${ORAI_BRIDGE_EVM_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          ibcInfos["Oraichain"]["0x38"]?.channel ?? "",
+          `${ORAI_BRIDGE_EVM_DENOM_PREFIX}${parseTokenInfoRawDenom(
+            getTokenOnSpecificChainId("tether", "0x38") as TokenItemType
+          )}`
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "tether",
+      "0x2b6653dc",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          ibcInfos["Oraichain"]["0x2b6653dc"]?.channel ?? "",
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}${parseTokenInfoRawDenom(
+            getTokenOnSpecificChainId("tether", "0x2b6653dc") as TokenItemType
+          )}`
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
       "osmosis",
       "osmosis-1",
       "cosmos",
@@ -465,6 +525,7 @@ describe("test helper functions", () => {
       jest
         .spyOn(dexCommonHelper, "isEthAddress")
         .mockImplementation((address) => (address.includes("0x") ? true : false));
+
       const fromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromCoingeckoId && item.chainId === fromChainId
       )!;
