@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="1153" lines-covered="833" line-rate="0.7223999999999999" branches-valid="417" branches-covered="259" branch-rate="0.6211" timestamp="1712111598968" complexity="0" version="0.1">
+<coverage lines-valid="1153" lines-covered="833" line-rate="0.7223999999999999" branches-valid="417" branches-covered="259" branch-rate="0.6211" timestamp="1712249640618" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -2039,22 +2039,22 @@
             <line number="947" hits="2" branch="false"/>
             <line number="956" hits="3" branch="false"/>
             <line number="966" hits="21" branch="false"/>
-            <line number="968" hits="2" branch="false"/>
-            <line number="980" hits="6" branch="false"/>
-            <line number="985" hits="5" branch="false"/>
-            <line number="991" hits="6" branch="false"/>
-            <line number="997" hits="2" branch="false"/>
-            <line number="1002" hits="2" branch="false"/>
-            <line number="1007" hits="2" branch="false"/>
-            <line number="1012" hits="2" branch="false"/>
-            <line number="1017" hits="2" branch="false"/>
-            <line number="1023" hits="2" branch="false"/>
-            <line number="1028" hits="2" branch="false"/>
-            <line number="1035" hits="2" branch="false"/>
-            <line number="1040" hits="2" branch="false"/>
-            <line number="1045" hits="11" branch="false"/>
-            <line number="1050" hits="3" branch="false"/>
-            <line number="1055" hits="2" branch="false"/>
+            <line number="971" hits="2" branch="false"/>
+            <line number="983" hits="6" branch="false"/>
+            <line number="988" hits="5" branch="false"/>
+            <line number="994" hits="6" branch="false"/>
+            <line number="1000" hits="2" branch="false"/>
+            <line number="1005" hits="2" branch="false"/>
+            <line number="1010" hits="2" branch="false"/>
+            <line number="1015" hits="2" branch="false"/>
+            <line number="1020" hits="2" branch="false"/>
+            <line number="1026" hits="2" branch="false"/>
+            <line number="1031" hits="2" branch="false"/>
+            <line number="1038" hits="2" branch="false"/>
+            <line number="1043" hits="2" branch="false"/>
+            <line number="1048" hits="11" branch="false"/>
+            <line number="1053" hits="3" branch="false"/>
+            <line number="1058" hits="2" branch="false"/>
           </lines>
         </class>
         <class name="swap-filter.ts" filename="packages/universal-swap/src/swap-filter.ts" line-rate="1" branch-rate="1">
