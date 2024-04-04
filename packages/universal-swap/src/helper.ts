@@ -636,8 +636,10 @@ export class UniversalSwapHelper {
           channelId: ibcInfo.channel,
           denom: pairKey
         });
+        console.log("balance: ", channelBalance);
         balance = channelBalance;
       } catch (error) {
+        console.log("error: ", error);
         // do nothing because the given channel and key doesnt exist
         // console.log("error querying channel with key: ", error);
         return;
