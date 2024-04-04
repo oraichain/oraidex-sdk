@@ -331,6 +331,51 @@ describe("test helper functions", () => {
         universalSwapType: "other-networks-to-oraichain"
       },
       false
+    ],
+    [
+      "oraichain-token",
+      "Oraichain",
+      "usd-coin",
+      "0x01",
+      "0x1234",
+      { swapRoute: "", universalSwapType: "oraichain-to-evm" },
+      false
+    ],
+    [
+      "kawaii-islands",
+      "0x1ae6",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      true
+    ],
+    [
+      "kawaii-islands",
+      "kawaii_6886-1",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      true
+    ],
+    [
+      "kawaii-islands",
+      "0x38",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      false
+    ],
+    [
+      "milky-token",
+      "0x38",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      false
     ]
   ])(
     "test-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
@@ -547,6 +592,9 @@ describe("test helper functions", () => {
   it("test-addOraiBridgeRoute-empty-swapRoute", () => {
     const result = addOraiBridgeRoute("receiver", "any" as any, "any" as any);
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
+  });
+  it("test-addOraiBridgeRoute-empty-sourceReceiver", () => {
+    expect(() => addOraiBridgeRoute("", "" as any, "" as any)).toThrow();
   });
   it("test-addOraiBridgeRoute-non-empty-swapRoute", () => {
     const result = addOraiBridgeRoute(
