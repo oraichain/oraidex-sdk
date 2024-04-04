@@ -647,6 +647,7 @@ export class UniversalSwapHelper {
         const pairMapping = await ics20Client.pairMapping({ key: pairKey });
         const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
         let _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
+
         if (fromToken.coinGeckoId !== toToken.coinGeckoId) {
           const fromTokenInfo = getTokenOnOraichain(fromToken.coinGeckoId);
           const toTokenInfo = getTokenOnOraichain(toToken.coinGeckoId);
@@ -666,7 +667,7 @@ export class UniversalSwapHelper {
         if (trueBalance < _toAmount) throw generateError(`pair key is not enough balance!`);
       }
     } catch (error) {
-      throw generateError(`Error in checking balance channel ibc: ${JSON.stringify(error)}`);
+      throw generateError(`Error in checking balance channel ibc: ${error}`);
     }
   };
 
