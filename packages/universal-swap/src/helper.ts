@@ -965,6 +965,9 @@ export const getSourceReceiver = UniversalSwapHelper.getSourceReceiver;
  */
 export const getRoute = UniversalSwapHelper.getRoute;
 
+/**
+ * @deprecated
+ */
 export const addOraiBridgeRoute = UniversalSwapHelper.addOraiBridgeRoute;
 
 /**
