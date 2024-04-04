@@ -272,7 +272,6 @@ export const getRoute = (
       return { swapRoute: parseToIbcWasmMemo(destReceiver, "", ""), universalSwapType: "other-networks-to-oraichain" };
     // if they are not the same then we set dest denom
     return {
-      // swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
       swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
       universalSwapType: "other-networks-to-oraichain"
     };
@@ -289,7 +288,6 @@ export const getRoute = (
     };
 
   return {
-    // swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
     swapRoute: parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom),
     universalSwapType: "other-networks-to-oraichain"
   };
