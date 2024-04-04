@@ -258,11 +258,10 @@ describe("test helper functions", () => {
       "0x38",
       "oraichain-token",
       "0x01",
-      "orai1234",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
       {
-        // swapRoute: `${oraichain2oraib}/orai1234:${ORAI_ETH_CONTRACT}`,
         swapRoute: parseToIbcWasmMemo(
-          "orai1234",
+          `${ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
           oraichain2oraib,
           ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + ORAI_ETH_CONTRACT
         ),
@@ -275,10 +274,14 @@ describe("test helper functions", () => {
       "0x01",
       "tether",
       "0x38",
-      "orai1234",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${USDT_BSC_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, ORAI_BRIDGE_EVM_DENOM_PREFIX + USDT_BSC_CONTRACT),
+        swapRoute: parseToIbcWasmMemo(
+          `${ORAI_BRIDGE_EVM_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          oraichain2oraib,
+          ORAI_BRIDGE_EVM_DENOM_PREFIX + USDT_BSC_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -288,11 +291,11 @@ describe("test helper functions", () => {
       "0x01",
       "tether",
       "0x2b6653dc",
-      "orai1234",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${USDT_TRON_CONTRACT}`,
         swapRoute: parseToIbcWasmMemo(
-          "orai1234",
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
           oraichain2oraib,
           ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX + USDT_TRON_CONTRACT
         ),

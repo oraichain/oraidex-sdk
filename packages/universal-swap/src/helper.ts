@@ -239,23 +239,24 @@ export const getRoute = (
   if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6") {
     throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
   }
-  // cosmos to others case where from token is a cosmos token
-  // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
-  let toDenom = parseTokenInfoRawDenom(toToken);
-  if (!toToken.cosmosBased && evmChains.map((e) => e.chainId).includes(toToken.chainId))
-    toDenom = toToken.prefix + toDenom;
+
   let receiverPrefix = "";
   if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
+  const toDenom = receiverPrefix + parseTokenInfoRawDenom(toToken);
+  const finalDestReceiver = receiverPrefix + destReceiver;
   // we get ibc channel that transfers toToken from Oraichain to the toToken chain
   const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
+
+  // cosmos to others case where from token is a cosmos token
+  // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
 
   if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
     let swapRoute = "";
     // if from chain is noble, use ibc wasm instead of ibc hooks
     if (fromToken.chainId == "noble-1") {
-      swapRoute = parseToIbcWasmMemo(`${receiverPrefix}${destReceiver}`, dstChannel, toDenom);
+      swapRoute = parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom);
     } else {
-      swapRoute = parseToIbcHookMemo(receiverOnOrai, `${receiverPrefix}${destReceiver}`, dstChannel, toDenom);
+      swapRoute = parseToIbcHookMemo(receiverOnOrai, finalDestReceiver, dstChannel, toDenom);
     }
 
     return { swapRoute, universalSwapType: "cosmos-to-others" };
@@ -289,7 +290,7 @@ export const getRoute = (
 
   return {
     // swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
-    swapRoute: parseToIbcWasmMemo(`${receiverPrefix}${destReceiver}`, dstChannel, toDenom),
+    swapRoute: parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom),
     universalSwapType: "other-networks-to-oraichain"
   };
 };

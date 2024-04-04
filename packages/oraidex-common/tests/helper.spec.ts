@@ -388,7 +388,7 @@ describe("should helper functions in helper run exactly", () => {
     expect(reuslt).toEqual([]);
 
     // case 2: real tx with multiple msgs and multiple contract calls
-    const client = await StargateClient.connect("wss://rpc.orai.io");
+    const client = await StargateClient.connect("https://rpc.orai.io/");
     const indexedTx = await client.getTx("9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17");
     client.disconnect();
 
