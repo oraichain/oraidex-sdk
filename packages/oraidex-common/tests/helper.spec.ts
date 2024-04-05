@@ -34,6 +34,8 @@ import {
 import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { isFactoryV1 } from "../src/pairs";
 import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
+import fs from "fs";
+import path from "path";
 
 describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
@@ -388,11 +390,10 @@ describe("should helper functions in helper run exactly", () => {
     expect(reuslt).toEqual([]);
 
     // case 2: real tx with multiple msgs and multiple contract calls
-    const client = await StargateClient.connect("https://rpc.orai.io/");
-    const indexedTx = await client.getTx("9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17");
-    client.disconnect();
-
-    const data = parseTxToMsgsAndEvents(indexedTx!);
+    // got data from tx hash 9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17 Oraichain.
+    const rawLog = fs.readFileSync(path.join(__dirname, "indexed-tx-raw-log.json")).toString();
+    const tx = Buffer.from(fs.readFileSync(path.join(__dirname, "indexed-tx-tx.json")).toString(), "base64");
+    const data = parseTxToMsgsAndEvents({ rawLog, tx } as any);
     expect(data.length).toEqual(2);
     expect(data[0].message).toMatchObject({
       sender: "orai16hv74w3eu3ek0muqpgp4fekhrqgpzl3hd3qeqk",
