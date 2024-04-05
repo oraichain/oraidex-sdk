@@ -58,7 +58,7 @@ import {
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
 import { Coin, coin } from "@cosmjs/proto-signing";
 

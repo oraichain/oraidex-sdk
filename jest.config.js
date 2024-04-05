@@ -1,7 +1,7 @@
-/** @type {import('ts-jest').JestConfigWithTsJest} */
+// jest.config.js
 module.exports = {
   transform: {
-    "^.+\\.ts?$": ["ts-jest", { isolatedModules: true }]
+    "^.+\\.ts?$": ["@swc/jest"]
   },
   testEnvironment: "node",
   modulePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/packages/ibc-routing"],
