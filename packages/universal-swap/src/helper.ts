@@ -248,20 +248,24 @@ export class UniversalSwapHelper {
     if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6") {
       throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
     }
+
+    let receiverPrefix = "";
+    if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
+    const toDenom = receiverPrefix + parseTokenInfoRawDenom(toToken);
+    const finalDestReceiver = receiverPrefix + destReceiver;
+    // we get ibc channel that transfers toToken from Oraichain to the toToken chain
+    const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
+
     // cosmos to others case where from token is a cosmos token
     // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
-    let toDenom = parseTokenInfoRawDenom(toToken);
-    if (!toToken.cosmosBased && evmChains.map((e) => e.chainId).includes(toToken.chainId))
-      toDenom = toToken.prefix + toDenom;
 
     if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
       let swapRoute = "";
-      const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
       // if from chain is noble, use ibc wasm instead of ibc hooks
       if (fromToken.chainId == "noble-1") {
-        swapRoute = parseToIbcWasmMemo(destReceiver, dstChannel, toDenom);
+        swapRoute = parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom);
       } else {
-        swapRoute = parseToIbcHookMemo(receiverOnOrai, destReceiver, dstChannel, toDenom);
+        swapRoute = parseToIbcHookMemo(receiverOnOrai, finalDestReceiver, dstChannel, toDenom);
       }
 
       return { swapRoute, universalSwapType: "cosmos-to-others" };
@@ -280,15 +284,13 @@ export class UniversalSwapHelper {
         };
       // if they are not the same then we set dest denom
       return {
-        // swapRoute: `${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
         swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
         universalSwapType: "other-networks-to-oraichain"
       };
     }
     // the remaining cases where we have to process ibc msg
-    const ibcInfo: IBCInfo = ibcInfos["Oraichain"][toToken.chainId]; // we get ibc channel that transfers toToken from Oraichain to the toToken chain
+
     // getTokenOnOraichain is called to get the ibc denom / cw20 denom on Oraichain so that we can create an ibc msg using it
-    let receiverPrefix = "";
     // TODO: no need to use to token on Oraichain. Can simply use the swapRoute token directly. Fix this requires fixing the logic on ibc wasm as well
     const toTokenOnOraichain = getTokenOnOraichain(toToken.coinGeckoId);
     if (!toTokenOnOraichain)
@@ -296,10 +298,9 @@ export class UniversalSwapHelper {
         swapRoute: "",
         universalSwapType: "other-networks-to-oraichain"
       };
-    if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
+
     return {
-      // swapRoute: `${ibcInfo.channel}/${receiverPrefix}${destReceiver}:${parseTokenInfoRawDenom(toToken)}`,
-      swapRoute: parseToIbcWasmMemo(`${receiverPrefix}${destReceiver}`, ibcInfo.channel, toDenom),
+      swapRoute: parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom),
       universalSwapType: "other-networks-to-oraichain"
     };
   };
@@ -899,6 +900,7 @@ export class UniversalSwapHelper {
     return msg;
   };
 }
+
 // evm swap helpers
 /**
  * @deprecated. Use UniversalSwapHelper.isSupportedNoPoolSwapEvm

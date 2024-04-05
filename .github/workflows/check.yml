@@ -52,9 +52,9 @@ jobs:
           npm install -g yarn
           yarn
 
-      # - name: Run nx reset workspace
-      #   run: |
-      #     yarn nx reset
+      - name: Run nx reset workspace
+        run: |
+          yarn nx reset
 
       - name: Run test
         run: |
