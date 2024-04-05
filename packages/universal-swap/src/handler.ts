@@ -35,7 +35,8 @@ import {
   tokenMap,
   AmountDetails,
   buildMultipleExecuteMessages,
-  ibcInfosOld
+  ibcInfosOld,
+  checkValidateAddressWithNetwork
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import {
@@ -217,7 +218,22 @@ export class UniversalSwapHandler {
 
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
     const newToToken = findToTokenOnOraiBridge(originalToToken.coinGeckoId, originalToToken.chainId);
-    const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
+
+    // recipient => validate
+    let toAddress = "";
+    const currentToNetwork = originalToToken?.chainId;
+
+    if (this.config.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.config.recipientAddress, currentToNetwork);
+
+      if (!isValidRecipient.isValid) {
+        throw generateError("Recipient invalid!");
+      }
+      toAddress = this.config.recipientAddress;
+    } else {
+      toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
+    }
+
     if (!toAddress) throw generateError("Please login keplr!");
 
     const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, newToToken.chainId);
@@ -593,6 +609,7 @@ export class UniversalSwapHandler {
 
     // get swapRoute
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+
     const { swapRoute } = getRoute(
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
@@ -622,7 +639,17 @@ export class UniversalSwapHandler {
 
     // check if from chain is noble, use ibc-wasm instead of ibc-hooks
     if (originalFromToken.chainId === "noble-1") {
-      msgTransfer.receiver = oraiAddress;
+      if (this.config.recipientAddress) {
+        const isValidRecipient = checkValidateAddressWithNetwork(this.config.recipientAddress, "Oraichain");
+
+        if (!isValidRecipient.isValid || isValidRecipient.network !== "Oraichain") {
+          throw generateError("Recipient invalid! Only support bridge to Oraichain");
+        }
+        msgTransfer.receiver = this.config.recipientAddress;
+      } else {
+        msgTransfer.receiver = oraiAddress;
+      }
+
       msgTransfer.memo = swapRoute;
     }
 
@@ -635,10 +662,22 @@ export class UniversalSwapHandler {
 
   async processUniversalSwap() {
     const { cosmos, evm, tron } = this.swapData.sender;
-    const toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
-      metamaskAddress: evm,
-      tronAddress: tron
-    });
+    let toAddress = "";
+    const currentToNetwork = this.swapData.originalToToken?.chainId;
+
+    if (this.config.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.config.recipientAddress, currentToNetwork);
+
+      if (!isValidRecipient.isValid) {
+        throw generateError("Recipient invalid!");
+      }
+      toAddress = this.config.recipientAddress;
+    } else {
+      toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
+        metamaskAddress: evm,
+        tronAddress: tron
+      });
+    }
 
     const { swapRoute, universalSwapType } = UniversalSwapHelper.addOraiBridgeRoute(
       cosmos,
@@ -667,10 +706,13 @@ export class UniversalSwapHandler {
       const msgConvertsFrom = generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
       const msgConvertTo = generateConvertErc20Cw20Message(this.swapData.amounts, toTokenInOrai);
       const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
-      if (!this.swapData.simulatePrice || !isValidSlippage)
+      if (!this.swapData.simulatePrice || !isValidSlippage) {
+        console.log("this.swapData.userSlippage", this.swapData.userSlippage);
         throw generateError(
           "Could not calculate the minimum receive value because there is no simulate price or user slippage"
         );
+      }
+
       const minimumReceive = calculateMinReceive(
         this.swapData.simulatePrice,
         _fromAmount,
