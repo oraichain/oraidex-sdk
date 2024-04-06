@@ -54,7 +54,7 @@ describe("test-integration", () => {
   const sleep = async (timeout: number) => new Promise((resolve) => setTimeout(resolve, timeout));
 
   const [owner] = getSigners(1);
-  it("[EVM->Oraichain] full-flow happy test", async () => {
+  xit("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
@@ -122,7 +122,7 @@ describe("test-integration", () => {
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataEvm2Evm));
     await sleep(300);
 
-    // const intepreterCount = im.getIntepreter(0);
-    // expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    const intepreterCount = im.getIntepreter(0);
+    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 });

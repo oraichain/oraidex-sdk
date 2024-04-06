@@ -33,7 +33,9 @@ export const createEvmIntepreter = (db: DuckDB) => {
       oraiReceivePacketSequence: -1, // sequence when OnRecvPacket
       oraiSendPacketSequence: -1, // sequence when SendPacket,
       oraiBridgePendingTxId: -1,
-      oraiBridgeBatchNonce: -1
+      oraiBridgeBatchNonce: -1,
+      evmChainPrefixOnLeftTraverseOrder: "",
+      evmChainPrefixOnRightTraverseOrder: ""
     },
     states: {
       evm: {
@@ -167,6 +169,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               prevTxHash: prevEvmState.txHash,
               next_state: "OraichainState",
               eventNonce: event.data.eventNonce,
+              batchNonce: 0,
               txId: 0,
               packetSequence: packetSequence,
               ...packetData,
@@ -473,6 +476,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               prevTxHash: prevOraichainState.txHash,
               next_state: "EvmSstate",
               eventNonce: 0,
+              batchNonce: 0,
               txId: ctx.oraiBridgePendingTxId,
               packetSequence: packetSequence,
               ...packetData,
@@ -511,6 +515,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
           src: async (ctx, event) => {
             const txEvent: TxEvent = event.payload;
             const events = parseRpcEvents(txEvent.result.events);
+            events.forEach((event) => {
+              console.log("========", event.type, "========");
+              event.attributes.forEach((attr) => {
+                console.log(`Key: ${attr.key} - Value: ${attr.value}`);
+              });
+            });
             const batchTxIds = events.find((attr) => attr.type == "batched_tx_ids");
             if (!batchTxIds) {
               throw generateError("Batched tx ids not found on request batch event");
@@ -550,11 +560,11 @@ export const createEvmIntepreter = (db: DuckDB) => {
       storeOnRequestBatch: {
         invoke: {
           src: async (ctx, event) => {
-            const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndEventNonce(0, ctx.oraiBridgePendingTxId, 1);
+            const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndBatchNonce(0, ctx.oraiBridgePendingTxId, 1);
             if (oraiBridgeData.length == 0) {
               throw generateError("Error on saving data on onRecvPacketOnOraiBridge");
             }
-            await ctx.db.updateOraiBridgeEventNonceByTxId(event.data.batchNonce, ctx.oraiBridgePendingTxId);
+            await ctx.db.updateOraiBridgeBatchNonceByTxId(event.data.batchNonce, ctx.oraiBridgePendingTxId);
             ctx.oraiBridgeBatchNonce = event.data.batchNonce;
           },
           onError: {
@@ -613,7 +623,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             if (!oraiBridgeData) {
               throw generateError("error on saving batch nonce to eventNonce in OraiBridgeState");
             }
-            await ctx.db.updateOraiBridgeStatusByNonce(event.data.batchNonce, StateDBStatus.FINISHED);
+            await ctx.db.updateOraiBridgeStatusByEventNonce(event.data.batchNonce, StateDBStatus.FINISHED);
           },
           onError: {
             actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
