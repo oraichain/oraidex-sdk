@@ -31,6 +31,7 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       eventNonce uinteger,
+      txId uinteger,
       packetSequence uinteger primary key,
       amount hugeint,
       denom varchar,
@@ -72,10 +73,19 @@ export const sqlCommands = {
     oraichainStateByPacketSequence: `
       SELECT * from OraichainState where packetSequence = ?
       `,
+    oraichainStateByNextPacketSequence: `
+    SELECT * from OraichainState where nextPacketSequence = ?
+    `,
+    oraiBridgeByTxIdAndEventNonce: `
+      SELECT * from OraiBridgeState WHERE txId = ? AND eventNonce = ? LIMIT ?
+    `,
     stateDataByPacketSequence: (tableName: string) => `SELECT * from ${tableName} where packetSequence = ?`
   },
   update: {
-    updateStatusByTxHash: (tableName: string) => `UPDATE ${tableName} SET status = ? WHERE txHash = ?`
+    statusByTxHash: (tableName: string) => `UPDATE ${tableName} SET status = ? WHERE txHash = ?`,
+    oraichainStatusByNextPacketNonce: () => `UPDATE OraichainState SET status = ? WHERE nextPacketSequence = ?`,
+    oraiBridgeEventNonceByTxId: () => `UPDATE OraiBridgeState SET eventNonce = ? WHERE txId = ? AND eventNonce = 0`,
+    oraiBridgeStatusByNonce: () => `UPDATE OraiBridgeState SET status = ? WHERE eventNonce = ?`
   }
 };
 
@@ -86,9 +96,14 @@ export abstract class DuckDB {
   abstract queryOraiBridgeStateByNonce(eventNonce: number): Promise<any>;
   abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
   abstract queryOraichainStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryOraichainStateByNextPacketSequence(packetSequence: number): Promise<any>;
+  abstract queryOraiBridgeByTxIdAndEventNonce(eventNonce: number, txId: number, limit: number): Promise<any>;
   abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
   abstract insertData(data: any, tableName: string): Promise<void>;
   abstract updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string): Promise<void>;
+  abstract updateOraichainStatusByNextPacketSequence(packetSequence: number, status: StateDBStatus): Promise<void>;
+  abstract updateOraiBridgeEventNonceByTxId(eventNonce: number, txId: number): Promise<void>;
+  abstract updateOraiBridgeStatusByNonce(eventNonce: number, status: StateDBStatus): Promise<void>;
 }
 
 // TODO: use vector instead of writing to files
@@ -147,6 +162,17 @@ export class DuckDbNode extends DuckDB {
     return [];
   }
 
+  async queryOraichainStateByNextPacketSequence(packetSequence: number) {
+    const result = await this.conn.all(sqlCommands.query.oraichainStateByNextPacketSequence, packetSequence);
+    if (result.length > 0) return result[0];
+    return [];
+  }
+
+  async queryOraiBridgeByTxIdAndEventNonce(eventNonce: number, txId: number, limit: number = 1) {
+    const result = await this.conn.all(sqlCommands.query.oraiBridgeByTxIdAndEventNonce, txId, eventNonce, limit);
+    return result;
+  }
+
   async findStateByPacketSequence(packetSequence: number): Promise<any> {
     for (const tableName of Object.keys(sqlCommands.create)) {
       try {
@@ -170,8 +196,23 @@ export class DuckDbNode extends DuckDB {
   }
 
   async updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string) {
-    const sql = sqlCommands.update.updateStatusByTxHash(tableName);
+    const sql = sqlCommands.update.statusByTxHash(tableName);
     await this.conn.run(sql, status, txHash);
+  }
+
+  async updateOraichainStatusByNextPacketSequence(packetSequence: number, status: StateDBStatus) {
+    const sql = sqlCommands.update.oraichainStatusByNextPacketNonce();
+    await this.conn.run(sql, status, packetSequence);
+  }
+
+  async updateOraiBridgeEventNonceByTxId(eventNonce: number, txId: number) {
+    const sql = sqlCommands.update.oraiBridgeEventNonceByTxId();
+    await this.conn.run(sql, eventNonce, txId);
+  }
+
+  async updateOraiBridgeStatusByNonce(eventNonce: number, status: StateDBStatus) {
+    const sql = sqlCommands.update.oraiBridgeStatusByNonce();
+    await this.conn.run(sql, status, eventNonce);
   }
 }
 

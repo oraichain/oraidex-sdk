@@ -7,10 +7,10 @@ export class OraichainHandler extends EventHandler {
       const events = eventItem.result.events;
       switch (true) {
         case events.find((attr) => attr.type === "recv_packet") !== undefined:
-          this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET, eventItem);
+          this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, eventItem);
           break;
         case events.find((attr) => attr.type === "acknowledge_packet") !== undefined:
-          this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT, eventItem);
+          this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN, eventItem);
           break;
       }
     }

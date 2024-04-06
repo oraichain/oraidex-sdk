@@ -1,13 +1,24 @@
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, unmarshalOraiBridgeRoute } from "@oraichain/oraidex-universal-swap";
+import { generateError } from "@oraichain/oraidex-common";
+import { OraiBridgeRouteData } from "@oraichain/oraidex-universal-swap";
 import { createMachine, interpret } from "xstate";
 import { ForwardTagOnOraichain, StateDBStatus } from "../@types";
-import { FinalTag, invokableMachineStateKeys, oraiBridgeAutoForwardEventType } from "../constants";
+import {
+  batchSendToEthClaimEventType,
+  FinalTag,
+  invokableMachineStateKeys,
+  oraiBridgeAutoForwardEventType,
+  outGoingTxIdEventType,
+  PathsToEvm
+} from "../constants";
 import { DuckDB } from "../db";
 import { convertTxHashToHex } from "../helpers";
+import { parseRpcEvents } from "../utils/events";
+import { unmarshalOraiBridgeRoute } from "../utils/marshal";
+import { decodeIbcMemo } from "../utils/protobuf";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
+// TODO: add precheck correct type of evm handle case
 export const createEvmIntepreter = (db: DuckDB) => {
   const machine = createMachine({
     predictableActionArguments: true,
@@ -21,7 +32,8 @@ export const createEvmIntepreter = (db: DuckDB) => {
       oraiBridgePacketSequence: -1,
       oraiReceivePacketSequence: -1, // sequence when OnRecvPacket
       oraiSendPacketSequence: -1, // sequence when SendPacket,
-      finalMemo: ""
+      oraiBridgePendingTxId: -1,
+      oraiBridgeBatchNonce: -1
     },
     states: {
       evm: {
@@ -53,6 +65,8 @@ export const createEvmIntepreter = (db: DuckDB) => {
               eventNonce: parseInt(eventData[4].toString()),
               status: StateDBStatus.PENDING
             };
+
+            console.log("EvmState", sendToCosmosData);
             // this context data will be used for querying in the next state
             ctx.evmEventNonce = sendToCosmosData.eventNonce;
             await ctx.db.insertData(sendToCosmosData, "EvmState");
@@ -137,7 +151,9 @@ export const createEvmIntepreter = (db: DuckDB) => {
             }
 
             await ctx.db.updateStatusByTxHash("EvmState", StateDBStatus.FINISHED, prevEvmState.txHash);
-            const packetData = JSON.parse(packetDataAttr.value);
+            let packetData = JSON.parse(packetDataAttr.value);
+            packetData.memo = decodeIbcMemo(packetData.memo, false).destinationDenom;
+
             // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
             const srcPort = sendPacketEvent.attributes.find((attr) => attr.key === "packet_src_port").value;
             const srcChannel = sendPacketEvent.attributes.find((attr) => attr.key === "packet_src_channel").value;
@@ -151,6 +167,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               prevTxHash: prevEvmState.txHash,
               next_state: "OraichainState",
               eventNonce: event.data.eventNonce,
+              txId: 0,
               packetSequence: packetSequence,
               ...packetData,
               amount: packetData.amount,
@@ -160,6 +177,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               dstChannel,
               status: StateDBStatus.PENDING
             };
+            console.log("Autoforward data:", autoForwardData);
             await ctx.db.insertData(autoForwardData, "OraiBridgeState");
             ctx.oraiBridgeEventNonce = event.data.eventNonce;
             ctx.oraiBridgePacketSequence = packetSequence;
@@ -178,7 +196,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
       storeAutoForwardFailure: {},
       oraichain: {
         on: {
-          [invokableMachineStateKeys.STORE_ON_RECV_PACKET]: "checkOnRecvPacketOraichain"
+          [invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN]: "checkOnRecvPacketOraichain"
         }
       },
       checkOnRecvPacketOraichain: {
@@ -231,7 +249,6 @@ export const createEvmIntepreter = (db: DuckDB) => {
             const packetAck = Buffer.from(JSON.parse(packetAckAttr.value).result, "base64").toString("ascii");
             // if equals 1 it means the ack is successful. Otherwise, this packet has some errors
             if (packetAck != "1") {
-              console.log("in here");
               throw generateError(`The packet ack is not successful: ${packetAck}`);
             }
             // try finding the previous state and collect its tx hash and compare with our received packet sequence
@@ -263,6 +280,9 @@ export const createEvmIntepreter = (db: DuckDB) => {
               };
               ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
             }
+            const existEvmPath = PathsToEvm.find((item) => nextPacketData.nextDestinationDenom.includes(item));
+            nextState = existEvmPath ? "OraiBridgeState" : "";
+
             const { tableName, state } = await ctx.db.findStateByPacketSequence(event.data.packetSequence);
             if (!tableName)
               throw generateError(
@@ -281,10 +301,14 @@ export const createEvmIntepreter = (db: DuckDB) => {
               ...nextPacketData,
               status: nextPacketData.nextPacketSequence != 0 ? StateDBStatus.PENDING : StateDBStatus.FINISHED
             };
+            console.log("onRecvPacketData", onRecvPacketData);
             await ctx.db.insertData(onRecvPacketData, "OraichainState");
             // now we have verified everything, lets store the result into the db
             // TODO: if there's a next state, prepare to return a valid result here
             if (nextState || nextPacketData.nextPacketSequence != 0) {
+              if (nextState == "OraiBridgeState") {
+                return new Promise((resolve) => resolve(ForwardTagOnOraichain.EVM));
+              }
               return new Promise((resolve) => resolve(ForwardTagOnOraichain.COSMOS));
             }
             // no next state, we move to final state of the machine
@@ -295,6 +319,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
               target: "cosmos",
               cond: (ctx, event) => {
                 return event.data === ForwardTagOnOraichain.COSMOS;
+              }
+            },
+            {
+              target: "oraiBridgeForEvm",
+              cond: (ctx, event) => {
+                return event.data === ForwardTagOnOraichain.EVM;
               }
             },
             {
@@ -309,35 +339,297 @@ export const createEvmIntepreter = (db: DuckDB) => {
       checkOnRecvPacketFailure: {},
       cosmos: {
         on: {
-          [invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT]: "checkOnAcknowledgementOnCosmos"
+          [invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN]: "checkOnAcknowledgementOnCosmos"
         }
       },
       checkOnAcknowledgementOnCosmos: {
         invoke: {
           src: async (ctx, event) => {
-            const ackPacketData = event.payload.result.events.find((attr) => attr.type === "acknowledge_packet");
-            const value = ackPacketData.attributes.find(
-              (attr: any) => Buffer.from(attr.key, "base64").toString() === "packet_sequence"
-            )?.value;
-            const data = typeof value == "string" ? parseInt(Buffer.from(value, "base64").toString()) : 0;
-            return new Promise((resolve) => resolve(data));
+            const events = parseRpcEvents(event.payload.result.events);
+            const ackPacket = events.find((attr) => attr.type === "acknowledge_packet");
+            if (!ackPacket) {
+              throw generateError("Acknowledgement packet not found on step checkOnAcknowledgementOnCosmos");
+            }
+            const value = ackPacket.attributes.find((attr: any) => attr.key === "packet_sequence").value;
+            const data = parseInt(value);
+            return new Promise((resolve) => resolve({ packetSequence: data }));
           },
           onDone: [
             {
               target: "oraichain",
               cond: (ctx, event) => {
-                return event.data !== ctx.oraiSendPacketSequence;
+                return event.data.packetSequence !== ctx.oraiSendPacketSequence;
               }
             },
             {
-              target: "finalState",
+              target: "updateOnAcknowledgementOnCosmos",
               cond: (ctx, event) => {
-                return event.data === ctx.oraiSendPacketSequence;
+                return event.data.packetSequence === ctx.oraiSendPacketSequence;
               }
             }
           ]
         }
       },
+      updateOnAcknowledgementOnCosmos: {
+        invoke: {
+          src: async (ctx, events) => {
+            const packetSequence = events.data.packetSequence;
+            let oraichainData = await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence);
+            if (!oraichainData) {
+              throw generateError(
+                "error on finding oraichain state by next packet sequence in updateOnAcknowledgementOnCosmos"
+              );
+            }
+            await ctx.db.updateOraichainStatusByNextPacketSequence(parseInt(packetSequence), StateDBStatus.FINISHED);
+            console.log(await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence));
+          },
+          onError: {
+            actions: (ctx, event) => console.log("error on update on acknowledgement on OraiBridgeDB: ", event.data),
+            target: "updateOnAcknowledgementOnCosmosFailure"
+          },
+          onDone: [
+            {
+              target: "finalState",
+              cond: (ctx, event) => {
+                return true;
+              }
+            }
+          ]
+        }
+      },
+      updateOnAcknowledgementOnCosmosFailure: {},
+      oraiBridgeForEvm: {
+        on: {
+          [invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAIBRIDGE]: "checkOnRecvPacketOnOraiBridge"
+        }
+      },
+      checkOnRecvPacketOnOraiBridge: {
+        invoke: {
+          src: async (ctx, event: any) => {
+            const txEvent = event.payload as TxEvent;
+            const events = parseRpcEvents(txEvent.result.events);
+            const recvPacket = events.find((attr) => attr.type == "recv_packet");
+            if (!recvPacket) {
+              throw generateError(
+                "Could not find the recv packet event from the payload at checkOnRecvPacketOraichain"
+              );
+            }
+            const packetSequenceAttr = recvPacket.attributes.find((attr) => attr.key === "packet_sequence");
+            const packetSequence = parseInt(packetSequenceAttr.value);
+
+            // Forward next event data
+            return new Promise((resolve) => resolve({ packetSequence, txEvent: txEvent }));
+          },
+          onDone: [
+            {
+              target: "onRecvPacketOnOraiBridge",
+              cond: (ctx, event) => event.data.packetSequence === ctx.oraiSendPacketSequence
+            },
+            {
+              target: "oraiBridgeForEvm",
+              cond: (ctx, event) => event.data.packetSequence !== ctx.oraiSendPacketSequence
+            }
+          ]
+        }
+      },
+      onRecvPacketOnOraiBridge: {
+        invoke: {
+          src: async (ctx, event) => {
+            const txEvent = event.data.txEvent as TxEvent;
+            const events = parseRpcEvents(txEvent.result.events);
+            const outGoingEvent = events.find((attr) => attr.type == outGoingTxIdEventType);
+            if (!outGoingEvent) {
+              throw generateError(
+                "Could not find the recv packet event from the payload at checkOnRecvPacketOraichain"
+              );
+            }
+            const txId = outGoingEvent.attributes.find((attr) => attr.key === "tx_id").value;
+            ctx.oraiBridgePendingTxId = parseInt(JSON.parse(txId));
+
+            // Store on Recv Packet
+            const recvPacketEvent = events.find((e) => e.type === "recv_packet");
+            const packetSequenceAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
+            if (!packetSequenceAttr)
+              throw generateError("Cannot find the packet sequence in send_packet of auto forward");
+            const packetDataAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_data");
+            if (!packetDataAttr) {
+              throw generateError("Cannot find the packet data in send_packet of auto forward");
+            }
+            const srcPort = recvPacketEvent.attributes.find((attr) => attr.key === "packet_src_port").value;
+            const srcChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_src_channel").value;
+            const dstPort = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_port").value;
+            const dstChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_channel").value;
+            const packetSequence = parseInt(packetSequenceAttr.value);
+            const prevOraichainState = await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence);
+            if (!prevOraichainState) {
+              throw generateError("Can not find previous oraichain state db.");
+            }
+            const packetData = JSON.parse(packetDataAttr.value);
+
+            const oraiBridgeData = {
+              txHash: convertTxHashToHex(txEvent.hash),
+              height: txEvent.height,
+              prevState: "OraichainState",
+              prevTxHash: prevOraichainState.txHash,
+              next_state: "EvmSstate",
+              eventNonce: 0,
+              txId: ctx.oraiBridgePendingTxId,
+              packetSequence: packetSequence,
+              ...packetData,
+              amount: packetData.amount,
+              srcPort,
+              srcChannel,
+              dstPort,
+              dstChannel,
+              status: StateDBStatus.PENDING
+            };
+            await ctx.db.insertData(oraiBridgeData, "OraiBridgeState");
+            // End of storing on Recv Packet
+          },
+          onError: {
+            actions: (ctx, event) => console.log("error check on recv packet OraiBridgeState: ", event.data),
+            target: "onRecvPacketOnOraiBridgeFailure"
+          },
+          onDone: [
+            {
+              target: "onRequestBatch",
+              cond: (ctx, event) => {
+                return true;
+              }
+            }
+          ]
+        }
+      },
+      onRecvPacketOnOraiBridgeFailure: {},
+      onRequestBatch: {
+        on: {
+          [invokableMachineStateKeys.STORE_ON_REQUEST_BATCH]: "checkOnRequestBatch"
+        }
+      },
+      checkOnRequestBatch: {
+        invoke: {
+          src: async (ctx, event) => {
+            const txEvent: TxEvent = event.payload;
+            const events = parseRpcEvents(txEvent.result.events);
+            const batchTxIds = events.find((attr) => attr.type == "batched_tx_ids");
+            if (!batchTxIds) {
+              throw generateError("Batched tx ids not found on request batch event");
+            }
+            const batchNonceData = events
+              .find((attr) => attr.type == "gravity.v1.EventBatchCreated")
+              .attributes.find((item) => item.key == "batch_nonce");
+            if (!batchNonceData) {
+              throw generateError("Batch nonce is not found on request batch event");
+            }
+            const batchNonceValue = parseInt(JSON.parse(batchNonceData.value));
+            const txIds = batchTxIds.attributes.map((item) => parseInt(item.value));
+            return new Promise((resolve) => resolve({ batchNonce: batchNonceValue, txIds, events }));
+          },
+          onError: {
+            actions: (ctx, event) => console.log("error check on request batch OraiBridgeState: ", event.data),
+            target: "checkOnRecvPacketFailure"
+          },
+          onDone: [
+            {
+              target: "storeOnRequestBatch",
+              cond: (ctx, event) => {
+                return event.data.txIds.includes(ctx.oraiBridgePendingTxId);
+              }
+            },
+            {
+              target: "onRequestBatch",
+              cond: (ctx, event) => {
+                console.log(event.data.txIds, ctx.oraiBridgePendingTxId);
+                return !event.data.txIds.includes(ctx.oraiBridgePendingTxId);
+              }
+            }
+          ]
+        }
+      },
+      checkOnRequestBatchFailure: {},
+      storeOnRequestBatch: {
+        invoke: {
+          src: async (ctx, event) => {
+            const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndEventNonce(0, ctx.oraiBridgePendingTxId, 1);
+            if (oraiBridgeData.length == 0) {
+              throw generateError("Error on saving data on onRecvPacketOnOraiBridge");
+            }
+            await ctx.db.updateOraiBridgeEventNonceByTxId(event.data.batchNonce, ctx.oraiBridgePendingTxId);
+            ctx.oraiBridgeBatchNonce = event.data.batchNonce;
+          },
+          onError: {
+            actions: (ctx, event) => console.log("error on store on request batch: ", event.data),
+            target: "storeOnRequestBatchFailure"
+          },
+          onDone: [
+            {
+              target: "onBatchSendToETHClaim",
+              cond: (ctx, event) => {
+                return true;
+              }
+            }
+          ]
+        }
+      },
+      storeOnRequestBatchFailure: {},
+      onBatchSendToETHClaim: {
+        on: {
+          [invokableMachineStateKeys.STORE_ON_BATCH_SEND_TO_ETH_CLAIM]: "checkOnBatchSendToETHClaim"
+        }
+      },
+      checkOnBatchSendToETHClaim: {
+        invoke: {
+          src: async (ctx, event) => {
+            const txEvent: TxEvent = event.payload;
+            const events = parseRpcEvents(txEvent.result.events);
+            const batchSendToEthClaim = events.find((attr) => attr.type == batchSendToEthClaimEventType);
+            const batchNonceObject = batchSendToEthClaim.attributes.find((item) => item.key == "batch_nonce");
+            if (!batchNonceObject) {
+              throw generateError("batch nonce does not exist on checkOnBatchSendToETHClaim");
+            }
+            const batchNonceValue = parseInt(JSON.parse(batchNonceObject.value));
+            return new Promise((resolve) => resolve({ batchNonce: batchNonceValue }));
+          },
+          onDone: [
+            {
+              target: "storeOnBatchSendToETHClaim",
+              cond: (ctx, event) => {
+                return event.data.batchNonce === ctx.oraiBridgeBatchNonce;
+              }
+            },
+            {
+              target: "onBatchSendToETHClaim",
+              cond: (ctx, event) => {
+                return event.data.batchNonce !== ctx.oraiBridgeBatchNonce;
+              }
+            }
+          ]
+        }
+      },
+      storeOnBatchSendToETHClaim: {
+        invoke: {
+          src: async (ctx, event) => {
+            const oraiBridgeData = await ctx.db.queryOraiBridgeStateByNonce(event.data.batchNonce);
+            if (!oraiBridgeData) {
+              throw generateError("error on saving batch nonce to eventNonce in OraiBridgeState");
+            }
+            await ctx.db.updateOraiBridgeStatusByNonce(event.data.batchNonce, StateDBStatus.FINISHED);
+          },
+          onError: {
+            actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
+            target: "storeOnBatchSendToETHClaimFailure"
+          },
+          onDone: [
+            {
+              target: "finalState",
+              cond: (ctx, event) => {
+                return true;
+              }
+            }
+          ]
+        }
+      },
+      storeOnBatchSendToETHClaimFailure: {},
       finalState: {
         type: "final"
       }
