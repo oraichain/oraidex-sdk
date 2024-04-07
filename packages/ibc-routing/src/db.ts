@@ -1,7 +1,7 @@
 import { toObject } from "@oraichain/oraidex-common";
 import { Connection, Database } from "duckdb-async";
 import fs from "fs";
-import { StateDBStatus } from "./@types";
+import { StateDBStatus } from "./constants";
 
 // The below state field to confirm whether a state is completedly finished or not
 // Notice: there are some tuples that are unique, such as:

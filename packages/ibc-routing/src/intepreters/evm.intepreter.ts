@@ -1,16 +1,16 @@
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { generateError } from "@oraichain/oraidex-common";
+import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData } from "@oraichain/oraidex-universal-swap";
 import { createMachine, interpret } from "xstate";
-import { ForwardTagOnOraichain, StateDBStatus } from "../@types";
 import {
+  FinalTag,
+  ForwardTagOnOraichain,
+  StateDBStatus,
   batchSendToEthClaimEventType,
   eventBatchCreatedEventType,
-  FinalTag,
   invokableMachineStateKeys,
   oraiBridgeAutoForwardEventType,
-  outGoingTxIdEventType,
-  PathsToEvm
+  outGoingTxIdEventType
 } from "../constants";
 import { DuckDB } from "../db";
 import { convertTxHashToHex } from "../helpers";
@@ -127,8 +127,9 @@ export const createEvmIntepreter = (db: DuckDB) => {
               throw generateError("Cannot find the packet data in send_packet of auto forward");
             }
             const packetData = JSON.parse(packetDataAttr.value);
-            const denom = packetData.denom;
-            const evmChainPrefix = PathsToEvm.find((item) => denom.includes(item));
+            const denom: string = packetData.denom;
+            const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => denom.includes(prefix));
+            if (!evmChainPrefix) throw generateError(`Cannot find the matched evm chain prefix given denom ${denom}`);
             console.log("event nonce: ", eventNonce, "evm chain prefix: ", evmChainPrefix);
             return new Promise((resolve) => resolve({ txEvent, eventNonce, evmChainPrefix }));
           },
@@ -311,7 +312,9 @@ export const createEvmIntepreter = (db: DuckDB) => {
               };
               ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
             }
-            const existEvmPath = PathsToEvm.find((item) => nextPacketData.nextDestinationDenom.includes(item));
+            const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
+              nextPacketData.nextDestinationDenom.includes(prefix)
+            );
             nextState = existEvmPath ? "OraiBridgeState" : "";
 
             const { tableName, state } = await ctx.db.findStateByPacketSequence(event.data.packetSequence);
@@ -501,7 +504,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             }
             const packetData = JSON.parse(packetDataAttr.value);
             const memo = packetData.memo;
-            const evmChainPrefix = PathsToEvm.find((item) => memo.includes(item)) || "";
+            const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => memo.includes(prefix)) || "";
             ctx.evmChainPrefixOnRightTraverseOrder = evmChainPrefix;
             const oraiBridgeData = {
               txHash: convertTxHashToHex(txEvent.hash),

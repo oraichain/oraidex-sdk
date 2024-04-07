@@ -13,6 +13,7 @@ export const oraiBridgeAutoForwardEventType = "gravity.v1.EventSendToCosmosExecu
 export const outGoingTxIdEventType = "gravity.v1.EventOutgoingTxId";
 export const eventBatchCreatedEventType = "gravity.v1.EventBatchCreated";
 export const batchSendToEthClaimEventType = "gravity.v1.MsgBatchSendToEthClaim";
+export const ibcRecvPacketEventType = "recv_packet";
 export const evmGravityEvents = [sendToCosmosEvent];
 export enum NetworkEventType {
   EVM,
