@@ -1,3 +1,5 @@
+import { ChainId, EvmChainPrefix } from "./@types/chain";
+
 export const autoForwardTag = { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" };
 export const requestBatchTag = { key: "message.action", value: "/gravity.v1.MsgRequestBatch" };
 export const batchSendToEthClaimTag = { key: "message.action", value: "/gravity.v1.MsgBatchSendToEthClaim" };
@@ -32,6 +34,12 @@ export const invokableMachineStateKeys = {
   STORE_ON_BATCH_SEND_TO_ETH_CLAIM: "STORE_ON_BATCH_SEND_TO_ETH_CLAIM"
 };
 
-export const PathsToEvm = ["eth-mainnet", "oraib", "tronx-mainnet"];
+export const PathsToEvm = [EvmChainPrefix.ETHEREUM, EvmChainPrefix.BSC_MAINNET, EvmChainPrefix.TRONX_MAINNET];
+
+export const ChainIdToEvmChainPredix = {
+  [ChainId.ETHEREUM]: EvmChainPrefix.ETHEREUM,
+  [ChainId.BSC_MAINNET]: EvmChainPrefix.BSC_MAINNET,
+  [ChainId.TRONX_MAINNET]: EvmChainPrefix.TRONX_MAINNET
+};
 
 export const FinalTag = "Final";

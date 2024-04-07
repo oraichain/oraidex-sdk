@@ -1,5 +1,6 @@
 import { getSigners } from "hardhat";
 import { InterpreterStatus } from "xstate";
+import { ChainId } from "../src/@types/chain";
 import {
   autoForwardTag,
   batchSendToEthClaimTag,
@@ -54,9 +55,13 @@ describe("test-integration", () => {
   const sleep = async (timeout: number) => new Promise((resolve) => setTimeout(resolve, timeout));
 
   const [owner] = getSigners(1);
-  xit("[EVM->Oraichain] full-flow happy test", async () => {
+  it("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
-    const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      ChainId.BSC_MAINNET
+    );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
     // TODO: how to wait for emit event to finish then start the next
     await sleep(300);
@@ -76,7 +81,11 @@ describe("test-integration", () => {
 
   it("[EVM->Cosmos] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
-    const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      ChainId.BSC_MAINNET
+    );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
     await sleep(300);
@@ -98,7 +107,11 @@ describe("test-integration", () => {
 
   it("[EVM->EVM] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
-    const gravity = ethEvent.listenToEthEvent(owner.provider, "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f");
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      ChainId.BSC_MAINNET
+    );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Evm);
     // TODO: how to wait for emit event to finish then start the next
     await sleep(300);

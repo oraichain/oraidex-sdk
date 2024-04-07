@@ -30,6 +30,4 @@ export const unmarshalOraiBridgeRoute = (destination: string): OraiBridgeRouteDa
   } catch (err) {
     throw generateError(`Wrong formatter in base64`);
   }
-
-  //   console.log(JSON.parse(decodedSecondDestination));
 };

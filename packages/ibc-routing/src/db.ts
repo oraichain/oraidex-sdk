@@ -4,6 +4,11 @@ import fs from "fs";
 import { StateDBStatus } from "./@types";
 
 // The below state field to confirm whether a state is completedly finished or not
+// Notice: there are some tuples that are unique, such as:
+// 1. (eventNonce, evmChainPrefix)
+// 2. (txId, evmChainPrefix)
+// 3. (batchNonce, denom, evmChainPrefix)
+// TODO: fix passing data flow by apache-arrow
 export const sqlCommands = {
   create: {
     EvmState: `create table if not exists EvmState 
@@ -14,14 +19,16 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       destination varchar,
-      fromAmount hugeint,
+      fromAmount varchar,
       oraiBridgeChannelId varchar,
       oraiReceiver varchar,
       destinationDenom varchar,
       destinationChannelId varchar,
       destinationReceiver varchar,
-      eventNonce uinteger primary key,
+      eventNonce uinteger,
+      evmChainPrefix varchar,
       status varchar,
+      primary key (eventNonce, evmChainPrefix),
     )`,
     OraiBridgeState: `create table if not exists OraiBridgeState 
     (
@@ -33,8 +40,9 @@ export const sqlCommands = {
       eventNonce uinteger,
       batchNonce uinteger,
       txId uinteger,
+      evmChainPrefix varchar,
       packetSequence uinteger primary key,
-      amount hugeint,
+      amount varchar,
       denom varchar,
       memo varchar,
       receiver varchar,
@@ -56,7 +64,7 @@ export const sqlCommands = {
       packetAck varchar,
       nextPacketSequence uinteger,
       nextMemo varchar,
-      nextAmount hugeint,
+      nextAmount varchar,
       nextReceiver varchar,
       nextDestinationDenom varchar,
       status varchar,
@@ -64,10 +72,9 @@ export const sqlCommands = {
   },
   query: {
     evmStateByHash: "SELECT * from EvmState where txHash = ?",
-    evmStateByNonce: "SELECT * from EvmState where eventNonce = ?",
-    oraiBridgeStateByNonce: `
-      SELECT * from OraiBridgeState where eventNonce = ?
-      `,
+    evmStateByEventNonceAndEvmChainPrefix: "SELECT * from EvmState where eventNonce = ? AND evmChainPrefix = ?",
+    oraiBridgeStateByEventNonceAndEvmChainPrefix: `
+      SELECT * from OraiBridgeState where eventNonce = ? AND evmChainPrefix = ?`,
     oraiBridgeStateBySequence: `
       SELECT * from OraiBridgeState where packetSequence = ?
       `,
@@ -77,34 +84,53 @@ export const sqlCommands = {
     oraichainStateByNextPacketSequence: `
     SELECT * from OraichainState where nextPacketSequence = ?
     `,
-    oraiBridgeByTxIdAndBatchNonce: `
-      SELECT * from OraiBridgeState WHERE txId = ? AND batchNonce = ? LIMIT ?
+    oraiBridgeByTxIdAndEvmChainPrefix: `
+      SELECT * from OraiBridgeState WHERE txId = ? AND evmChainprefix = ? LIMIT ?
     `,
     stateDataByPacketSequence: (tableName: string) => `SELECT * from ${tableName} where packetSequence = ?`
   },
   update: {
     statusByTxHash: (tableName: string) => `UPDATE ${tableName} SET status = ? WHERE txHash = ?`,
     oraichainStatusByNextPacketNonce: () => `UPDATE OraichainState SET status = ? WHERE nextPacketSequence = ?`,
-    oraiBridgeBatchNonceByTxId: () => `UPDATE OraiBridgeState SET batchNonce = ? WHERE txId = ? AND batchNonce = 0`,
-    oraiBridgeStatusByEventNonce: () => `UPDATE OraiBridgeState SET status = ? WHERE eventNonce = ?`
+    oraiBridgeBatchNonceByTxIdAndEvmChainPrefix: () =>
+      `UPDATE OraiBridgeState SET batchNonce = ? WHERE txId = ? AND evmChainPrefix = ?`,
+    oraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix: () =>
+      `UPDATE OraiBridgeState SET status = ?, eventNonce = ? WHERE txId = ? AND evmChainPrefix = ?`
   }
 };
 
+// TODO: Change some query and update here to make it more general
+// to use all at one function instead of create multiple functions here.
 export abstract class DuckDB {
   abstract createTable(): Promise<void>;
+  // EVM
   abstract queryInitialEvmStateByHash(txHash: string): Promise<any>;
-  abstract queryInitialEvmStateByNonce(nonce: number): Promise<any>;
-  abstract queryOraiBridgeStateByNonce(eventNonce: number): Promise<any>;
-  abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryInitialEvmStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string): Promise<any>;
+  // ORAICHAIN
   abstract queryOraichainStateBySequence(packetSequence: number): Promise<any>;
   abstract queryOraichainStateByNextPacketSequence(packetSequence: number): Promise<any>;
-  abstract queryOraiBridgeByTxIdAndBatchNonce(batchNonce: number, txId: number, limit: number): Promise<any>;
+  abstract updateOraichainStatusByNextPacketSequence(packetSequence: number, status: StateDBStatus): Promise<void>;
+  // ORAIBRIDGE
+  abstract queryOraiBridgeStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string): Promise<any>;
+  abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryOraiBridgeByTxIdAndEvmChainPrefix(txId: number, evmChainPrefix: string, limit: number): Promise<any>;
+  abstract updateOraiBridgeBatchNonceByTxIdAndEvmChainPrefix(
+    batchNonce: number,
+    txId: number,
+    evmChainPrefix: string
+  ): Promise<void>;
+  abstract updateOraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix(
+    status: StateDBStatus,
+    eventNonce: number,
+    txId: number,
+    evmChainPrefix: string
+  ): Promise<void>;
+
   abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
+
+  // TODO: writing from json to db is not safe at all, sometimes it leads to writing wrong column => should be fixed.
   abstract insertData(data: any, tableName: string): Promise<void>;
   abstract updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string): Promise<void>;
-  abstract updateOraichainStatusByNextPacketSequence(packetSequence: number, status: StateDBStatus): Promise<void>;
-  abstract updateOraiBridgeBatchNonceByTxId(batchNonce: number, txId: number): Promise<void>;
-  abstract updateOraiBridgeStatusByEventNonce(eventNonce: number, status: StateDBStatus): Promise<void>;
 }
 
 // TODO: use vector instead of writing to files
@@ -139,14 +165,22 @@ export class DuckDbNode extends DuckDB {
     return [];
   }
 
-  async queryInitialEvmStateByNonce(nonce: number) {
-    const result = await this.conn.all(sqlCommands.query.evmStateByNonce, nonce);
+  async queryInitialEvmStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string) {
+    const result = await this.conn.all(
+      sqlCommands.query.evmStateByEventNonceAndEvmChainPrefix,
+      eventNonce,
+      evmChainPrefix
+    );
     if (result.length > 0) return result[0];
     return [];
   }
 
-  async queryOraiBridgeStateByNonce(eventNonce: number) {
-    const result = await this.conn.all(sqlCommands.query.oraiBridgeStateByNonce, eventNonce);
+  async queryOraiBridgeStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string) {
+    const result = await this.conn.all(
+      sqlCommands.query.oraiBridgeStateByEventNonceAndEvmChainPrefix,
+      eventNonce,
+      evmChainPrefix
+    );
     if (result.length > 0) return result[0];
     return [];
   }
@@ -169,8 +203,13 @@ export class DuckDbNode extends DuckDB {
     return [];
   }
 
-  async queryOraiBridgeByTxIdAndBatchNonce(batchNonce: number, txId: number, limit: number = 1) {
-    const result = await this.conn.all(sqlCommands.query.oraiBridgeByTxIdAndBatchNonce, txId, batchNonce, limit);
+  async queryOraiBridgeByTxIdAndEvmChainPrefix(txId: number, evmChainPrefix: string, limit: number) {
+    const result = await this.conn.all(
+      sqlCommands.query.oraiBridgeByTxIdAndEvmChainPrefix,
+      txId,
+      evmChainPrefix,
+      limit
+    );
     return result;
   }
 
@@ -206,13 +245,18 @@ export class DuckDbNode extends DuckDB {
     await this.conn.run(sql, status, packetSequence);
   }
 
-  async updateOraiBridgeBatchNonceByTxId(batchNonce: number, txId: number) {
-    const sql = sqlCommands.update.oraiBridgeBatchNonceByTxId();
-    await this.conn.run(sql, batchNonce, txId);
+  async updateOraiBridgeBatchNonceByTxIdAndEvmChainPrefix(batchNonce: number, txId: number, evmChainPrefix: string) {
+    const sql = sqlCommands.update.oraiBridgeBatchNonceByTxIdAndEvmChainPrefix();
+    await this.conn.run(sql, batchNonce, txId, evmChainPrefix);
   }
 
-  async updateOraiBridgeStatusByEventNonce(eventNonce: number, status: StateDBStatus) {
-    const sql = sqlCommands.update.oraiBridgeStatusByEventNonce();
-    await this.conn.run(sql, status, eventNonce);
+  async updateOraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix(
+    status: StateDBStatus,
+    eventNonce: number,
+    txId: number,
+    evmChainPrefix: string
+  ) {
+    const sql = sqlCommands.update.oraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix();
+    await this.conn.run(sql, status, eventNonce, txId, evmChainPrefix);
   }
 }

@@ -5,6 +5,7 @@ import { createMachine, interpret } from "xstate";
 import { ForwardTagOnOraichain, StateDBStatus } from "../@types";
 import {
   batchSendToEthClaimEventType,
+  eventBatchCreatedEventType,
   FinalTag,
   invokableMachineStateKeys,
   oraiBridgeAutoForwardEventType,
@@ -51,6 +52,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             const eventData = event.payload;
             const { transactionHash: txHash, blockNumber: height } = eventData[5];
             const routeData: OraiBridgeRouteData = unmarshalOraiBridgeRoute(eventData[2]);
+            const evmChainPrefix = eventData[6];
             const sendToCosmosData = {
               txHash,
               height,
@@ -65,11 +67,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
               destinationChannel: routeData.finalDestinationChannel,
               destinationReceiver: routeData.finalReceiver,
               eventNonce: parseInt(eventData[4].toString()),
+              evmChainPrefix,
               status: StateDBStatus.PENDING
             };
 
-            console.log("EvmState", sendToCosmosData);
             // this context data will be used for querying in the next state
+            ctx.evmChainPrefixOnLeftTraverseOrder = evmChainPrefix;
             ctx.evmEventNonce = sendToCosmosData.eventNonce;
             await ctx.db.insertData(sendToCosmosData, "EvmState");
             return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
@@ -114,21 +117,39 @@ export const createEvmIntepreter = (db: DuckDB) => {
               return;
             }
             const eventNonce = parseInt(JSON.parse(nonceAttr.value));
-            console.log("event nonce: ", eventNonce);
-            return new Promise((resolve) => resolve({ txEvent, eventNonce }));
+            const sendPacketEvent = events.find((e) => e.type === "send_packet");
+            if (!sendPacketEvent) throw generateError("Cannot find the send packet event in auto forward message");
+            const packetSequenceAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
+            if (!packetSequenceAttr)
+              throw generateError("Cannot find the packet sequence in send_packet of auto forward");
+            const packetDataAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_data");
+            if (!packetDataAttr) {
+              throw generateError("Cannot find the packet data in send_packet of auto forward");
+            }
+            const packetData = JSON.parse(packetDataAttr.value);
+            const denom = packetData.denom;
+            const evmChainPrefix = PathsToEvm.find((item) => denom.includes(item));
+            console.log("event nonce: ", eventNonce, "evm chain prefix: ", evmChainPrefix);
+            return new Promise((resolve) => resolve({ txEvent, eventNonce, evmChainPrefix }));
           },
           onError: "checkAutoForwardFailure",
           onDone: [
             {
               target: "storeAutoForward",
               cond: (ctx, event) => {
-                return event.data.eventNonce === ctx.evmEventNonce;
+                return (
+                  event.data.eventNonce === ctx.evmEventNonce &&
+                  event.data.evmChainPrefix === ctx.evmChainPrefixOnLeftTraverseOrder
+                );
               }
             },
             {
               target: "oraibridge",
               cond: (ctx, event) => {
-                return event.data.eventNonce !== ctx.evmEventNonce;
+                return (
+                  event.data.eventNonce !== ctx.evmEventNonce ||
+                  event.data.evmChainPrefix !== ctx.evmChainPrefixOnLeftTraverseOrder
+                );
               }
             }
           ]
@@ -139,8 +160,11 @@ export const createEvmIntepreter = (db: DuckDB) => {
           src: async (ctx, event) => {
             const txEvent: TxEvent = event.data.txEvent; // should have { txEvent, eventNonce } sent from checkAutoForward
             const events = parseRpcEvents(txEvent.result.events);
-            const prevEvmState = await ctx.db.queryInitialEvmStateByNonce(event.data.eventNonce);
-            if (!prevEvmState) throw generateError("Cannot find the previous evm state data");
+            const prevEvmState = await ctx.db.queryInitialEvmStateByEventNonceAndEvmChainPrefix(
+              event.data.eventNonce,
+              ctx.evmChainPrefixOnLeftTraverseOrder
+            );
+            if (prevEvmState.length == 0) throw generateError("Cannot find the previous evm state data");
             // collect packet sequence
             const sendPacketEvent = events.find((e) => e.type === "send_packet");
             if (!sendPacketEvent) throw generateError("Cannot find the send packet event in auto forward message");
@@ -151,10 +175,10 @@ export const createEvmIntepreter = (db: DuckDB) => {
             if (!packetDataAttr) {
               throw generateError("Cannot find the packet data in send_packet of auto forward");
             }
-
-            await ctx.db.updateStatusByTxHash("EvmState", StateDBStatus.FINISHED, prevEvmState.txHash);
             let packetData = JSON.parse(packetDataAttr.value);
             packetData.memo = decodeIbcMemo(packetData.memo, false).destinationDenom;
+
+            await ctx.db.updateStatusByTxHash("EvmState", StateDBStatus.FINISHED, prevEvmState.txHash);
 
             // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
             const srcPort = sendPacketEvent.attributes.find((attr) => attr.key === "packet_src_port").value;
@@ -171,9 +195,13 @@ export const createEvmIntepreter = (db: DuckDB) => {
               eventNonce: event.data.eventNonce,
               batchNonce: 0,
               txId: 0,
+              evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder,
               packetSequence: packetSequence,
-              ...packetData,
               amount: packetData.amount,
+              denom: packetData.denom,
+              memo: packetData.memo,
+              receiver: packetData.receiver,
+              sender: packetData.sender,
               srcPort,
               srcChannel,
               dstPort,
@@ -262,7 +290,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             let nextPacketData = {
               nextPacketSequence: 0,
               nextMemo: "",
-              nextAmount: 0,
+              nextAmount: "0",
               nextReceiver: "",
               nextDestinationDenom: ""
             };
@@ -277,7 +305,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
                   sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value
                 ),
                 nextMemo: "",
-                nextAmount: parseInt(nextPacketJson.amount),
+                nextAmount: nextPacketJson.amount,
                 nextDestinationDenom: nextPacketJson.denom,
                 nextReceiver: nextPacketJson.receiver
               };
@@ -291,6 +319,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               throw generateError(
                 `Could not find the row with packet sequence ${event.data.packetSequence} in any table`
               );
+            console.log("AutoForwardData after saved:", state);
             await ctx.db.updateStatusByTxHash(tableName, StateDBStatus.FINISHED, state.txHash);
             let onRecvPacketData = {
               txHash: convertTxHashToHex(txEvent.hash),
@@ -378,13 +407,16 @@ export const createEvmIntepreter = (db: DuckDB) => {
           src: async (ctx, events) => {
             const packetSequence = events.data.packetSequence;
             let oraichainData = await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence);
-            if (!oraichainData) {
+            if (oraichainData.length == 0) {
               throw generateError(
                 "error on finding oraichain state by next packet sequence in updateOnAcknowledgementOnCosmos"
               );
             }
             await ctx.db.updateOraichainStatusByNextPacketSequence(parseInt(packetSequence), StateDBStatus.FINISHED);
-            console.log(await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence));
+            console.log(
+              "UpdateOnAcknowledgement",
+              await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence)
+            );
           },
           onError: {
             actions: (ctx, event) => console.log("error on update on acknowledgement on OraiBridgeDB: ", event.data),
@@ -464,29 +496,36 @@ export const createEvmIntepreter = (db: DuckDB) => {
             const dstChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_channel").value;
             const packetSequence = parseInt(packetSequenceAttr.value);
             const prevOraichainState = await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence);
-            if (!prevOraichainState) {
+            if (prevOraichainState.length == 0) {
               throw generateError("Can not find previous oraichain state db.");
             }
             const packetData = JSON.parse(packetDataAttr.value);
-
+            const memo = packetData.memo;
+            const evmChainPrefix = PathsToEvm.find((item) => memo.includes(item)) || "";
+            ctx.evmChainPrefixOnRightTraverseOrder = evmChainPrefix;
             const oraiBridgeData = {
               txHash: convertTxHashToHex(txEvent.hash),
               height: txEvent.height,
               prevState: "OraichainState",
               prevTxHash: prevOraichainState.txHash,
-              next_state: "EvmSstate",
+              next_state: "EvmState",
               eventNonce: 0,
               batchNonce: 0,
               txId: ctx.oraiBridgePendingTxId,
+              evmChainPrefix,
               packetSequence: packetSequence,
-              ...packetData,
               amount: packetData.amount,
+              denom: packetData.denom,
+              memo: packetData.memo,
+              receiver: packetData.receiver,
+              sender: packetData.sender,
               srcPort,
               srcChannel,
               dstPort,
               dstChannel,
               status: StateDBStatus.PENDING
             };
+            console.log("OraiBridgeData", oraiBridgeData);
             await ctx.db.insertData(oraiBridgeData, "OraiBridgeState");
             // End of storing on Recv Packet
           },
@@ -515,18 +554,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
           src: async (ctx, event) => {
             const txEvent: TxEvent = event.payload;
             const events = parseRpcEvents(txEvent.result.events);
-            events.forEach((event) => {
-              console.log("========", event.type, "========");
-              event.attributes.forEach((attr) => {
-                console.log(`Key: ${attr.key} - Value: ${attr.value}`);
-              });
-            });
             const batchTxIds = events.find((attr) => attr.type == "batched_tx_ids");
             if (!batchTxIds) {
               throw generateError("Batched tx ids not found on request batch event");
             }
             const batchNonceData = events
-              .find((attr) => attr.type == "gravity.v1.EventBatchCreated")
+              .find((attr) => attr.type == eventBatchCreatedEventType)
               .attributes.find((item) => item.key == "batch_nonce");
             if (!batchNonceData) {
               throw generateError("Batch nonce is not found on request batch event");
@@ -560,11 +593,26 @@ export const createEvmIntepreter = (db: DuckDB) => {
       storeOnRequestBatch: {
         invoke: {
           src: async (ctx, event) => {
-            const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndBatchNonce(0, ctx.oraiBridgePendingTxId, 1);
+            const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndEvmChainPrefix(
+              ctx.oraiBridgePendingTxId,
+              ctx.evmChainPrefixOnRightTraverseOrder,
+              1
+            );
             if (oraiBridgeData.length == 0) {
               throw generateError("Error on saving data on onRecvPacketOnOraiBridge");
             }
-            await ctx.db.updateOraiBridgeBatchNonceByTxId(event.data.batchNonce, ctx.oraiBridgePendingTxId);
+            await ctx.db.updateOraiBridgeBatchNonceByTxIdAndEvmChainPrefix(
+              event.data.batchNonce,
+              ctx.oraiBridgePendingTxId,
+              ctx.evmChainPrefixOnRightTraverseOrder
+            );
+            console.log(
+              await ctx.db.queryOraiBridgeByTxIdAndEvmChainPrefix(
+                ctx.oraiBridgePendingTxId,
+                ctx.evmChainPrefixOnRightTraverseOrder,
+                1
+              )
+            );
             ctx.oraiBridgeBatchNonce = event.data.batchNonce;
           },
           onError: {
@@ -597,20 +645,37 @@ export const createEvmIntepreter = (db: DuckDB) => {
             if (!batchNonceObject) {
               throw generateError("batch nonce does not exist on checkOnBatchSendToETHClaim");
             }
+            const evmChainPrefix = batchSendToEthClaim.attributes.find((item) => item.key == "evm_chain_prefix").value;
+            if (!evmChainPrefix) {
+              throw generateError("evm chain prefix does not exist on checkOnBatchSendToETHClaim");
+            }
+            const eventNonce = batchSendToEthClaim.attributes.find((item) => item.key == "event_nonce").value;
             const batchNonceValue = parseInt(JSON.parse(batchNonceObject.value));
-            return new Promise((resolve) => resolve({ batchNonce: batchNonceValue }));
+            return new Promise((resolve) =>
+              resolve({
+                batchNonce: batchNonceValue,
+                evmChainPrefix: JSON.parse(evmChainPrefix),
+                eventNonce: parseInt(JSON.parse(eventNonce))
+              })
+            );
           },
           onDone: [
             {
               target: "storeOnBatchSendToETHClaim",
               cond: (ctx, event) => {
-                return event.data.batchNonce === ctx.oraiBridgeBatchNonce;
+                return (
+                  event.data.batchNonce === ctx.oraiBridgeBatchNonce &&
+                  ctx.evmChainPrefixOnRightTraverseOrder === event.data.evmChainPrefix
+                );
               }
             },
             {
               target: "onBatchSendToETHClaim",
               cond: (ctx, event) => {
-                return event.data.batchNonce !== ctx.oraiBridgeBatchNonce;
+                return (
+                  event.data.batchNonce !== ctx.oraiBridgeBatchNonce ||
+                  ctx.evmChainPrefixOnRightTraverseOrder !== event.data.evmChainPrefix
+                );
               }
             }
           ]
@@ -619,11 +684,40 @@ export const createEvmIntepreter = (db: DuckDB) => {
       storeOnBatchSendToETHClaim: {
         invoke: {
           src: async (ctx, event) => {
-            const oraiBridgeData = await ctx.db.queryOraiBridgeStateByNonce(event.data.batchNonce);
-            if (!oraiBridgeData) {
+            const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndEvmChainPrefix(
+              ctx.oraiBridgePendingTxId,
+              ctx.evmChainPrefixOnRightTraverseOrder,
+              1
+            );
+            if (oraiBridgeData.length == 0) {
               throw generateError("error on saving batch nonce to eventNonce in OraiBridgeState");
             }
-            await ctx.db.updateOraiBridgeStatusByEventNonce(event.data.batchNonce, StateDBStatus.FINISHED);
+            await ctx.db.updateOraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix(
+              StateDBStatus.FINISHED,
+              event.data.eventNonce,
+              ctx.oraiBridgePendingTxId,
+              ctx.evmChainPrefixOnRightTraverseOrder
+            );
+            // We don't care on everything without prevTxHash, eventNonce, evmChainPrefix
+            const evmStateData = {
+              txHash: "",
+              height: 0,
+              prevState: "OraiBridgeState",
+              prevTxHash: oraiBridgeData[0].txHash,
+              nextState: "",
+              destination: "",
+              fromAmount: 0,
+              oraiBridgeChannelId: "",
+              oraiReceiver: "",
+              destinationDenom: "",
+              destinationChannelId: "",
+              destinationReceiver: "",
+              eventNonce: event.data.eventNonce,
+              evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder,
+              status: StateDBStatus.FINISHED
+            };
+            console.log(evmStateData);
+            await ctx.db.insertData(evmStateData, "EvmState");
           },
           onError: {
             actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
