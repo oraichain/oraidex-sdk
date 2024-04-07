@@ -3,15 +3,14 @@ import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { QueryTag, buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { Gravity, Gravity__factory } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
-import { ChainIdToEvmChainPredix, evmGravityEvents } from "./constants";
+import { evmGravityEvents } from "./constants";
 import { EventHandler } from "./event-handlers/event.handler";
 import { keccak256HashString } from "./helpers";
 
 export class EthEvent {
   constructor(public readonly handler: EventHandler) {}
 
-  listenToEthEvent = (provider: ethers.providers.JsonRpcProvider, gravityContract: string, chainId: number) => {
-    const evmChainPrefix = ChainIdToEvmChainPredix[chainId];
+  listenToEthEvent = (provider: ethers.providers.JsonRpcProvider, gravityContract: string, evmChainPrefix: string) => {
     const gravity: Gravity = Gravity__factory.connect(ethers.utils.getAddress(gravityContract), provider);
     // listen on topic so that we collect tx hash & height as well
     return gravity.on({ topics: evmGravityEvents.map((ev) => keccak256HashString(ev)) }, (...args) => {

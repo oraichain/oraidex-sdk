@@ -1,6 +1,7 @@
 import { getSigners } from "hardhat";
 import { InterpreterStatus } from "xstate";
-import { ChainId } from "../src/@types/chain";
+// import { ChainId } from "../src/@types/chain";
+import { EVM_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
 import {
   autoForwardTag,
   batchSendToEthClaimTag,
@@ -60,7 +61,7 @@ describe("test-integration", () => {
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
       "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
-      ChainId.BSC_MAINNET
+      EVM_CHAIN_ID_COMMON.BSC_CHAIN_ID
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
     // TODO: how to wait for emit event to finish then start the next
@@ -84,7 +85,7 @@ describe("test-integration", () => {
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
       "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
-      ChainId.BSC_MAINNET
+      EvmChainPrefix.BSC_MAINNET
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
@@ -110,7 +111,7 @@ describe("test-integration", () => {
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
       "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
-      ChainId.BSC_MAINNET
+      EvmChainPrefix.BSC_MAINNET
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Evm);
     // TODO: how to wait for emit event to finish then start the next
