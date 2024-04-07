@@ -4,6 +4,11 @@ import fs from "fs";
 import { StateDBStatus } from "./@types";
 
 // The below state field to confirm whether a state is completedly finished or not
+// Notice: there are some tuples that are unique, such as:
+// 1. (eventNonce, evmChainPrefix)
+// 2. (txId, evmChainPrefix)
+// 3. (batchNonce, denom, evmChainPrefix)
+// TODO: fix passing data flow by apache-arrow
 export const sqlCommands = {
   create: {
     EvmState: `create table if not exists EvmState 
@@ -14,14 +19,16 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       destination varchar,
-      fromAmount hugeint,
+      fromAmount varchar,
       oraiBridgeChannelId varchar,
       oraiReceiver varchar,
       destinationDenom varchar,
       destinationChannelId varchar,
       destinationReceiver varchar,
-      eventNonce uinteger primary key,
+      eventNonce uinteger,
+      evmChainPrefix varchar,
       status varchar,
+      primary key (eventNonce, evmChainPrefix),
     )`,
     OraiBridgeState: `create table if not exists OraiBridgeState 
     (
@@ -31,8 +38,11 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       eventNonce uinteger,
+      batchNonce uinteger,
+      txId uinteger,
+      evmChainPrefix varchar,
       packetSequence uinteger primary key,
-      amount hugeint,
+      amount varchar,
       denom varchar,
       memo varchar,
       receiver varchar,
@@ -54,7 +64,7 @@ export const sqlCommands = {
       packetAck varchar,
       nextPacketSequence uinteger,
       nextMemo varchar,
-      nextAmount hugeint,
+      nextAmount varchar,
       nextReceiver varchar,
       nextDestinationDenom varchar,
       status varchar,
@@ -62,31 +72,63 @@ export const sqlCommands = {
   },
   query: {
     evmStateByHash: "SELECT * from EvmState where txHash = ?",
-    evmStateByNonce: "SELECT * from EvmState where eventNonce = ?",
-    oraiBridgeStateByNonce: `
-      SELECT * from OraiBridgeState where eventNonce = ?
-      `,
+    evmStateByEventNonceAndEvmChainPrefix: "SELECT * from EvmState where eventNonce = ? AND evmChainPrefix = ?",
+    oraiBridgeStateByEventNonceAndEvmChainPrefix: `
+      SELECT * from OraiBridgeState where eventNonce = ? AND evmChainPrefix = ?`,
     oraiBridgeStateBySequence: `
       SELECT * from OraiBridgeState where packetSequence = ?
       `,
     oraichainStateByPacketSequence: `
       SELECT * from OraichainState where packetSequence = ?
       `,
+    oraichainStateByNextPacketSequence: `
+    SELECT * from OraichainState where nextPacketSequence = ?
+    `,
+    oraiBridgeByTxIdAndEvmChainPrefix: `
+      SELECT * from OraiBridgeState WHERE txId = ? AND evmChainprefix = ? LIMIT ?
+    `,
     stateDataByPacketSequence: (tableName: string) => `SELECT * from ${tableName} where packetSequence = ?`
   },
   update: {
-    updateStatusByTxHash: (tableName: string) => `UPDATE ${tableName} SET status = ? WHERE txHash = ?`
+    statusByTxHash: (tableName: string) => `UPDATE ${tableName} SET status = ? WHERE txHash = ?`,
+    oraichainStatusByNextPacketNonce: () => `UPDATE OraichainState SET status = ? WHERE nextPacketSequence = ?`,
+    oraiBridgeBatchNonceByTxIdAndEvmChainPrefix: () =>
+      `UPDATE OraiBridgeState SET batchNonce = ? WHERE txId = ? AND evmChainPrefix = ?`,
+    oraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix: () =>
+      `UPDATE OraiBridgeState SET status = ?, eventNonce = ? WHERE txId = ? AND evmChainPrefix = ?`
   }
 };
 
+// TODO: Change some query and update here to make it more general
+// to use all at one function instead of create multiple functions here.
 export abstract class DuckDB {
   abstract createTable(): Promise<void>;
+  // EVM
   abstract queryInitialEvmStateByHash(txHash: string): Promise<any>;
-  abstract queryInitialEvmStateByNonce(nonce: number): Promise<any>;
-  abstract queryOraiBridgeStateByNonce(eventNonce: number): Promise<any>;
-  abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryInitialEvmStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string): Promise<any>;
+  // ORAICHAIN
   abstract queryOraichainStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryOraichainStateByNextPacketSequence(packetSequence: number): Promise<any>;
+  abstract updateOraichainStatusByNextPacketSequence(packetSequence: number, status: StateDBStatus): Promise<void>;
+  // ORAIBRIDGE
+  abstract queryOraiBridgeStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string): Promise<any>;
+  abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
+  abstract queryOraiBridgeByTxIdAndEvmChainPrefix(txId: number, evmChainPrefix: string, limit: number): Promise<any>;
+  abstract updateOraiBridgeBatchNonceByTxIdAndEvmChainPrefix(
+    batchNonce: number,
+    txId: number,
+    evmChainPrefix: string
+  ): Promise<void>;
+  abstract updateOraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix(
+    status: StateDBStatus,
+    eventNonce: number,
+    txId: number,
+    evmChainPrefix: string
+  ): Promise<void>;
+
   abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
+
+  // TODO: writing from json to db is not safe at all, sometimes it leads to writing wrong column => should be fixed.
   abstract insertData(data: any, tableName: string): Promise<void>;
   abstract updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string): Promise<void>;
 }
@@ -123,14 +165,22 @@ export class DuckDbNode extends DuckDB {
     return [];
   }
 
-  async queryInitialEvmStateByNonce(nonce: number) {
-    const result = await this.conn.all(sqlCommands.query.evmStateByNonce, nonce);
+  async queryInitialEvmStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string) {
+    const result = await this.conn.all(
+      sqlCommands.query.evmStateByEventNonceAndEvmChainPrefix,
+      eventNonce,
+      evmChainPrefix
+    );
     if (result.length > 0) return result[0];
     return [];
   }
 
-  async queryOraiBridgeStateByNonce(eventNonce: number) {
-    const result = await this.conn.all(sqlCommands.query.oraiBridgeStateByNonce, eventNonce);
+  async queryOraiBridgeStateByEventNonceAndEvmChainPrefix(eventNonce: number, evmChainPrefix: string) {
+    const result = await this.conn.all(
+      sqlCommands.query.oraiBridgeStateByEventNonceAndEvmChainPrefix,
+      eventNonce,
+      evmChainPrefix
+    );
     if (result.length > 0) return result[0];
     return [];
   }
@@ -145,6 +195,22 @@ export class DuckDbNode extends DuckDB {
     const result = await this.conn.all(sqlCommands.query.oraichainStateByPacketSequence, packetSequence);
     if (result.length > 0) return result[0];
     return [];
+  }
+
+  async queryOraichainStateByNextPacketSequence(packetSequence: number) {
+    const result = await this.conn.all(sqlCommands.query.oraichainStateByNextPacketSequence, packetSequence);
+    if (result.length > 0) return result[0];
+    return [];
+  }
+
+  async queryOraiBridgeByTxIdAndEvmChainPrefix(txId: number, evmChainPrefix: string, limit: number) {
+    const result = await this.conn.all(
+      sqlCommands.query.oraiBridgeByTxIdAndEvmChainPrefix,
+      txId,
+      evmChainPrefix,
+      limit
+    );
+    return result;
   }
 
   async findStateByPacketSequence(packetSequence: number): Promise<any> {
@@ -170,100 +236,27 @@ export class DuckDbNode extends DuckDB {
   }
 
   async updateStatusByTxHash(tableName: string, status: StateDBStatus, txHash: string) {
-    const sql = sqlCommands.update.updateStatusByTxHash(tableName);
+    const sql = sqlCommands.update.statusByTxHash(tableName);
     await this.conn.run(sql, status, txHash);
   }
+
+  async updateOraichainStatusByNextPacketSequence(packetSequence: number, status: StateDBStatus) {
+    const sql = sqlCommands.update.oraichainStatusByNextPacketNonce();
+    await this.conn.run(sql, status, packetSequence);
+  }
+
+  async updateOraiBridgeBatchNonceByTxIdAndEvmChainPrefix(batchNonce: number, txId: number, evmChainPrefix: string) {
+    const sql = sqlCommands.update.oraiBridgeBatchNonceByTxIdAndEvmChainPrefix();
+    await this.conn.run(sql, batchNonce, txId, evmChainPrefix);
+  }
+
+  async updateOraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix(
+    status: StateDBStatus,
+    eventNonce: number,
+    txId: number,
+    evmChainPrefix: string
+  ) {
+    const sql = sqlCommands.update.oraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix();
+    await this.conn.run(sql, status, eventNonce, txId, evmChainPrefix);
+  }
 }
-
-// export class DuckDbWasm extends DuckDB {
-//   static instances: DuckDbWasm;
-//   protected constructor(public readonly conn: duckdb.AsyncDuckDBConnection, private db: duckdb.AsyncDuckDB) {
-//     super();
-//   }
-
-//   static async create(currentRootDir: string): Promise<DuckDbWasm> {
-//     const DUCKDB_DIST = resolve(currentRootDir, "node_modules/@duckdb/duckdb-wasm/dist");
-//     const getDuckDbDist = (type: string) => {
-//       return {
-//         mainModule: resolve(DUCKDB_DIST, `./duckdb-${type}.wasm`),
-//         mainWorker: resolve(DUCKDB_DIST, `./duckdb-node-${type}.worker.cjs`)
-//       };
-//     };
-//     const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
-//       mvp: getDuckDbDist("mvp"),
-//       eh: getDuckDbDist("eh")
-//     };
-//     // Select a bundle based on browser checks
-//     // Select a bundle based on browser checks
-//     const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-//     // Instantiate the asynchronus version of DuckDB-wasm
-//     const worker = new Worker(bundle.mainWorker!);
-//     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.INFO);
-//     const db = new duckdb.AsyncDuckDB(logger, worker);
-//     // Instantiate the asynchronus version of DuckDB-wasm
-//     await db.instantiate(MANUAL_BUNDLES.eh.mainModule);
-//     const conn = await db.connect();
-//     DuckDbWasm.instances = new DuckDbWasm(conn, db);
-//     return DuckDbWasm.instances;
-//   }
-
-//   async createTable() {
-//     for (const createCommand of Object.values(sqlCommands.create)) {
-//       await this.conn.send(createCommand);
-//     }
-//   }
-
-//   async queryInitialEvmStateByHash(txHash: string) {
-//     const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
-//     const result = (await stmt.query(txHash)).toArray();
-//     if (result.length > 0) return result[0];
-//     return [];
-//   }
-
-//   async queryInitialEvmStateByNonce(nonce: number) {
-//     const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
-//     const result = (await stmt.query(nonce)).toArray();
-//     if (result.length > 0) return result[0];
-//     return [];
-//   }
-
-//   async queryOraiBridgeStateByNonce(eventNonce: number) {
-//     const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateByNonce);
-//     const result = (await stmt.query(eventNonce)).toArray();
-//     if (result.length > 0) return result[0];
-//     return [];
-//   }
-
-//   async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
-//     const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateBySequence);
-//     const result = (await stmt.query(packetSequence)).toArray();
-//     if (result.length > 0) return result[0];
-//     return [];
-//   }
-
-//   async queryOraichainStateBySequence(packetSequence: number) {
-//     const stmt = await this.conn.prepare(sqlCommands.query.oraichainStateByPacketSequence);
-//     const result = (await stmt.query(packetSequence)).toArray();
-//     if (result.length > 0) return result[0];
-//     return [];
-//   }
-
-//   async findStateByPacketSequence(packetSequence: number): Promise<any> {
-//     throw generateError("Not implemented");
-//   }
-
-//   async insertData(data: any, tableName: string) {
-//     // TODO: FIXME
-//     //   try {
-//     //     const tableFile = `${tableName}.json`;
-//     //     // the file written out is temporary only. Will be deleted after insertion
-//     //     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-//     //     const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
-//     //     const stmt = await this.conn.prepare(query);
-//     //     await stmt.send(query, tableFile);
-//     //     await fs.promises.unlink(tableFile);
-//     //   } catch (error) {
-//     //     console.log("insert data error: ", error);
-//     //   }
-//   }
-// }

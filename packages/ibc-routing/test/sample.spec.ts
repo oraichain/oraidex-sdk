@@ -1,5 +1,8 @@
+import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
+import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { Gravity, Gravity__factory } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
+import { onRecvPacketTag } from "../src/constants";
 
 describe.skip("Test sync ether", () => {
   it("Listen to event", async () => {
@@ -17,7 +20,7 @@ describe.skip("Test sync ether", () => {
   }, 30000);
 });
 
-describe("Test sync ether", () => {
+describe.skip("Test sync ether", () => {
   it("Listen to event", async () => {
     const provider = new ethers.providers.JsonRpcProvider("https://go.getblock.io/0efb9bd03a704cc8ad6cad84999bed4f");
     const gravity: Gravity = Gravity__factory.connect(
@@ -31,4 +34,26 @@ describe("Test sync ether", () => {
     const data = await gravity.queryFilter(eventFilter, 19574735, 19574737);
     console.log(data, data[0].args);
   }, 30000);
+});
+
+describe.skip("Test listen on cosmos event", () => {
+  it("Test", async () => {
+    const client = await Tendermint37Client.create(new WebsocketClient("wss://rpc.orai.io"));
+    const stream = client.subscribeTx(
+      buildQuery({
+        tags: [onRecvPacketTag]
+      })
+    );
+    try {
+      stream.subscribe({
+        next: (txEvent) => {
+          console.log(txEvent);
+        },
+        error: (err) => console.log("error while subscribing websocket: ", err),
+        complete: () => console.log("completed")
+      });
+    } catch (error) {
+      console.log("error listening: ", error);
+    }
+  }, 100000);
 });
