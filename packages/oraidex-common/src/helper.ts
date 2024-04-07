@@ -1,39 +1,39 @@
 import { ExecuteInstruction, JsonObject, fromBinary, toBinary, wasmTypes } from "@cosmjs/cosmwasm-stargate";
 import { fromAscii, toUtf8 } from "@cosmjs/encoding";
 import { Coin, EncodeObject, Registry, decodeTxRaw } from "@cosmjs/proto-signing";
-import { Event, Attribute } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { defaultRegistryTypes as defaultStargateTypes, logs } from "@cosmjs/stargate";
+import { Attribute, Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import bech32 from "bech32";
+import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { ethers } from "ethers";
 import Long from "long";
+import { BigDecimal } from "./bigdecimal";
 import {
   AVERAGE_COSMOS_GAS_PRICE,
+  CW20_DECIMALS,
+  GAS_ESTIMATION_BRIDGE_DEFAULT,
+  MULTIPLIER,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
   atomic,
-  truncDecimals,
-  GAS_ESTIMATION_BRIDGE_DEFAULT,
-  MULTIPLIER,
-  CW20_DECIMALS
+  truncDecimals
 } from "./constant";
 import { CoinGeckoId, NetworkChainId } from "./network";
 import {
   AmountDetails,
+  CoinGeckoPrices,
   TokenInfo,
   TokenItemType,
   cosmosTokens,
   flattenTokens,
   oraichainTokens,
-  CoinGeckoPrices,
   tokenMap
 } from "./token";
 import { StargateMsg, Tx } from "./tx";
-import { BigDecimal } from "./bigdecimal";
-import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
-import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -431,10 +431,10 @@ export const fetchRetry = async (url: RequestInfo | URL, options: RequestInit & 
 /**
  * @deprecated since version 1.0.76. Use `parseAssetInfo` instead.
  */
-export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
+export const parseAssetInfoOnlyDenom = (info: AssetInfo): string => {
   if ("native_token" in info) return info.native_token.denom;
   return info.token.contract_addr;
-}
+};
 
 export const decodeProto = (value: JsonObject) => {
   if (!value) throw "value is not defined";
@@ -488,4 +488,11 @@ export const parseTxToMsgsAndEvents = (indexedTx: Tx, eventsParser?: (events: re
     const attrs = eventsParser ? eventsParser(log.events) : parseWasmEvents(log.events);
     return { attrs, message: messages[index] };
   });
+};
+
+export const splitOnce = (s: string, seperator: string) => {
+  const i = s.indexOf(seperator);
+  // cannot find seperator then return string
+  if (i === -1) return [s];
+  return [s.slice(0, i), s.slice(i + 1)];
 };

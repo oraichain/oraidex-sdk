@@ -43,7 +43,8 @@ import {
   tokenMap,
   oraib2oraichainTest,
   getSubAmountDetails,
-  evmChains
+  evmChains,
+  splitOnce
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -73,13 +74,6 @@ import { Coin } from "@cosmjs/proto-signing";
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
   return arr.includes(fromCoingecko) && arr.includes(toCoingecko);
-};
-
-const splitOnce = (s: string, seperator: string) => {
-  const i = s.indexOf(seperator);
-  // cannot find seperator then return string
-  if (i === -1) return [s];
-  return [s.slice(0, i), s.slice(i + 1)];
 };
 
 export class UniversalSwapHelper {

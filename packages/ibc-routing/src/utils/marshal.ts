@@ -1,5 +1,5 @@
-import { generateError } from "@oraichain/oraidex-common";
-import { OraiBridgeRouteData, splitOnce } from "@oraichain/oraidex-universal-swap";
+import { generateError, splitOnce } from "@oraichain/oraidex-common";
+import { OraiBridgeRouteData } from "@oraichain/oraidex-universal-swap";
 import { decodeIbcMemo } from "./protobuf";
 
 export const unmarshalOraiBridgeRoute = (destination: string): OraiBridgeRouteData => {
