@@ -716,7 +716,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               oraiReceiver: "",
               destinationDenom: "",
               destinationChannelId: "",
-              destinationReceiver: "",
+              destinationReceiver: `0x${oraiBridgeData[0].memo.split("0x")[1]}`,
               eventNonce: event.data.eventNonce,
               evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder,
               status: StateDBStatus.FINISHED
