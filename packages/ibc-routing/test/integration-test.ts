@@ -2,6 +2,7 @@ import { getSigners } from "hardhat";
 import { InterpreterStatus } from "xstate";
 // import { ChainId } from "../src/@types/chain";
 import { EVM_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
+import { setTimeout } from "timers/promises";
 import {
   autoForwardTag,
   batchSendToEthClaimTag,
@@ -53,8 +54,6 @@ describe("test-integration", () => {
     oraichainHandler = new OraichainHandler(duckDb, im);
   });
 
-  const sleep = async (timeout: number) => new Promise((resolve) => setTimeout(resolve, timeout));
-
   const [owner] = getSigners(1);
   it("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
@@ -65,16 +64,16 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
     // TODO: how to wait for emit event to finish then start the next
-    await sleep(300);
+    await setTimeout(300);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     stream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Oraichain));
-    await sleep(300);
+    await setTimeout(300);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Oraichain));
-    await sleep(300);
+    await setTimeout(300);
 
     const intepreterCount = im.getIntepreter(0);
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
@@ -89,18 +88,18 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
-    await sleep(300);
+    await setTimeout(300);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onAcknowledgementTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Cosmos));
-    await sleep(300);
+    await setTimeout(300);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Cosmos));
-    await sleep(300);
+    await setTimeout(300);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnAcknowledgementEvm2Cosmos));
-    await sleep(300);
+    await setTimeout(300);
 
     const intepreterCount = im.getIntepreter(0);
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
@@ -115,7 +114,7 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Evm);
     // TODO: how to wait for emit event to finish then start the next
-    await sleep(300);
+    await setTimeout(300);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -126,15 +125,15 @@ describe("test-integration", () => {
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Evm));
-    await sleep(300);
+    await setTimeout(300);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataOraichainEvm2Evm));
-    await sleep(300);
+    await setTimeout(300);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataEvm2Evm));
-    await sleep(300);
+    await setTimeout(300);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataEvm2Evm));
-    await sleep(300);
+    await setTimeout(300);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataEvm2Evm));
-    await sleep(300);
+    await setTimeout(300);
 
     const intepreterCount = im.getIntepreter(0);
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
