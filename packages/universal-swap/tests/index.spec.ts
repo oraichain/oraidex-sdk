@@ -1,38 +1,40 @@
-import {
-  CosmosWallet,
-  EvmWallet,
-  NetworkChainId,
-  OSMOSIS_ORAICHAIN_DENOM,
-  flattenTokens,
-  oraichain2osmosis,
-  oraichainTokens,
-  USDT_CONTRACT,
-  ROUTER_V2_CONTRACT,
-  toDisplay,
-  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
-  TokenItemType,
-  CosmosChainId,
-  CoinGeckoId,
-  AIRI_CONTRACT,
-  IBC_WASM_CONTRACT,
-  ORAI_BRIDGE_EVM_DENOM_PREFIX,
-  AIRI_BSC_CONTRACT,
-  IBC_TRANSFER_TIMEOUT,
-  toTokenInfo,
-  IBC_WASM_CONTRACT_TEST,
-  USDC_CONTRACT,
-  ORAI,
-  toAmount
-} from "@oraichain/oraidex-common";
-import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
+import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { fromUtf8, toUtf8 } from "@cosmjs/encoding";
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
-import TronWeb from "tronweb";
-import Long from "long";
-import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
-import { fromBase64, fromHex, fromUtf8, toBase64, toUtf8 } from "@cosmjs/encoding";
-import { CosmWasmClient, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
+import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
+import {
+  AIRI_BSC_CONTRACT,
+  AIRI_CONTRACT,
+  CoinGeckoId,
+  CosmosWallet,
+  EvmWallet,
+  IBC_TRANSFER_TIMEOUT,
+  IBC_WASM_CONTRACT,
+  IBC_WASM_CONTRACT_TEST,
+  NetworkChainId,
+  ORAI_BRIDGE_EVM_DENOM_PREFIX,
+  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
+  OSMOSIS_ORAICHAIN_DENOM,
+  ROUTER_V2_CONTRACT,
+  TokenItemType,
+  USDC_CONTRACT,
+  USDT_CONTRACT,
+  buildCosmWasmAbciQueryResponse,
+  flattenTokens,
+  matchCosmWasmQueryRequest,
+  mockJsonRpcServer,
+  oraichain2osmosis,
+  oraichainTokens,
+  toAmount,
+  toDisplay,
+  toTokenInfo
+} from "@oraichain/oraidex-common";
+import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
+import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
+import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import {
   OraiswapFactoryClient,
   OraiswapOracleClient,
@@ -40,35 +42,14 @@ import {
   OraiswapRouterQueryClient,
   OraiswapTokenClient
 } from "@oraichain/oraidex-contracts-sdk";
-import {
-  CWSimulateApp,
-  GenericError,
-  IbcEndpoint,
-  IbcOrder,
-  IbcPacket,
-  SimulateCosmWasmClient
-} from "@oraichain/cw-simulate";
-import { Amount, ChannelInfo, CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import bech32 from "bech32";
-import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
-import {
-  deployIcs20Token,
-  deployToken,
-  mockResponse,
-  mockStatus,
-  mockTxSearch,
-  testSenderAddress
-} from "./test-common";
-import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { readFileSync } from "fs";
+import Long from "long";
+import TronWeb from "tronweb";
 import { UniversalSwapHandler } from "../src/handler";
-import { UniversalSwapHelper } from "../src/helper";
-import HttpRequestMock from "http-request-mock";
-import { QuerySmartContractStateRequest, QuerySmartContractStateResponse } from "cosmjs-types/cosmwasm/wasm/v1/query";
-import {
-  ChannelWithKeyResponse,
-  QueryMsg as Ics20QueryMsg
-} from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
+import { UniversalSwapHelper, checkFeeRelayer, checkFeeRelayerNotOrai } from "../src/helper";
+import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
+import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -451,7 +432,7 @@ describe("test universal swap handler functions", () => {
       );
       // TODO: run tests without mocking to simulate actual swap logic
       jest.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
-      const result = await UniversalSwapHelper.checkFeeRelayer({
+      const result = await checkFeeRelayer({
         originalFromToken: originalFromToken as TokenItemType,
         fromAmount: 1,
         relayerFee: {
@@ -473,7 +454,7 @@ describe("test universal swap handler functions", () => {
       const originalFromToken = oraichainTokens.find((item) => item.coinGeckoId === fromDenom);
       // TODO: run tests without mocking to simulate actual swap
       jest.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
-      const result = await UniversalSwapHelper.checkFeeRelayerNotOrai({
+      const result = await checkFeeRelayerNotOrai({
         fromTokenInOrai: originalFromToken as TokenItemType,
         fromAmount: 1,
         relayerAmount: mockRelayerFee,
@@ -609,67 +590,29 @@ describe("test universal swap handler functions", () => {
   ])(
     "test-universal-swap-checkBalanceChannelIbc-with-mock-%",
     async (fromToken, toToken, amount, channel, willThrow) => {
-      const mocker = HttpRequestMock.setupForFetch();
-      const client = await CosmWasmClient.connect("http://rpc.orai.io");
-      const jsonRpcResponse = (expectedResult: any) => {
-        return {
-          jsonrpc: "2.0",
-          id: 1,
-          result: {
-            response: {
-              code: 0,
-              log: "",
-              info: "",
-              index: "0",
-              key: null,
-              value: toBase64(
-                QuerySmartContractStateResponse.encode({ data: toUtf8(JSON.stringify(expectedResult)) }).finish()
-              ),
-              proofOps: null,
-              height: "1",
-              codespace: ""
-            }
-          }
-        };
-      };
+      const mockServer = await mockJsonRpcServer();
+      await mockServer
+        .forJsonRpcRequest()
+        .matching(async (request) =>
+          matchCosmWasmQueryRequest(request, (queryData) => {
+            return "channel_with_key" in queryData;
+          })
+        )
+        .thenSendJsonRpcResult(
+          buildCosmWasmAbciQueryResponse({
+            balance: { native: { denom: fromToken.denom, amount: toAmount(1).toString() } }
+          })
+        );
+      await mockServer
+        .forJsonRpcRequest()
+        .matching(async (request) =>
+          matchCosmWasmQueryRequest(request, (queryData) => {
+            return "pair_mapping" in queryData;
+          })
+        )
+        .thenSendJsonRpcResult(buildCosmWasmAbciQueryResponse({ pair_mapping: { remote_decimals: 6 } }));
       try {
-        mocker.mock({
-          url: "http://rpc.orai.io",
-          method: "POST",
-          response: async (requestInfo) => {
-            // console.log("original request info: ", requestInfo);
-            const dataRaw = requestInfo.body.params.data;
-            switch (requestInfo.body.method) {
-              case "abci_query":
-                const path = requestInfo.body.params.path;
-                if (path === "/cosmwasm.wasm.v1.Query/SmartContractState") {
-                  const queryRequest = QuerySmartContractStateRequest.decode(fromHex(dataRaw));
-                  const queryData = JSON.parse(fromUtf8(queryRequest.queryData));
-                  if ("channel_with_key" in queryData) {
-                    // console.log("query data channel_with_key", queryData);
-                    return jsonRpcResponse({
-                      balance: { native: { denom: fromToken.denom, amount: toAmount(1).toString() } }
-                    });
-                  }
-                  if ("pair_mapping" in queryData) {
-                    // console.log("query data pair mapping: ", queryData);
-                    return jsonRpcResponse({ pair_mapping: { remote_decimals: 6 } });
-                  }
-                  // console.log("query data: ", queryData);
-                  break;
-                }
-              case "status":
-                return mockStatus;
-              default:
-                break;
-            }
-            // by default we do original call and return its response
-            const res = await requestInfo.doOriginalCall();
-            // 3. and do something again.
-            console.log("original response:", JSON.stringify(res.responseJson));
-            return res.responseJson;
-          }
-        });
+        const client = await CosmWasmClient.connect(mockServer.url);
         await UniversalSwapHelper.checkBalanceChannelIbc(
           {
             source: "wasm." + IBC_WASM_CONTRACT,
