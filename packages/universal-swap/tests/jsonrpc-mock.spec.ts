@@ -14,7 +14,7 @@ describe("test-nock", () => {
     await server.stop();
   });
   it("test-mock-rpc-post", async () => {
-    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(process.env.MNEMONIC as any, { prefix: ORAI });
+    const wallet = await DirectSecp256k1HdWallet.generate(12, { prefix: ORAI });
     const accounts = await wallet.getAccounts();
     const stargate = await SigningStargateClient.connectWithSigner(server.url, wallet, {
       gasPrice: GasPrice.fromString("0.001orai")
@@ -30,7 +30,7 @@ describe("test-nock", () => {
   });
 
   it("test-mock-rpc-getAccount", async () => {
-    const wallet = await DirectSecp256k1HdWallet.fromMnemonic(process.env.MNEMONIC as any, { prefix: ORAI });
+    const wallet = await DirectSecp256k1HdWallet.generate(12, { prefix: ORAI });
     const accounts = await wallet.getAccounts();
     const stargate = await SigningStargateClient.connectWithSigner(server.url, wallet, {
       gasPrice: GasPrice.fromString("0.001orai")
