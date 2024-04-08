@@ -117,7 +117,7 @@ export class UniversalSwapHandler {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toChainId);
 
       if (!isValidRecipient.isValid) {
-        throw generateError("Recipient invalid!");
+        throw generateError("Recipient address invalid!");
       }
       ibcReceiveAddr = this.swapData.recipientAddress;
     } else {
@@ -235,13 +235,13 @@ export class UniversalSwapHandler {
 
     // recipient => validate
     let toAddress = "";
-    const currentToNetwork = originalToToken?.chainId;
+    const currentToNetwork = originalToToken.chainId;
 
     if (this.swapData.recipientAddress) {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
 
       if (!isValidRecipient.isValid) {
-        throw generateError("Recipient invalid!");
+        throw generateError("Recipient address invalid!");
       }
       toAddress = this.swapData.recipientAddress;
     } else {
@@ -657,7 +657,7 @@ export class UniversalSwapHandler {
         const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, "Oraichain");
 
         if (!isValidRecipient.isValid || isValidRecipient.network !== "Oraichain") {
-          throw generateError("Recipient invalid! Only support bridge to Oraichain");
+          throw generateError("Recipient address invalid! Only support bridge to Oraichain");
         }
         msgTransfer.receiver = this.swapData.recipientAddress;
       } else {
@@ -677,13 +677,13 @@ export class UniversalSwapHandler {
   async processUniversalSwap() {
     const { cosmos, evm, tron } = this.swapData.sender;
     let toAddress = "";
-    const currentToNetwork = this.swapData.originalToToken?.chainId;
+    const currentToNetwork = this.swapData.originalToToken.chainId;
 
     if (this.swapData.recipientAddress) {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
 
       if (!isValidRecipient.isValid) {
-        throw generateError("Recipient invalid!");
+        throw generateError("Recipient address invalid!");
       }
       toAddress = this.swapData.recipientAddress;
     } else {
@@ -739,11 +739,11 @@ export class UniversalSwapHandler {
       if (this.swapData.recipientAddress) {
         const isValidRecipient = checkValidateAddressWithNetwork(
           this.swapData.recipientAddress,
-          this.swapData.originalToToken?.chainId
+          this.swapData.originalToToken.chainId
         );
 
         if (!isValidRecipient.isValid) {
-          throw generateError("Recipient invalid!");
+          throw generateError("Recipient address invalid!");
         }
       }
       const to = this.swapData.recipientAddress;

@@ -19,7 +19,7 @@ import {
   MULTIPLIER,
   CW20_DECIMALS
 } from "./constant";
-import { CoinGeckoId, NetworkChainId } from "./network";
+import { CoinGeckoId, NetworkChainId, cosmosChains } from "./network";
 import {
   AmountDetails,
   TokenInfo,
@@ -491,55 +491,30 @@ export const parseTxToMsgsAndEvents = (indexedTx: Tx, eventsParser?: (events: re
   });
 };
 
-export const validateAndIdentifyCosmosAddress = (address: string) => {
+export const validateAndIdentifyCosmosAddress = (address: string, network: string) => {
   try {
     const cosmosAddressRegex = /^[a-z]{1,6}[0-9a-z]{0,64}$/;
     if (!cosmosAddressRegex.test(address)) {
       throw new Error("Invalid address");
     }
 
-    // check cosmos Wallet
     const decodedAddress = bech32.decode(address);
     const prefix = decodedAddress.prefix;
 
-    switch (prefix) {
-      case "orai":
-        return {
-          isValid: true,
-          network: "Oraichain"
-        };
-      case "cosmos":
-        return {
-          isValid: true,
-          network: "cosmoshub-4"
-        };
-      case "inj":
-        return {
-          isValid: true,
-          network: "injective-1"
-        };
-      case "osmo":
-        return {
-          isValid: true,
-          network: "osmosis-1"
-        };
-      case "noble":
-        return {
-          isValid: true,
-          network: "noble-1"
-        };
-      case "neutaro":
-        return {
-          isValid: true,
-          network: "Neutaro-1"
-        };
-      case "oraie":
-        return {
-          isValid: true,
-          network: "kawaii_6886-1"
-        };
-      default:
-        throw new Error("Unsupported address network");
+    const networkMap = cosmosChains.reduce((acc, cur) => {
+      return {
+        ...acc,
+        [cur.bech32Config.bech32PrefixAccAddr]: true
+      };
+    }, {});
+
+    if (networkMap.hasOwnProperty(prefix)) {
+      return {
+        isValid: true,
+        network
+      };
+    } else {
+      throw new Error("Unsupported address network");
     }
   } catch (error) {
     console.log("error:", error);
@@ -550,14 +525,14 @@ export const validateAndIdentifyCosmosAddress = (address: string) => {
   }
 };
 
-export const validateEvmAddress = (address: string) => {
+export const validateEvmAddress = (address: string, network: string) => {
   try {
     const isEvm = ethers.utils.isAddress(address);
 
     if (isEvm) {
       return {
         isValid: true,
-        network: "0x01" // evm // default is ether
+        network
       };
     }
 
@@ -566,13 +541,12 @@ export const validateEvmAddress = (address: string) => {
     };
   } catch (error) {
     return {
-      isValid: false,
-      error: error.message
+      isValid: false
     };
   }
 };
 
-export const validateTronAddress = (address: string) => {
+export const validateTronAddress = (address: string, network: string) => {
   try {
     if (!/T[a-zA-Z0-9]{32}/.test(address)) {
       throw new Error("Invalid tron address");
@@ -580,7 +554,7 @@ export const validateTronAddress = (address: string) => {
 
     return {
       isValid: true,
-      network: "0x2b6653dc" //"tron"
+      network
     };
 
     // const tronWeb = new TronWeb({
@@ -604,8 +578,7 @@ export const validateTronAddress = (address: string) => {
     // });
   } catch (error) {
     return {
-      isValid: false,
-      error: error.message
+      isValid: false
     };
   }
 };
@@ -614,13 +587,13 @@ export const checkValidateAddressWithNetwork = (address: string, network: Networ
   switch (network) {
     case "0x01":
     case "0x38":
-      return validateEvmAddress(address);
+      return validateEvmAddress(address, network);
 
     // tron
     case "0x2b6653dc":
-      return validateTronAddress(address);
+      return validateTronAddress(address, network);
 
     default:
-      return validateAndIdentifyCosmosAddress(address);
+      return validateAndIdentifyCosmosAddress(address, network);
   }
 };

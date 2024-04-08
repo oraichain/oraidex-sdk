@@ -30,7 +30,10 @@ import {
   toDisplay,
   toTokenInfo,
   tronToEthAddress,
-  validateNumber
+  validateAndIdentifyCosmosAddress,
+  validateEvmAddress,
+  validateNumber,
+  validateTronAddress
 } from "../src/helper";
 import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { isFactoryV1 } from "../src/pairs";
@@ -557,7 +560,7 @@ describe("should helper functions in helper run exactly", () => {
       "0x38",
       {
         isValid: true,
-        network: "0x01"
+        network: "0x38"
       }
     ],
     [
@@ -588,7 +591,7 @@ describe("should helper functions in helper run exactly", () => {
       "Oraichain",
       {
         isValid: true,
-        network: "osmosis-1"
+        network: "Oraichain"
       }
     ],
     [
@@ -603,5 +606,51 @@ describe("should helper functions in helper run exactly", () => {
     const check = checkValidateAddressWithNetwork(address, network);
 
     expect(check).toEqual(expected);
+  });
+
+  it.each([
+    ["0x1CE09E54A5d7432ecabf3b085BAda7920aeb7dab", "0x01", true],
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x2b6653dc", false],
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x01", false],
+    ["0x1", "0x38", false],
+    ["", "0x38", false]
+  ])("test-validateEvmAddress", (value, network, expectation) => {
+    try {
+      const { isValid } = validateEvmAddress(value, network);
+      expect(isValid).toEqual(expectation);
+    } catch (error) {
+      expect(expectation).toEqual(false);
+    }
+  });
+
+  it.each([
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x2b6653dc", true],
+    ["0x1CE09E54A5d7432ecabf3b085BAda7920aeb7dab", "0x01", false],
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x01", false],
+    ["TE", "0x2b6653dc", false],
+    ["", "0x2b6653dc", false]
+  ])("test-validateTronAddress", (value, network, expectation) => {
+    try {
+      const { isValid } = validateTronAddress(value, network);
+      expect(isValid).toEqual(expectation);
+    } catch (error) {
+      expect(expectation).toEqual(false);
+    }
+  });
+
+  it.each([
+    ["orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz", "Oraichain", true],
+    ["orai1", "Oraichain", false],
+    ["", "Oraichain", false],
+    ["cosmos12zyu8w93h0q2lcnt50g3fn0w3yqnhy4flwc7p3", "cosmoshub-4", true],
+    ["cosmos12", "cosmoshub-4", false],
+    ["", "cosmoshub-4", false]
+  ])("test-validateTronAddress", (value, network, expectation) => {
+    try {
+      const { isValid } = validateAndIdentifyCosmosAddress(value, network);
+      expect(isValid).toEqual(expectation);
+    } catch (error) {
+      expect(expectation).toEqual(false);
+    }
   });
 });
