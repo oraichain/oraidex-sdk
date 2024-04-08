@@ -274,6 +274,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
           src: async (ctx, event) => {
             const txEvent: TxEvent = event.data.txEvent;
             const events: Event[] = event.data.events;
+            events.forEach((item) => {
+              console.log("===", item.type, "===");
+              item.attributes.forEach((attr) => {
+                console.log(attr.key, "-", attr.value);
+              });
+            });
             const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
             if (!writeAckEvent)
               throw generateError("Could not find the write acknowledgement event in checkOnRecvPacketOraichain");

@@ -111,7 +111,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  xit("[EVM->EVM] full-flow happy test", async () => {
+  it("[EVM->EVM] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -145,7 +145,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  it("[Cosmos->EVM] full-flow happy test", async () => {
+  xit("[Cosmos->EVM] full-flow happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -154,15 +154,15 @@ describe("test-integration", () => {
     ]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
-    await sleep(300);
+    await setTimeout(300);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
-    await sleep(300);
+    await setTimeout(300);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataC2E));
-    await sleep(300);
+    await setTimeout(300);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataC2E));
-    await sleep(300);
+    await setTimeout(300);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
-    await sleep(300);
+    await setTimeout(300);
 
     // const intepreterCount = im.getIntepreter(0);
     // expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
