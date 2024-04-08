@@ -74,6 +74,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             // this context data will be used for querying in the next state
             ctx.evmChainPrefixOnLeftTraverseOrder = evmChainPrefix;
             ctx.evmEventNonce = sendToCosmosData.eventNonce;
+            console.log("SendToCosmosData", sendToCosmosData);
             await ctx.db.insertData(sendToCosmosData, "EvmState");
             return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
           },
@@ -147,6 +148,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             {
               target: "oraibridge",
               cond: (ctx, event) => {
+                console.log(event.data.evmChainPrefix, ctx.evmChainPrefixOnLeftTraverseOrder);
                 return (
                   event.data.eventNonce !== ctx.evmEventNonce ||
                   event.data.evmChainPrefix !== ctx.evmChainPrefixOnLeftTraverseOrder
