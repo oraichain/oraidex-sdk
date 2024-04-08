@@ -8,7 +8,7 @@ export class OraichainHandler extends EventHandler {
     for (const eventItem of eventData) {
       const events: Event[] = eventItem.result.events;
       // FIXME: we should not use events.find here. we need to exhaustively search for the attr type as one tx can include many transactions
-      if (eventItem.result.log.includes("transfer_back_to_remote_chain")) {
+      if (eventItem.result.log.includes("ibc_hooks_receive") && eventItem.result.log.includes("universal_swap")) {
         // create new machine so we start a new context for the transaction
         const intepreter = createCosmosIntepreter(this.db);
         this.im.appendIntepreter(intepreter);

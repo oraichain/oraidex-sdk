@@ -346,6 +346,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               nextState,
               packetSequence: event.data.packetSequence,
               packetAck,
+              sender: nextPacketData.nextPacketSequence != 0 ? localReceiver : "",
               localReceiver,
               // the below fields are reserved for cases if we send packet to another chain
               ...nextPacketData,
@@ -588,7 +589,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
           },
           onError: {
             actions: (ctx, event) => console.log("error check on request batch OraiBridgeState: ", event.data),
-            target: "checkOnRecvPacketFailure"
+            target: "checkOnRequestBatchFailure"
           },
           onDone: [
             {

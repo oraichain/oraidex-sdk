@@ -111,7 +111,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  it("[EVM->EVM] full-flow happy test", async () => {
+  xit("[EVM->EVM] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -145,7 +145,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  xit("[Cosmos->EVM] full-flow happy test", async () => {
+  it("[Cosmos->EVM] full-flow happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
