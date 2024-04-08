@@ -110,8 +110,22 @@ export class UniversalSwapHandler {
       return getEncodedExecuteContractMsgs(sender, msgSwap);
     }
     const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
-    const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
+
+    let ibcReceiveAddr = "";
+
+    if (this.swapData.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toChainId);
+
+      if (!isValidRecipient.isValid) {
+        throw generateError("Recipient invalid!");
+      }
+      ibcReceiveAddr = this.swapData.recipientAddress;
+    } else {
+      ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
+    }
+
     if (!ibcReceiveAddr) throw generateError("Please login keplr!");
+
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
     const isSpecialCoingecko = ["kawaii-islands", "milky-token", "injective-protocol"].includes(toCoinGeckoId);
@@ -223,13 +237,13 @@ export class UniversalSwapHandler {
     let toAddress = "";
     const currentToNetwork = originalToToken?.chainId;
 
-    if (this.config.recipientAddress) {
-      const isValidRecipient = checkValidateAddressWithNetwork(this.config.recipientAddress, currentToNetwork);
+    if (this.swapData.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
 
       if (!isValidRecipient.isValid) {
         throw generateError("Recipient invalid!");
       }
-      toAddress = this.config.recipientAddress;
+      toAddress = this.swapData.recipientAddress;
     } else {
       toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
     }
@@ -639,13 +653,13 @@ export class UniversalSwapHandler {
 
     // check if from chain is noble, use ibc-wasm instead of ibc-hooks
     if (originalFromToken.chainId === "noble-1") {
-      if (this.config.recipientAddress) {
-        const isValidRecipient = checkValidateAddressWithNetwork(this.config.recipientAddress, "Oraichain");
+      if (this.swapData.recipientAddress) {
+        const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, "Oraichain");
 
         if (!isValidRecipient.isValid || isValidRecipient.network !== "Oraichain") {
           throw generateError("Recipient invalid! Only support bridge to Oraichain");
         }
-        msgTransfer.receiver = this.config.recipientAddress;
+        msgTransfer.receiver = this.swapData.recipientAddress;
       } else {
         msgTransfer.receiver = oraiAddress;
       }
@@ -665,13 +679,13 @@ export class UniversalSwapHandler {
     let toAddress = "";
     const currentToNetwork = this.swapData.originalToToken?.chainId;
 
-    if (this.config.recipientAddress) {
-      const isValidRecipient = checkValidateAddressWithNetwork(this.config.recipientAddress, currentToNetwork);
+    if (this.swapData.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
 
       if (!isValidRecipient.isValid) {
         throw generateError("Recipient invalid!");
       }
-      toAddress = this.config.recipientAddress;
+      toAddress = this.swapData.recipientAddress;
     } else {
       toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
         metamaskAddress: evm,
@@ -707,7 +721,6 @@ export class UniversalSwapHandler {
       const msgConvertTo = generateConvertErc20Cw20Message(this.swapData.amounts, toTokenInOrai);
       const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
       if (!this.swapData.simulatePrice || !isValidSlippage) {
-        console.log("this.swapData.userSlippage", this.swapData.userSlippage);
         throw generateError(
           "Could not calculate the minimum receive value because there is no simulate price or user slippage"
         );
@@ -722,12 +735,27 @@ export class UniversalSwapHandler {
       const { fund: offerSentFund, info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
       const { fund: askSentFund, info: askInfo } = parseTokenInfo(toTokenInOrai);
       const funds = handleSentFunds(offerSentFund, askSentFund);
+
+      if (this.swapData.recipientAddress) {
+        const isValidRecipient = checkValidateAddressWithNetwork(
+          this.swapData.recipientAddress,
+          this.swapData.originalToToken?.chainId
+        );
+
+        if (!isValidRecipient.isValid) {
+          throw generateError("Recipient invalid!");
+        }
+      }
+      const to = this.swapData.recipientAddress;
+
       const inputTemp = {
         execute_swap_operations: {
           operations: generateSwapOperationMsgs(offerInfo, askInfo),
-          minimum_receive: minimumReceive
+          minimum_receive: minimumReceive,
+          to
         }
       };
+
       // if cw20 => has to send through cw20 contract
       if (!fromTokenOnOrai.contractAddress) {
         input = inputTemp;

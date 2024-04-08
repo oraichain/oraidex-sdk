@@ -35,6 +35,7 @@ export interface RelayerFeeData {
 }
 
 /**
+ * @property recipientAddress - recipient address from client, if user want to send to another address
  * @property simulatePrice - price of the token calculated with the quote. Eg: swapping ORAI to USDT => 1 ORAI = 2 USDT, then simulate price = 2. TODO: Auto simulate price if not passed
  */
 export interface UniversalSwapData {
@@ -48,16 +49,15 @@ export interface UniversalSwapData {
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
   readonly isSourceReceiverTest?: boolean;
+  readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
 }
 
 /**
- * @property recipientAddress - recipient address from client, if user want to send to another address
  * @property cosmosWallet - wallet used for cosmos based networks.
  * @property evmWallet - wallet used for evm based networks. Note that if you want to sign Tron transactions, you need to pass in tronWeb when initializing the EvmWallet object
  * @property ibcInfoTestMode - true if you want to use the IBC Wasm test contract and channel instead of the production version (default is undefined / false)
  */
 export interface UniversalSwapConfig {
-  readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly cosmosWallet?: CosmosWallet;
   readonly evmWallet?: EvmWallet;
   readonly ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
