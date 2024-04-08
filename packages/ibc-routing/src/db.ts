@@ -62,6 +62,7 @@ export const sqlCommands = {
       nextState varchar,
       packetSequence uinteger primary key,
       packetAck varchar,
+      localReceiver varchar,
       nextPacketSequence uinteger,
       nextMemo varchar,
       nextAmount varchar,

@@ -274,12 +274,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
           src: async (ctx, event) => {
             const txEvent: TxEvent = event.data.txEvent;
             const events: Event[] = event.data.events;
-            events.forEach((item) => {
-              console.log("===", item.type, "===");
-              item.attributes.forEach((attr) => {
-                console.log(attr.key, "-", attr.value);
-              });
-            });
+            // events.forEach((item) => {
+            //   console.log("===", item.type, "===");
+            //   item.attributes.forEach((attr) => {
+            //     console.log(attr.key, "-", attr.value);
+            //   });
+            // });
             const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
             if (!writeAckEvent)
               throw generateError("Could not find the write acknowledgement event in checkOnRecvPacketOraichain");
@@ -313,13 +313,20 @@ export const createEvmIntepreter = (db: DuckDB) => {
                 nextPacketSequence: parseInt(
                   sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value
                 ),
-                nextMemo: "",
+                nextMemo: nextPacketJson?.memo || "",
                 nextAmount: nextPacketJson.amount,
                 nextDestinationDenom: nextPacketJson.denom,
                 nextReceiver: nextPacketJson.receiver
               };
               ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
             }
+
+            const wasmData = events.find((e) => e.type === "wasm");
+            if (!wasmData) {
+              throw generateError("there is no wasm data in storeOnRecvPacket");
+            }
+            const localReceiver = wasmData.attributes.find((attr) => attr.key == "receiver").value;
+
             const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
               nextPacketData.nextDestinationDenom.includes(prefix)
             );
@@ -330,7 +337,6 @@ export const createEvmIntepreter = (db: DuckDB) => {
               throw generateError(
                 `Could not find the row with packet sequence ${event.data.packetSequence} in any table`
               );
-            console.log("AutoForwardData after saved:", state);
             await ctx.db.updateStatusByTxHash(tableName, StateDBStatus.FINISHED, state.txHash);
             let onRecvPacketData = {
               txHash: convertTxHashToHex(txEvent.hash),
@@ -340,6 +346,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               nextState,
               packetSequence: event.data.packetSequence,
               packetAck,
+              localReceiver,
               // the below fields are reserved for cases if we send packet to another chain
               ...nextPacketData,
               status: nextPacketData.nextPacketSequence != 0 ? StateDBStatus.PENDING : StateDBStatus.FINISHED
