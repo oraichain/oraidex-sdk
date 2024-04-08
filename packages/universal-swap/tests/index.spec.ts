@@ -628,6 +628,8 @@ describe("test universal swap handler functions", () => {
         expect(willThrow).toEqual(false);
       } catch (error) {
         expect(willThrow).toEqual(true);
+      } finally {
+        await mockServer.stop();
       }
     },
     50000

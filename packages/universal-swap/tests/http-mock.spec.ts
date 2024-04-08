@@ -22,5 +22,6 @@ describe("test-nock", () => {
     console.log({ result });
     expect(result.transactionHash).toEqual("2F59A5318ED6350976244EAD25CB78ACFEBC1B9C9A96809269A793EDFB529065");
     expect(result.height).toEqual(1);
+    await server.stop();
   });
 });
