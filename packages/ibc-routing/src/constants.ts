@@ -3,6 +3,7 @@ export const requestBatchTag = { key: "message.action", value: "/gravity.v1.MsgR
 export const batchSendToEthClaimTag = { key: "message.action", value: "/gravity.v1.MsgBatchSendToEthClaim" };
 export const onRecvPacketTag = { key: "message.action", value: "/ibc.core.channel.v1.MsgRecvPacket" };
 export const onAcknowledgementTag = { key: "message.action", value: "/ibc.core.channel.v1.MsgAcknowledgement" };
+export const onExecuteContractTag = { key: "message.action", value: "/cosmwasm.wasm.v1.MsgExecuteContract" };
 
 export const sendToCosmosEvent = "SendToCosmosEvent(address,address,string,uint256,uint256)";
 export const oraiBridgeAutoForwardEvent = {
@@ -30,7 +31,8 @@ export const invokableMachineStateKeys = {
   STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN: "STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN",
   STORE_ON_RECV_PACKET_ORAIBRIDGE: "STORE_ON_RECV_PACKET_ORAIBRIDGE",
   STORE_ON_REQUEST_BATCH: "STORE_ON_REQUEST_BATCH",
-  STORE_ON_BATCH_SEND_TO_ETH_CLAIM: "STORE_ON_BATCH_SEND_TO_ETH_CLAIM"
+  STORE_ON_BATCH_SEND_TO_ETH_CLAIM: "STORE_ON_BATCH_SEND_TO_ETH_CLAIM",
+  STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN: "STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN"
 };
 
 export enum StateDBStatus {

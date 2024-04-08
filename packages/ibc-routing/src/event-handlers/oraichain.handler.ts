@@ -1,6 +1,8 @@
 import { Event } from "@cosmjs/stargate";
-import { invokableMachineStateKeys } from "../constants";
+import { parseRpcEvents } from "@oraichain/oraidex-common";
+import { invokableMachineStateKeys, onExecuteContractTag } from "../constants";
 import { createCosmosIntepreter } from "../intepreters/cosmos.intepreter";
+import { createOraichainIntepreter } from "../intepreters/oraichain.intepreter";
 import { EventHandler } from "./event.handler";
 
 export class OraichainHandler extends EventHandler {
@@ -14,6 +16,28 @@ export class OraichainHandler extends EventHandler {
         this.im.appendIntepreter(intepreter);
         intepreter.start();
         intepreter.send({ type: invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, payload: eventItem });
+        return;
+      }
+      if (eventItem.result.log.includes(onExecuteContractTag.value)) {
+        const decodedEvents = parseRpcEvents(events);
+        const sendPacketData = decodedEvents.find((item) => item.type == "send_packet");
+        if (!sendPacketData) {
+          return;
+        }
+        const packetData = sendPacketData.attributes.find((item) => item.key == "packet_data");
+        if (!packetData) {
+          return;
+        }
+        const packetDataValue = packetData.value;
+        if (packetDataValue.includes("0x")) {
+          const intepreter = createOraichainIntepreter(this.db);
+          this.im.appendIntepreter(intepreter);
+          intepreter.start();
+          intepreter.send({
+            type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
+            payload: eventItem
+          });
+        }
         return;
       }
       if (events.find((attr) => attr.type === "recv_packet")) {

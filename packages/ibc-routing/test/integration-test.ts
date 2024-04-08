@@ -7,6 +7,7 @@ import {
   autoForwardTag,
   batchSendToEthClaimTag,
   onAcknowledgementTag,
+  onExecuteContractTag,
   onRecvPacketTag,
   requestBatchTag
 } from "../src/constants";
@@ -42,6 +43,12 @@ import {
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Oraichain,
   SendToCosmosData as SendToCosmosDataEvm2Oraichain
 } from "./data/evm-to-oraichain";
+import {
+  BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataO2E,
+  OnRecvPacketTxData as OnRecvPacketTxDataO2E,
+  OnRequestBatchTxData as OnRequestBatchTxDataO2E,
+  TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E
+} from "./data/oraichain-to-evm";
 
 describe("test-integration", () => {
   let duckDb: DuckDbNode;
@@ -61,7 +68,7 @@ describe("test-integration", () => {
   });
 
   const [owner] = getSigners(1);
-  xit("[EVM->Oraichain] full-flow happy test", async () => {
+  it("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -85,7 +92,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  xit("[EVM->Cosmos] full-flow happy test", async () => {
+  it("[EVM->Cosmos] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -111,7 +118,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  xit("[EVM->EVM] full-flow happy test", async () => {
+  it("[EVM->EVM] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -164,10 +171,27 @@ describe("test-integration", () => {
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
     await setTimeout(300);
 
-    // const intepreterCount = im.getIntepreter(0);
-    // expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    const intepreterCount = im.getIntepreter(0);
+    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
   });
 
-  xit("[Oraichain->EVM] full-flow happy test when existing a swap", async () => {});
-  xit("[Oraichain->EVM] full-flow happy test when not existing a swap", async () => {});
+  it("[Oraichain->EVM] full-flow happy test", async () => {
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
+      autoForwardTag,
+      requestBatchTag,
+      batchSendToEthClaimTag
+    ]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onExecuteContractTag]);
+    await setTimeout(300);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
+    await setTimeout(300);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataO2E));
+    await setTimeout(300);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataO2E));
+    await setTimeout(300);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataO2E));
+    await setTimeout(300);
+  });
 });
