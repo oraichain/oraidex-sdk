@@ -501,12 +501,18 @@ export const validateAndIdentifyCosmosAddress = (address: string, network: strin
     const decodedAddress = bech32.decode(address);
     const prefix = decodedAddress.prefix;
 
+    let chainInfo;
     const networkMap = cosmosChains.reduce((acc, cur) => {
+      if (cur.chainId === network) chainInfo = cur;
       return {
         ...acc,
         [cur.bech32Config.bech32PrefixAccAddr]: true
       };
     }, {});
+
+    if (chainInfo && chainInfo.bech32Config.bech32PrefixAccAddr !== prefix) {
+      throw new Error("Network doesn't match");
+    }
 
     if (networkMap.hasOwnProperty(prefix)) {
       return {

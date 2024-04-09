@@ -59,12 +59,12 @@ import {
   AssetInfo,
   OraiswapRouterQueryClient,
   OraiswapRouterReadOnlyInterface,
-  OraiswapTokenQueryClient
+  OraiswapTokenQueryClient,
+  SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
-import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
+import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
@@ -438,7 +438,7 @@ export class UniversalSwapHelper {
     toInfo: TokenItemType;
     amount: string;
     routerClient: OraiswapRouterReadOnlyInterface;
-  }) => {
+  }): Promise<{ amount: Uint128 }> => {
     const { amount, fromInfo, toInfo, routerClient } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
