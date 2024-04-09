@@ -599,7 +599,7 @@ describe("should helper functions in helper run exactly", () => {
       "Oraichain",
       {
         isValid: false,
-        error: "Invalid address"
+        error: "Network doesn't match"
       }
     ]
   ])("test-check-validate-address-wallet-with-network", (address, network, expected) => {
