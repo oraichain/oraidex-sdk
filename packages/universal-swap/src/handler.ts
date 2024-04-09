@@ -116,15 +116,13 @@ export class UniversalSwapHandler {
     if (this.swapData.recipientAddress) {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toChainId);
 
-      if (!isValidRecipient.isValid) {
-        throw generateError("Recipient address invalid!");
-      }
+      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
       ibcReceiveAddr = this.swapData.recipientAddress;
     } else {
       ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
     }
 
-    if (!ibcReceiveAddr) throw generateError("Please login keplr!");
+    if (!ibcReceiveAddr) throw generateError("Please login cosmos wallet!");
 
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
@@ -211,9 +209,18 @@ export class UniversalSwapHandler {
     metamaskAddress: string,
     tronAddress: string,
     channel: string,
-    toToken: { chainId: string; prefix: string }
+    toToken: { chainId: string; prefix: string; originalChainId: NetworkChainId },
+    recipientAddress?: string
   ) {
-    const transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
+    let transferAddress;
+    if (recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toToken.originalChainId);
+      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+      transferAddress = recipientAddress;
+    } else {
+      transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
+    }
+
     return toToken.chainId === "oraibridge-subnet-2" ? toToken.prefix + transferAddress : "";
   }
 
@@ -223,7 +230,7 @@ export class UniversalSwapHandler {
    */
   async combineMsgEvm(metamaskAddress: string, tronAddress: string) {
     let msgExecuteSwap: EncodeObject[] = [];
-    const { originalFromToken, originalToToken, sender } = this.swapData;
+    const { originalFromToken, originalToToken, sender, recipientAddress } = this.swapData;
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
     if (originalFromToken.coinGeckoId !== originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
@@ -233,28 +240,21 @@ export class UniversalSwapHandler {
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
     const newToToken = findToTokenOnOraiBridge(originalToToken.coinGeckoId, originalToToken.chainId);
 
-    // recipient => validate
-    let toAddress = "";
-    const currentToNetwork = originalToToken.chainId;
-
-    if (this.swapData.recipientAddress) {
-      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
-
-      if (!isValidRecipient.isValid) {
-        throw generateError("Recipient address invalid!");
-      }
-      toAddress = this.swapData.recipientAddress;
-    } else {
-      toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
-    }
-
-    if (!toAddress) throw generateError("Please login keplr!");
+    const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
+    if (!toAddress) throw generateError("Please login cosmos wallet!");
 
     const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, newToToken.chainId);
-    const ibcMemo = this.getIbcMemo(metamaskAddress, tronAddress, ibcInfo.channel, {
-      chainId: newToToken.chainId,
-      prefix: newToToken.prefix
-    });
+    const ibcMemo = this.getIbcMemo(
+      metamaskAddress,
+      tronAddress,
+      ibcInfo.channel,
+      {
+        chainId: newToToken.chainId,
+        prefix: newToToken.prefix,
+        originalChainId: originalToToken.chainId
+      },
+      recipientAddress
+    );
 
     let ibcInfos = ibcInfo;
     let getEncodedExecuteMsgs = [];
