@@ -19,7 +19,7 @@ import {
   MULTIPLIER,
   CW20_DECIMALS
 } from "./constant";
-import { CoinGeckoId, NetworkChainId } from "./network";
+import { CoinGeckoId, NetworkChainId, cosmosChains } from "./network";
 import {
   AmountDetails,
   TokenInfo,
@@ -34,6 +34,7 @@ import { StargateMsg, Tx } from "./tx";
 import { BigDecimal } from "./bigdecimal";
 import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
 import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
+import TronWeb from "tronweb";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -488,4 +489,111 @@ export const parseTxToMsgsAndEvents = (indexedTx: Tx, eventsParser?: (events: re
     const attrs = eventsParser ? eventsParser(log.events) : parseWasmEvents(log.events);
     return { attrs, message: messages[index] };
   });
+};
+
+export const validateAndIdentifyCosmosAddress = (address: string, network: string) => {
+  try {
+    const cosmosAddressRegex = /^[a-z]{1,6}[0-9a-z]{0,64}$/;
+    if (!cosmosAddressRegex.test(address)) {
+      throw new Error("Invalid address");
+    }
+
+    const decodedAddress = bech32.decode(address);
+    const prefix = decodedAddress.prefix;
+
+    const networkMap = cosmosChains.reduce((acc, cur) => {
+      return {
+        ...acc,
+        [cur.bech32Config.bech32PrefixAccAddr]: true
+      };
+    }, {});
+
+    if (networkMap.hasOwnProperty(prefix)) {
+      return {
+        isValid: true,
+        network
+      };
+    } else {
+      throw new Error("Unsupported address network");
+    }
+  } catch (error) {
+    console.log("error:", error);
+    return {
+      isValid: false,
+      error: error.message
+    };
+  }
+};
+
+export const validateEvmAddress = (address: string, network: string) => {
+  try {
+    const isEvm = ethers.utils.isAddress(address);
+
+    if (isEvm) {
+      return {
+        isValid: true,
+        network
+      };
+    }
+
+    return {
+      isValid: false
+    };
+  } catch (error) {
+    return {
+      isValid: false
+    };
+  }
+};
+
+export const validateTronAddress = (address: string, network: string) => {
+  try {
+    if (!/T[a-zA-Z0-9]{32}/.test(address)) {
+      throw new Error("Invalid tron address");
+    }
+
+    return {
+      isValid: true,
+      network
+    };
+
+    // const tronWeb = new TronWeb({
+    //   fullHost: "https://api.trongrid.io"
+    // });
+
+    // tronWeb.trx.getAccount(address).then((isValid) => {
+    //   if (isValid) {
+    //     return {
+    //       isValid: true,
+    //       network: "0x2b6653dc" //"tron"
+    //     };
+    //   } else {
+    //     console.error("Invalid address");
+
+    //     return {
+    //       isValid: false,
+    //       network: "0x2b6653dc" //"tron"
+    //     };
+    //   }
+    // });
+  } catch (error) {
+    return {
+      isValid: false
+    };
+  }
+};
+
+export const checkValidateAddressWithNetwork = (address: string, network: NetworkChainId) => {
+  switch (network) {
+    case "0x01":
+    case "0x38":
+      return validateEvmAddress(address, network);
+
+    // tron
+    case "0x2b6653dc":
+      return validateTronAddress(address, network);
+
+    default:
+      return validateAndIdentifyCosmosAddress(address, network);
+  }
 };
