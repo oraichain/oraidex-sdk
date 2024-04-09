@@ -526,20 +526,39 @@ describe("test universal swap handler functions", () => {
   );
 
   it.each([
-    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "oraib0x1234"],
-    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, ""]
+    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, "0x38", "", ""],
+    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "0x12345", "oraib0x12345"],
+    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "", "oraib0x1234"]
   ])(
     "test getIbcMemo should return ibc memo correctly",
-    (transferAddress: string, toToken: TokenItemType, expectedIbcMemo: string) => {
+    (
+      transferAddress: string,
+      toToken: TokenItemType,
+      originalChainId: string,
+      recipientAddress: string,
+      expectedIbcMemo: string
+    ) => {
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         originalToToken: toToken
       });
       jest.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
-      const ibcMemo = universalSwap.getIbcMemo("john doe", "john doe", "john doe", {
-        chainId: toToken.chainId,
-        prefix: toToken.prefix!
+      jest.spyOn(dexCommonHelper, "checkValidateAddressWithNetwork").mockReturnValue({
+        isValid: true,
+        network: originalChainId
       });
+
+      const ibcMemo = universalSwap.getIbcMemo(
+        "john doe",
+        "john doe",
+        "john doe",
+        {
+          chainId: toToken.chainId,
+          prefix: toToken.prefix!,
+          originalChainId: originalChainId as NetworkChainId
+        },
+        recipientAddress
+      );
       expect(ibcMemo).toEqual(expectedIbcMemo);
     }
   );
@@ -940,7 +959,7 @@ describe("test universal swap handler functions", () => {
     try {
       await universalSwap.combineMsgEvm("0x1234", "T1234");
     } catch (error) {
-      expect(error?.ex?.message).toEqual("Please login keplr!");
+      expect(error?.ex?.message).toEqual("Please login cosmos wallet!");
     }
   });
 

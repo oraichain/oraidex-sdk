@@ -35,6 +35,7 @@ export interface RelayerFeeData {
 }
 
 /**
+ * @property recipientAddress - recipient address from client, if user want to send to another address
  * @property simulatePrice - price of the token calculated with the quote. Eg: swapping ORAI to USDT => 1 ORAI = 2 USDT, then simulate price = 2. TODO: Auto simulate price if not passed
  */
 export interface UniversalSwapData {
@@ -48,6 +49,7 @@ export interface UniversalSwapData {
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
   readonly isSourceReceiverTest?: boolean;
+  readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
 }
 
 /**
