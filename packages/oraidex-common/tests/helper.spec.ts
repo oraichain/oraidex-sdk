@@ -564,13 +564,6 @@ describe("should helper functions in helper run exactly", () => {
       }
     ],
     [
-      "osmo1hvr9d72r5um9lvt0rpkd4r75vrsqtw6y86jn8t",
-      "0x38",
-      {
-        isValid: false
-      }
-    ],
-    [
       "TPF97BNTx2pyNayUhz6B88JSzfdz5SHDbm",
       "0x2b6653dc",
       {
@@ -588,10 +581,17 @@ describe("should helper functions in helper run exactly", () => {
     ],
     [
       "osmo1hvr9d72r5um9lvt0rpkd4r75vrsqtw6y86jn8t",
+      "0x38",
+      {
+        isValid: false
+      }
+    ],
+    [
+      "osmo1hvr9d72r5um9lvt0rpkd4r75vrsqtw6y86jn8t",
       "Oraichain",
       {
-        isValid: true,
-        network: "Oraichain"
+        isValid: false,
+        error: "Network doesn't match"
       }
     ],
     [
@@ -599,7 +599,7 @@ describe("should helper functions in helper run exactly", () => {
       "Oraichain",
       {
         isValid: false,
-        error: "Network doesn't match"
+        error: "Invalid address"
       }
     ]
   ])("test-check-validate-address-wallet-with-network", (address, network, expected) => {
