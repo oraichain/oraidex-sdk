@@ -3,8 +3,8 @@ import { generateError } from "@oraichain/oraidex-common";
 import {
   batchSendToEthClaimEventType,
   eventBatchCreatedEventType,
-  ibcRecvPacketEventType,
-  invokableMachineStateKeys
+  invokableMachineStateKeys,
+  oraiBridgeAutoForwardEventType
 } from "../constants";
 import { EventHandler } from "./event.handler";
 
@@ -19,7 +19,7 @@ export class OraiBridgeHandler extends EventHandler {
         this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAIBRIDGE, eventData[0]);
         return;
       }
-      if (events.find((attr) => attr.type === ibcRecvPacketEventType)) {
+      if (events.find((attr) => attr.type === oraiBridgeAutoForwardEventType)) {
         this.im.transitionInterpreters(invokableMachineStateKeys.STORE_AUTO_FORWARD, eventData[0]);
         return;
       }

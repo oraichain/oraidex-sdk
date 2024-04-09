@@ -19,7 +19,8 @@
     "web-worker": "^1.2.0",
     "ws": "^8.14.2",
     "xstate": "^4.38.2",
-    "duckdb-async": "^0.9.2"
+    "duckdb-async": "^0.9.2",
+    "async-mutex": "^0.5.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
