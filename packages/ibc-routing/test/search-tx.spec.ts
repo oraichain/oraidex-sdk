@@ -11,7 +11,6 @@ describe("Testing searchTx using rpc", () => {
         value: "64275"
       }
     ];
-    encodeURI;
     const query = buildQuery({
       tags: queryTags
     });

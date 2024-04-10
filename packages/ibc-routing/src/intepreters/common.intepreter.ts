@@ -5,6 +5,7 @@ import { AnyEventObject } from "xstate";
 import {
   batchSendToEthClaimEventType,
   ContextIntepreter,
+  DatabaseEnum,
   eventBatchCreatedEventType,
   FinalTag,
   ForwardTagOnOraichain,
@@ -45,7 +46,7 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
   ctx.evmChainPrefixOnLeftTraverseOrder = evmChainPrefix;
   ctx.evmEventNonce = sendToCosmosData.eventNonce;
   console.log("sendToCosmosEvm", sendToCosmosData);
-  await ctx.db.insertData(sendToCosmosData, "EvmState");
+  await ctx.db.insert(DatabaseEnum.Evm, sendToCosmosData);
   return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
 };
 
@@ -87,10 +88,16 @@ export const handleCheckAutoForward = async (
 export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<any> => {
   const txEvent: TxEvent = event.data.txEvent; // should have { txEvent, eventNonce } sent from checkAutoForward
   const events = parseRpcEvents(txEvent.result.events);
-  const prevEvmState = await ctx.db.queryInitialEvmStateByEventNonceAndEvmChainPrefix(
-    event.data.eventNonce,
-    ctx.evmChainPrefixOnLeftTraverseOrder
-  );
+  const prevEvmState = await ctx.db.select(DatabaseEnum.Evm, {
+    where: {
+      eventNonce: event.data.eventNonce,
+      evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder
+    },
+    pagination: {
+      limit: 1
+    }
+  });
+
   if (prevEvmState.length == 0) throw generateError("Cannot find the previous evm state data");
   // collect packet sequence
   const sendPacketEvent = events.find((e) => e.type === "send_packet");
@@ -104,7 +111,11 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
   let packetData = JSON.parse(packetDataAttr.value);
   packetData.memo = decodeIbcMemo(packetData.memo, false).destinationDenom;
 
-  await ctx.db.updateStatusByTxHash("EvmState", StateDBStatus.FINISHED, prevEvmState.txHash);
+  await ctx.db.update(
+    DatabaseEnum.Evm,
+    { status: StateDBStatus.FINISHED },
+    { where: { txHash: prevEvmState[0].txHash } }
+  );
 
   // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
   const srcPort = sendPacketEvent.attributes.find((attr) => attr.key === "packet_src_port").value;
@@ -116,7 +127,7 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
     txHash: convertTxHashToHex(txEvent.hash),
     height: txEvent.height,
     prevState: "EvmState",
-    prevTxHash: prevEvmState.txHash,
+    prevTxHash: prevEvmState[0].txHash,
     nextState: "OraichainState",
     eventNonce: event.data.eventNonce,
     batchNonce: 0,
@@ -135,7 +146,7 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
     status: StateDBStatus.PENDING
   };
   console.log("storeAutoForward:", autoForwardData);
-  await ctx.db.insertData(autoForwardData, "OraiBridgeState");
+  await ctx.db.insert(DatabaseEnum.OraiBridge, autoForwardData);
   ctx.oraiBridgeEventNonce = event.data.eventNonce;
   ctx.oraiBridgePacketSequence = packetSequence;
 };
@@ -201,11 +212,25 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
   const dstPort = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_port").value;
   const dstChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_channel").value;
   const packetSequence = parseInt(packetSequenceAttr.value);
-  const prevOraichainState = await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence);
+  const prevOraichainState = await ctx.db.select(DatabaseEnum.Oraichain, {
+    where: {
+      nextPacketSequence: packetSequence
+    }
+  });
   if (prevOraichainState.length == 0) {
     throw generateError("Can not find previous oraichain state db.");
   }
-  await ctx.db.updateOraichainStatusByNextPacketSequence(packetSequence, StateDBStatus.FINISHED);
+  await ctx.db.update(
+    DatabaseEnum.Oraichain,
+    {
+      status: StateDBStatus.FINISHED
+    },
+    {
+      where: {
+        nextPacketSequence: packetSequence
+      }
+    }
+  );
   const packetData = JSON.parse(packetDataAttr.value);
   const memo = packetData.memo;
   const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => memo.includes(prefix)) || "";
@@ -214,7 +239,7 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
     txHash: convertTxHashToHex(txEvent.hash),
     height: txEvent.height,
     prevState: "OraichainState",
-    prevTxHash: prevOraichainState.txHash,
+    prevTxHash: prevOraichainState[0].txHash,
     nextState: "EvmState",
     eventNonce: 0,
     batchNonce: 0,
@@ -233,33 +258,42 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketOnOraiBridge: ", oraiBridgeData);
-  await ctx.db.insertData(oraiBridgeData, "OraiBridgeState");
+  await ctx.db.insert(DatabaseEnum.OraiBridge, oraiBridgeData);
 };
 
 export const handleStoreOnRequestBatchOraiBridge = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
-  const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndEvmChainPrefix(
-    ctx.oraiBridgePendingTxId,
-    ctx.evmChainPrefixOnRightTraverseOrder,
-    1
-  );
+  const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
+    where: {
+      txId: ctx.oraiBridgePendingTxId,
+      evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
+    }
+  });
   if (oraiBridgeData.length == 0) {
     throw generateError("Error on saving data on onRecvPacketOnOraiBridge");
   }
-  await ctx.db.updateOraiBridgeBatchNonceByTxIdAndEvmChainPrefix(
-    event.data.batchNonce,
-    ctx.oraiBridgePendingTxId,
-    ctx.evmChainPrefixOnRightTraverseOrder
+  await ctx.db.update(
+    DatabaseEnum.OraiBridge,
+    {
+      batchNonce: event.data.batchNonce
+    },
+    {
+      where: {
+        txId: ctx.oraiBridgePendingTxId,
+        evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
+      }
+    }
   );
   console.log(
     "storeOnRequestBatch: ",
-    await ctx.db.queryOraiBridgeByTxIdAndEvmChainPrefix(
-      ctx.oraiBridgePendingTxId,
-      ctx.evmChainPrefixOnRightTraverseOrder,
-      1
-    )
+    ctx.db.select(DatabaseEnum.OraiBridge, {
+      where: {
+        txId: ctx.oraiBridgePendingTxId,
+        evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
+      }
+    })
   );
   ctx.oraiBridgeBatchNonce = event.data.batchNonce;
 };
@@ -294,19 +328,27 @@ export const handleStoreOnBatchSendToEthClaim = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
-  const oraiBridgeData = await ctx.db.queryOraiBridgeByTxIdAndEvmChainPrefix(
-    ctx.oraiBridgePendingTxId,
-    ctx.evmChainPrefixOnRightTraverseOrder,
-    1
-  );
+  const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
+    where: {
+      txId: ctx.oraiBridgePendingTxId,
+      evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
+    }
+  });
   if (oraiBridgeData.length == 0) {
     throw generateError("error on saving batch nonce to eventNonce in OraiBridgeState");
   }
-  await ctx.db.updateOraiBridgeStatusAndEventNonceByTxIdAndEvmChainPrefix(
-    StateDBStatus.FINISHED,
-    event.data.eventNonce,
-    ctx.oraiBridgePendingTxId,
-    ctx.evmChainPrefixOnRightTraverseOrder
+  await ctx.db.update(
+    DatabaseEnum.OraiBridge,
+    {
+      status: StateDBStatus.FINISHED,
+      eventNonce: event.data.eventNonce
+    },
+    {
+      where: {
+        txId: ctx.oraiBridgePendingTxId,
+        evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
+      }
+    }
   );
   // We don't care on everything without prevTxHash, eventNonce, evmChainPrefix
   const evmStateData = {
@@ -327,7 +369,7 @@ export const handleStoreOnBatchSendToEthClaim = async (
     status: StateDBStatus.FINISHED
   };
   console.log("storeOnBatchSendToETHClaim: ", evmStateData);
-  await ctx.db.insertData(evmStateData, "EvmState");
+  await ctx.db.insert(DatabaseEnum.Evm, evmStateData);
 };
 
 // ORAICHAIN
@@ -391,15 +433,27 @@ export const handleStoreOnRecvPacketOraichain = async (
   );
   nextState = existEvmPath ? "OraiBridgeState" : "";
 
-  const { tableName, state } = await ctx.db.findStateByPacketSequence(event.data.packetSequence);
-  if (!tableName)
-    throw generateError(`Could not find the row with packet sequence ${event.data.packetSequence} in any table`);
-  await ctx.db.updateStatusByTxHash(tableName, StateDBStatus.FINISHED, state.txHash);
+  const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
+    where: { packetSequence: event.data.packetSequence }
+  });
+  if (oraiBridgeData.length == 0)
+    throw generateError(
+      `Could not find the row with packet sequence ${event.data.packetSequence} in orai bridge table`
+    );
+  await ctx.db.update(
+    DatabaseEnum.OraiBridge,
+    { status: StateDBStatus.FINISHED },
+    {
+      where: {
+        txHash: oraiBridgeData[0].txHash
+      }
+    }
+  );
   let onRecvPacketData = {
     txHash: convertTxHashToHex(txEvent.hash),
     height: txEvent.height,
-    prevState: tableName,
-    prevTxHash: state.txHash,
+    prevState: DatabaseEnum.OraiBridge,
+    prevTxHash: oraiBridgeData[0].txHash,
     nextState,
     packetSequence: event.data.packetSequence,
     packetAck,
@@ -410,7 +464,7 @@ export const handleStoreOnRecvPacketOraichain = async (
     status: nextPacketData.nextPacketSequence != 0 ? StateDBStatus.PENDING : StateDBStatus.FINISHED
   };
   console.log("storeOnRecvPacketOraichain:", onRecvPacketData);
-  await ctx.db.insertData(onRecvPacketData, "OraichainState");
+  await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
   // now we have verified everything, lets store the result into the db
   // TODO: if there's a next state, prepare to return a valid result here
   if (nextState || nextPacketData.nextPacketSequence != 0) {
@@ -491,7 +545,7 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketData", onRecvPacketData);
-  await ctx.db.insertData(onRecvPacketData, "OraichainState");
+  await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
 
   // no next state, we move to final state of the machine
   return new Promise((resolve) => resolve(""));
@@ -531,14 +585,26 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   event: AnyEventObject
 ): Promise<void> => {
   const packetSequence = event.data.packetSequence;
-  let oraichainData = await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence);
+  let oraichainData = await ctx.db.select(DatabaseEnum.Oraichain, {
+    where: {
+      nextPacketSequence: packetSequence
+    }
+  });
   if (oraichainData.length == 0) {
     throw generateError("error on finding oraichain state by next packet sequence in updateOnAcknowledgementOnCosmos");
   }
-  await ctx.db.updateOraichainStatusByNextPacketSequence(parseInt(packetSequence), StateDBStatus.FINISHED);
+  await ctx.db.update(
+    DatabaseEnum.Oraichain,
+    { status: StateDBStatus.FINISHED },
+    { where: { nextPacketSequence: parseInt(packetSequence) } }
+  );
   console.log(
     "updateOnAcknowledgementOnCosmos: ",
-    await ctx.db.queryOraichainStateByNextPacketSequence(packetSequence)
+    await ctx.db.select(DatabaseEnum.Oraichain, {
+      where: {
+        nextPacketSequence: packetSequence
+      }
+    })
   );
 };
 
@@ -596,7 +662,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketData", onRecvPacketData);
-  await ctx.db.insertData(onRecvPacketData, "OraichainState");
+  await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
 
   // no next state, we move to final state of the machine
   return new Promise((resolve) => resolve(""));

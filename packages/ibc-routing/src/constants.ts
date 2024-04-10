@@ -19,6 +19,13 @@ export const eventBatchCreatedEventType = "gravity.v1.EventBatchCreated";
 export const batchSendToEthClaimEventType = "gravity.v1.MsgBatchSendToEthClaim";
 export const ibcRecvPacketEventType = "recv_packet";
 export const evmGravityEvents = [sendToCosmosEvent];
+
+export enum DatabaseEnum {
+  Evm = "EvmState",
+  OraiBridge = "OraiBridgeState",
+  Oraichain = "OraichainState"
+}
+
 export enum NetworkEventType {
   EVM,
   ORAIBRIDGE,
