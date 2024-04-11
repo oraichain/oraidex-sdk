@@ -17,7 +17,7 @@ describe.skip("Test sync ether", () => {
     );
     const data = await gravity.queryFilter(eventFilter, 37534323, 37534325);
     console.log(data, data[0].args);
-  }, 30000);
+  });
 });
 
 describe.skip("Test sync ether", () => {
@@ -33,7 +33,7 @@ describe.skip("Test sync ether", () => {
     );
     const data = await gravity.queryFilter(eventFilter, 19574735, 19574737);
     console.log(data, data[0].args);
-  }, 30000);
+  });
 });
 
 describe.skip("Test listen on cosmos event", () => {
@@ -55,5 +55,5 @@ describe.skip("Test listen on cosmos event", () => {
     } catch (error) {
       console.log("error listening: ", error);
     }
-  }, 100000);
+  });
 });

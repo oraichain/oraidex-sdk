@@ -17,5 +17,5 @@ describe("Testing searchTx using rpc", () => {
     const txs = await stargateClient.searchTx(query);
 
     console.log(txs);
-  }, 300000);
+  });
 });

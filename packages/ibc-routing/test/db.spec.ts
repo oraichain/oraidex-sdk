@@ -1,3 +1,4 @@
+import { expect } from "chai";
 import { DatabaseEnum } from "../src/constants";
 import { DuckDbNode } from "../src/db";
 
@@ -16,7 +17,7 @@ describe("DuckDB general select, insert, update testing", () => {
       pagination: {}
     };
     const selectOne = duckDb.selectClause(DatabaseEnum.Evm);
-    expect(selectOne[0]).toBe("SELECT * FROM EvmState");
+    expect(selectOne[0]).equal("SELECT * FROM EvmState");
 
     const selectTwo = duckDb.selectClause(DatabaseEnum.Evm, {
       ...defaultOptions,
@@ -25,8 +26,8 @@ describe("DuckDB general select, insert, update testing", () => {
         name: "Dang"
       }
     });
-    expect(selectTwo[0]).toBe("SELECT * FROM EvmState WHERE userId = ? AND name = ?");
-    expect(selectTwo[1]).toEqual([1, "Dang"]);
+    expect(selectTwo[0]).equal("SELECT * FROM EvmState WHERE userId = ? AND name = ?");
+    expect(selectTwo[1]).eql([1, "Dang"]);
 
     const selectThree = duckDb.selectClause(DatabaseEnum.Evm, {
       ...defaultOptions,
@@ -41,10 +42,10 @@ describe("DuckDB general select, insert, update testing", () => {
         offset: 10
       }
     });
-    expect(selectThree[0]).toBe(
+    expect(selectThree[0]).equal(
       "SELECT userId, age FROM EvmState WHERE userId = ? AND name = ? AND age = ? LIMIT ? OFFSET ?"
     );
-    expect(selectThree[1]).toEqual([1, "Dang", 32, 5, 10]);
+    expect(selectThree[1]).eql([1, "Dang", 32, 5, 10]);
   });
 
   it("Testing general insert", async () => {
@@ -53,8 +54,8 @@ describe("DuckDB general select, insert, update testing", () => {
       github: "perfogic"
     });
 
-    expect(insertData[0]).toBe("INSERT INTO OraichainState (minh, github) VALUES (?, ?)");
-    expect(insertData[1]).toEqual(["Dang", "perfogic"]);
+    expect(insertData[0]).equal("INSERT INTO OraichainState (minh, github) VALUES (?, ?)");
+    expect(insertData[1]).eql(["Dang", "perfogic"]);
   });
 
   it("Testing general update", async () => {
@@ -71,7 +72,7 @@ describe("DuckDB general select, insert, update testing", () => {
       }
     );
 
-    expect(updateData[0]).toBe("UPDATE OraiBridgeState SET minh = ?, github = ? WHERE id = ?");
-    expect(updateData[1]).toEqual(["Dang", "perfogic", 5]);
+    expect(updateData[0]).eq("UPDATE OraiBridgeState SET minh = ?, github = ? WHERE id = ?");
+    expect(updateData[1]).eql(["Dang", "perfogic", 5]);
   });
 });

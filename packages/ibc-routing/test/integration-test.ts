@@ -2,6 +2,7 @@ import { getSigners } from "hardhat";
 import { InterpreterStatus } from "xstate";
 // import { ChainId } from "../src/@types/chain";
 import { EvmChainPrefix } from "@oraichain/oraidex-common";
+import { expect } from "chai";
 import { setTimeout } from "timers/promises";
 import {
   autoForwardTag,
@@ -69,7 +70,7 @@ describe("test-integration", () => {
     oraichainHandler = new OraichainHandler(duckDb, im);
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     for (const table of Object.values(DatabaseEnum)) {
       await duckDb.dropTable(table);
     }
@@ -101,7 +102,7 @@ describe("test-integration", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: { txHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4" }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4",
         height: 37469703,
@@ -127,7 +128,7 @@ describe("test-integration", () => {
           packetSequence: 18337
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "7CB195EFA9178EC2A1E06F8DCE1D4CEC7A760B0EFC4605E0FBFC87E999FD8B22",
         height: 11498709,
@@ -157,7 +158,7 @@ describe("test-integration", () => {
           packetSequence: 18337
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "D8A6224EAB18B0195E7C26C567403F8481FCFB714C84636E4404592B1849F51C",
         height: 17439082,
@@ -180,7 +181,7 @@ describe("test-integration", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
   it("[EVM->Cosmos] full-flow happy test", async () => {
@@ -212,7 +213,7 @@ describe("test-integration", () => {
           txHash: "0xe551efd736461673ee952881c49923d2bb4fba538aa1771775d4d5bc02f97c8f"
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "0xe551efd736461673ee952881c49923d2bb4fba538aa1771775d4d5bc02f97c8f",
         height: 37505362,
@@ -242,7 +243,7 @@ describe("test-integration", () => {
           limit: 1
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "7B1817348D6629758A56F2EDC45677F2E77A99850A60D363606E6ABC92A71428",
         height: 11570695,
@@ -272,7 +273,7 @@ describe("test-integration", () => {
           packetSequence: 18434
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "10A17F2AFC8D959272C038B5E2ECB39F26C62BD9EC44E76ED3D2F8B58AE863B2",
         height: 17519455,
@@ -295,7 +296,7 @@ describe("test-integration", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
   it("[EVM->EVM] full-flow happy test", async () => {
@@ -333,7 +334,7 @@ describe("test-integration", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: { txHash: "0xdb03f0cb45506b7725cf04c62035b38a8362a51bc15e24b3706cbc45a17ef27d" }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "0xdb03f0cb45506b7725cf04c62035b38a8362a51bc15e24b3706cbc45a17ef27d",
         height: 37534324,
@@ -360,7 +361,7 @@ describe("test-integration", () => {
           evmChainPrefix: "oraib"
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "7A82ABF78DF290B552D377BB002C5628C33F0859E1936550BA1D9254ED833B2E",
         height: 11628601,
@@ -384,7 +385,7 @@ describe("test-integration", () => {
         status: "FINISHED"
       }
     ]);
-    expect(await duckDb.select(DatabaseEnum.Oraichain, { where: { packetSequence: 18501 } })).toEqual([
+    expect(await duckDb.select(DatabaseEnum.Oraichain, { where: { packetSequence: 18501 } })).eql([
       {
         txHash: "1B3720C353EC5CC96AAB086ED210BED751357DE6B54C4AFCD93520EDABF7AE26",
         height: 17585180,
@@ -406,7 +407,7 @@ describe("test-integration", () => {
         status: "FINISHED"
       }
     ]);
-    expect(await duckDb.select(DatabaseEnum.OraiBridge, { where: { packetSequence: 21456 } })).toEqual([
+    expect(await duckDb.select(DatabaseEnum.OraiBridge, { where: { packetSequence: 21456 } })).eql([
       {
         txHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         height: 11628606,
@@ -431,9 +432,7 @@ describe("test-integration", () => {
         status: "FINISHED"
       }
     ]);
-    expect(
-      await duckDb.select(DatabaseEnum.Evm, { where: { eventNonce: 6501, evmChainPrefix: "eth-mainnet" } })
-    ).toEqual([
+    expect(await duckDb.select(DatabaseEnum.Evm, { where: { eventNonce: 6501, evmChainPrefix: "eth-mainnet" } })).eql([
       {
         txHash: "",
         height: 0,
@@ -454,7 +453,7 @@ describe("test-integration", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
   it("[Cosmos->EVM] full-flow happy test", async () => {
@@ -483,7 +482,7 @@ describe("test-integration", () => {
           packetSequence: 21698
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "52FF42B92483D5BB85D876120E0BB60F728A5CD87BCDA4FBE44A1C79632592DA",
         height: 17854166,
@@ -511,7 +510,7 @@ describe("test-integration", () => {
           packetSequence: 21698
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
         height: 11868974,
@@ -540,7 +539,7 @@ describe("test-integration", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: { eventNonce: 64152, evmChainPrefix: "oraib" }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "",
         height: 0,
@@ -561,7 +560,7 @@ describe("test-integration", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
   it("[Oraichain->EVM] full-flow happy test", async () => {
@@ -590,7 +589,7 @@ describe("test-integration", () => {
           packetSequence: 21688
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "EF7A547A72190EAFF43001E878697CA9C845A12746223340384899FC635E67FC",
         height: 17843438,
@@ -618,7 +617,7 @@ describe("test-integration", () => {
           packetSequence: 21688
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         height: 11859231,
@@ -650,7 +649,7 @@ describe("test-integration", () => {
           evmChainPrefix: "oraib"
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "",
         height: 0,
@@ -671,7 +670,7 @@ describe("test-integration", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 });
 
@@ -692,7 +691,7 @@ describe("test-integration time-out", () => {
     oraichainHandler = new OraichainHandler(duckDb, im);
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     for (const table of Object.values(DatabaseEnum)) {
       await duckDb.dropTable(table);
     }
@@ -714,7 +713,7 @@ describe("test-integration time-out", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: { txHash: "0xdb03f0cb45506b7725cf04c62035b38a8362a51bc15e24b3706cbc45a17ef27d" }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "0xdb03f0cb45506b7725cf04c62035b38a8362a51bc15e24b3706cbc45a17ef27d",
         height: 37534324,
@@ -741,7 +740,7 @@ describe("test-integration time-out", () => {
           evmChainPrefix: "oraib"
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "7A82ABF78DF290B552D377BB002C5628C33F0859E1936550BA1D9254ED833B2E",
         height: 11628601,
@@ -765,7 +764,7 @@ describe("test-integration time-out", () => {
         status: "FINISHED"
       }
     ]);
-    expect(await duckDb.select(DatabaseEnum.Oraichain, { where: { packetSequence: 18501 } })).toEqual([
+    expect(await duckDb.select(DatabaseEnum.Oraichain, { where: { packetSequence: 18501 } })).eql([
       {
         txHash: "1B3720C353EC5CC96AAB086ED210BED751357DE6B54C4AFCD93520EDABF7AE26",
         height: 17585180,
@@ -787,7 +786,7 @@ describe("test-integration time-out", () => {
         status: "FINISHED"
       }
     ]);
-    expect(await duckDb.select(DatabaseEnum.OraiBridge, { where: { packetSequence: 21456 } })).toEqual([
+    expect(await duckDb.select(DatabaseEnum.OraiBridge, { where: { packetSequence: 21456 } })).eql([
       {
         txHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         height: 11628606,
@@ -812,9 +811,7 @@ describe("test-integration time-out", () => {
         status: "FINISHED"
       }
     ]);
-    expect(
-      await duckDb.select(DatabaseEnum.Evm, { where: { eventNonce: 6501, evmChainPrefix: "eth-mainnet" } })
-    ).toEqual([
+    expect(await duckDb.select(DatabaseEnum.Evm, { where: { eventNonce: 6501, evmChainPrefix: "eth-mainnet" } })).eql([
       {
         txHash: "",
         height: 0,
@@ -835,8 +832,8 @@ describe("test-integration time-out", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
-  }, 60000);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
+  }).timeout(60000);
 
   it("[EVM->Oraichain] testing timeout on missing event", async () => {
     const ethEvent = new EthEvent(evmHandler);
@@ -859,7 +856,7 @@ describe("test-integration time-out", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: { txHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4" }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4",
         height: 37469703,
@@ -885,7 +882,7 @@ describe("test-integration time-out", () => {
           packetSequence: 18337
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "7CB195EFA9178EC2A1E06F8DCE1D4CEC7A760B0EFC4605E0FBFC87E999FD8B22",
         height: 11498709,
@@ -915,7 +912,7 @@ describe("test-integration time-out", () => {
           packetSequence: 18337
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "D8A6224EAB18B0195E7C26C567403F8481FCFB714C84636E4404592B1849F51C",
         height: 17439082,
@@ -938,8 +935,8 @@ describe("test-integration time-out", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
-  }, 60000);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
+  }).timeout(60000);
 
   it("[EVM->Cosmos] testing time-out case", async () => {
     const ethEvent = new EthEvent(evmHandler);
@@ -964,7 +961,7 @@ describe("test-integration time-out", () => {
           txHash: "0xe551efd736461673ee952881c49923d2bb4fba538aa1771775d4d5bc02f97c8f"
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "0xe551efd736461673ee952881c49923d2bb4fba538aa1771775d4d5bc02f97c8f",
         height: 37505362,
@@ -994,7 +991,7 @@ describe("test-integration time-out", () => {
           limit: 1
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "7B1817348D6629758A56F2EDC45677F2E77A99850A60D363606E6ABC92A71428",
         height: 11570695,
@@ -1024,7 +1021,7 @@ describe("test-integration time-out", () => {
           packetSequence: 18434
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "10A17F2AFC8D959272C038B5E2ECB39F26C62BD9EC44E76ED3D2F8B58AE863B2",
         height: 17519455,
@@ -1047,8 +1044,8 @@ describe("test-integration time-out", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
-  }, 45000);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
+  }).timeout(45000);
 
   it("[Cosmos->EVM] testing time-out case", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
@@ -1066,7 +1063,7 @@ describe("test-integration time-out", () => {
           packetSequence: 21698
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "52FF42B92483D5BB85D876120E0BB60F728A5CD87BCDA4FBE44A1C79632592DA",
         height: 17854166,
@@ -1094,7 +1091,7 @@ describe("test-integration time-out", () => {
           packetSequence: 21698
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
         height: 11868974,
@@ -1123,7 +1120,7 @@ describe("test-integration time-out", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: { eventNonce: 64152, evmChainPrefix: "oraib" }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "",
         height: 0,
@@ -1144,8 +1141,8 @@ describe("test-integration time-out", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
-  }, 45000);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
+  }).timeout(45000);
 
   it("[Oraichain->EVM] testing time-out case", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
@@ -1163,7 +1160,7 @@ describe("test-integration time-out", () => {
           packetSequence: 21688
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "EF7A547A72190EAFF43001E878697CA9C845A12746223340384899FC635E67FC",
         height: 17843438,
@@ -1191,7 +1188,7 @@ describe("test-integration time-out", () => {
           packetSequence: 21688
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         height: 11859231,
@@ -1223,7 +1220,7 @@ describe("test-integration time-out", () => {
           evmChainPrefix: "oraib"
         }
       })
-    ).toEqual([
+    ).eql([
       {
         txHash: "",
         height: 0,
@@ -1244,6 +1241,6 @@ describe("test-integration time-out", () => {
     ]);
 
     const intepreterCount = im.getIntepreter(0);
-    expect(intepreterCount.status).toBe(InterpreterStatus.Stopped);
-  }, 45000);
+    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
+  }).timeout(45000);
 });

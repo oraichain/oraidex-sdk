@@ -1,10 +1,11 @@
-import { unmarshalOraiBridgeRoute } from "../../src/utils/marshal";
+import { expect } from "chai";
+import { unmarshalOraiBridgeRoute } from "../src/utils/marshal";
 
 describe("Marshal encode/decoder", () => {
   it("Test decode marshal", () => {
     const destination =
       "channel-1/orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd:CjVldGgtbWFpbm5ldDB4MGRlQjUyNDk5QzJlOUYzOTIxYzYzMWNiNkFkMzUyMkM1NzZkNTQ4NBIKY2hhbm5lbC0yORo1ZXRoLW1haW5uZXQweGRBQzE3Rjk1OEQyZWU1MjNhMjIwNjIwNjk5NDU5N0MxM0Q4MzFlYzc=";
-    expect(JSON.stringify(unmarshalOraiBridgeRoute(destination))).toBe(
+    expect(JSON.stringify(unmarshalOraiBridgeRoute(destination))).eql(
       JSON.stringify({
         oraiBridgeChannel: "channel-1",
         oraiReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
