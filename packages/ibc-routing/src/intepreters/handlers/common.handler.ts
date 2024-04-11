@@ -12,11 +12,11 @@ import {
   oraiBridgeAutoForwardEventType,
   outGoingTxIdEventType,
   StateDBStatus
-} from "../constants";
-import { convertTxHashToHex } from "../helpers";
-import { parseRpcEvents } from "../utils/events";
-import { unmarshalOraiBridgeRoute } from "../utils/marshal";
-import { decodeIbcMemo } from "../utils/protobuf";
+} from "../../constants";
+import { convertTxHashToHex } from "../../helpers";
+import { parseRpcEvents } from "../../utils/events";
+import { unmarshalOraiBridgeRoute } from "../../utils/marshal";
+import { decodeIbcMemo } from "../../utils/protobuf";
 
 // EVM
 export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<number> => {
@@ -157,8 +157,10 @@ export const handleCheckOnRequestBatch = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<{ batchNonce: number; txIds: number[] }> => {
+  console.log("event payload", event);
   const txEvent: TxEvent = event.payload;
   const events = parseRpcEvents(txEvent.result.events);
+
   const batchTxIds = events.find((attr) => attr.type == "batched_tx_ids");
   if (!batchTxIds) {
     throw generateError("Batched tx ids not found on request batch event");
@@ -421,7 +423,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   // Src channel will be dst channel of Oraibridge
   // Dst channel will be src channel of channel that Oraichain forwarding (maybe OraiBridge or Cosmos)
   let oraiChannels = {
-    srcChannel: event.data.recvDstChannel,
+    srcChannel: ctx.oraiBridgeDstChannel,
     dstChannel: ""
   };
   let nextPacketData = {
@@ -434,6 +436,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   const sendPacketEvent = events.find((e) => e.type === "send_packet");
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
+    let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
     let dstChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel").value;
     nextPacketData = {
       ...nextPacketData,
@@ -448,6 +451,7 @@ export const handleStoreOnRecvPacketOraichain = async (
       ...oraiChannels,
       dstChannel
     };
+    ctx.oraiSrcForCosmosChannel = srcChannel;
     ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
   }
 
@@ -639,7 +643,7 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
-  const packetSequence = event.data.packetSequence;
+  const packetSequence = ctx.oraiSendPacketSequence;
   let oraichainData = await ctx.db.select(DatabaseEnum.Oraichain, {
     where: {
       nextPacketSequence: packetSequence,
@@ -655,7 +659,7 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
     { status: StateDBStatus.FINISHED },
     {
       where: {
-        nextPacketSequence: parseInt(packetSequence),
+        nextPacketSequence: packetSequence,
         srcChannel: ctx.oraichainSrcChannel,
         dstChannel: ctx.oraichainDstChannel
       }

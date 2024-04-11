@@ -136,4 +136,5 @@ export interface ContextIntepreter {
   oraiBridgeDstChannel?: string;
   oraichainSrcChannel?: string;
   oraichainDstChannel?: string;
+  oraiSrcForCosmosChannel?: string;
 }

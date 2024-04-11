@@ -87,6 +87,8 @@ export abstract class DuckDB {
   abstract select(tableName: DatabaseEnum, options: OptionInterface): Promise<any>;
   abstract insert(tableName: DatabaseEnum, data: Object): Promise<void>;
   abstract update(tableName: DatabaseEnum, overrideData: Object, options: OptionInterface): Promise<void>;
+  // ONLY FOR TEST
+  abstract dropTable(tableName: string): Promise<void>;
 }
 
 export interface PaginationInterface {
@@ -122,6 +124,12 @@ export class DuckDbNode extends DuckDB {
 
   // GENERAL FUNCTIONS (IDEA SAME AS ORM)
   // SEE db.spec.ts for sampleing usage
+  /**
+   * @dev
+   * @params where: which is where query
+   * @params attributes: is the columns that you want to display, empty is *
+   * @params pagination: for pagination like limit and offset
+   */
   async select(tableName: DatabaseEnum, options: OptionInterface): Promise<any> {
     const defaultOptions = {
       where: {},
@@ -147,6 +155,11 @@ export class DuckDbNode extends DuckDB {
     for (const createCommand of Object.values(sqlCommands.create)) {
       await this.conn.exec(createCommand);
     }
+  }
+
+  async dropTable(tableName: string) {
+    const query = `DROP TABLE ${tableName}`;
+    await this.conn.run(query);
   }
 
   // ORM BASIC
