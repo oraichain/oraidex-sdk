@@ -23,7 +23,11 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       oraiSendPacketSequence: -1, // sequence when OnRecvPacket
       oraiBridgePendingTxId: -1,
       oraiBridgeBatchNonce: -1,
-      evmChainPrefixOnRightTraverseOrder: ""
+      evmChainPrefixOnRightTraverseOrder: "",
+      oraiBridgeSrcChannel: "",
+      oraiBridgeDstChannel: "",
+      oraichainSrcChannel: "",
+      oraichainDstChannel: ""
     },
     states: {
       oraichain: {
@@ -64,11 +68,17 @@ export const createOraichainIntepreter = (db: DuckDB) => {
           onDone: [
             {
               target: "onRecvPacketOnOraiBridge",
-              cond: (ctx, event) => event.data.packetSequence === ctx.oraiSendPacketSequence
+              cond: (ctx, event) =>
+                event.data.packetSequence === ctx.oraiSendPacketSequence &&
+                event.data.recvSrcChannel === ctx.oraichainSrcChannel &&
+                event.data.recvDstChannel === ctx.oraichainDstChannel
             },
             {
               target: "oraiBridgeForEvm",
-              cond: (ctx, event) => event.data.packetSequence !== ctx.oraiSendPacketSequence
+              cond: (ctx, event) =>
+                event.data.packetSequence !== ctx.oraiSendPacketSequence ||
+                event.data.recvSrcChannel !== ctx.oraichainSrcChannel ||
+                event.data.recvDstChannel !== ctx.oraichainDstChannel
             }
           ]
         }

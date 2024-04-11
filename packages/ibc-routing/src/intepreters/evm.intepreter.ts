@@ -1,10 +1,9 @@
 import { StargateClient } from "@cosmjs/stargate";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
-import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
+import { generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import {
-  autoForwardTag,
   executedIbcAutoForwardType,
   FinalTag,
   ForwardTagOnOraichain,
@@ -13,7 +12,6 @@ import {
 } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
-import { parseRpcEvents } from "../utils/events";
 import {
   handleCheckAutoForward,
   handleCheckOnAcknowledgementOnCosmos,
@@ -47,7 +45,11 @@ export const createEvmIntepreter = (db: DuckDB) => {
       oraiBridgePendingTxId: -1,
       oraiBridgeBatchNonce: -1,
       evmChainPrefixOnLeftTraverseOrder: "",
-      evmChainPrefixOnRightTraverseOrder: ""
+      evmChainPrefixOnRightTraverseOrder: "",
+      oraiBridgeSrcChannel: "",
+      oraiBridgeDstChannel: "",
+      oraichainSrcChannel: "",
+      oraichainDstChannel: ""
     },
     states: {
       evm: {
@@ -87,53 +89,38 @@ export const createEvmIntepreter = (db: DuckDB) => {
       oraiBridgeTimeOut: {
         invoke: {
           src: async (ctx, event) => {
-            const queryTags: QueryTag[] = [autoForwardTag];
+            const queryTags: QueryTag[] = [
+              {
+                key: `${executedIbcAutoForwardType}.nonce`,
+                value: `${ctx.evmEventNonce}`
+              }
+            ];
+            console.log(ctx.evmEventNonce);
             const query = buildQuery({
-              tags: queryTags,
-              raw: `${executedIbcAutoForwardType}.nonce=${ctx.evmEventNonce}`
+              tags: queryTags
             });
             const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
             const txs = await stargateClient.searchTx(query);
-            console.log(txs);
-            let found = false;
             for (const tx of txs) {
-              const events = parseRpcEvents(tx.events);
-              const sendPacketEvent = events.find((e) => e.type === "send_packet");
-              if (!sendPacketEvent) {
-                break;
-              }
-              const packetSequenceAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
-              if (!packetSequenceAttr) {
-                break;
-              }
-              const packetDataAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_data");
-              if (!packetDataAttr) {
-                break;
-              }
-              const packetData = JSON.parse(packetDataAttr.value);
-              const denom: string = packetData.denom;
-              const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => denom.includes(prefix));
-              if (evmChainPrefix == ctx.evmChainPrefixOnLeftTraverseOrder) {
-                console.log("Passing", {
-                  txEvent: convertIndexedTxToTxEvent(tx),
-                  eventNonce: ctx.evmEventNonce,
-                  evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder
-                });
-                return new Promise((resolve) =>
-                  resolve({
+              try {
+                await handleStoreAutoForward(ctx, {
+                  ...event,
+                  data: {
                     txEvent: convertIndexedTxToTxEvent(tx),
-                    eventNonce: ctx.evmEventNonce,
-                    evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder
-                  })
-                );
+                    eventNonce: ctx.evmEventNonce
+                  }
+                });
+              } catch (err) {
+                throw generateError(err?.message);
               }
-            }
-            if (!found) {
-              throw generateError("there is not event existing as we expected on oraibridgeTimeOut");
             }
           },
-          onError: "oraibridge",
-          onDone: "storeAutoForward"
+          onError: {
+            target: "oraibridge",
+            // rejected promise data is on event.data property
+            actions: (ctx, event) => console.log("error on handling oraibridge timeout")
+          },
+          onDone: "oraichain"
         }
       },
       checkAutoForward: {
@@ -184,6 +171,72 @@ export const createEvmIntepreter = (db: DuckDB) => {
       oraichain: {
         on: {
           [invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN]: "checkOnRecvPacketOraichain"
+        },
+        after: {
+          [TimeOut]: {
+            target: "oraichainTimeOut",
+            actions: (ctx, event) => console.log("Move to timeout from oraichain")
+          }
+        }
+      },
+      oraichainTimeOut: {
+        invoke: {
+          src: async (ctx, event) => {
+            const queryTags: QueryTag[] = [
+              {
+                key: `recv_packet.packet_sequence`,
+                value: `${ctx.oraiBridgePacketSequence}`
+              }
+            ];
+            const query = buildQuery({
+              tags: queryTags
+            });
+            const stargateClient = await StargateClient.connect("https://rpc.orai.io");
+            const txs = await stargateClient.searchTx(query);
+            txs.forEach((item) => {
+              console.log(item.hash);
+            });
+            if (txs.length == 0) {
+              throw generateError("tx does not exist on oraichain");
+            }
+            try {
+              await handleStoreOnRecvPacketOraichain(ctx, {
+                ...event,
+                data: {
+                  txEvent: convertIndexedTxToTxEvent(txs[0]),
+                  packetSequence: ctx.oraiBridgePacketSequence
+                }
+              });
+            } catch (err) {
+              console.log(err);
+              throw generateError(err?.message);
+            }
+          },
+          onError: {
+            target: "oraichain",
+            // rejected promise data is on event.data property
+            actions: (ctx, event) => console.log("error on handling oraichain timeout")
+          },
+          onDone: [
+            {
+              target: "cosmos",
+              cond: (ctx, event) => {
+                return event.data === ForwardTagOnOraichain.COSMOS;
+              }
+            },
+            {
+              target: "oraiBridgeForEvm",
+              cond: (ctx, event) => {
+                return event.data === ForwardTagOnOraichain.EVM;
+              }
+            },
+            {
+              target: "finalState",
+              cond: (ctx, event) => {
+                return event.data === FinalTag;
+              }
+            }
+          ]
         }
       },
       checkOnRecvPacketOraichain: {
@@ -199,13 +252,21 @@ export const createEvmIntepreter = (db: DuckDB) => {
             {
               target: "storeOnRecvPacketOraichain",
               cond: (ctx, event) => {
-                return event.data.packetSequence === ctx.oraiBridgePacketSequence;
+                return (
+                  event.data.packetSequence === ctx.oraiBridgePacketSequence &&
+                  ctx.oraiBridgeSrcChannel === event.data.recvSrcChannel &&
+                  ctx.oraiBridgeDstChannel === event.data.recvDstChannel
+                );
               }
             },
             {
               target: "oraichain",
               cond: (ctx, event) => {
-                return event.data.packetSequence !== ctx.oraiBridgePacketSequence;
+                return (
+                  event.data.packetSequence !== ctx.oraiBridgePacketSequence ||
+                  ctx.oraiBridgeSrcChannel !== event.data.recvSrcChannel ||
+                  ctx.oraiBridgeDstChannel !== event.data.recvDstChannel
+                );
               }
             }
           ]
@@ -298,11 +359,20 @@ export const createEvmIntepreter = (db: DuckDB) => {
           onDone: [
             {
               target: "onRecvPacketOnOraiBridge",
-              cond: (ctx, event) => event.data.packetSequence === ctx.oraiSendPacketSequence
+              cond: (ctx, event) =>
+                event.data.packetSequence === ctx.oraiSendPacketSequence &&
+                event.data.recvSrcChannel === ctx.oraichainSrcChannel &&
+                event.data.recvDstChannel === ctx.oraichainDstChannel
             },
             {
               target: "oraiBridgeForEvm",
-              cond: (ctx, event) => event.data.packetSequence !== ctx.oraiSendPacketSequence
+              cond: (ctx, event) => {
+                return (
+                  event.data.packetSequence !== ctx.oraiSendPacketSequence ||
+                  event.data.recvSrcChannel !== ctx.oraichainSrcChannel ||
+                  event.data.recvDstChannel !== ctx.oraichainDstChannel
+                );
+              }
             }
           ]
         }

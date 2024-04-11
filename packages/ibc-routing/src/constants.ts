@@ -132,4 +132,8 @@ export interface ContextIntepreter {
   oraiBridgeBatchNonce: number;
   evmChainPrefixOnLeftTraverseOrder?: string;
   evmChainPrefixOnRightTraverseOrder: string;
+  oraiBridgeSrcChannel?: string;
+  oraiBridgeDstChannel?: string;
+  oraichainSrcChannel?: string;
+  oraichainDstChannel?: string;
 }

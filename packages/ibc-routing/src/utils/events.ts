@@ -20,3 +20,15 @@ export const parseRpcEvents = (events: readonly Event[]): Event[] => {
     })
   }));
 };
+
+export const encodeRpcEvents = (events: readonly Event[]): Event[] => {
+  return events.map((ev: any) => ({
+    ...ev,
+    attributes: ev.attributes.map((attr: any) => {
+      return {
+        key: Buffer.from(attr.key).toString("base64"),
+        value: Buffer.from(attr.value).toString("base64")
+      };
+    })
+  }));
+};

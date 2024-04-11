@@ -5,10 +5,9 @@ import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 describe("Testing searchTx using rpc", () => {
   it("Try testing stargate-client query", async () => {
     const queryTags: QueryTag[] = [
-      // autoForwardTag,
       {
         key: "gravity.v1.EventSendToCosmosExecutedIbcAutoForward.nonce",
-        value: "64275"
+        value: "63870"
       }
     ];
     const query = buildQuery({
@@ -16,6 +15,7 @@ describe("Testing searchTx using rpc", () => {
     });
     const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
     const txs = await stargateClient.searchTx(query);
+
     console.log(txs);
   }, 300000);
 });

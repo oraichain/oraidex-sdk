@@ -7,6 +7,8 @@ import { DatabaseEnum } from "./constants";
 // 1. (eventNonce, evmChainPrefix)
 // 2. (txId, evmChainPrefix)
 // 3. (batchNonce, denom, evmChainPrefix)
+// 4. (packetSequence, srcChannel, portChannel)
+// 5. soon...
 // TODO: fix passing data flow by apache-arrow
 export const sqlCommands = {
   create: {
@@ -40,7 +42,7 @@ export const sqlCommands = {
       batchNonce uinteger,
       txId uinteger,
       evmChainPrefix varchar,
-      packetSequence uinteger primary key,
+      packetSequence uinteger,
       amount varchar,
       denom varchar,
       memo varchar,
@@ -51,6 +53,7 @@ export const sqlCommands = {
       dstPort varchar,
       dstChannel varchar,
       status varchar,
+      primary key (packetSequence, srcChannel, dstChannel)
     )`,
     [DatabaseEnum.Oraichain]: `create table if not exists OraichainState 
     (
@@ -59,7 +62,7 @@ export const sqlCommands = {
       prevState varchar,
       prevTxHash varchar,
       nextState varchar,
-      packetSequence uinteger primary key,
+      packetSequence uinteger,
       packetAck varchar,
       sender varchar,
       localReceiver varchar,
@@ -68,7 +71,10 @@ export const sqlCommands = {
       nextAmount varchar,
       nextReceiver varchar,
       nextDestinationDenom varchar,
+      srcChannel varchar,
+      dstChannel varchar,
       status varchar,
+      primary key (packetSequence)
     )`
   }
 };

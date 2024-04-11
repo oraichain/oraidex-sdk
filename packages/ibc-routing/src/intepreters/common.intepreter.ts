@@ -147,6 +147,8 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
   };
   console.log("storeAutoForward:", autoForwardData);
   await ctx.db.insert(DatabaseEnum.OraiBridge, autoForwardData);
+  ctx.oraiBridgeSrcChannel = autoForwardData.srcChannel;
+  ctx.oraiBridgeDstChannel = autoForwardData.dstChannel;
   ctx.oraiBridgeEventNonce = event.data.eventNonce;
   ctx.oraiBridgePacketSequence = packetSequence;
 };
@@ -154,7 +156,7 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
 export const handleCheckOnRequestBatch = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
-): Promise<{ batchNonce: number; txIds: number[]; events: Event[] }> => {
+): Promise<{ batchNonce: number; txIds: number[] }> => {
   const txEvent: TxEvent = event.payload;
   const events = parseRpcEvents(txEvent.result.events);
   const batchTxIds = events.find((attr) => attr.type == "batched_tx_ids");
@@ -169,24 +171,32 @@ export const handleCheckOnRequestBatch = async (
   }
   const batchNonceValue = parseInt(JSON.parse(batchNonceData.value));
   const txIds = batchTxIds.attributes.map((item) => parseInt(item.value));
-  return new Promise((resolve) => resolve({ batchNonce: batchNonceValue, txIds, events }));
+  return new Promise((resolve) => resolve({ batchNonce: batchNonceValue, txIds }));
 };
 
 export const handleCheckOnRecvPacketOnOraiBridge = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
-): Promise<{ packetSequence: number; txEvent: TxEvent }> => {
+): Promise<{ packetSequence: number; txEvent: TxEvent; recvSrcChannel: string; recvDstChannel: string }> => {
   const txEvent = event.payload as TxEvent;
   const events = parseRpcEvents(txEvent.result.events);
   const recvPacket = events.find((attr) => attr.type == "recv_packet");
   if (!recvPacket) {
     throw generateError("Could not find the recv packet event from the payload at checkOnRecvPacketOraichain");
   }
+  const recvSrcChannel = recvPacket.attributes.find((attr) => attr.key == "packet_src_channel")?.value;
+  if (!recvSrcChannel) {
+    throw generateError("Could not find recv packet src channel attr in checkOnRecvPacketOraichain");
+  }
+  const recvDstChannel = recvPacket.attributes.find((attr) => attr.key == "packet_dst_channel")?.value;
+  if (!recvDstChannel) {
+    throw generateError("Could not find recv packet dst channel attr in checkOnRecvPacketOraichain");
+  }
   const packetSequenceAttr = recvPacket.attributes.find((attr) => attr.key === "packet_sequence");
   const packetSequence = parseInt(packetSequenceAttr.value);
 
   // Forward next event data
-  return new Promise((resolve) => resolve({ packetSequence, txEvent: txEvent }));
+  return new Promise((resolve) => resolve({ packetSequence, txEvent: txEvent, recvSrcChannel, recvDstChannel }));
 };
 
 export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<void> => {
@@ -207,14 +217,18 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
   if (!packetDataAttr) {
     throw generateError("Cannot find the packet data in send_packet of auto forward");
   }
-  const srcPort = recvPacketEvent.attributes.find((attr) => attr.key === "packet_src_port").value;
-  const srcChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_src_channel").value;
-  const dstPort = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_port").value;
-  const dstChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_channel").value;
+  // destionation on recv packet will be source on main chain
+  const srcPort = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_port").value;
+  const srcChannel = recvPacketEvent.attributes.find((attr) => attr.key === "packet_dst_channel").value;
+  ctx.oraiBridgeSrcChannel = srcChannel;
+  ctx.oraiBridgeDstChannel = "";
+
   const packetSequence = parseInt(packetSequenceAttr.value);
   const prevOraichainState = await ctx.db.select(DatabaseEnum.Oraichain, {
     where: {
-      nextPacketSequence: packetSequence
+      nextPacketSequence: packetSequence,
+      srcChannel: ctx.oraichainSrcChannel,
+      dstChannel: ctx.oraiBridgeSrcChannel
     }
   });
   if (prevOraichainState.length == 0) {
@@ -227,7 +241,9 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
     },
     {
       where: {
-        nextPacketSequence: packetSequence
+        nextPacketSequence: packetSequence,
+        srcChannel: ctx.oraichainSrcChannel,
+        dstChannel: ctx.oraiBridgeSrcChannel
       }
     }
   );
@@ -253,8 +269,8 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
     sender: packetData.sender,
     srcPort,
     srcChannel,
-    dstPort,
-    dstChannel,
+    dstPort: "",
+    dstChannel: "",
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketOnOraiBridge: ", oraiBridgeData);
@@ -288,7 +304,7 @@ export const handleStoreOnRequestBatchOraiBridge = async (
   );
   console.log(
     "storeOnRequestBatch: ",
-    ctx.db.select(DatabaseEnum.OraiBridge, {
+    await ctx.db.select(DatabaseEnum.OraiBridge, {
       where: {
         txId: ctx.oraiBridgePendingTxId,
         evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
@@ -378,7 +394,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   event: AnyEventObject
 ): Promise<string> => {
   const txEvent: TxEvent = event.data.txEvent;
-  const events: Event[] = event.data.events;
+  const events: Event[] = parseRpcEvents(txEvent.result.events);
   // events.forEach((item) => {
   //   console.log("===", item.type, "===");
   //   item.attributes.forEach((attr) => {
@@ -387,13 +403,13 @@ export const handleStoreOnRecvPacketOraichain = async (
   // });
   const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
   if (!writeAckEvent)
-    throw generateError("Could not find the write acknowledgement event in checkOnRecvPacketOraichain");
+    throw generateError("Could not find the write acknowledgement event in storeOnRecvPacketOraichain");
   const packetAckAttr = writeAckEvent.attributes.find((attr) => attr.key === "packet_ack");
-  if (!packetAckAttr) throw generateError("Could not find packet ack attr in checkOnRecvPacketOraichain");
+  if (!packetAckAttr) throw generateError("Could not find packet ack attr in storeOnRecvPacketOraichain");
   // packet ack format: {"result":"MQ=="} or {"result":"<something-else-in-base-64"}
-  const packetAck = Buffer.from(JSON.parse(packetAckAttr.value).result, "base64").toString("ascii");
+  const packetAck = JSON.parse(packetAckAttr.value).result;
   // if equals 1 it means the ack is successful. Otherwise, this packet has some errors
-  if (packetAck != "1") {
+  if (packetAck != "MQ==" && packetAck != "AQ==") {
     throw generateError(`The packet ack is not successful: ${packetAck}`);
   }
   // try finding the previous state and collect its tx hash and compare with our received packet sequence
@@ -401,6 +417,13 @@ export const handleStoreOnRecvPacketOraichain = async (
   // collect packet sequence
   // now we try finding send_packet, if not found then we finalize the state
   let nextState = "";
+
+  // Src channel will be dst channel of Oraibridge
+  // Dst channel will be src channel of channel that Oraichain forwarding (maybe OraiBridge or Cosmos)
+  let oraiChannels = {
+    srcChannel: event.data.recvDstChannel,
+    dstChannel: ""
+  };
   let nextPacketData = {
     nextPacketSequence: 0,
     nextMemo: "",
@@ -411,6 +434,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   const sendPacketEvent = events.find((e) => e.type === "send_packet");
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
+    let dstChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel").value;
     nextPacketData = {
       ...nextPacketData,
       nextPacketSequence: parseInt(sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value),
@@ -419,8 +443,17 @@ export const handleStoreOnRecvPacketOraichain = async (
       nextDestinationDenom: nextPacketJson.denom,
       nextReceiver: nextPacketJson.receiver
     };
+
+    oraiChannels = {
+      ...oraiChannels,
+      dstChannel
+    };
     ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
   }
+
+  ctx.oraichainSrcChannel = oraiChannels.srcChannel;
+  ctx.oraichainDstChannel = oraiChannels.dstChannel;
+  console.log("Orai channels:", oraiChannels);
 
   const wasmData = events.find((e) => e.type === "wasm");
   if (!wasmData) {
@@ -434,7 +467,11 @@ export const handleStoreOnRecvPacketOraichain = async (
   nextState = existEvmPath ? "OraiBridgeState" : "";
 
   const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
-    where: { packetSequence: event.data.packetSequence }
+    where: {
+      packetSequence: event.data.packetSequence,
+      dstChannel: ctx.oraichainSrcChannel,
+      srcChannel: ctx.oraiBridgeSrcChannel
+    }
   });
   if (oraiBridgeData.length == 0)
     throw generateError(
@@ -461,6 +498,7 @@ export const handleStoreOnRecvPacketOraichain = async (
     localReceiver,
     // the below fields are reserved for cases if we send packet to another chain
     ...nextPacketData,
+    ...oraiChannels,
     status: nextPacketData.nextPacketSequence != 0 ? StateDBStatus.PENDING : StateDBStatus.FINISHED
   };
   console.log("storeOnRecvPacketOraichain:", onRecvPacketData);
@@ -491,12 +529,16 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   // });
   const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
   if (!writeAckEvent)
-    throw generateError("Could not find the write acknowledgement event in checkOnRecvPacketOraichain");
+    throw generateError("Could not find the write acknowledgement event in storeOnRecvPacketOraichain");
   const packetDataAttrStr = writeAckEvent.attributes.find((attr) => attr.key === "packet_data").value;
   const localReceiver = JSON.parse(packetDataAttrStr).receiver;
   const sender = JSON.parse(packetDataAttrStr).sender;
 
   let nextState = "";
+  let oraiChannels = {
+    srcChannel: "",
+    dstChannel: ""
+  };
   let nextPacketData = {
     nextPacketSequence: 0,
     nextMemo: "",
@@ -507,6 +549,8 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   const sendPacketEvent = events.find((e) => e.type === "send_packet");
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
+    let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
+    let dstChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel").value;
     nextPacketData = {
       ...nextPacketData,
       nextPacketSequence: parseInt(sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value),
@@ -515,14 +559,16 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
       nextDestinationDenom: nextPacketJson.denom,
       nextReceiver: nextPacketJson.receiver
     };
+    oraiChannels = {
+      ...oraiChannels,
+      srcChannel,
+      dstChannel
+    };
     ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
   }
 
-  // const wasmData = events.find((e) => e.type === "wasm");
-  // if (!wasmData) {
-  //   throw generateError("there is no wasm data in storeOnRecvPacket");
-  // }
-  // const localReceiver = wasmData.attributes.find((attr) => attr.key == "from").value;
+  ctx.oraichainSrcChannel = oraiChannels.srcChannel;
+  ctx.oraichainDstChannel = oraiChannels.dstChannel;
 
   const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
     nextPacketData.nextDestinationDenom.includes(prefix)
@@ -542,6 +588,7 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
     localReceiver,
     // the below fields are reserved for cases if we send packet to another chain
     ...nextPacketData,
+    ...oraiChannels,
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketData", onRecvPacketData);
@@ -554,16 +601,24 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
 export const handleCheckOnRecvPacketOraichain = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
-): Promise<{ packetSequence: number; events: Event[]; txEvent: TxEvent }> => {
+): Promise<{ packetSequence: number; txEvent: TxEvent; recvSrcChannel: string; recvDstChannel: string }> => {
   const txEvent: TxEvent = event.payload;
   const events = parseRpcEvents(txEvent.result.events);
   const recvPacketEvent = events.find((e) => e.type === "recv_packet");
   if (!recvPacketEvent)
     throw generateError("Could not find the recv packet event from the payload at checkOnRecvPacketOraichain");
+  const recvSrcChannel = recvPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel")?.value;
+  if (!recvSrcChannel) {
+    throw generateError("Could not find recv packet src channel attr in checkOnRecvPacketOraichain");
+  }
+  const recvDstChannel = recvPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel")?.value;
+  if (!recvDstChannel) {
+    throw generateError("Could not find recv packet dst channel attr in checkOnRecvPacketOraichain");
+  }
   const packetSequenceAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
   if (!packetSequenceAttr) throw generateError("Could not find packet sequence attr in checkOnRecvPacketOraichain");
   const packetSequence = parseInt(packetSequenceAttr.value);
-  return new Promise((resolve) => resolve({ packetSequence, events, txEvent }));
+  return new Promise((resolve) => resolve({ packetSequence, txEvent, recvSrcChannel, recvDstChannel }));
 };
 
 export const handleCheckOnAcknowledgementOnCosmos = async (
@@ -587,7 +642,9 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   const packetSequence = event.data.packetSequence;
   let oraichainData = await ctx.db.select(DatabaseEnum.Oraichain, {
     where: {
-      nextPacketSequence: packetSequence
+      nextPacketSequence: packetSequence,
+      srcChannel: ctx.oraichainSrcChannel,
+      dstChannel: ctx.oraichainDstChannel
     }
   });
   if (oraichainData.length == 0) {
@@ -596,13 +653,21 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   await ctx.db.update(
     DatabaseEnum.Oraichain,
     { status: StateDBStatus.FINISHED },
-    { where: { nextPacketSequence: parseInt(packetSequence) } }
+    {
+      where: {
+        nextPacketSequence: parseInt(packetSequence),
+        srcChannel: ctx.oraichainSrcChannel,
+        dstChannel: ctx.oraichainDstChannel
+      }
+    }
   );
   console.log(
     "updateOnAcknowledgementOnCosmos: ",
     await ctx.db.select(DatabaseEnum.Oraichain, {
       where: {
-        nextPacketSequence: packetSequence
+        nextPacketSequence: packetSequence,
+        srcChannel: ctx.oraichainSrcChannel,
+        dstChannel: ctx.oraichainDstChannel
       }
     })
   );
@@ -625,9 +690,15 @@ export const handleStoreOnTransferBackToRemoteChain = async (
   };
   let sender;
   let localReceiver;
+  let oraiChannels = {
+    srcChannel: "",
+    dstChannel: ""
+  };
   const sendPacketEvent = events.find((e) => e.type === "send_packet");
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
+    let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
+    let dstChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel").value;
     nextPacketData = {
       ...nextPacketData,
       nextPacketSequence: parseInt(sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value),
@@ -636,10 +707,19 @@ export const handleStoreOnTransferBackToRemoteChain = async (
       nextDestinationDenom: nextPacketJson.denom,
       nextReceiver: nextPacketJson.receiver
     };
+
+    oraiChannels = {
+      ...oraiChannels,
+      srcChannel,
+      dstChannel
+    };
     ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
     sender = nextPacketJson.sender;
     localReceiver = nextPacketJson.sender;
   }
+
+  ctx.oraichainSrcChannel = oraiChannels.srcChannel;
+  ctx.oraichainDstChannel = oraiChannels.dstChannel;
 
   const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
     nextPacketData.nextDestinationDenom.includes(prefix)
@@ -659,6 +739,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     localReceiver,
     // the below fields are reserved for cases if we send packet to another chain
     ...nextPacketData,
+    ...oraiChannels,
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketData", onRecvPacketData);
