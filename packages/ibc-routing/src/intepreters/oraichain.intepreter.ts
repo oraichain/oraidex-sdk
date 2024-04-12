@@ -3,7 +3,7 @@ import { QueryTag } from "@cosmjs/tendermint-rpc";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
-import { invokableMachineStateKeys, TimeOut } from "../constants";
+import { TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
 import {
@@ -15,6 +15,7 @@ import {
   handleStoreOnRequestBatchOraiBridge,
   handleStoreOnTransferBackToRemoteChain
 } from "./handlers/common.handler";
+import { config } from "../config";
 
 export const createOraichainIntepreter = (db: DuckDB) => {
   const machine = createMachine({
@@ -23,8 +24,6 @@ export const createOraichainIntepreter = (db: DuckDB) => {
     initial: "oraichain",
     context: {
       db,
-      oraiBridgeEventNonce: -1,
-      oraiBridgePacketSequence: -1,
       oraiSendPacketSequence: -1, // sequence when OnRecvPacket
       oraiBridgePendingTxId: -1,
       oraiBridgeBatchNonce: -1,
@@ -32,7 +31,8 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       oraiBridgeSrcChannel: "",
       oraiBridgeDstChannel: "",
       oraichainSrcChannel: "",
-      oraichainDstChannel: ""
+      oraichainDstChannel: "",
+      outingQueryData: []
     },
     states: {
       oraichain: {
@@ -42,21 +42,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       },
       storeOnTransferBackToRemoteChain: {
         invoke: {
-          src: async (ctx, event) => {
-            return handleStoreOnTransferBackToRemoteChain(ctx, event);
-          },
+          src: handleStoreOnTransferBackToRemoteChain,
           onError: {
             actions: (ctx, event) => console.log("error on insert data on storeOnRecvPacketOraichain: ", event.data),
             target: "storeOnRecvPacketOraichainFailure"
           },
-          onDone: [
-            {
-              target: "oraiBridgeForEvm",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "oraiBridgeForEvm"
+          }
         }
       },
       storeOnRecvPacketOraichainFailure: {},
@@ -91,7 +84,7 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             const query = buildQuery({
               tags: queryTags
             });
-            const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+            const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
             const txs = await stargateClient.searchTx(query);
             if (txs.length == 0) {
               throw generateError("Can not find orai bridge data on oraiBridgeForEvmTimeout");
@@ -110,21 +103,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             },
             target: "oraiBridgeForEvm"
           },
-          onDone: [
-            {
-              target: "onRequestBatch",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "onRequestBatch"
+          }
         }
       },
       checkOnRecvPacketOnOraiBridge: {
         invoke: {
-          src: async (ctx, event: any) => {
-            return handleCheckOnRecvPacketOnOraiBridge(ctx, event);
-          },
+          src: handleCheckOnRecvPacketOnOraiBridge,
           onDone: [
             {
               target: "onRecvPacketOnOraiBridge",
@@ -148,21 +134,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       },
       onRecvPacketOnOraiBridge: {
         invoke: {
-          src: async (ctx, event) => {
-            return handleOnRecvPacketOnOraiBridge(ctx, event);
-          },
+          src: handleOnRecvPacketOnOraiBridge,
           onError: {
             actions: (ctx, event) => console.log("error check on recv packet OraiBridgeState: ", event.data),
             target: "onRecvPacketOnOraiBridgeFailure"
           },
-          onDone: [
-            {
-              target: "onRequestBatch",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "onRequestBatch"
+          }
         }
       },
       onRecvPacketOnOraiBridgeFailure: {},
@@ -189,7 +168,7 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             const query = buildQuery({
               tags: queryTags
             });
-            const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+            const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
             const txs = await stargateClient.searchTx(query);
             if (txs.length == 0) {
               throw generateError("Can not find orai bridge data on onRequestBatchTimeout");
@@ -211,21 +190,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             },
             target: "onRequestBatch"
           },
-          onDone: [
-            {
-              target: "storeOnRequestBatch",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "storeOnRequestBatch"
+          }
         }
       },
       checkOnRequestBatch: {
         invoke: {
-          src: async (ctx, event) => {
-            return handleCheckOnRequestBatch(ctx, event);
-          },
+          src: handleCheckOnRequestBatch,
           onError: {
             actions: (ctx, event) => console.log("error check on request batch OraiBridgeState: ", event.data),
             target: "checkOnRequestBatchFailure"
@@ -250,21 +222,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       checkOnRequestBatchFailure: {},
       storeOnRequestBatch: {
         invoke: {
-          src: async (ctx, event) => {
-            return handleStoreOnRequestBatchOraiBridge(ctx, event);
-          },
+          src: handleStoreOnRequestBatchOraiBridge,
           onError: {
             actions: (ctx, event) => console.log("error on store on request batch: ", event.data),
             target: "storeOnRequestBatchFailure"
           },
-          onDone: [
-            {
-              target: "onBatchSendToETHClaim",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "onBatchSendToETHClaim"
+          }
         }
       },
       storeOnRequestBatchFailure: {},
@@ -295,7 +260,7 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             const query = buildQuery({
               tags: queryTags
             });
-            const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+            const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
             const txs = await stargateClient.searchTx(query);
             if (txs.length == 0) {
               throw generateError("Can not find orai bridge data on onBatchSendToETHClaimTimeout");
@@ -311,21 +276,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             },
             target: "onBatchSendToETHClaim"
           },
-          onDone: [
-            {
-              target: "storeOnBatchSendToETHClaim",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "storeOnBatchSendToETHClaim"
+          }
         }
       },
       checkOnBatchSendToETHClaim: {
         invoke: {
-          src: async (ctx, event) => {
-            return handleCheckOnBatchSendToEthClaim(ctx, event);
-          },
+          src: handleCheckOnBatchSendToEthClaim,
           onDone: [
             {
               target: "storeOnBatchSendToETHClaim",
@@ -350,21 +308,14 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       },
       storeOnBatchSendToETHClaim: {
         invoke: {
-          src: async (ctx, event) => {
-            return handleStoreOnBatchSendToEthClaim(ctx, event);
-          },
+          src: handleStoreOnBatchSendToEthClaim,
           onError: {
             actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
             target: "storeOnBatchSendToETHClaimFailure"
           },
-          onDone: [
-            {
-              target: "finalState",
-              cond: (ctx, event) => {
-                return true;
-              }
-            }
-          ]
+          onDone: {
+            target: "finalState"
+          }
         }
       },
       storeOnBatchSendToETHClaimFailure: {},
