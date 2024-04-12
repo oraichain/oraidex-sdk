@@ -25,7 +25,17 @@ class IntepreterManager {
   public appendIntepreter(intepreter: AnyInterpreter) {
     this.mutex
       .runExclusive(() => {
-        this.intepreters.push(intepreter);
+        this.intepreters = [...this.intepreters, intepreter];
+      })
+      .then(() => {
+        this.mutex.release();
+      });
+  }
+
+  public deleteIntepreter(index: number) {
+    this.mutex
+      .runExclusive(() => {
+        this.intepreters.splice(index, 1);
       })
       .then(() => {
         this.mutex.release();
