@@ -68,8 +68,8 @@ class IntepreterManager {
   }
 
   // potential method to recover interpreters: https://stately.ai/docs/persistence#event-sourcing
-  public async recoverInterpreters(): Promise<void> {
-    const data = await fs.promises.readFile(this.path, "utf-8");
+  public recoverInterpreters() {
+    const data = fs.readFileSync(this.path, "utf-8");
     const intepreters = JSON.parse(data);
     for (const intepreter of intepreters) {
       let initialState = {

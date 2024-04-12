@@ -387,7 +387,7 @@ describe("test recover case", () => {
     im.deleteIntepreter(2);
     await setTimeout(500);
     console.log("Recover intepreter");
-    await im.recoverInterpreters();
+    im.recoverInterpreters();
     expect(im.getLengthIntepreters()).to.be.eq(3);
     await setTimeout(30000);
 
