@@ -3,6 +3,7 @@ import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
+import { config } from "../config";
 import { TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
@@ -15,7 +16,6 @@ import {
   handleStoreOnRecvPacketOraichainReverse,
   handleStoreOnRequestBatchOraiBridge
 } from "./handlers/common.handler";
-import { config } from "../config";
 
 export const createCosmosIntepreter = (db: DuckDB) => {
   const machine = createMachine({
@@ -47,9 +47,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             actions: (ctx, event) => console.log("error on insert data on storeOnRecvPacketOraichain: ", event.data),
             target: "storeOnRecvPacketOraichainFailure"
           },
-          onDone: {
-            target: "oraiBridgeForEvm"
-          }
+          onDone: "oraiBridgeForEvm"
         }
       },
       storeOnRecvPacketOraichainFailure: {},
@@ -103,9 +101,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             },
             target: "oraiBridgeForEvm"
           },
-          onDone: {
-            target: "onRequestBatch"
-          }
+          onDone: "onRequestBatch"
         }
       },
       checkOnRecvPacketOnOraiBridge: {
@@ -139,9 +135,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             actions: (ctx, event) => console.log("error check on recv packet OraiBridgeState: ", event.data),
             target: "onRecvPacketOnOraiBridgeFailure"
           },
-          onDone: {
-            target: "onRequestBatch"
-          }
+          onDone: "onRequestBatch"
         }
       },
       onRecvPacketOnOraiBridgeFailure: {},
@@ -190,9 +184,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             },
             target: "onRequestBatch"
           },
-          onDone: {
-            target: "storeOnRequestBatch"
-          }
+          onDone: "storeOnRequestBatch"
         }
       },
       checkOnRequestBatch: {
@@ -227,9 +219,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             actions: (ctx, event) => console.log("error on store on request batch: ", event.data),
             target: "storeOnRequestBatchFailure"
           },
-          onDone: {
-            target: "onBatchSendToETHClaim"
-          }
+          onDone: "onBatchSendToETHClaim"
         }
       },
       storeOnRequestBatchFailure: {},
@@ -276,9 +266,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             },
             target: "onBatchSendToETHClaim"
           },
-          onDone: {
-            target: "storeOnBatchSendToETHClaim"
-          }
+          onDone: "storeOnBatchSendToETHClaim"
         }
       },
       checkOnBatchSendToETHClaim: {
@@ -313,9 +301,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
             target: "storeOnBatchSendToETHClaimFailure"
           },
-          onDone: {
-            target: "finalState"
-          }
+          onDone: "finalState"
         }
       },
       storeOnBatchSendToETHClaimFailure: {},

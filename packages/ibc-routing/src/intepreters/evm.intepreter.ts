@@ -3,6 +3,7 @@ import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
+import { config } from "../config";
 import {
   FinalTag,
   ForwardTagOnOraichain,
@@ -27,7 +28,6 @@ import {
   handleStoreOnRequestBatchOraiBridge,
   handleUpdateOnAcknowledgementOnCosmos
 } from "./handlers/common.handler";
-import { config } from "../config";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
 // TODO: add precheck correct type of evm handle case
@@ -65,7 +65,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
           invoke: {
             // function that returns a promise
             src: handleSendToCosmosEvm,
-            onDone: { target: "oraibridge" }, // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
+            onDone: "oraibridge", // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
             // rejected promise
             onError: {
               target: "sendToCosmosEvmFailure",
@@ -158,7 +158,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         storeAutoForward: {
           invoke: {
             src: handleStoreAutoForward,
-            onDone: { target: "oraichain" }, // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
+            onDone: "oraichain", // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
             // rejected promise
             onError: {
               target: "storeAutoForwardFailure",
@@ -346,9 +346,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "cosmos"
             },
-            onDone: {
-              target: "finalState"
-            }
+            onDone: "finalState"
           }
         },
         checkOnAcknowledgementOnCosmos: {
@@ -373,9 +371,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               actions: (ctx, event) => console.log("error on update on acknowledgement on OraiBridgeDB: ", event.data),
               target: "updateOnAcknowledgementOnCosmosFailure"
             },
-            onDone: {
-              target: "finalState"
-            }
+            onDone: "finalState"
           }
         },
         updateOnAcknowledgementOnCosmosFailure: {},
@@ -429,9 +425,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "oraiBridgeForEvm"
             },
-            onDone: {
-              target: "onRequestBatch"
-            }
+            onDone: "onRequestBatch"
           }
         },
         checkOnRecvPacketOnOraiBridge: {
@@ -465,9 +459,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               actions: (ctx, event) => console.log("error check on recv packet OraiBridgeState: ", event.data),
               target: "onRecvPacketOnOraiBridgeFailure"
             },
-            onDone: {
-              target: "onRequestBatch"
-            }
+            onDone: "onRequestBatch"
           }
         },
         onRecvPacketOnOraiBridgeFailure: {},
@@ -516,9 +508,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "onRequestBatch"
             },
-            onDone: {
-              target: "storeOnRequestBatch"
-            }
+            onDone: "storeOnRequestBatch"
           }
         },
         checkOnRequestBatch: {
@@ -555,9 +545,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               actions: (ctx, event) => console.log("error on store on request batch: ", event.data),
               target: "storeOnRequestBatchFailure"
             },
-            onDone: {
-              target: "onBatchSendToETHClaim"
-            }
+            onDone: "onBatchSendToETHClaim"
           }
         },
         storeOnRequestBatchFailure: {},
@@ -604,9 +592,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "onBatchSendToETHClaim"
             },
-            onDone: {
-              target: "storeOnBatchSendToETHClaim"
-            }
+            onDone: "storeOnBatchSendToETHClaim"
           }
         },
         checkOnBatchSendToETHClaim: {
@@ -643,9 +629,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
               target: "storeOnBatchSendToETHClaimFailure"
             },
-            onDone: {
-              target: "finalState"
-            }
+            onDone: "finalState"
           }
         },
         storeOnBatchSendToETHClaimFailure: {},
