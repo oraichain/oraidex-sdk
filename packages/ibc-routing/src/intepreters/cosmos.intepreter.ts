@@ -373,6 +373,9 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       }
     }
   });
-  const intepreter = interpret(machine).onTransition((state) => console.log(state.value));
+  const intepreter = interpret(machine).onTransition((state) => {
+    console.log(state.value);
+  });
+
   return intepreter;
 };

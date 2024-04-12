@@ -194,7 +194,7 @@ export class DuckDbNode extends DuckDB {
   insertClause(tableName: string, data: Object): [string, any[]] {
     const keys = Object.keys(data);
     const values = Object.values(data);
-    const query = `INSERT INTO ${tableName} (${keys.join(", ")}) VALUES (${keys.map((_) => "?").join(", ")})`;
+    const query = `INSERT OR IGNORE INTO ${tableName} (${keys.join(", ")}) VALUES (${keys.map((_) => "?").join(", ")})`;
     return [_.trim(query), values];
   }
 
