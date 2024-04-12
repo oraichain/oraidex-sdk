@@ -54,7 +54,7 @@ describe("DuckDB general select, insert, update testing", () => {
       github: "perfogic"
     });
 
-    expect(insertData[0]).equal("INSERT INTO OraichainState (minh, github) VALUES (?, ?)");
+    expect(insertData[0]).equal("INSERT OR IGNORE INTO OraichainState (minh, github) VALUES (?, ?)");
     expect(insertData[1]).eql(["Dang", "perfogic"]);
   });
 
