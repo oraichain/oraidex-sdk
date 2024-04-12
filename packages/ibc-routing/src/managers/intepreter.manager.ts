@@ -1,12 +1,23 @@
 import { Mutex, MutexInterface } from "async-mutex";
-import { AnyInterpreter } from "xstate";
+import fs from "fs";
+import { AnyInterpreter, createMachine, interpret } from "xstate";
+import { DuckDbNode } from "../db";
 
 class IntepreterManager {
   private intepreters: AnyInterpreter[] = [];
   private mutex: MutexInterface;
+  private path: string;
+  private temporary: boolean;
 
-  constructor() {
+  /**
+   *
+   * @param temporary: whether writing path file is temporary or not (used for test)
+   * @param path: path to store file
+   */
+  constructor(temporary: boolean = false, path: string = ".") {
     this.mutex = new Mutex();
+    this.path = `${path}/backup.json`;
+    this.temporary = temporary;
   }
 
   public transitionInterpreters(type: string, payload: any): any {
@@ -24,8 +35,14 @@ class IntepreterManager {
 
   public appendIntepreter(intepreter: AnyInterpreter) {
     this.mutex
-      .runExclusive(() => {
+      .runExclusive(async () => {
         this.intepreters = [...this.intepreters, intepreter];
+
+        const data = this._getAllSnapshot();
+        await fs.promises.writeFile(this.path, JSON.stringify(data));
+        if (this.temporary) {
+          await fs.promises.unlink(this.path);
+        }
       })
       .then(() => {
         this.mutex.release();
@@ -51,7 +68,30 @@ class IntepreterManager {
   }
 
   // potential method to recover interpreters: https://stately.ai/docs/persistence#event-sourcing
-  public recoverInterpreters(): any {}
+  public async recoverInterpreters(): Promise<void> {
+    const data = await fs.promises.readFile(this.path, "utf-8");
+    const intepreters = JSON.parse(data);
+    for (const intepreter of intepreters) {
+      let initialState = {
+        ...JSON.parse(intepreter),
+        context: {
+          ...JSON.parse(intepreter).context,
+          db: DuckDbNode.instances
+        }
+      };
+      const machine = createMachine({
+        predictableActionArguments: true,
+        preserveActionOrder: true
+      });
+      const intepreterInstance = interpret(machine).onTransition((state) => console.log(state.value));
+      this.appendIntepreter(intepreter);
+      intepreterInstance.execute(initialState);
+    }
+  }
+
+  private _getAllSnapshot(): string[] {
+    return this.intepreters.map((item) => JSON.stringify(item.getSnapshot()));
+  }
 }
 
 export default IntepreterManager;
