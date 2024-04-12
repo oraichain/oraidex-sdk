@@ -34,7 +34,7 @@ describe("test recover case", () => {
     duckDb = await DuckDbNode.create();
     await duckDb.createTable();
 
-    im = new IntepreterManager(false);
+    im = new IntepreterManager(true);
     evmHandler = new EvmEventHandler(duckDb, im);
     oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
     oraichainHandler = new OraichainHandler(duckDb, im);

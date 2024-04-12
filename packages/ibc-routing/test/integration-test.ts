@@ -64,7 +64,7 @@ describe("test-integration", () => {
     duckDb = await DuckDbNode.create();
     await duckDb.createTable();
 
-    im = new IntepreterManager();
+    im = new IntepreterManager(true);
     evmHandler = new EvmEventHandler(duckDb, im);
     oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
     oraichainHandler = new OraichainHandler(duckDb, im);
@@ -685,7 +685,7 @@ describe("test-integration time-out", () => {
     duckDb = await DuckDbNode.create();
     await duckDb.createTable();
 
-    im = new IntepreterManager();
+    im = new IntepreterManager(true);
     evmHandler = new EvmEventHandler(duckDb, im);
     oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
     oraichainHandler = new OraichainHandler(duckDb, im);
