@@ -3,15 +3,15 @@ import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData } from "@oraichain/oraidex-universal-swap";
 import { AnyEventObject } from "xstate";
 import {
-  batchSendToEthClaimEventType,
   ContextIntepreter,
   DatabaseEnum,
-  eventBatchCreatedEventType,
   FinalTag,
   ForwardTagOnOraichain,
+  StateDBStatus,
+  batchSendToEthClaimEventType,
+  eventBatchCreatedEventType,
   oraiBridgeAutoForwardEventType,
-  outGoingTxIdEventType,
-  StateDBStatus
+  outGoingTxIdEventType
 } from "../../constants";
 import { convertTxHashToHex } from "../../helpers";
 import { parseRpcEvents } from "../../utils/events";
@@ -21,6 +21,16 @@ import { decodeIbcMemo } from "../../utils/protobuf";
 // EVM
 export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<number> => {
   const eventData = event.payload;
+  // if its not array -> potentially a user query. We assume it is a tx hash
+  // if (!Array.isArray(eventData)) {
+  //   const sendToCosmosData = await ctx.db.select(DatabaseEnum.Evm, {
+  //     where: {
+  //       eventNonce: event.data.eventNonce,
+  //       evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder
+  //     }
+  //   });
+  //   return Promise.resolve(sendToCosmosData.eventNonce);
+  // }
   const { transactionHash: txHash, blockNumber: height } = eventData[5];
   const routeData: OraiBridgeRouteData = unmarshalOraiBridgeRoute(eventData[2]);
   const evmChainPrefix = eventData[6];
@@ -47,7 +57,7 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
   ctx.evmEventNonce = sendToCosmosData.eventNonce;
   console.log("sendToCosmosEvm", sendToCosmosData);
   await ctx.db.insert(DatabaseEnum.Evm, sendToCosmosData);
-  return new Promise((resolve) => resolve(sendToCosmosData.eventNonce));
+  return Promise.resolve(sendToCosmosData.eventNonce);
 };
 
 // ORAI-BRIDGE
@@ -82,7 +92,7 @@ export const handleCheckAutoForward = async (
   const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => denom.includes(prefix));
   if (!evmChainPrefix) throw generateError(`Cannot find the matched evm chain prefix given denom ${denom}`);
   console.log("event nonce: ", eventNonce, "evm chain prefix: ", evmChainPrefix);
-  return new Promise((resolve) => resolve({ txEvent, eventNonce, evmChainPrefix }));
+  return Promise.resolve({ txEvent, eventNonce, evmChainPrefix });
 };
 
 export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<any> => {
@@ -92,9 +102,6 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
     where: {
       eventNonce: event.data.eventNonce,
       evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder
-    },
-    pagination: {
-      limit: 1
     }
   });
 
@@ -173,7 +180,7 @@ export const handleCheckOnRequestBatch = async (
   }
   const batchNonceValue = parseInt(JSON.parse(batchNonceData.value));
   const txIds = batchTxIds.attributes.map((item) => parseInt(item.value));
-  return new Promise((resolve) => resolve({ batchNonce: batchNonceValue, txIds }));
+  return Promise.resolve({ batchNonce: batchNonceValue, txIds });
 };
 
 export const handleCheckOnRecvPacketOnOraiBridge = async (
@@ -198,7 +205,7 @@ export const handleCheckOnRecvPacketOnOraiBridge = async (
   const packetSequence = parseInt(packetSequenceAttr.value);
 
   // Forward next event data
-  return new Promise((resolve) => resolve({ packetSequence, txEvent: txEvent, recvSrcChannel, recvDstChannel }));
+  return Promise.resolve({ packetSequence, txEvent: txEvent, recvSrcChannel, recvDstChannel });
 };
 
 export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<void> => {
@@ -333,13 +340,11 @@ export const handleCheckOnBatchSendToEthClaim = async (
   }
   const eventNonce = batchSendToEthClaim.attributes.find((item) => item.key == "event_nonce").value;
   const batchNonceValue = parseInt(JSON.parse(batchNonceObject.value));
-  return new Promise((resolve) =>
-    resolve({
-      batchNonce: batchNonceValue,
-      evmChainPrefix: JSON.parse(evmChainPrefix),
-      eventNonce: parseInt(JSON.parse(eventNonce))
-    })
-  );
+  return Promise.resolve({
+    batchNonce: batchNonceValue,
+    evmChainPrefix: JSON.parse(evmChainPrefix),
+    eventNonce: parseInt(JSON.parse(eventNonce))
+  });
 };
 
 export const handleStoreOnBatchSendToEthClaim = async (
@@ -511,12 +516,12 @@ export const handleStoreOnRecvPacketOraichain = async (
   // TODO: if there's a next state, prepare to return a valid result here
   if (nextState || nextPacketData.nextPacketSequence != 0) {
     if (nextState == "OraiBridgeState") {
-      return new Promise((resolve) => resolve(ForwardTagOnOraichain.EVM));
+      return Promise.resolve(ForwardTagOnOraichain.EVM);
     }
-    return new Promise((resolve) => resolve(ForwardTagOnOraichain.COSMOS));
+    return Promise.resolve(ForwardTagOnOraichain.COSMOS);
   }
   // no next state, we move to final state of the machine
-  return new Promise((resolve) => resolve(FinalTag));
+  return Promise.resolve(FinalTag);
 };
 
 export const handleStoreOnRecvPacketOraichainReverse = async (
@@ -599,7 +604,7 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
 
   // no next state, we move to final state of the machine
-  return new Promise((resolve) => resolve(""));
+  return Promise.resolve("");
 };
 
 export const handleCheckOnRecvPacketOraichain = async (
@@ -622,7 +627,7 @@ export const handleCheckOnRecvPacketOraichain = async (
   const packetSequenceAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
   if (!packetSequenceAttr) throw generateError("Could not find packet sequence attr in checkOnRecvPacketOraichain");
   const packetSequence = parseInt(packetSequenceAttr.value);
-  return new Promise((resolve) => resolve({ packetSequence, txEvent, recvSrcChannel, recvDstChannel }));
+  return Promise.resolve({ packetSequence, txEvent, recvSrcChannel, recvDstChannel });
 };
 
 export const handleCheckOnAcknowledgementOnCosmos = async (
@@ -636,7 +641,7 @@ export const handleCheckOnAcknowledgementOnCosmos = async (
   }
   const value = ackPacket.attributes.find((attr: any) => attr.key === "packet_sequence").value;
   const data = parseInt(value);
-  return new Promise((resolve) => resolve({ packetSequence: data }));
+  return Promise.resolve({ packetSequence: data });
 };
 
 export const handleUpdateOnAcknowledgementOnCosmos = async (
@@ -750,5 +755,5 @@ export const handleStoreOnTransferBackToRemoteChain = async (
   await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
 
   // no next state, we move to final state of the machine
-  return new Promise((resolve) => resolve(""));
+  return Promise.resolve("");
 };

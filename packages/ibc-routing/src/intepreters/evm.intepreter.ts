@@ -3,12 +3,13 @@ import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
+import { config } from "../config";
 import {
-  executedIbcAutoForwardType,
   FinalTag,
   ForwardTagOnOraichain,
-  invokableMachineStateKeys,
-  TimeOut
+  TimeOut,
+  executedIbcAutoForwardType,
+  invokableMachineStateKeys
 } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
@@ -40,7 +41,6 @@ export const createEvmIntepreter = (db: DuckDB) => {
       context: {
         db,
         evmEventNonce: -1,
-        oraiBridgeEventNonce: -1,
         oraiBridgePacketSequence: -1,
         oraiSendPacketSequence: -1, // sequence when SendPacket,
         oraiBridgePendingTxId: -1,
@@ -51,7 +51,8 @@ export const createEvmIntepreter = (db: DuckDB) => {
         oraiBridgeDstChannel: "",
         oraichainSrcChannel: "",
         oraichainDstChannel: "",
-        oraiSrcForCosmosChannel: ""
+        oraiSrcForCosmosChannel: "",
+        outingQueryData: []
       },
       states: {
         evm: {
@@ -63,10 +64,8 @@ export const createEvmIntepreter = (db: DuckDB) => {
         sendToCosmosEvm: {
           invoke: {
             // function that returns a promise
-            src: async (ctx, event) => {
-              return handleSendToCosmosEvm(ctx, event);
-            },
-            onDone: { target: "oraibridge" }, // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
+            src: handleSendToCosmosEvm,
+            onDone: "oraibridge", // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
             // rejected promise
             onError: {
               target: "sendToCosmosEvmFailure",
@@ -105,7 +104,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const query = buildQuery({
                 tags: queryTags
               });
-              const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               for (const tx of txs) {
                 try {
@@ -131,9 +130,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         checkAutoForward: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleCheckAutoForward(ctx, event);
-            },
+            src: handleCheckAutoForward,
             onError: "checkAutoForwardFailure",
             onDone: [
               {
@@ -160,10 +157,8 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         storeAutoForward: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleStoreAutoForward(ctx, event);
-            },
-            onDone: { target: "oraichain" }, // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
+            src: handleStoreAutoForward,
+            onDone: "oraichain", // the resolved data from 'invoke' above will be passed to the 'oraibridge.autoForward' invoke method
             // rejected promise
             onError: {
               target: "storeAutoForwardFailure",
@@ -205,7 +200,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const query = buildQuery({
                 tags: queryTags
               });
-              const stargateClient = await StargateClient.connect("https://rpc.orai.io");
+              const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               if (txs.length == 0) {
                 throw generateError("tx does not exist on oraichain");
@@ -247,9 +242,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         checkOnRecvPacketOraichain: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleCheckOnRecvPacketOraichain(ctx, event);
-            },
+            src: handleCheckOnRecvPacketOraichain,
             onError: {
               actions: (ctx, event) => console.log("error check on recv packet OraichainState: ", event.data),
               target: "checkOnRecvPacketFailure"
@@ -280,9 +273,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         storeOnRecvPacketOraichain: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleStoreOnRecvPacketOraichain(ctx, event);
-            },
+            src: handleStoreOnRecvPacketOraichain,
             onDone: [
               {
                 target: "cosmos",
@@ -337,7 +328,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const query = buildQuery({
                 tags: queryTags
               });
-              const stargateClient = await StargateClient.connect("https://rpc.orai.io");
+              const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               if (txs.length == 0) {
                 throw generateError("Can not find orai bridge data on oraiBridgeForEvmTimeout");
@@ -355,54 +346,32 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "cosmos"
             },
-            onDone: [
-              {
-                target: "finalState",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "finalState"
           }
         },
         checkOnAcknowledgementOnCosmos: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleCheckOnAcknowledgementOnCosmos(ctx, event);
-            },
+            src: handleCheckOnAcknowledgementOnCosmos,
             onDone: [
               {
                 target: "oraichain",
-                cond: (ctx, event) => {
-                  return event.data.packetSequence !== ctx.oraiSendPacketSequence;
-                }
+                cond: (ctx, event) => event.data.packetSequence !== ctx.oraiSendPacketSequence
               },
               {
                 target: "updateOnAcknowledgementOnCosmos",
-                cond: (ctx, event) => {
-                  return event.data.packetSequence === ctx.oraiSendPacketSequence;
-                }
+                cond: (ctx, event) => event.data.packetSequence === ctx.oraiSendPacketSequence
               }
             ]
           }
         },
         updateOnAcknowledgementOnCosmos: {
           invoke: {
-            src: async (ctx, events) => {
-              return handleUpdateOnAcknowledgementOnCosmos(ctx, events);
-            },
+            src: handleUpdateOnAcknowledgementOnCosmos,
             onError: {
               actions: (ctx, event) => console.log("error on update on acknowledgement on OraiBridgeDB: ", event.data),
               target: "updateOnAcknowledgementOnCosmosFailure"
             },
-            onDone: [
-              {
-                target: "finalState",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "finalState"
           }
         },
         updateOnAcknowledgementOnCosmosFailure: {},
@@ -437,7 +406,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const query = buildQuery({
                 tags: queryTags
               });
-              const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               if (txs.length == 0) {
                 throw generateError("Can not find orai bridge data on oraiBridgeForEvmTimeout");
@@ -456,21 +425,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "oraiBridgeForEvm"
             },
-            onDone: [
-              {
-                target: "onRequestBatch",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "onRequestBatch"
           }
         },
         checkOnRecvPacketOnOraiBridge: {
           invoke: {
-            src: async (ctx, event: any) => {
-              return handleCheckOnRecvPacketOnOraiBridge(ctx, event);
-            },
+            src: handleCheckOnRecvPacketOnOraiBridge,
             onDone: [
               {
                 target: "onRecvPacketOnOraiBridge",
@@ -494,21 +454,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         onRecvPacketOnOraiBridge: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleOnRecvPacketOnOraiBridge(ctx, event);
-            },
+            src: handleOnRecvPacketOnOraiBridge,
             onError: {
               actions: (ctx, event) => console.log("error check on recv packet OraiBridgeState: ", event.data),
               target: "onRecvPacketOnOraiBridgeFailure"
             },
-            onDone: [
-              {
-                target: "onRequestBatch",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "onRequestBatch"
           }
         },
         onRecvPacketOnOraiBridgeFailure: {},
@@ -535,7 +486,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const query = buildQuery({
                 tags: queryTags
               });
-              const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               if (txs.length == 0) {
                 throw generateError("Can not find orai bridge data on onRequestBatchTimeout");
@@ -557,21 +508,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "onRequestBatch"
             },
-            onDone: [
-              {
-                target: "storeOnRequestBatch",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "storeOnRequestBatch"
           }
         },
         checkOnRequestBatch: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleCheckOnRequestBatch(ctx, event);
-            },
+            src: handleCheckOnRequestBatch,
             onError: {
               actions: (ctx, event) => console.log("error check on request batch OraiBridgeState: ", event.data),
               target: "checkOnRequestBatchFailure"
@@ -603,14 +545,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               actions: (ctx, event) => console.log("error on store on request batch: ", event.data),
               target: "storeOnRequestBatchFailure"
             },
-            onDone: [
-              {
-                target: "onBatchSendToETHClaim",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "onBatchSendToETHClaim"
           }
         },
         storeOnRequestBatchFailure: {},
@@ -641,7 +576,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const query = buildQuery({
                 tags: queryTags
               });
-              const stargateClient = await StargateClient.connect("https://bridge-v2.rpc.orai.io");
+              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               if (txs.length == 0) {
                 throw generateError("Can not find orai bridge data on onBatchSendToETHClaimTimeout");
@@ -657,21 +592,12 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               target: "onBatchSendToETHClaim"
             },
-            onDone: [
-              {
-                target: "storeOnBatchSendToETHClaim",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "storeOnBatchSendToETHClaim"
           }
         },
         checkOnBatchSendToETHClaim: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleCheckOnBatchSendToEthClaim(ctx, event);
-            },
+            src: handleCheckOnBatchSendToEthClaim,
             onDone: [
               {
                 target: "storeOnBatchSendToETHClaim",
@@ -703,14 +629,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
               target: "storeOnBatchSendToETHClaimFailure"
             },
-            onDone: [
-              {
-                target: "finalState",
-                cond: (ctx, event) => {
-                  return true;
-                }
-              }
-            ]
+            onDone: "finalState"
           }
         },
         storeOnBatchSendToETHClaimFailure: {},
