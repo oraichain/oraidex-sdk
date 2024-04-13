@@ -10,9 +10,11 @@ import { convertIndexedTxToTxEvent } from "../helpers";
 import {
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRecvPacketOnOraiBridge,
+  handleCheckOnRecvPacketOraichain,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
   handleStoreOnBatchSendToEthClaim,
+  handleStoreOnIbcTransferFromRemote,
   handleStoreOnRecvPacketOraichainReverse,
   handleStoreOnRequestBatchOraiBridge
 } from "./handlers/common.handler";
@@ -21,7 +23,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
   const machine = createMachine({
     predictableActionArguments: true,
     preserveActionOrder: true,
-    initial: "oraichain",
+    initial: "cosmos",
     context: {
       db,
       oraiBridgeEventNonce: -1,
@@ -32,14 +34,115 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       evmChainPrefixOnRightTraverseOrder: "",
       oraichainSrcChannel: "",
       oraichainDstChannel: "",
+      cosmosPacketSequence: -1,
+      cosmosSrcChannel: "",
+      cosmosDstChannel: "",
       routingQueryData: []
     },
     states: {
-      oraichain: {
+      cosmos: {
         on: {
-          [invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN]: "storeOnRecvPacketOraichain"
+          [invokableMachineStateKeys.STORE_ON_IBC_TRANSFER_FROM_REMOTE]: "storeOnIbcTransferFromRemote"
         }
       },
+
+      storeOnIbcTransferFromRemote: {
+        invoke: {
+          src: handleStoreOnIbcTransferFromRemote,
+          onError: {
+            actions: (ctx, event) => console.log("error on insert data on storeOnIbcTransferFromRemote: ", event.data),
+            target: "storeOnIbcTransferFromRemoteFailure"
+          },
+          onDone: "oraichain"
+        }
+      },
+      storeOnIbcTransferFromRemoteFailure: {},
+      oraichain: {
+        on: {
+          [invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN]: "checkOnRecvPacketOraichain"
+        },
+        after: {
+          [TimeOut]: {
+            target: "oraichainTimeout",
+            actions: (ctx, event) => console.log("Move to timeout from oraiBridgeForEvm")
+          }
+        }
+      },
+      oraichainTimeout: {
+        invoke: {
+          src: async (ctx, event) => {
+            const queryTags: QueryTag[] = [
+              {
+                key: "recv_packet.packet_sequence",
+                value: ctx.cosmosPacketSequence.toString()
+              },
+              {
+                key: "recv_packet.packet_dst_channel",
+                value: ctx.cosmosDstChannel
+              },
+              {
+                key: "recv_packet.packet_src_channel",
+                value: ctx.cosmosSrcChannel
+              }
+            ];
+            const query = buildQuery({
+              tags: queryTags
+            });
+            const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
+            const txs = await stargateClient.searchTx(query);
+            if (txs.length == 0) {
+              throw generateError("tx does not exist on oraichain");
+            }
+            return handleStoreOnRecvPacketOraichainReverse(ctx, {
+              ...event,
+              data: {
+                txEvent: convertIndexedTxToTxEvent(txs[0])
+              }
+            });
+          },
+          onError: {
+            target: "oraichain",
+            // rejected promise data is on event.data property
+            actions: (ctx, event) => console.log("error on handling oraichain timeout", event.data)
+          },
+          onDone: "oraiBridgeForEvm"
+        }
+      },
+      checkOnRecvPacketOraichain: {
+        invoke: {
+          src: handleCheckOnRecvPacketOraichain,
+          onError: {
+            actions: (ctx, event) => console.log("error on checkOnRecvPacketOraichain: ", event.data),
+            target: "checkOnRecvPacketOraichainFailure"
+          },
+          onDone: [
+            {
+              target: "storeOnRecvPacketOraichain",
+              cond: (ctx, event) => {
+                return (
+                  event.data.packetSequence === ctx.cosmosPacketSequence &&
+                  ctx.cosmosSrcChannel === event.data.recvSrcChannel &&
+                  ctx.cosmosDstChannel === event.data.recvDstChannel
+                );
+              }
+            },
+            {
+              target: "oraichain",
+              cond: (ctx, event) => {
+                console.log(event.data.packetSequence, ctx.cosmosPacketSequence);
+                console.log(ctx.cosmosSrcChannel, event.data.recvSrcChannel);
+                console.log(ctx.cosmosDstChannel, event.data.recvDstChannel);
+                return (
+                  event.data.packetSequence !== ctx.cosmosPacketSequence ||
+                  ctx.cosmosSrcChannel !== event.data.recvSrcChannel ||
+                  ctx.cosmosDstChannel !== event.data.recvDstChannel
+                );
+              }
+            }
+          ]
+        }
+      },
+      checkOnRecvPacketOraichainFailure: {},
       storeOnRecvPacketOraichain: {
         invoke: {
           src: handleStoreOnRecvPacketOraichainReverse,

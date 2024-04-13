@@ -1,5 +1,13 @@
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 
+function isBase64(str) {
+  try {
+    return btoa(atob(str)) === str;
+  } catch (err) {
+    return false;
+  }
+}
+
 export const parseRpcEvents = (events: readonly Event[]): Event[] => {
   return events.map((ev: any) => ({
     ...ev,
@@ -7,12 +15,12 @@ export const parseRpcEvents = (events: readonly Event[]): Event[] => {
       let obj;
       try {
         obj = {
-          key: Buffer.from(attr.key, "base64").toString("utf-8"),
-          value: Buffer.from(attr.value, "base64").toString("utf-8")
+          key: isBase64(attr.key) ? Buffer.from(attr.key, "base64").toString("utf-8") : attr.key,
+          value: isBase64(attr.value) ? Buffer.from(attr.value, "base64").toString("utf-8") : attr.value
         };
       } catch (err) {
         obj = {
-          key: Buffer.from(attr.key, "base64").toString("utf-8"),
+          key: isBase64(attr.key) ? Buffer.from(attr.key, "base64").toString("utf-8") : attr.key,
           value: attr.value
         };
       }

@@ -528,14 +528,8 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<string> => {
-  const txEvent: TxEvent = event.payload;
+  const txEvent: TxEvent = event.data.txEvent;
   const events = parseRpcEvents(txEvent.result.events);
-  // events.forEach((event) => {
-  //   console.log("=====", event.type, "=====");
-  //   event.attributes.forEach((attr) => {
-  //     console.log(attr.key, "-", attr.value);
-  //   });
-  // });
   const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
   if (!writeAckEvent)
     throw generateError("Could not find the write acknowledgement event in storeOnRecvPacketOraichain");
@@ -584,12 +578,36 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   );
   nextState = existEvmPath ? "OraiBridgeState" : "";
 
+  const cosmosData = await ctx.db.select(DatabaseEnum.Cosmos, {
+    where: {
+      packetSequence: ctx.cosmosPacketSequence,
+      srcChannel: ctx.cosmosSrcChannel,
+      dstChannel: ctx.cosmosDstChannel
+    }
+  });
+  if (cosmosData.length == 0) {
+    throw generateError("cosmos data does not exist on handleStoreOnRecvPacketOraichainReverse");
+  }
+  await ctx.db.update(
+    DatabaseEnum.Cosmos,
+    {
+      status: StateDBStatus.FINISHED
+    },
+    {
+      where: {
+        packetSequence: ctx.cosmosPacketSequence,
+        srcChannel: ctx.cosmosSrcChannel,
+        dstChannel: ctx.cosmosDstChannel
+      }
+    }
+  );
+
   // we don't have previous packetSequence, so we save it as nextPacketSequence
   let onRecvPacketData = {
     txHash: convertTxHashToHex(txEvent.hash),
     height: txEvent.height,
-    prevState: "",
-    prevTxHash: "",
+    prevState: "CosmosState",
+    prevTxHash: cosmosData[0].txHash,
     nextState,
     packetSequence: ctx.oraiSendPacketSequence,
     packetAck: "",
@@ -756,4 +774,52 @@ export const handleStoreOnTransferBackToRemoteChain = async (
 
   // no next state, we move to final state of the machine
   return Promise.resolve("");
+};
+
+export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter, event: AnyEventObject) => {
+  const txEvent: TxEvent = event.payload.txEvent;
+  const eventData: Event = event.payload.event;
+  const sendPacket = eventData.attributes.find((attr) => attr.key == "packet_data");
+  if (!sendPacket) {
+    throw generateError("sendPacketData does not exist on handleStoreOnIbcTransferFromRemote");
+  }
+  const sendPacketData = JSON.parse(sendPacket.value);
+  const packetSequence = eventData.attributes.find((attr) => attr.key == "packet_sequence");
+  if (!packetSequence) {
+    throw generateError("packetSequence does not exist on handleStoreOnIbcTransferFromRemote");
+  }
+  // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
+  const srcPort = eventData.attributes.find((attr) => attr.key === "packet_src_port").value;
+  const srcChannel = eventData.attributes.find((attr) => attr.key === "packet_src_channel").value;
+  const dstPort = eventData.attributes.find((attr) => attr.key === "packet_dst_port").value;
+  const dstChannel = eventData.attributes.find((attr) => attr.key === "packet_dst_channel").value;
+
+  const cosmosData = {
+    txHash: typeof txEvent.hash == "string" ? txEvent.hash : convertTxHashToHex(txEvent.hash),
+    height: txEvent.height,
+    chainId: event.payload.chainId,
+    prevState: "",
+    prevTxHash: "",
+    nextState: "OraichainState",
+    packetSequence: packetSequence.value,
+    ...sendPacketData,
+    srcPort,
+    srcChannel,
+    dstPort,
+    dstChannel,
+    status: StateDBStatus.PENDING
+  };
+  console.log(cosmosData);
+  await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
+
+  ctx.cosmosPacketSequence = parseInt(packetSequence.value);
+  ctx.cosmosSrcChannel = cosmosData.srcChannel;
+  ctx.cosmosDstChannel = cosmosData.dstChannel;
+  return new Promise((resolve) =>
+    resolve({
+      packetSequence,
+      srcChannel,
+      dstChannel
+    })
+  );
 };

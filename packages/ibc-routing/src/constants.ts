@@ -45,7 +45,8 @@ export const invokableMachineStateKeys = {
   STORE_ON_RECV_PACKET_ORAIBRIDGE: "STORE_ON_RECV_PACKET_ORAIBRIDGE",
   STORE_ON_REQUEST_BATCH: "STORE_ON_REQUEST_BATCH",
   STORE_ON_BATCH_SEND_TO_ETH_CLAIM: "STORE_ON_BATCH_SEND_TO_ETH_CLAIM",
-  STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN: "STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN"
+  STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN: "STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN",
+  STORE_ON_IBC_TRANSFER_FROM_REMOTE: "STORE_ON_IBC_TRANSFER_FROM_REMOTE"
 };
 
 export enum StateDBStatus {
@@ -62,6 +63,8 @@ export const FinalTag = "Final";
 
 // Total time to wait for one state to be transition to another state
 export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 60000;
+
+export const IbcWasmContract = "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm";
 
 // INTERFACES
 export interface EvmState {
@@ -140,4 +143,7 @@ export interface ContextIntepreter {
   oraichainSrcChannel?: string;
   oraichainDstChannel?: string;
   oraiSrcForCosmosChannel?: string;
+  cosmosPacketSequence?: number;
+  cosmosSrcChannel?: string;
+  cosmosDstChannel?: string;
 }

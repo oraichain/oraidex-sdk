@@ -16,3 +16,7 @@ export const OnRequestBatchTxData = JSON.parse(
 export const BatchSendToEthClaimTxData = JSON.parse(
   fs.readFileSync(path.join(__dirname, "./batch_send_to_eth_claim.json")).toString("utf-8")
 );
+
+export const IbcTransferTxData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "./ibc_transfer.json")).toString("utf-8")
+);

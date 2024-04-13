@@ -80,6 +80,7 @@ export const sqlCommands = {
     (
       txHash varchar,
       height uinteger,
+      chainId varchar,
       prevState varchar,
       prevTxHash varchar,
       nextState varchar,

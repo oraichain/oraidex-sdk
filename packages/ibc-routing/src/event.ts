@@ -19,7 +19,7 @@ export class EthEvent {
   };
 }
 
-export abstract class CosmosEvent {
+export abstract class BaseCosmosEvent {
   constructor(protected readonly handler: EventHandler, public readonly baseUrl: string) {}
 
   // this function handles the websocket event after receiving. Each cosmos network has a different set of events needed to handle => this should be abstract
@@ -47,13 +47,13 @@ export abstract class CosmosEvent {
   };
 }
 
-export class OraiBridgeEvent extends CosmosEvent {
+export class OraiBridgeEvent extends BaseCosmosEvent {
   callback(eventData: TxEvent): void {
     this.handler.handleEvent([eventData]);
   }
 }
 
-export class OraichainEvent extends CosmosEvent {
+export class OraichainEvent extends BaseCosmosEvent {
   callback(eventData: TxEvent): void {
     // TODO: consider parsing the OnRecvPacket here because it is a large tx
     this.handler.handleEvent([eventData]);
