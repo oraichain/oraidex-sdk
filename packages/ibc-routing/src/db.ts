@@ -106,7 +106,7 @@ export const sqlCommands = {
 export abstract class DuckDB {
   abstract createTable(): Promise<void>;
   // General
-  abstract select(tableName: DatabaseEnum, options: OptionInterface): Promise<any>;
+  abstract select(tableName: DatabaseEnum, options?: OptionInterface): Promise<any>;
   abstract insert(tableName: DatabaseEnum, data: Object): Promise<void>;
   abstract update(tableName: DatabaseEnum, overrideData: Object, options: OptionInterface): Promise<void>;
   // ONLY FOR TEST
@@ -152,7 +152,7 @@ export class DuckDbNode extends DuckDB {
    * @params attributes: is the columns that you want to display, empty is *
    * @params pagination: for pagination like limit and offset
    */
-  async select(tableName: DatabaseEnum, options: OptionInterface): Promise<any> {
+  async select(tableName: DatabaseEnum, options?: OptionInterface): Promise<any> {
     const defaultOptions = {
       where: {},
       attributes: [],

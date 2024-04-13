@@ -4,10 +4,12 @@ import { InterpreterStatus } from "xstate";
 import { COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
 import { expect } from "chai";
 import { setTimeout } from "timers/promises";
+import { waitFor } from "xstate/lib/waitFor";
 import {
   autoForwardTag,
   batchSendToEthClaimTag,
   DatabaseEnum,
+  invokableMachineStateKeys,
   onAcknowledgementTag,
   onExecuteContractTag,
   onRecvPacketTag,
@@ -19,6 +21,7 @@ import { CosmosHandler } from "../src/event-handlers/cosmos.handler";
 import { EvmEventHandler } from "../src/event-handlers/evm.handler";
 import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
 import {
@@ -53,6 +56,7 @@ import {
   OnRequestBatchTxData as OnRequestBatchTxDataO2E,
   TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E
 } from "./data/oraichain-to-evm";
+const sleepTimeMs = 300;
 
 // TODO: at each testcase, i should test the final stored database to make it more concise
 describe("test-integration", () => {
@@ -81,6 +85,47 @@ describe("test-integration", () => {
   });
 
   const [owner] = getSigners(1);
+
+  it("evm-oraichain-user-query-happy-test", async () => {
+    // fixture, setup a successful ibc routing flow from evm -> oraichain
+    const ethEvent = new EthEvent(evmHandler);
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      EvmChainPrefix.BSC_MAINNET
+    );
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
+    // TODO: how to wait for emit event to finish then start the next
+    await setTimeout(sleepTimeMs);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    // has to convert back to bytes because javascript object is not friendly with Uint8Array
+    stream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Oraichain));
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Oraichain));
+    await setTimeout(sleepTimeMs);
+
+    // action. Create a new interpreter and try to invoke the query flow
+    const interpreter = createEvmIntepreter(duckDb);
+    const actor = interpreter.start();
+    interpreter.send({
+      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+      payload: {
+        txHash: (SendToCosmosDataEvm2Oraichain[5] as any).transactionHash,
+        evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+      }
+    });
+    const doneState = await waitFor(actor, (state) => state.done);
+    console.log("done state: ", doneState.context.routingQueryData);
+    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    expect(queryKeys.length).eq(3);
+    expect(queryKeys[0]).eq(DatabaseEnum.Evm);
+    expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
+  });
+
   it("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
@@ -197,18 +242,18 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onAcknowledgementTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Cosmos));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Cosmos));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnAcknowledgementEvm2Cosmos));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
     // Test Data
     expect(
@@ -312,7 +357,7 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Evm);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -323,15 +368,15 @@ describe("test-integration", () => {
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataOraichainEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
     // TEST DATA
     expect(
@@ -477,15 +522,15 @@ describe("test-integration", () => {
     await setTimeout(300);
 
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
     // Test data test
     expect(
@@ -611,15 +656,15 @@ describe("test-integration", () => {
     ]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onExecuteContractTag]);
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
     // Test Data
     expect(
@@ -885,7 +930,7 @@ describe("test-integration time-out", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -988,7 +1033,7 @@ describe("test-integration time-out", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -1243,7 +1288,7 @@ describe("test-integration time-out", () => {
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onExecuteContractTag]);
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
     await setTimeout(30000);
 

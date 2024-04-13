@@ -37,7 +37,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       cosmosPacketSequence: -1,
       cosmosSrcChannel: "",
       cosmosDstChannel: "",
-      routingQueryData: []
+      routingQueryData: {}
     },
     states: {
       cosmos: {
