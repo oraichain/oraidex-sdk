@@ -1,4 +1,6 @@
+import dotenv from "dotenv";
 import { DuckDB } from "./db";
+dotenv.config();
 
 export const autoForwardTag = { key: "message.action", value: "/gravity.v1.MsgExecuteIbcAutoForwards" };
 export const requestBatchTag = { key: "message.action", value: "/gravity.v1.MsgRequestBatch" };
@@ -23,7 +25,8 @@ export const evmGravityEvents = [sendToCosmosEvent];
 export enum DatabaseEnum {
   Evm = "EvmState",
   OraiBridge = "OraiBridgeState",
-  Oraichain = "OraichainState"
+  Oraichain = "OraichainState",
+  Cosmos = "CosmosState"
 }
 
 export enum NetworkEventType {
@@ -58,7 +61,7 @@ export enum ForwardTagOnOraichain {
 export const FinalTag = "Final";
 
 // Total time to wait for one state to be transition to another state
-export const TimeOut = 3000;
+export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 60000;
 
 // INTERFACES
 export interface EvmState {

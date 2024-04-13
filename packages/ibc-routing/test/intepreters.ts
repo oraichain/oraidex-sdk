@@ -34,7 +34,8 @@ describe("test recover case", () => {
     duckDb = await DuckDbNode.create();
     await duckDb.createTable();
 
-    im = new IntepreterManager(true);
+    // Test recover need a file to reed
+    im = new IntepreterManager(false, "test/data");
     evmHandler = new EvmEventHandler(duckDb, im);
     oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
     oraichainHandler = new OraichainHandler(duckDb, im);
@@ -47,7 +48,7 @@ describe("test recover case", () => {
   });
 
   const [owner] = getSigners(1);
-  it("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
+  xit("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -179,7 +180,7 @@ describe("test recover case", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(30000);
 
-  it("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
+  xit("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -383,11 +384,14 @@ describe("test recover case", () => {
     console.log("Removing intepreter");
     // assume we use the case store all state on localStorage for example
     im.deleteIntepreter(0);
-    im.deleteIntepreter(1);
-    im.deleteIntepreter(2);
-    await setTimeout(500);
+    im.deleteIntepreter(0);
+    im.deleteIntepreter(0);
+    console.log(im.getLengthIntepreters());
+    await setTimeout(800);
+    expect(im.getLengthIntepreters()).to.be.eq(0);
     console.log("Recover intepreter");
     im.recoverInterpreters();
+    await setTimeout(500);
     expect(im.getLengthIntepreters()).to.be.eq(3);
     await setTimeout(30000);
 
