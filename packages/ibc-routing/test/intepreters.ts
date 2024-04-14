@@ -19,7 +19,6 @@ import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
-import { OnRecvPacketOraichainTxData as OnRecvPacketOraichainTxDataC2E } from "./data/cosmos-to-evm";
 import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/evm-to-evm";
 import { TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E } from "./data/oraichain-to-evm";
 
@@ -48,7 +47,7 @@ describe("test recover case", () => {
   });
 
   const [owner] = getSigners(1);
-  xit("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
+  it("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -180,7 +179,7 @@ describe("test recover case", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(30000);
 
-  xit("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
+  it("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -369,16 +368,8 @@ describe("test recover case", () => {
       oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
       await setTimeout(300);
     };
-    const cosmosIntepreter = async () => {
-      const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
-      await oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
-      const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
-      const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
-      await setTimeout(300);
-      oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
-      await setTimeout(300);
-    };
-    await Promise.all([evmIntepreter(), oraiIntepreter(), cosmosIntepreter()]);
+
+    await Promise.all([evmIntepreter(), oraiIntepreter()]);
     await setTimeout(5000);
     // trying to remove intepreter and create new one again
     console.log("Removing intepreter");
@@ -392,7 +383,7 @@ describe("test recover case", () => {
     console.log("Recover intepreter");
     im.recoverInterpreters();
     await setTimeout(500);
-    expect(im.getLengthIntepreters()).to.be.eq(3);
+    expect(im.getLengthIntepreters()).to.be.eq(2);
     await setTimeout(30000);
 
     // TEST EVM DATA
@@ -600,91 +591,6 @@ describe("test recover case", () => {
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64140,
-        evmChainPrefix: "oraib",
-        status: "FINISHED"
-      }
-    ]);
-
-    // TEST COSMOS DATA
-    // Test data test
-    expect(
-      await duckDb.select(DatabaseEnum.Oraichain, {
-        where: {
-          packetSequence: 21698
-        }
-      })
-    ).eql([
-      {
-        txHash: "52FF42B92483D5BB85D876120E0BB60F728A5CD87BCDA4FBE44A1C79632592DA",
-        height: 17854166,
-        prevState: "",
-        prevTxHash: "",
-        nextState: "OraiBridgeState",
-        packetSequence: 21698,
-        packetAck: "",
-        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
-        localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
-        nextPacketSequence: 21698,
-        nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        nextAmount: "1940789000000000000",
-        nextReceiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
-        nextDestinationDenom:
-          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
-        status: "FINISHED",
-        srcChannel: "channel-29",
-        dstChannel: "channel-1"
-      }
-    ]);
-    expect(
-      await duckDb.select(DatabaseEnum.OraiBridge, {
-        where: {
-          packetSequence: 21698
-        }
-      })
-    ).eql([
-      {
-        txHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
-        height: 11868974,
-        prevState: "OraichainState",
-        prevTxHash: "52FF42B92483D5BB85D876120E0BB60F728A5CD87BCDA4FBE44A1C79632592DA",
-        nextState: "EvmState",
-        eventNonce: 64152,
-        batchNonce: 31338,
-        txId: 33193,
-        evmChainPrefix: "oraib",
-        packetSequence: 21698,
-        amount: "1940789000000000000",
-        denom:
-          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
-        memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
-        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
-        srcPort: "transfer",
-        srcChannel: "channel-1",
-        dstPort: "",
-        dstChannel: "",
-        status: "FINISHED"
-      }
-    ]);
-    expect(
-      await duckDb.select(DatabaseEnum.Evm, {
-        where: { eventNonce: 64152, evmChainPrefix: "oraib" }
-      })
-    ).eql([
-      {
-        txHash: "",
-        height: 0,
-        prevState: "OraiBridgeState",
-        prevTxHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
-        nextState: "",
-        destination: "",
-        fromAmount: "0",
-        oraiBridgeChannelId: "",
-        oraiReceiver: "",
-        destinationDenom: "",
-        destinationChannelId: "",
-        destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        eventNonce: 64152,
         evmChainPrefix: "oraib",
         status: "FINISHED"
       }

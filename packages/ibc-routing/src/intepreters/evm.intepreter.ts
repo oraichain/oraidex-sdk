@@ -1,7 +1,7 @@
 import { StargateClient } from "@cosmjs/stargate";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
-import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
+import { EvmChainPrefix, generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import { config } from "../config";
 import {
@@ -51,7 +51,6 @@ export const createEvmIntepreter = (db: DuckDB) => {
         oraiBridgeDstChannel: "",
         oraichainSrcChannel: "",
         oraichainDstChannel: "",
-        oraiSrcForCosmosChannel: "",
         outingQueryData: []
       },
       states: {
@@ -322,7 +321,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
                 },
                 {
                   key: `acknowledge_packet.packet_src_channel`,
-                  value: ctx.oraiSrcForCosmosChannel
+                  value: ctx.oraichainSrcChannel
                 }
               ];
               const query = buildQuery({
@@ -336,7 +335,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               return handleUpdateOnAcknowledgementOnCosmos(ctx, {
                 ...event,
                 data: {
-                  txEvent: convertIndexedTxToTxEvent(txs[0])
+                  events: parseRpcEvents(convertIndexedTxToTxEvent(txs[0]).result.events)
                 }
               });
             },
@@ -355,11 +354,17 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: [
               {
                 target: "oraichain",
-                cond: (ctx, event) => event.data.packetSequence !== ctx.oraiSendPacketSequence
+                cond: (ctx, event) =>
+                  event.data.packetSequence !== ctx.oraiSendPacketSequence ||
+                  ctx.oraichainSrcChannel !== event.data.ackSrcChannel ||
+                  ctx.oraichainDstChannel !== event.data.ackDstChannel
               },
               {
                 target: "updateOnAcknowledgementOnCosmos",
-                cond: (ctx, event) => event.data.packetSequence === ctx.oraiSendPacketSequence
+                cond: (ctx, event) =>
+                  event.data.packetSequence === ctx.oraiSendPacketSequence &&
+                  ctx.oraichainSrcChannel === event.data.ackSrcChannel &&
+                  ctx.oraichainDstChannel === event.data.ackDstChannel
               }
             ]
           }

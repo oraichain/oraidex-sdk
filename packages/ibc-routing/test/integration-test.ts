@@ -55,7 +55,7 @@ import {
 } from "./data/oraichain-to-evm";
 
 // TODO: at each testcase, i should test the final stored database to make it more concise
-describe.skip("test-integration", () => {
+describe("test-integration", () => {
   let duckDb: DuckDbNode;
   let evmHandler: EvmEventHandler;
   let oraibridgeHandler: OraiBridgeHandler;
@@ -293,7 +293,7 @@ describe.skip("test-integration", () => {
         nextAmount: "140410",
         nextReceiver: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
         nextDestinationDenom: "transfer/channel-15/uatom",
-        srcChannel: "channel-29",
+        srcChannel: "channel-15",
         dstChannel: "channel-301",
         status: "FINISHED"
       }
@@ -488,13 +488,6 @@ describe.skip("test-integration", () => {
     await setTimeout(300);
 
     // Test data test
-    console.log(
-      await duckDb.select(DatabaseEnum.Cosmos, {
-        where: {
-          packetSequence: 64277
-        }
-      })
-    );
     expect(
       await duckDb.select(DatabaseEnum.Cosmos, {
         where: {
@@ -747,7 +740,7 @@ describe("test-integration time-out", () => {
 
   const [owner] = getSigners(1);
 
-  xit("[EVM->EVM] testing timeout on missing event", async () => {
+  it("[EVM->EVM] testing timeout on missing event", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -883,7 +876,7 @@ describe("test-integration time-out", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(60000);
 
-  xit("[EVM->Oraichain] testing timeout on missing event", async () => {
+  it("[EVM->Oraichain] testing timeout on missing event", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -986,7 +979,7 @@ describe("test-integration time-out", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(60000);
 
-  xit("[EVM->Cosmos] testing time-out case", async () => {
+  it("[EVM->Cosmos] testing time-out case", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -1085,9 +1078,36 @@ describe("test-integration time-out", () => {
         nextAmount: "140410",
         nextReceiver: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
         nextDestinationDenom: "transfer/channel-15/uatom",
-        srcChannel: "channel-29",
+        srcChannel: "channel-15",
         dstChannel: "channel-301",
         status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Cosmos, {
+        where: {
+          prevTxHash: "10A17F2AFC8D959272C038B5E2ECB39F26C62BD9EC44E76ED3D2F8B58AE863B2"
+        }
+      })
+    ).to.eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraichainState",
+        prevTxHash: "10A17F2AFC8D959272C038B5E2ECB39F26C62BD9EC44E76ED3D2F8B58AE863B2",
+        packetSequence: 48599,
+        nextState: "",
+        srcPort: "transfer",
+        srcChannel: "channel-301",
+        dstPort: "",
+        dstChannel: "",
+        status: "FINISHED",
+        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        receiver: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        denom: "transfer/channel-15/uatom",
+        amount: "140410",
+        memo: "",
+        chainId: "cosmoshub-4"
       }
     ]);
 
@@ -1104,13 +1124,6 @@ describe("test-integration time-out", () => {
     ]);
     await setTimeout(30000);
     // Test data test
-    console.log(
-      await duckDb.select(DatabaseEnum.Cosmos, {
-        where: {
-          packetSequence: 64277
-        }
-      })
-    );
     expect(
       await duckDb.select(DatabaseEnum.Cosmos, {
         where: {
@@ -1225,7 +1238,7 @@ describe("test-integration time-out", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(45000);
 
-  xit("[Oraichain->EVM] testing time-out case", async () => {
+  it("[Oraichain->EVM] testing time-out case", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");

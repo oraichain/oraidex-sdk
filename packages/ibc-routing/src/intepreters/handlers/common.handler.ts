@@ -3,6 +3,7 @@ import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData } from "@oraichain/oraidex-universal-swap";
 import { AnyEventObject } from "xstate";
 import {
+  COSMOS_DENOM,
   ContextIntepreter,
   DatabaseEnum,
   FinalTag,
@@ -454,9 +455,9 @@ export const handleStoreOnRecvPacketOraichain = async (
 
     oraiChannels = {
       ...oraiChannels,
+      srcChannel,
       dstChannel
     };
-    ctx.oraiSrcForCosmosChannel = srcChannel;
     ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
   }
 
@@ -478,7 +479,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
       packetSequence: event.data.packetSequence,
-      dstChannel: ctx.oraichainSrcChannel,
+      dstChannel: ctx.oraiBridgeDstChannel,
       srcChannel: ctx.oraiBridgeSrcChannel
     }
   });
@@ -659,7 +660,10 @@ export const handleCheckOnAcknowledgementOnCosmos = async (
   }
   const value = ackPacket.attributes.find((attr: any) => attr.key === "packet_sequence").value;
   const data = parseInt(value);
-  return Promise.resolve({ packetSequence: data });
+  const srcChannel = ackPacket.attributes.find((attr: any) => attr.key === "packet_src_channel").value;
+  const dstChannel = ackPacket.attributes.find((attr: any) => attr.key === "packet_dst_channel").value;
+
+  return Promise.resolve({ packetSequence: data, ackSrcChannel: srcChannel, ackDstChannel: dstChannel, events });
 };
 
 export const handleUpdateOnAcknowledgementOnCosmos = async (
@@ -688,16 +692,51 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
       }
     }
   );
-  console.log(
-    "updateOnAcknowledgementOnCosmos: ",
-    await ctx.db.select(DatabaseEnum.Oraichain, {
-      where: {
-        nextPacketSequence: packetSequence,
-        srcChannel: ctx.oraichainSrcChannel,
-        dstChannel: ctx.oraichainDstChannel
-      }
-    })
+
+  // Insert data on cosmos
+  const events: Event[] = event.data.events;
+  const fungibleTokenPacket = events.find(
+    (item) =>
+      item.type === "fungible_token_packet" &&
+      item.attributes.find((item) => item.key === "module" && item.value === "transfer")
   );
+  const ackPacket = events.find((item) => item.type === "acknowledge_packet");
+  if (!ackPacket) {
+    throw generateError("ack packet does not exist on handleUpdateOnAcknowledgementOnCosmos");
+  }
+  let cosmosData = {
+    txHash: "",
+    height: 0,
+    prevState: "OraichainState",
+    prevTxHash: oraichainData[0].txHash,
+    packetSequence,
+    nextState: "",
+    srcPort: ackPacket.attributes.find((item) => item.key === "packet_dst_port").value,
+    srcChannel: ackPacket.attributes.find((item) => item.key === "packet_dst_channel").value,
+    dstPort: "",
+    dstChannel: "",
+    status: StateDBStatus.FINISHED
+  } as Object;
+  if (fungibleTokenPacket) {
+    const sender = fungibleTokenPacket.attributes.find((item) => item.key === "sender").value;
+    const receiver = fungibleTokenPacket.attributes.find((item) => item.key === "receiver").value;
+    const denom = fungibleTokenPacket.attributes.find((item) => item.key === "denom").value;
+    const amount = fungibleTokenPacket.attributes.find((item) => item.key === "amount").value;
+    const memo = fungibleTokenPacket.attributes.find((item) => item.key === "memo").value;
+    const chainId = Object.keys(COSMOS_DENOM).find((item) => denom.includes(COSMOS_DENOM[item]));
+    cosmosData = {
+      ...cosmosData,
+      sender,
+      receiver,
+      denom,
+      amount,
+      memo: memo || "",
+      chainId
+    };
+  }
+
+  console.log("Cosmos data:", cosmosData);
+  await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
 };
 
 export const handleStoreOnTransferBackToRemoteChain = async (

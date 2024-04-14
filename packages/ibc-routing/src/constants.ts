@@ -1,3 +1,4 @@
+import { COSMOS_CHAIN_ID_COMMON } from "@oraichain/oraidex-common";
 import dotenv from "dotenv";
 import { DuckDB } from "./db";
 dotenv.config();
@@ -65,6 +66,14 @@ export const FinalTag = "Final";
 export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 60000;
 
 export const IbcWasmContract = "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm";
+
+export const COSMOS_DENOM = {
+  [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: "uatom",
+  [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: "uoraib",
+  [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: "uosmo",
+  [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: "inj",
+  [COSMOS_CHAIN_ID_COMMON.KAWAII_COSMOS_CHAIN_ID]: "oraie"
+};
 
 // INTERFACES
 export interface EvmState {
@@ -142,7 +151,6 @@ export interface ContextIntepreter {
   oraiBridgeDstChannel?: string;
   oraichainSrcChannel?: string;
   oraichainDstChannel?: string;
-  oraiSrcForCosmosChannel?: string;
   cosmosPacketSequence?: number;
   cosmosSrcChannel?: string;
   cosmosDstChannel?: string;
