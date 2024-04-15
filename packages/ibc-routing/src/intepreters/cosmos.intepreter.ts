@@ -13,6 +13,11 @@ import {
   handleCheckOnRecvPacketOraichain,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
+  handleQueryIbcTransferFromRemote,
+  handleQueryOnBatchSendToEthClaim,
+  handleQueryOnRecvOraiBridgePacket,
+  handleQueryOnRecvPacketOraichain,
+  handleQueryOnRequestBatch,
   handleStoreOnBatchSendToEthClaim,
   handleStoreOnIbcTransferFromRemote,
   handleStoreOnRecvPacketOraichainReverse,
@@ -37,15 +42,22 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       cosmosPacketSequence: -1,
       cosmosSrcChannel: "",
       cosmosDstChannel: "",
-      routingQueryData: []
+      routingQueryData: {}
     },
     states: {
       cosmos: {
         on: {
-          [invokableMachineStateKeys.STORE_ON_IBC_TRANSFER_FROM_REMOTE]: "storeOnIbcTransferFromRemote"
+          [invokableMachineStateKeys.STORE_ON_IBC_TRANSFER_FROM_REMOTE]: "storeOnIbcTransferFromRemote",
+          [invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA]: "queryIbcTransferFromRemote"
         }
       },
-
+      queryIbcTransferFromRemote: {
+        invoke: {
+          src: handleQueryIbcTransferFromRemote,
+          onError: "finalState",
+          onDone: "queryOnRecvPacketOraichain"
+        }
+      },
       storeOnIbcTransferFromRemote: {
         invoke: {
           src: handleStoreOnIbcTransferFromRemote,
@@ -108,6 +120,15 @@ export const createCosmosIntepreter = (db: DuckDB) => {
           onDone: "oraiBridgeForEvm"
         }
       },
+      queryOnRecvPacketOraichain: {
+        invoke: {
+          src: async (ctx, event) => {
+            return handleQueryOnRecvPacketOraichain(ctx, event);
+          },
+          onError: "finalState",
+          onDone: "queryOnRecvOraiBridgePacket"
+        }
+      },
       checkOnRecvPacketOraichain: {
         invoke: {
           src: handleCheckOnRecvPacketOraichain,
@@ -143,6 +164,13 @@ export const createCosmosIntepreter = (db: DuckDB) => {
         }
       },
       checkOnRecvPacketOraichainFailure: {},
+      queryOnRecvOraiBridgePacket: {
+        invoke: {
+          src: handleQueryOnRecvOraiBridgePacket,
+          onDone: "queryOnRequestBatch",
+          onError: "finalState"
+        }
+      },
       storeOnRecvPacketOraichain: {
         invoke: {
           src: handleStoreOnRecvPacketOraichainReverse,
@@ -242,6 +270,13 @@ export const createCosmosIntepreter = (db: DuckDB) => {
         }
       },
       onRecvPacketOnOraiBridgeFailure: {},
+      queryOnRequestBatch: {
+        invoke: {
+          src: handleQueryOnRequestBatch,
+          onDone: "queryOnBatchSendToEthClaim",
+          onError: "finalState"
+        }
+      },
       onRequestBatch: {
         on: {
           [invokableMachineStateKeys.STORE_ON_REQUEST_BATCH]: "checkOnRequestBatch"
@@ -326,6 +361,13 @@ export const createCosmosIntepreter = (db: DuckDB) => {
         }
       },
       storeOnRequestBatchFailure: {},
+      queryOnBatchSendToEthClaim: {
+        invoke: {
+          src: handleQueryOnBatchSendToEthClaim,
+          onDone: "finalState",
+          onError: "finalState"
+        }
+      },
       onBatchSendToETHClaim: {
         on: {
           [invokableMachineStateKeys.STORE_ON_BATCH_SEND_TO_ETH_CLAIM]: "checkOnBatchSendToETHClaim"

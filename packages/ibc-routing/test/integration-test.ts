@@ -4,10 +4,12 @@ import { InterpreterStatus } from "xstate";
 import { COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
 import { expect } from "chai";
 import { setTimeout } from "timers/promises";
+import { waitFor } from "xstate/lib/waitFor";
 import {
   autoForwardTag,
   batchSendToEthClaimTag,
   DatabaseEnum,
+  invokableMachineStateKeys,
   onAcknowledgementTag,
   onExecuteContractTag,
   onRecvPacketTag,
@@ -19,6 +21,9 @@ import { CosmosHandler } from "../src/event-handlers/cosmos.handler";
 import { EvmEventHandler } from "../src/event-handlers/evm.handler";
 import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import { createCosmosIntepreter } from "../src/intepreters/cosmos.intepreter";
+import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
+import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
 import {
@@ -53,6 +58,7 @@ import {
   OnRequestBatchTxData as OnRequestBatchTxDataO2E,
   TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E
 } from "./data/oraichain-to-evm";
+const sleepTimeMs = 300;
 
 // TODO: at each testcase, i should test the final stored database to make it more concise
 describe("test-integration", () => {
@@ -81,6 +87,47 @@ describe("test-integration", () => {
   });
 
   const [owner] = getSigners(1);
+
+  it("[EVM->Oraichain] query happy test", async () => {
+    // fixture, setup a successful ibc routing flow from evm -> oraichain
+    const ethEvent = new EthEvent(evmHandler);
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      EvmChainPrefix.BSC_MAINNET
+    );
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
+    // TODO: how to wait for emit event to finish then start the next
+    await setTimeout(sleepTimeMs);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    // has to convert back to bytes because javascript object is not friendly with Uint8Array
+    stream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Oraichain));
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Oraichain));
+    await setTimeout(sleepTimeMs);
+
+    // action. Create a new interpreter and try to invoke the query flow
+    const interpreter = createEvmIntepreter(duckDb);
+    const actor = interpreter.start();
+    interpreter.send({
+      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+      payload: {
+        txHash: (SendToCosmosDataEvm2Oraichain[5] as any).transactionHash,
+        evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+      }
+    });
+    const doneState = await waitFor(actor, (state) => state.done);
+    console.log("done state: ", doneState.context.routingQueryData);
+    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    expect(queryKeys.length).eq(3);
+    expect(queryKeys[0]).eq(DatabaseEnum.Evm);
+    expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
+  });
+
   it("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
@@ -188,6 +235,47 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
+  it("[EVM->Cosmos] query happy test", async () => {
+    const ethEvent = new EthEvent(evmHandler);
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      EvmChainPrefix.BSC_MAINNET
+    );
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
+    // TODO: how to wait for emit event to finish then start the next
+    await setTimeout(sleepTimeMs);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onAcknowledgementTag]);
+    // has to convert back to bytes because javascript object is not friendly with Uint8Array
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Cosmos));
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Cosmos));
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnAcknowledgementEvm2Cosmos));
+    await setTimeout(sleepTimeMs);
+
+    const interpreter = createEvmIntepreter(duckDb);
+    const actor = interpreter.start();
+    interpreter.send({
+      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+      payload: {
+        txHash: (SendToCosmosDataEvm2Cosmos[5] as any).transactionHash,
+        evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+      }
+    });
+    const doneState = await waitFor(actor, (state) => state.done);
+    console.log("done state: ", doneState.context.routingQueryData);
+    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    expect(queryKeys.length).eq(4);
+    expect(queryKeys[0]).eq(DatabaseEnum.Evm);
+    expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
+    expect(queryKeys[3]).eq(DatabaseEnum.Cosmos);
+  });
+
   it("[EVM->Cosmos] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
@@ -197,18 +285,18 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onAcknowledgementTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Cosmos));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Cosmos));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnAcknowledgementEvm2Cosmos));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
     // Test Data
     expect(
@@ -303,7 +391,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
-  it("[EVM->EVM] full-flow happy test", async () => {
+  it("[EVM->EVM] query happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -312,7 +400,7 @@ describe("test-integration", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Evm);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -323,15 +411,65 @@ describe("test-integration", () => {
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataOraichainEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataEvm2Evm));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
+
+    const interpreter = createEvmIntepreter(duckDb);
+    const actor = interpreter.start();
+    interpreter.send({
+      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+      payload: {
+        txHash: (SendToCosmosDataEvm2Evm[5] as any).transactionHash,
+        evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+      }
+    });
+    const doneState = await waitFor(actor, (state) => state.done);
+    console.log("done state: ", doneState.context.routingQueryData);
+    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    expect(queryKeys.length).eq(5);
+    expect(queryKeys[0]).eq(DatabaseEnum.Evm);
+    expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
+    expect(queryKeys[3]).eq(`${DatabaseEnum.OraiBridge}_NEXT`);
+    expect(queryKeys[4]).eq(`${DatabaseEnum.Evm}_NEXT`);
+  });
+
+  it("[EVM->EVM] full-flow happy test", async () => {
+    const ethEvent = new EthEvent(evmHandler);
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      EvmChainPrefix.BSC_MAINNET
+    );
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Evm);
+    // TODO: how to wait for emit event to finish then start the next
+    await setTimeout(sleepTimeMs);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
+      autoForwardTag,
+      requestBatchTag,
+      batchSendToEthClaimTag
+    ]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    // has to convert back to bytes because javascript object is not friendly with Uint8Array
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Evm));
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataOraichainEvm2Evm));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataEvm2Evm));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataEvm2Evm));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataEvm2Evm));
+    await setTimeout(sleepTimeMs);
 
     // TEST DATA
     expect(
@@ -460,6 +598,53 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
+  it("[Cosmos->EVM] query happy test", async () => {
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
+      autoForwardTag,
+      requestBatchTag,
+      batchSendToEthClaimTag
+    ]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxDataC2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    await setTimeout(300);
+
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
+    await setTimeout(sleepTimeMs);
+
+    // action. Create a new interpreter and try to invoke the query flow
+    const interpreter = createCosmosIntepreter(duckDb);
+    const actor = interpreter.start();
+    interpreter.send({
+      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+      payload: {
+        txHash: IbcTransferTxDataC2E.hash,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    });
+    const doneState = await waitFor(actor, (state) => state.done);
+    console.log("done state: ", doneState.context.routingQueryData);
+    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    expect(queryKeys.length).eq(4);
+    expect(queryKeys[0]).eq(DatabaseEnum.Cosmos);
+    expect(queryKeys[1]).eq(DatabaseEnum.Oraichain);
+    expect(queryKeys[2]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[3]).eq(DatabaseEnum.Evm);
+  });
+
   it("[Cosmos->EVM] full-flow happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
@@ -477,15 +662,15 @@ describe("test-integration", () => {
     await setTimeout(300);
 
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
     // Test data test
     expect(
@@ -518,7 +703,7 @@ describe("test-integration", () => {
     expect(
       await duckDb.select(DatabaseEnum.Oraichain, {
         where: {
-          packetSequence: 21698
+          packetSequence: 64277
         }
       })
     ).eql([
@@ -528,7 +713,7 @@ describe("test-integration", () => {
         prevState: "CosmosState",
         prevTxHash: "9EBDB3009802EEF7B85B0E64BD1CD20E3F05849C4918B241F3DD0649A07F2F36",
         nextState: "OraiBridgeState",
-        packetSequence: 21698,
+        packetSequence: 64277,
         packetAck: "",
         sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
         localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
@@ -611,15 +796,52 @@ describe("test-integration", () => {
     ]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onExecuteContractTag]);
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataO2E));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
+
+    // action. Create a new interpreter and try to invoke the query flow
+    const interpreter = createOraichainIntepreter(duckDb);
+    const actor = interpreter.start();
+    interpreter.send({
+      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+      payload: {
+        txHash: TransferBackToRemoteTxDataO2E.hash
+      }
+    });
+    const doneState = await waitFor(actor, (state) => state.done);
+    console.log("done state: ", doneState.context.routingQueryData);
+    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    expect(queryKeys.length).eq(3);
+    expect(queryKeys[0]).eq(DatabaseEnum.Oraichain);
+    expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[2]).eq(DatabaseEnum.Evm);
+  });
+
+  it("[Oraichain->EVM] full-flow happy test", async () => {
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
+      autoForwardTag,
+      requestBatchTag,
+      batchSendToEthClaimTag
+    ]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onExecuteContractTag]);
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataO2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataO2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataO2E));
+    await setTimeout(sleepTimeMs);
 
     // Test Data
     expect(
@@ -885,7 +1107,7 @@ describe("test-integration time-out", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -988,7 +1210,7 @@ describe("test-integration time-out", () => {
     );
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -1154,7 +1376,7 @@ describe("test-integration time-out", () => {
     expect(
       await duckDb.select(DatabaseEnum.Oraichain, {
         where: {
-          packetSequence: 21698
+          packetSequence: 64277
         }
       })
     ).eql([
@@ -1164,7 +1386,7 @@ describe("test-integration time-out", () => {
         prevState: "CosmosState",
         prevTxHash: "9EBDB3009802EEF7B85B0E64BD1CD20E3F05849C4918B241F3DD0649A07F2F36",
         nextState: "OraiBridgeState",
-        packetSequence: 21698,
+        packetSequence: 64277,
         packetAck: "",
         sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
         localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
@@ -1243,7 +1465,7 @@ describe("test-integration time-out", () => {
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag, onExecuteContractTag]);
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
     await setTimeout(30000);
 

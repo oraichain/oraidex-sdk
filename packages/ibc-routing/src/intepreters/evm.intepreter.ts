@@ -21,12 +21,20 @@ import {
   handleCheckOnRecvPacketOraichain,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
+  handleQueryAutoForward,
+  handleQueryOnBatchSendToEthClaim,
+  handleQueryOnRecvCosmosPacket,
+  handleQueryOnRecvOraiBridgePacket,
+  handleQueryOnRecvPacketOraichain,
+  handleQueryOnRequestBatch,
+  handleQuerySendToCosmosEvm,
   handleSendToCosmosEvm,
   handleStoreAutoForward,
   handleStoreOnBatchSendToEthClaim,
   handleStoreOnRecvPacketOraichain,
   handleStoreOnRequestBatchOraiBridge,
-  handleUpdateOnAcknowledgementOnCosmos
+  handleUpdateOnAcknowledgementOnCosmos,
+  onDoneOnRecvPacketOraichain
 } from "./handlers/common.handler";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
@@ -51,13 +59,26 @@ export const createEvmIntepreter = (db: DuckDB) => {
         oraiBridgeDstChannel: "",
         oraichainSrcChannel: "",
         oraichainDstChannel: "",
-        outingQueryData: []
+        routingQueryData: {}
       },
       states: {
         evm: {
           on: {
             // listen to event sent elsewhere. Once received 'STORE' type event, then it will move to 'storeDb' state
-            [invokableMachineStateKeys.STORE_SEND_TO_COSMOS]: "sendToCosmosEvm"
+            [invokableMachineStateKeys.STORE_SEND_TO_COSMOS]: "sendToCosmosEvm",
+            [invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA]: "querySendToCosmosEvm"
+          }
+        },
+        querySendToCosmosEvm: {
+          invoke: {
+            src: handleQuerySendToCosmosEvm,
+            onDone: "queryAutoForward",
+            onError: {
+              target: "finalState",
+              actions: (ctx, event) => {
+                console.log("error query send to cosmos evm: ", event.data);
+              }
+            }
           }
         },
         sendToCosmosEvm: {
@@ -127,6 +148,16 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: "oraichain"
           }
         },
+        queryAutoForward: {
+          invoke: {
+            src: handleQueryAutoForward,
+            onDone: "queryOnRecvPacketOraichain",
+            onError: {
+              target: "finalState",
+              actions: (ctx, event) => console.log("error handle query auto forward: ", event.data)
+            }
+          }
+        },
         checkAutoForward: {
           invoke: {
             src: handleCheckAutoForward,
@@ -166,8 +197,24 @@ export const createEvmIntepreter = (db: DuckDB) => {
             }
           }
         },
-        checkAutoForwardFailure: {},
-        storeAutoForwardFailure: {},
+        checkAutoForwardFailure: {
+          invoke: {
+            src: (ctx, event) => {
+              console.log("error check auto forward failure: ", event.data);
+              return Promise.resolve();
+            },
+            onDone: "oraibridge"
+          }
+        },
+        storeAutoForwardFailure: {
+          invoke: {
+            src: (ctx, event) => {
+              console.log("error check auto forward failure: ", event.data);
+              return Promise.resolve();
+            },
+            onDone: "oraibridge"
+          }
+        },
         oraichain: {
           on: {
             [invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN]: "checkOnRecvPacketOraichain"
@@ -176,6 +223,29 @@ export const createEvmIntepreter = (db: DuckDB) => {
             [TimeOut]: {
               target: "oraichainTimeOut",
               actions: (ctx, event) => console.log("Move to timeout from oraichain")
+            }
+          }
+        },
+        queryOnRecvPacketOraichain: {
+          invoke: {
+            src: handleQueryOnRecvPacketOraichain,
+            onDone: [
+              {
+                target: "queryOnRecvCosmosPacket",
+                cond: (_ctx, event) => event.data === ForwardTagOnOraichain.COSMOS
+              },
+              {
+                target: "queryOnRecvOraiBridgePacket",
+                cond: (_ctx, event) => event.data === ForwardTagOnOraichain.EVM
+              },
+              {
+                target: "finalState",
+                cond: (_ctx, event) => event.data === FinalTag
+              }
+            ],
+            onError: {
+              target: "finalState",
+              actions: (ctx, event) => console.log("error queryOnRecvPacketOraichain: ", event.data)
             }
           }
         },
@@ -217,26 +287,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               // rejected promise data is on event.data property
               actions: (ctx, event) => console.log("error on handling oraichain timeout", event.data)
             },
-            onDone: [
-              {
-                target: "cosmos",
-                cond: (ctx, event) => {
-                  return event.data === ForwardTagOnOraichain.COSMOS;
-                }
-              },
-              {
-                target: "oraiBridgeForEvm",
-                cond: (ctx, event) => {
-                  return event.data === ForwardTagOnOraichain.EVM;
-                }
-              },
-              {
-                target: "finalState",
-                cond: (ctx, event) => {
-                  return event.data === FinalTag;
-                }
-              }
-            ]
+            onDone: onDoneOnRecvPacketOraichain
           }
         },
         checkOnRecvPacketOraichain: {
@@ -249,23 +300,17 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: [
               {
                 target: "storeOnRecvPacketOraichain",
-                cond: (ctx, event) => {
-                  return (
-                    event.data.packetSequence === ctx.oraiBridgePacketSequence &&
-                    ctx.oraiBridgeSrcChannel === event.data.recvSrcChannel &&
-                    ctx.oraiBridgeDstChannel === event.data.recvDstChannel
-                  );
-                }
+                cond: (ctx, event) =>
+                  event.data.packetSequence === ctx.oraiBridgePacketSequence &&
+                  ctx.oraiBridgeSrcChannel === event.data.recvSrcChannel &&
+                  ctx.oraiBridgeDstChannel === event.data.recvDstChannel
               },
               {
                 target: "oraichain",
-                cond: (ctx, event) => {
-                  return (
-                    event.data.packetSequence !== ctx.oraiBridgePacketSequence ||
-                    ctx.oraiBridgeSrcChannel !== event.data.recvSrcChannel ||
-                    ctx.oraiBridgeDstChannel !== event.data.recvDstChannel
-                  );
-                }
+                cond: (ctx, event) =>
+                  event.data.packetSequence !== ctx.oraiBridgePacketSequence ||
+                  ctx.oraiBridgeSrcChannel !== event.data.recvSrcChannel ||
+                  ctx.oraiBridgeDstChannel !== event.data.recvDstChannel
               }
             ]
           }
@@ -273,26 +318,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         storeOnRecvPacketOraichain: {
           invoke: {
             src: handleStoreOnRecvPacketOraichain,
-            onDone: [
-              {
-                target: "cosmos",
-                cond: (ctx, event) => {
-                  return event.data === ForwardTagOnOraichain.COSMOS;
-                }
-              },
-              {
-                target: "oraiBridgeForEvm",
-                cond: (ctx, event) => {
-                  return event.data === ForwardTagOnOraichain.EVM;
-                }
-              },
-              {
-                target: "finalState",
-                cond: (ctx, event) => {
-                  return event.data === FinalTag;
-                }
-              }
-            ]
+            onDone: onDoneOnRecvPacketOraichain
           }
         },
         checkOnRecvPacketFailure: {},
@@ -346,6 +372,13 @@ export const createEvmIntepreter = (db: DuckDB) => {
               target: "cosmos"
             },
             onDone: "finalState"
+          }
+        },
+        queryOnRecvCosmosPacket: {
+          invoke: {
+            src: handleQueryOnRecvCosmosPacket,
+            onDone: "finalState",
+            onError: "finalState"
           }
         },
         checkOnAcknowledgementOnCosmos: {
@@ -433,6 +466,13 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: "onRequestBatch"
           }
         },
+        queryOnRecvOraiBridgePacket: {
+          invoke: {
+            src: handleQueryOnRecvOraiBridgePacket,
+            onDone: "queryOnRequestBatch",
+            onError: "finalState"
+          }
+        },
         checkOnRecvPacketOnOraiBridge: {
           invoke: {
             src: handleCheckOnRecvPacketOnOraiBridge,
@@ -446,13 +486,10 @@ export const createEvmIntepreter = (db: DuckDB) => {
               },
               {
                 target: "oraiBridgeForEvm",
-                cond: (ctx, event) => {
-                  return (
-                    event.data.packetSequence !== ctx.oraiSendPacketSequence ||
-                    event.data.recvSrcChannel !== ctx.oraichainSrcChannel ||
-                    event.data.recvDstChannel !== ctx.oraichainDstChannel
-                  );
-                }
+                cond: (ctx, event) =>
+                  event.data.packetSequence !== ctx.oraiSendPacketSequence ||
+                  event.data.recvSrcChannel !== ctx.oraichainSrcChannel ||
+                  event.data.recvDstChannel !== ctx.oraichainDstChannel
               }
             ]
           }
@@ -468,6 +505,13 @@ export const createEvmIntepreter = (db: DuckDB) => {
           }
         },
         onRecvPacketOnOraiBridgeFailure: {},
+        queryOnRequestBatch: {
+          invoke: {
+            src: handleQueryOnRequestBatch,
+            onDone: "queryOnBatchSendToEthClaim",
+            onError: "finalState"
+          }
+        },
         onRequestBatch: {
           on: {
             [invokableMachineStateKeys.STORE_ON_REQUEST_BATCH]: "checkOnRequestBatch"
@@ -526,9 +570,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: [
               {
                 target: "storeOnRequestBatch",
-                cond: (ctx, event) => {
-                  return event.data.txIds.includes(ctx.oraiBridgePendingTxId);
-                }
+                cond: (ctx, event) => event.data.txIds.includes(ctx.oraiBridgePendingTxId)
               },
               {
                 target: "onRequestBatch",
@@ -543,9 +585,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         checkOnRequestBatchFailure: {},
         storeOnRequestBatch: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleStoreOnRequestBatchOraiBridge(ctx, event);
-            },
+            src: handleStoreOnRequestBatchOraiBridge,
             onError: {
               actions: (ctx, event) => console.log("error on store on request batch: ", event.data),
               target: "storeOnRequestBatchFailure"
@@ -554,6 +594,13 @@ export const createEvmIntepreter = (db: DuckDB) => {
           }
         },
         storeOnRequestBatchFailure: {},
+        queryOnBatchSendToEthClaim: {
+          invoke: {
+            src: handleQueryOnBatchSendToEthClaim,
+            onDone: "finalState",
+            onError: "finalState"
+          }
+        },
         onBatchSendToETHClaim: {
           on: {
             [invokableMachineStateKeys.STORE_ON_BATCH_SEND_TO_ETH_CLAIM]: "checkOnBatchSendToETHClaim"
@@ -606,30 +653,22 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: [
               {
                 target: "storeOnBatchSendToETHClaim",
-                cond: (ctx, event) => {
-                  return (
-                    event.data.batchNonce === ctx.oraiBridgeBatchNonce &&
-                    ctx.evmChainPrefixOnRightTraverseOrder === event.data.evmChainPrefix
-                  );
-                }
+                cond: (ctx, event) =>
+                  event.data.batchNonce === ctx.oraiBridgeBatchNonce &&
+                  ctx.evmChainPrefixOnRightTraverseOrder === event.data.evmChainPrefix
               },
               {
                 target: "onBatchSendToETHClaim",
-                cond: (ctx, event) => {
-                  return (
-                    event.data.batchNonce !== ctx.oraiBridgeBatchNonce ||
-                    ctx.evmChainPrefixOnRightTraverseOrder !== event.data.evmChainPrefix
-                  );
-                }
+                cond: (ctx, event) =>
+                  event.data.batchNonce !== ctx.oraiBridgeBatchNonce ||
+                  ctx.evmChainPrefixOnRightTraverseOrder !== event.data.evmChainPrefix
               }
             ]
           }
         },
         storeOnBatchSendToETHClaim: {
           invoke: {
-            src: async (ctx, event) => {
-              return handleStoreOnBatchSendToEthClaim(ctx, event);
-            },
+            src: handleStoreOnBatchSendToEthClaim,
             onError: {
               actions: (ctx, event) => console.log("error on store on batch send to eth claim: ", event.data),
               target: "storeOnBatchSendToETHClaimFailure"

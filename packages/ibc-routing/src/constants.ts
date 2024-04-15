@@ -40,6 +40,7 @@ export enum NetworkEventType {
 // this keys can be invoked to trigger events for our state machines
 export const invokableMachineStateKeys = {
   STORE_SEND_TO_COSMOS: "STORE_SEND_TO_COSMOS",
+  QUERY_IBC_ROUTING_DATA: "QUERY_IBC_ROUTING_DATA",
   STORE_AUTO_FORWARD: "STORE_AUTO_FORWARD",
   STORE_ON_RECV_PACKET_ORAICHAIN: "STORE_ON_RECV_PACKET_ORAICHAIN",
   STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN: "STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN",
@@ -154,4 +155,5 @@ export interface ContextIntepreter {
   cosmosPacketSequence?: number;
   cosmosSrcChannel?: string;
   cosmosDstChannel?: string;
+  routingQueryData?: { [dbState: string]: any };
 }
