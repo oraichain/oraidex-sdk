@@ -23,16 +23,13 @@ import {
   USDC_CONTRACT
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
-import * as dexCommonNetwork from "@oraichain/oraidex-common/build/network"; // import like this to enable jest.spyOn & avoid redefine property error
-import * as universalHelper from "../src/helper";
-import { UniversalSwapHandler } from "../src/index";
-import { AccountData, DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
+import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 import TronWeb from "tronweb";
 import Long from "long";
 import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
 import { fromUtf8, toUtf8 } from "@cosmjs/encoding";
-import { SigningCosmWasmClient, SigningCosmWasmClientOptions, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { toBinary } from "@cosmjs/cosmwasm-stargate";
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
 import {
   OraiswapFactoryClient,
@@ -45,20 +42,21 @@ import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClien
 import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
 import bech32 from "bech32";
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
-import {
-  checkBalanceChannelIbc,
-  checkBalanceIBCOraichain,
-  getBalanceIBCOraichain,
-  getIbcInfo,
-  handleSimulateSwap,
-  simulateSwap,
-  checkFeeRelayer,
-  checkFeeRelayerNotOrai
-} from "../src/helper";
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { readFileSync } from "fs";
-import { SigningStargateClientOptions } from "@cosmjs/stargate";
+import { UniversalSwapHandler } from "../src/handler";
+import {
+  UniversalSwapHelper,
+  checkBalanceChannelIbc,
+  checkBalanceIBCOraichain,
+  checkFeeRelayer,
+  checkFeeRelayerNotOrai,
+  getBalanceIBCOraichain,
+  getIbcInfo,
+  handleSimulateSwap,
+  simulateSwap
+} from "../src/helper";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -440,7 +438,7 @@ describe("test universal swap handler functions", () => {
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
       // TODO: run tests without mocking to simulate actual swap logic
-      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
+      jest.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
       const result = await checkFeeRelayer({
         originalFromToken: originalFromToken as TokenItemType,
         fromAmount: 1,
@@ -462,7 +460,7 @@ describe("test universal swap handler functions", () => {
     async (fromDenom, mockSimulateAmount, mockRelayerFee, isSufficient) => {
       const originalFromToken = oraichainTokens.find((item) => item.coinGeckoId === fromDenom);
       // TODO: run tests without mocking to simulate actual swap
-      jest.spyOn(universalHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
+      jest.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: mockSimulateAmount });
       const result = await checkFeeRelayerNotOrai({
         fromTokenInOrai: originalFromToken as TokenItemType,
         fromAmount: 1,
@@ -528,20 +526,39 @@ describe("test universal swap handler functions", () => {
   );
 
   it.each([
-    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "oraib0x1234"],
-    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, ""]
+    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, "0x38", "", ""],
+    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "0x12345", "oraib0x12345"],
+    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "", "oraib0x1234"]
   ])(
     "test getIbcMemo should return ibc memo correctly",
-    (transferAddress: string, toToken: TokenItemType, expectedIbcMemo: string) => {
+    (
+      transferAddress: string,
+      toToken: TokenItemType,
+      originalChainId: string,
+      recipientAddress: string,
+      expectedIbcMemo: string
+    ) => {
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         originalToToken: toToken
       });
       jest.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
-      const ibcMemo = universalSwap.getIbcMemo("john doe", "john doe", "john doe", {
-        chainId: toToken.chainId,
-        prefix: toToken.prefix!
+      jest.spyOn(dexCommonHelper, "checkValidateAddressWithNetwork").mockReturnValue({
+        isValid: true,
+        network: originalChainId
       });
+
+      const ibcMemo = universalSwap.getIbcMemo(
+        "john doe",
+        "john doe",
+        "john doe",
+        {
+          chainId: toToken.chainId,
+          prefix: toToken.prefix!,
+          originalChainId: originalChainId as NetworkChainId
+        },
+        recipientAddress
+      );
       expect(ibcMemo).toEqual(expectedIbcMemo);
     }
   );
@@ -620,7 +637,7 @@ describe("test universal swap handler functions", () => {
     async (from: TokenItemType, to: TokenItemType, fromAmount: number, toAmount: string, willThrow: boolean) => {
       try {
         jest
-          .spyOn(universalHelper, "getBalanceIBCOraichain")
+          .spyOn(UniversalSwapHelper, "getBalanceIBCOraichain")
           .mockReturnValue(new Promise((resolve) => resolve({ balance: +toAmount })));
         checkBalanceIBCOraichain(
           from,
@@ -645,6 +662,8 @@ describe("test universal swap handler functions", () => {
   ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
+    const spy = jest.spyOn(UniversalSwapHelper, "addOraiBridgeRoute");
+    spy.mockReturnValue({ swapRoute: "", universalSwapType });
     const universalSwap = new FakeUniversalSwapHandler({
       ...universalSwapData,
       originalFromToken: fromToken,
@@ -656,8 +675,8 @@ describe("test universal swap handler functions", () => {
       .mockResolvedValue("swapAndTransferToOtherNetworks" as any);
     jest.spyOn(universalSwap, "swapCosmosToOtherNetwork").mockResolvedValue("swapCosmosToOtherNetwork" as any);
     jest.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
-    jest.spyOn(universalHelper, "addOraiBridgeRoute").mockReturnValue({ swapRoute: "", universalSwapType });
     const result = await universalSwap.processUniversalSwap();
+    expect(spy).toHaveBeenCalled();
     expect(result).toEqual(expectedFunction);
   });
 
@@ -940,7 +959,7 @@ describe("test universal swap handler functions", () => {
     try {
       await universalSwap.combineMsgEvm("0x1234", "T1234");
     } catch (error) {
-      expect(error?.ex?.message).toEqual("Please login keplr!");
+      expect(error?.ex?.message).toEqual("Please login cosmos wallet!");
     }
   });
 
@@ -967,12 +986,12 @@ describe("test universal swap handler functions", () => {
     [true, false, "2"],
     [true, true, "2"]
   ])("test handleSimulateSwap", async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, expectedSimulateAmount) => {
-    const simulateSwapSpy = jest.spyOn(universalHelper, "simulateSwap");
-    const simulateSwapEvmSpy = jest.spyOn(universalHelper, "simulateSwapEvm");
+    const simulateSwapSpy = jest.spyOn(UniversalSwapHelper, "simulateSwap");
+    const simulateSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "simulateSwapEvm");
     simulateSwapSpy.mockResolvedValue({ amount: "1" });
     simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
-    const isSupportedNoPoolSwapEvmSpy = jest.spyOn(universalHelper, "isSupportedNoPoolSwapEvm");
-    const isEvmSwappableSpy = jest.spyOn(universalHelper, "isEvmSwappable");
+    const isSupportedNoPoolSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm");
+    const isEvmSwappableSpy = jest.spyOn(UniversalSwapHelper, "isEvmSwappable");
     isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
     isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
     const simulateData = await handleSimulateSwap({

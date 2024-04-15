@@ -13,6 +13,8 @@ import {
   NEUTARO_INFO,
   NetworkChainId,
   ORAIX_INFO,
+  ORAI_BRIDGE_EVM_DENOM_PREFIX,
+  ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   ORAI_BSC_CONTRACT,
   ORAI_ETH_CONTRACT,
@@ -56,7 +58,7 @@ import {
 } from "../src/helper";
 import { SwapRoute, UniversalSwapType } from "../src/types";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/OraiswapRouter.types";
+import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
 import { Coin, coin } from "@cosmjs/proto-signing";
 
@@ -256,10 +258,13 @@ describe("test helper functions", () => {
       "0x38",
       "oraichain-token",
       "0x01",
-      "orai1234",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
       {
-        // swapRoute: `${oraichain2oraib}/orai1234:${ORAI_ETH_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, ORAI_ETH_CONTRACT),
+        swapRoute: parseToIbcWasmMemo(
+          `${ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          oraichain2oraib,
+          ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + ORAI_ETH_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -269,10 +274,14 @@ describe("test helper functions", () => {
       "0x01",
       "tether",
       "0x38",
-      "orai1234",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${USDT_BSC_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, USDT_BSC_CONTRACT),
+        swapRoute: parseToIbcWasmMemo(
+          `${ORAI_BRIDGE_EVM_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          oraichain2oraib,
+          ORAI_BRIDGE_EVM_DENOM_PREFIX + USDT_BSC_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -282,10 +291,14 @@ describe("test helper functions", () => {
       "0x01",
       "tether",
       "0x2b6653dc",
-      "orai1234",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
       {
         // swapRoute: `${oraichain2oraib}/orai1234:${USDT_TRON_CONTRACT}`,
-        swapRoute: parseToIbcWasmMemo("orai1234", oraichain2oraib, USDT_TRON_CONTRACT),
+        swapRoute: parseToIbcWasmMemo(
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          oraichain2oraib,
+          ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX + USDT_TRON_CONTRACT
+        ),
         universalSwapType: "other-networks-to-oraichain"
       },
       false
@@ -301,7 +314,7 @@ describe("test helper functions", () => {
         swapRoute: parseToIbcWasmMemo(
           `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x1234`,
           oraichain2oraib,
-          USDT_TRON_CONTRACT
+          ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX + USDT_TRON_CONTRACT
         ),
         universalSwapType: "other-networks-to-oraichain"
       },
@@ -317,6 +330,51 @@ describe("test helper functions", () => {
         swapRoute: "",
         universalSwapType: "other-networks-to-oraichain"
       },
+      false
+    ],
+    [
+      "oraichain-token",
+      "Oraichain",
+      "usd-coin",
+      "0x01",
+      "0x1234",
+      { swapRoute: "", universalSwapType: "oraichain-to-evm" },
+      false
+    ],
+    [
+      "kawaii-islands",
+      "0x1ae6",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      true
+    ],
+    [
+      "kawaii-islands",
+      "kawaii_6886-1",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      true
+    ],
+    [
+      "kawaii-islands",
+      "0x38",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
+      false
+    ],
+    [
+      "milky-token",
+      "0x38",
+      "oraichain-token",
+      "Oraichain",
+      "orai1234",
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain" },
       false
     ]
   ])(
@@ -389,6 +447,66 @@ describe("test helper functions", () => {
       false
     ],
     [
+      "cosmos",
+      "cosmoshub-4",
+      "tether",
+      "0x01",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          `${ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          ibcInfos["Oraichain"]["0x01"]?.channel ?? "",
+          `${ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX}${parseTokenInfoRawDenom(
+            getTokenOnSpecificChainId("tether", "0x01") as TokenItemType
+          )}`
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "tether",
+      "0x38",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          `${ORAI_BRIDGE_EVM_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          ibcInfos["Oraichain"]["0x38"]?.channel ?? "",
+          `${ORAI_BRIDGE_EVM_DENOM_PREFIX}${parseTokenInfoRawDenom(
+            getTokenOnSpecificChainId("tether", "0x38") as TokenItemType
+          )}`
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
+      "cosmos",
+      "cosmoshub-4",
+      "tether",
+      "0x2b6653dc",
+      "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+      "0x09beeedf51aa45718f46837c94712d89b157a9d3",
+      {
+        swapRoute: parseToIbcHookMemo(
+          "orai1ek2243955krr3enky8jq8y8vhh3p63y5wjzs4j",
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}0x09beeedf51aa45718f46837c94712d89b157a9d3`,
+          ibcInfos["Oraichain"]["0x2b6653dc"]?.channel ?? "",
+          `${ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX}${parseTokenInfoRawDenom(
+            getTokenOnSpecificChainId("tether", "0x2b6653dc") as TokenItemType
+          )}`
+        ),
+        universalSwapType: "cosmos-to-others"
+      },
+      false
+    ],
+    [
       "osmosis",
       "osmosis-1",
       "cosmos",
@@ -455,6 +573,7 @@ describe("test helper functions", () => {
       jest
         .spyOn(dexCommonHelper, "isEthAddress")
         .mockImplementation((address) => (address.includes("0x") ? true : false));
+
       const fromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromCoingeckoId && item.chainId === fromChainId
       )!;
@@ -473,6 +592,9 @@ describe("test helper functions", () => {
   it("test-addOraiBridgeRoute-empty-swapRoute", () => {
     const result = addOraiBridgeRoute("receiver", "any" as any, "any" as any);
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
+  });
+  it("test-addOraiBridgeRoute-empty-sourceReceiver", () => {
+    expect(() => addOraiBridgeRoute("", "" as any, "" as any)).toThrow();
   });
   it("test-addOraiBridgeRoute-non-empty-swapRoute", () => {
     const result = addOraiBridgeRoute(
