@@ -12,6 +12,10 @@ import {
   handleCheckOnRecvPacketOnOraiBridge,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
+  handleQueryOnBatchSendToEthClaim,
+  handleQueryOnRecvOraiBridgePacket,
+  handleQueryOnRequestBatch,
+  handleQueryOnTransferBackToRemoteChain,
   handleStoreOnBatchSendToEthClaim,
   handleStoreOnRequestBatchOraiBridge,
   handleStoreOnTransferBackToRemoteChain
@@ -32,12 +36,20 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       oraiBridgeDstChannel: "",
       oraichainSrcChannel: "",
       oraichainDstChannel: "",
-      outingQueryData: {}
+      routingQueryData: {}
     },
     states: {
       oraichain: {
         on: {
-          [invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN]: "storeOnTransferBackToRemoteChain"
+          [invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN]: "storeOnTransferBackToRemoteChain",
+          [invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA]: "queryOnTransferBackToRemoteChain"
+        }
+      },
+      queryOnTransferBackToRemoteChain: {
+        invoke: {
+          src: handleQueryOnTransferBackToRemoteChain,
+          onError: "finalState",
+          onDone: "queryOnRecvPacketOnOraiBridge"
         }
       },
       storeOnTransferBackToRemoteChain: {
@@ -102,6 +114,13 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             target: "oraiBridgeForEvm"
           },
           onDone: "onRequestBatch"
+        }
+      },
+      queryOnRecvPacketOnOraiBridge: {
+        invoke: {
+          src: handleQueryOnRecvOraiBridgePacket,
+          onError: "finalState",
+          onDone: "queryOnRequestBatch"
         }
       },
       checkOnRecvPacketOnOraiBridge: {
@@ -187,6 +206,13 @@ export const createOraichainIntepreter = (db: DuckDB) => {
           onDone: "storeOnRequestBatch"
         }
       },
+      queryOnRequestBatch: {
+        invoke: {
+          src: handleQueryOnRequestBatch,
+          onDone: "queryOnBatchSendToEthClaim",
+          onError: "finalState"
+        }
+      },
       checkOnRequestBatch: {
         invoke: {
           src: handleCheckOnRequestBatch,
@@ -267,6 +293,13 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             target: "onBatchSendToETHClaim"
           },
           onDone: "storeOnBatchSendToETHClaim"
+        }
+      },
+      queryOnBatchSendToEthClaim: {
+        invoke: {
+          src: handleQueryOnBatchSendToEthClaim,
+          onDone: "finalState",
+          onError: "finalState"
         }
       },
       checkOnBatchSendToETHClaim: {
