@@ -787,7 +787,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
-  it("[Oraichain->EVM] full-flow happy test", async () => {
+  it("[Oraichain->EVM] query happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,

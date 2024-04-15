@@ -266,6 +266,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
                   value: ctx.oraiBridgeSrcChannel
                 }
               ];
+              console.log(ctx.oraiBridgePacketSequence.toString(), ctx.oraiBridgeDstChannel, ctx.oraiBridgeSrcChannel);
               const query = buildQuery({
                 tags: queryTags
               });

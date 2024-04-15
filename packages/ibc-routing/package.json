@@ -7,7 +7,9 @@
   ],
   "license": "MIT",
   "scripts": {
-    "test": "hardhat test"
+    "dev": "cross-env NODE_ENV=development ts-node src/index.ts",
+    "prod": "cross-env NODE_ENV=production ts-node src/index.ts",
+    "test": "cross-env NODE_ENV=development hardhat test"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.27.1-dev125.0",
@@ -39,6 +41,7 @@
     "ts-results": "^3.3.0",
     "@types/chai": "^4.3.14",
     "@types/mocha": "^10.0.6",
+    "cross-env": "^7.0.3",
     "chai": "^4.4.1"
   }
 }

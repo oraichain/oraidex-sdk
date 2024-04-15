@@ -37,6 +37,10 @@ export enum NetworkEventType {
   COSMOS
 }
 
+// export enum EvmRpc {
+//   [EvmChainPrefix.BSC_MAINNET]: ""
+// }
+
 // this keys can be invoked to trigger events for our state machines
 export const invokableMachineStateKeys = {
   STORE_SEND_TO_COSMOS: "STORE_SEND_TO_COSMOS",

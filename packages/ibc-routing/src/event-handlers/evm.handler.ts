@@ -16,6 +16,7 @@ export class EvmEventHandler extends EventHandler {
       throw generateError(`There is no topics => something wrong with this event: ${JSON.stringify(eventData)}`);
 
     if (topics.includes(keccak256HashString(sendToCosmosEvent))) {
+      console.log("TxHash: ", eventData[5].transactionHash);
       // create new machine so we start a new context for the transaction
       const intepreter = createEvmIntepreter(this.db);
       this.im.appendIntepreter(intepreter);

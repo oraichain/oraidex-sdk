@@ -69,6 +69,10 @@ class IntepreterManager {
 
   // potential method to recover interpreters: https://stately.ai/docs/persistence#event-sourcing
   public recoverInterpreters() {
+    if (!fs.existsSync(this.path)) {
+      return;
+    }
+
     const data = fs.readFileSync(this.path, "utf-8");
     const intepreters = JSON.parse(data);
     for (const intepreter of intepreters) {
@@ -79,13 +83,14 @@ class IntepreterManager {
           db: DuckDbNode.instances
         }
       };
+
       const machine = createMachine({
         predictableActionArguments: true,
         preserveActionOrder: true
       });
       const intepreterInstance = interpret(machine).onTransition((state) => console.log(state.value));
-      this.appendIntepreter(intepreter);
       intepreterInstance.execute(initialState);
+      this.appendIntepreter(intepreterInstance);
     }
   }
 
