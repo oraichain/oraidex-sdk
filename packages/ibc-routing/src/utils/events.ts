@@ -1,4 +1,9 @@
+import { TxEvent } from "@cosmjs/tendermint-rpc";
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { chainInfos, EvmChainPrefix, Gravity__factory } from "@oraichain/oraidex-common";
+import axios from "axios";
+import { ethers } from "ethers";
+import { EvmRpcs, GravityAddress } from "../constants";
 
 export function isBase64(str: string) {
   try {
@@ -39,4 +44,39 @@ export const encodeRpcEvents = (events: readonly Event[]): Event[] => {
       };
     })
   }));
+};
+
+export const getSendToCosmosEvent = async (txHash: string, evmChainPrefix: EvmChainPrefix): Promise<any[]> => {
+  const provider = new ethers.providers.JsonRpcProvider(EvmRpcs[evmChainPrefix]);
+  const transaction = await provider.getTransaction(txHash);
+
+  if (!transaction.blockNumber) {
+    throw new Error("Transaction is not mined!");
+  }
+
+  const gravityAddress = GravityAddress[evmChainPrefix];
+  const blockNumber = transaction.blockNumber;
+  const gravity = Gravity__factory.connect(ethers.utils.getAddress(gravityAddress), provider);
+  const data = await gravity.queryFilter(
+    {
+      address: gravityAddress,
+      topics: [ethers.utils.id("SendToCosmosEvent(address,address,string,uint256,uint256)")]
+    },
+    blockNumber,
+    blockNumber
+  );
+
+  return data.map((item) => [...item.args, item]);
+};
+
+export const getCosmosTxEvent = async (txHash: any, chainId: string): Promise<TxEvent> => {
+  const chainMetadata = chainInfos.find((item) => item.chainId === chainId);
+
+  if (!chainMetadata) {
+    throw new Error("chain id does not exist!");
+  }
+  const result = await axios.get(`${chainMetadata.rpc}/tx?hash=${`0x${txHash}`}&prove=true`);
+  const txData = result.data;
+
+  return { ...txData.result, result: txData.result.tx_result };
 };
