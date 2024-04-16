@@ -53,7 +53,8 @@ OraiAtomChartDefaultURL.args = {
       symbol: "ORAI/ATOM",
       info: "orai-ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
     }
-  ]
+  ],
+  customCssUrl: "/custom-trading.css"
   // baseUrl: BASE_API_URL.ORAIDEX,
   // wsUrl: BASE_SOCKET_URL.ORAIDEX
 };
@@ -74,7 +75,8 @@ TimpiChartDefaultURL.args = {
       symbol: "NTMPI/USDC",
       info: "ibc/576B1D63E401B6A9A071C78A1D1316D016EC9333D2FEB14AD503FAC4B8731CD1-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
     }
-  ]
+  ],
+  customCssUrl: "/custom-trading.css"
   // baseUrl: BASE_API_URL.ORAIDEX,
   // wsUrl: BASE_SOCKET_URL.ORAIDEX
 };

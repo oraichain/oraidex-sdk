@@ -38,6 +38,7 @@ export type TVChartContainerProsp = {
   baseUrl?: string;
   wsUrl?: string;
   fetchDataChart?: (arg: FetchChartDataParams) => Promise<Bar[]>;
+  customCssUrl?: string;
 };
 
 export default function TVChartContainer({
@@ -48,7 +49,8 @@ export default function TVChartContainer({
   setChartTimeFrame,
   baseUrl,
   wsUrl,
-  fetchDataChart
+  fetchDataChart,
+  customCssUrl
 }: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
@@ -147,6 +149,13 @@ export default function TVChartContainer({
         { text: "1d", resolution: "15" as ResolutionString, description: "1 Day" }
       ]
     };
+
+    // update css url by prop
+    if (customCssUrl) {
+      widgetOptions["custom_css_url"] = customCssUrl;
+      // tvWidgetRef.current!.addCustomCSSFile("./custom.css");
+    }
+
     if (isMobile) widgetOptions.disabled_features.push(...disabledFeaturesOnMobile);
 
     const script = document.createElement("script");
