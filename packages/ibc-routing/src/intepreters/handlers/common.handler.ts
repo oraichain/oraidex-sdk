@@ -15,7 +15,7 @@ import {
   outGoingTxIdEventType
 } from "../../constants";
 import { convertTxHashToHex } from "../../helpers";
-import { parseRpcEvents } from "../../utils/events";
+import { isBase64, parseRpcEvents } from "../../utils/events";
 import { unmarshalOraiBridgeRoute } from "../../utils/marshal";
 import { decodeIbcMemo } from "../../utils/protobuf";
 
@@ -136,7 +136,9 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
     throw generateError("Cannot find the packet data in send_packet of auto forward");
   }
   let packetData = JSON.parse(packetDataAttr.value);
-  packetData.memo = decodeIbcMemo(packetData.memo, false).destinationDenom;
+  packetData.memo = isBase64(packetData.memo)
+    ? decodeIbcMemo(packetData.memo, false).destinationDenom
+    : packetData.memo;
 
   await ctx.db.update(
     DatabaseEnum.Evm,

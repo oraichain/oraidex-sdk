@@ -1,6 +1,6 @@
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 
-function isBase64(str) {
+export function isBase64(str: string) {
   try {
     return btoa(atob(str)) === str;
   } catch (err) {

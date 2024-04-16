@@ -1,4 +1,4 @@
-import { COSMOS_CHAIN_ID_COMMON } from "@oraichain/oraidex-common";
+import { COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
 import dotenv from "dotenv";
 import { DuckDB } from "./db";
 dotenv.config();
@@ -53,6 +53,18 @@ export const invokableMachineStateKeys = {
   STORE_ON_BATCH_SEND_TO_ETH_CLAIM: "STORE_ON_BATCH_SEND_TO_ETH_CLAIM",
   STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN: "STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN",
   STORE_ON_IBC_TRANSFER_FROM_REMOTE: "STORE_ON_IBC_TRANSFER_FROM_REMOTE"
+};
+
+export const EvmRpcs = {
+  [EvmChainPrefix.BSC_MAINNET]: "https://go.getblock.io/5364b225d0ea429e91f5f3f027c414a2",
+  [EvmChainPrefix.ETH_MAINNET]: "https://go.getblock.io/0efb9bd03a704cc8ad6cad84999bed4f",
+  [EvmChainPrefix.TRON_MAINNET]: "https://go.getblock.io/b7708ba91fd547a983d9cff2bac540e2"
+};
+
+export const GravityAddress = {
+  [EvmChainPrefix.BSC_MAINNET]: "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+  [EvmChainPrefix.ETH_MAINNET]: "0x09Beeedf51AA45718F46837C94712d89B157a9D3",
+  [EvmChainPrefix.TRON_MAINNET]: "0x73Ddc880916021EFC4754Cb42B53db6EAB1f9D64"
 };
 
 export enum StateDBStatus {

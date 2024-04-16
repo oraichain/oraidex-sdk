@@ -14,6 +14,7 @@ export class EthEvent {
     const gravity: Gravity = Gravity__factory.connect(ethers.utils.getAddress(gravityContract), provider);
     // listen on topic so that we collect tx hash & height as well
     return gravity.on({ topics: evmGravityEvents.map((ev) => keccak256HashString(ev)) }, (...args) => {
+      console.log("[EVM] Txhash: ", args[5].transactionHash);
       this.handler.handleEvent([...args, evmChainPrefix]);
     });
   };
@@ -35,7 +36,7 @@ export abstract class BaseCosmosEvent {
     try {
       stream.subscribe({
         next: (txEvent) => {
-          console.log("Txhash:", convertTxHashToHex(txEvent.hash));
+          console.log("[Cosmos] Txhash:", convertTxHashToHex(txEvent.hash));
           this.callback(txEvent);
         },
         error: (err) => console.log("error while subscribing websocket: ", err),

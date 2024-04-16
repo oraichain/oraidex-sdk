@@ -24,8 +24,8 @@ class IntepreterManager {
     this.mutex
       .runExclusive(() => {
         this.intepreters = this.intepreters.filter((intepreter) => {
-          const { done } = intepreter.send({ type, payload });
-          return !done;
+          const data = intepreter.send({ type, payload });
+          return data ? !data.done : false;
         });
       })
       .then(() => {
@@ -76,21 +76,23 @@ class IntepreterManager {
     const data = fs.readFileSync(this.path, "utf-8");
     const intepreters = JSON.parse(data);
     for (const intepreter of intepreters) {
-      let initialState = {
-        ...JSON.parse(intepreter),
+      let initialState = JSON.parse(intepreter);
+      initialState = {
+        ...initialState,
         context: {
-          ...JSON.parse(intepreter).context,
+          ...initialState.context,
           db: DuckDbNode.instances
         }
       };
 
-      const machine = createMachine({
-        predictableActionArguments: true,
-        preserveActionOrder: true
-      });
-      const intepreterInstance = interpret(machine).onTransition((state) => console.log(state.value));
-      intepreterInstance.execute(initialState);
-      this.appendIntepreter(intepreterInstance);
+      const newIntepreter = interpret(
+        createMachine({
+          predictableActionArguments: true,
+          preserveActionOrder: true
+        })
+      ).onTransition((state) => console.log(state.value));
+      this.appendIntepreter(newIntepreter);
+      newIntepreter.execute(initialState);
     }
   }
 

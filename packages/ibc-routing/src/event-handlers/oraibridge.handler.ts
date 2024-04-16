@@ -12,7 +12,6 @@ export class OraiBridgeHandler extends EventHandler {
   public handleEvent(eventData: any[]) {
     if (eventData.length === 0) throw generateError(`malformed OraiBridge event data: ${JSON.stringify(eventData)}`);
     for (const eventItem of eventData) {
-      console.log("TxHash: ", eventItem.hash);
       const events: Event[] = eventItem.result.events;
 
       // FIXME: we should not use events.find here. we need to exhaustively search for the attr type as one tx can include many transactions

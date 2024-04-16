@@ -1,13 +1,17 @@
-import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
-import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { Gravity, Gravity__factory } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
-import { onRecvPacketTag } from "../src/constants";
+import { setTimeout } from "timers/promises";
+import { autoForwardTag, onRecvPacketTag } from "../src/constants";
+import { DuckDbNode } from "../src/db";
+import { OraiBridgeEvent, OraichainEvent } from "../src/event";
+import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
+import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import IntepreterManager from "../src/managers/intepreter.manager";
 
 describe.skip("Test sync ether", () => {
   it("Listen to event", async () => {
     const provider = new ethers.providers.JsonRpcProvider("https://go.getblock.io/5364b225d0ea429e91f5f3f027c414a2");
-    const gravity: Gravity = Gravity__factory.connect(
+    const gravity = Gravity__factory.connect(
       ethers.utils.getAddress("0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"),
       provider
     );
@@ -36,24 +40,19 @@ describe.skip("Test sync ether", () => {
   });
 });
 
-describe.skip("Test listen on cosmos event", () => {
+describe("Test listen on cosmos event", () => {
   it("Test", async () => {
-    const client = await Tendermint37Client.create(new WebsocketClient("wss://rpc.orai.io"));
-    const stream = client.subscribeTx(
-      buildQuery({
-        tags: [onRecvPacketTag]
-      })
-    );
-    try {
-      stream.subscribe({
-        next: (txEvent) => {
-          console.log(txEvent);
-        },
-        error: (err) => console.log("error while subscribing websocket: ", err),
-        complete: () => console.log("completed")
-      });
-    } catch (error) {
-      console.log("error listening: ", error);
-    }
-  });
+    let duckDb: DuckDbNode;
+    duckDb = await DuckDbNode.create();
+    await duckDb.createTable();
+    let im = new IntepreterManager(true);
+    const oraichainEventHandler = new OraichainHandler(duckDb, im);
+    const oraibridgeEventHandler = new OraiBridgeHandler(duckDb, im);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, "wss://bridge-v2.rpc.orai.io");
+    const oraichainEvent = new OraichainEvent(oraichainEventHandler, "wss://rpc.orai.io");
+
+    await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    await oraichainEvent.connectCosmosSocket([onRecvPacketTag]);
+    await setTimeout(100000);
+  }).timeout(120000);
 });

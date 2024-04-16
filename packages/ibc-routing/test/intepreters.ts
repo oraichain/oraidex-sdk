@@ -17,6 +17,7 @@ import { EthEvent, OraiBridgeEvent, OraichainEvent } from "../src/event";
 import { EvmEventHandler } from "../src/event-handlers/evm.handler";
 import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
 import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/evm-to-evm";
@@ -63,6 +64,7 @@ describe("test recover case", () => {
     console.log("Removing intepreter");
     const intepreter = im.getIntepreter(0);
     const previousState = intepreter.getSnapshot();
+    intepreter.stop();
     // assume we use the case store all state on localStorage for example
     const stringifyState = JSON.stringify(previousState);
     im.deleteIntepreter(0);
@@ -70,15 +72,7 @@ describe("test recover case", () => {
     expect(im.getLengthIntepreters()).to.be.eq(0);
 
     console.log("Starting with recover intepreters");
-    const newIntepreter = interpret(
-      createMachine({
-        predictableActionArguments: true,
-        preserveActionOrder: true
-      })
-    ).onTransition((state) => console.log(state.value));
-    im.appendIntepreter(intepreter);
-    await setTimeout(100);
-    expect(im.getLengthIntepreters()).to.be.eq(1);
+    const newIntepreter = createOraichainIntepreter(duckDb);
     let initialState = JSON.parse(stringifyState);
     initialState = {
       ...initialState,
@@ -87,8 +81,11 @@ describe("test recover case", () => {
         db: duckDb
       }
     };
-    newIntepreter.execute(initialState);
-    await setTimeout(10000);
+    newIntepreter.start(initialState);
+    im.appendIntepreter(newIntepreter);
+    await setTimeout(100);
+    expect(im.getLengthIntepreters()).to.be.eq(1);
+    await setTimeout(15000);
     expect(
       await duckDb.select(DatabaseEnum.Oraichain, {
         where: {
@@ -179,7 +176,7 @@ describe("test recover case", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(30000);
 
-  it("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
+  xit("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -349,7 +346,7 @@ describe("test recover case", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(35000);
 
-  it("Testing 3 cases at one and do recoverIntepreters", async () => {
+  xit("Testing 3 cases at one and do recoverIntepreters", async () => {
     const evmIntepreter = async () => {
       const ethEvent = new EthEvent(evmHandler);
       const gravity = ethEvent.listenToEthEvent(

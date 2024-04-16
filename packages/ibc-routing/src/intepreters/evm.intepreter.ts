@@ -76,7 +76,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onError: {
               target: "finalState",
               actions: (ctx, event) => {
-                console.log("error query send to cosmos evm: ", event.data);
+                console.log("stopping on query send to cosmos evm: ", event.data);
               }
             }
           }
@@ -143,7 +143,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onError: {
               target: "oraibridge",
               // rejected promise data is on event.data property
-              actions: (ctx, event) => console.log("error on handling oraibridge timeout")
+              actions: (ctx, event) => console.log("error on handling oraibridge timeout", event.data)
             },
             onDone: "oraichain"
           }
@@ -154,7 +154,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             onDone: "queryOnRecvPacketOraichain",
             onError: {
               target: "finalState",
-              actions: (ctx, event) => console.log("error handle query auto forward: ", event.data)
+              actions: (ctx, event) => console.log("stopping on handle query auto forward: ", event.data)
             }
           }
         },
