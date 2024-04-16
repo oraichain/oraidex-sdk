@@ -9,14 +9,6 @@ export class OraichainHandler extends EventHandler {
     for (const eventItem of eventData) {
       const events: Event[] = eventItem.result.events;
       // FIXME: we should not use events.find here. we need to exhaustively search for the attr type as one tx can include many transactions
-      // if (eventItem.result.log.includes("ibc_hooks_receive") && eventItem.result.log.includes("universal_swap")) {
-      //   // create new machine so we start a new context for the transaction
-      //   const intepreter = createCosmosIntepreter(this.db);
-      //   this.im.appendIntepreter(intepreter);
-      //   intepreter.start();
-      //   intepreter.send({ type: invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, payload: eventItem });
-      //   return;
-      // }
       if (eventItem.result.log.includes(onExecuteContractTag.value)) {
         const decodedEvents = parseRpcEvents(events);
         const sendPacketData = decodedEvents.find((item) => item.type == "send_packet");
@@ -31,8 +23,8 @@ export class OraichainHandler extends EventHandler {
         if (packetDataValue.includes("0x")) {
           const intepreter = createOraichainIntepreter(this.db);
           this.im.appendIntepreter(intepreter);
-          intepreter.start();
-          intepreter.send({
+          intepreter._inner.start();
+          intepreter._inner.send({
             type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
             payload: eventItem
           });

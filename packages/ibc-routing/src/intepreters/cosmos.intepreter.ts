@@ -4,9 +4,10 @@ import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import { config } from "../config";
-import { TimeOut, invokableMachineStateKeys } from "../constants";
+import { IntepreterType, TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
+import { IntepreterInterface } from "../managers/intepreter.manager";
 import {
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRecvPacketOnOraiBridge,
@@ -459,5 +460,8 @@ export const createCosmosIntepreter = (db: DuckDB) => {
     console.log("State:", state.value);
   });
 
-  return intepreter;
+  return {
+    _inner: intepreter,
+    type: IntepreterType.COSMOS
+  } as IntepreterInterface;
 };

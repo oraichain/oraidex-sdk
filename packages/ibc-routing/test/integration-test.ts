@@ -111,8 +111,8 @@ describe("test-integration", () => {
 
     // action. Create a new interpreter and try to invoke the query flow
     const interpreter = createEvmIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: (SendToCosmosDataEvm2Oraichain[5] as any).transactionHash,
@@ -231,7 +231,7 @@ describe("test-integration", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
@@ -258,8 +258,8 @@ describe("test-integration", () => {
     await setTimeout(sleepTimeMs);
 
     const interpreter = createEvmIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: (SendToCosmosDataEvm2Cosmos[5] as any).transactionHash,
@@ -387,7 +387,7 @@ describe("test-integration", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
@@ -422,8 +422,8 @@ describe("test-integration", () => {
     await setTimeout(sleepTimeMs);
 
     const interpreter = createEvmIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: (SendToCosmosDataEvm2Evm[5] as any).transactionHash,
@@ -594,7 +594,7 @@ describe("test-integration", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
@@ -627,8 +627,8 @@ describe("test-integration", () => {
 
     // action. Create a new interpreter and try to invoke the query flow
     const interpreter = createCosmosIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: IbcTransferTxDataC2E.hash,
@@ -783,7 +783,7 @@ describe("test-integration", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
@@ -808,8 +808,8 @@ describe("test-integration", () => {
 
     // action. Create a new interpreter and try to invoke the query flow
     const interpreter = createOraichainIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: TransferBackToRemoteTxDataO2E.hash
@@ -930,7 +930,7 @@ describe("test-integration", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 });
@@ -1094,7 +1094,7 @@ describe("test-integration time-out", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(60000);
 
@@ -1197,7 +1197,7 @@ describe("test-integration time-out", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(60000);
 
@@ -1333,7 +1333,7 @@ describe("test-integration time-out", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(45000);
 
@@ -1456,7 +1456,7 @@ describe("test-integration time-out", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(45000);
 
@@ -1556,7 +1556,7 @@ describe("test-integration time-out", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(45000);
 });

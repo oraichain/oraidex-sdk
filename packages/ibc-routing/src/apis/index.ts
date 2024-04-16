@@ -23,8 +23,8 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
 
   if (qObject.get("evmChainPrefix")) {
     const interpreter = createEvmIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: qObject.get("txHash"),
@@ -40,8 +40,8 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
 
   if (qObject.get("chainId")) {
     const interpreter = createCosmosIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: qObject.get("txHash"),
@@ -57,8 +57,8 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
 
   if (!qObject.get("evmChainPrefix") && !qObject.get("chainId")) {
     const interpreter = createOraichainIntepreter(duckDb);
-    const actor = interpreter.start();
-    interpreter.send({
+    const actor = interpreter._inner.start();
+    interpreter._inner.send({
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: qObject.get("txHash")

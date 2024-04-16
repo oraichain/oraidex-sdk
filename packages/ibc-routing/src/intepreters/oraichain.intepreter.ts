@@ -4,9 +4,10 @@ import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import { config } from "../config";
-import { TimeOut, invokableMachineStateKeys } from "../constants";
+import { IntepreterType, TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
+import { IntepreterInterface } from "../managers/intepreter.manager";
 import {
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRecvPacketOnOraiBridge,
@@ -343,6 +344,9 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       }
     }
   });
-  const intepreter = interpret(machine).onTransition((state) => console.log(state.value));
-  return intepreter;
+  const intepreter = interpret(machine).onTransition((state) => console.log("State:", state.value));
+  return {
+    _inner: intepreter,
+    type: IntepreterType.ORAICHAIN
+  } as IntepreterInterface;
 };

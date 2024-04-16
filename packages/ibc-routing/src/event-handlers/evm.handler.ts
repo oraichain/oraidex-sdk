@@ -21,8 +21,8 @@ export class EvmEventHandler extends EventHandler {
       this.im.appendIntepreter(intepreter);
 
       // we wont need to loop through the intepreter list because we know this event starts a new machine already
-      intepreter.start();
-      intepreter.send({ type: invokableMachineStateKeys.STORE_SEND_TO_COSMOS, payload: eventData });
+      intepreter._inner.start();
+      intepreter._inner.send({ type: invokableMachineStateKeys.STORE_SEND_TO_COSMOS, payload: eventData });
     } else {
       console.log("unrelated event data: ", eventData);
     }

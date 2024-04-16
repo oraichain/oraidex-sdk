@@ -7,12 +7,14 @@ import { config } from "../config";
 import {
   FinalTag,
   ForwardTagOnOraichain,
+  IntepreterType,
   TimeOut,
   executedIbcAutoForwardType,
   invokableMachineStateKeys
 } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
+import { IntepreterInterface } from "../managers/intepreter.manager";
 import {
   handleCheckAutoForward,
   handleCheckOnAcknowledgementOnCosmos,
@@ -687,7 +689,10 @@ export const createEvmIntepreter = (db: DuckDB) => {
   );
   const intepreter = interpret(machine).onTransition((state) => {
     // console.log("Snapshot", intepreter.getSnapshot());
-    console.log(state.value);
+    console.log("State:", state.value);
   });
-  return intepreter;
+  return {
+    _inner: intepreter,
+    type: IntepreterType.EVM
+  } as IntepreterInterface;
 };

@@ -1,10 +1,19 @@
 import { Mutex, MutexInterface } from "async-mutex";
 import fs from "fs";
-import { AnyInterpreter, createMachine, interpret } from "xstate";
+import { AnyInterpreter } from "xstate";
+import { IntepreterType } from "../constants";
 import { DuckDbNode } from "../db";
+import { createCosmosIntepreter } from "../intepreters/cosmos.intepreter";
+import { createEvmIntepreter } from "../intepreters/evm.intepreter";
+import { createOraichainIntepreter } from "../intepreters/oraichain.intepreter";
+
+export interface IntepreterInterface {
+  _inner: AnyInterpreter;
+  type: IntepreterType;
+}
 
 class IntepreterManager {
-  private intepreters: AnyInterpreter[] = [];
+  private intepreters: IntepreterInterface[] = [];
   private mutex: MutexInterface;
   private path: string;
   private temporary: boolean;
@@ -24,7 +33,7 @@ class IntepreterManager {
     this.mutex
       .runExclusive(() => {
         this.intepreters = this.intepreters.filter((intepreter) => {
-          const data = intepreter.send({ type, payload });
+          const data = intepreter._inner.send({ type, payload });
           return data ? !data.done : false;
         });
       })
@@ -33,7 +42,7 @@ class IntepreterManager {
       });
   }
 
-  public appendIntepreter(intepreter: AnyInterpreter) {
+  public appendIntepreter(intepreter: IntepreterInterface) {
     this.mutex
       .runExclusive(async () => {
         this.intepreters = [...this.intepreters, intepreter];
@@ -59,7 +68,7 @@ class IntepreterManager {
       });
   }
 
-  public getIntepreter(index: number): AnyInterpreter {
+  public getIntepreter(index: number): IntepreterInterface {
     return this.intepreters[index];
   }
 
@@ -75,29 +84,40 @@ class IntepreterManager {
 
     const data = fs.readFileSync(this.path, "utf-8");
     const intepreters = JSON.parse(data);
+    let duckDb = DuckDbNode.instances;
     for (const intepreter of intepreters) {
-      let initialState = JSON.parse(intepreter);
-      initialState = {
-        ...initialState,
+      let intepreterData = JSON.parse(intepreter);
+      let recoverIntepreter = undefined;
+
+      let initialState = {
+        ...intepreterData._inner,
         context: {
-          ...initialState.context,
-          db: DuckDbNode.instances
+          ...intepreterData._inner.context,
+          db: duckDb
         }
       };
 
-      const newIntepreter = interpret(
-        createMachine({
-          predictableActionArguments: true,
-          preserveActionOrder: true
-        })
-      ).onTransition((state) => console.log(state.value));
-      this.appendIntepreter(newIntepreter);
-      newIntepreter.execute(initialState);
+      switch (intepreterData.type) {
+        case IntepreterType.COSMOS:
+          recoverIntepreter = createCosmosIntepreter(duckDb);
+          break;
+        case IntepreterType.EVM:
+          recoverIntepreter = createEvmIntepreter(duckDb);
+          break;
+        case IntepreterType.ORAICHAIN:
+          recoverIntepreter = createOraichainIntepreter(duckDb);
+          break;
+      }
+
+      if (recoverIntepreter !== undefined) {
+        recoverIntepreter._inner.start(initialState);
+        this.appendIntepreter(recoverIntepreter);
+      }
     }
   }
 
   private _getAllSnapshot(): string[] {
-    return this.intepreters.map((item) => JSON.stringify(item.getSnapshot()));
+    return this.intepreters.map((item) => JSON.stringify({ _inner: item._inner.getSnapshot(), type: item.type }));
   }
 }
 

@@ -1,7 +1,7 @@
 import { getSigners } from "hardhat";
-import { createMachine, interpret, InterpreterStatus } from "xstate";
+import { InterpreterStatus } from "xstate";
 // import { ChainId } from "../src/@types/chain";
-import { EvmChainPrefix } from "@oraichain/oraidex-common";
+import { COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common/build/constant";
 import { expect } from "chai";
 import { setTimeout } from "timers/promises";
 import {
@@ -14,12 +14,15 @@ import {
 } from "../src/constants";
 import { DuckDbNode } from "../src/db";
 import { EthEvent, OraiBridgeEvent, OraichainEvent } from "../src/event";
+import { CosmosHandler } from "../src/event-handlers/cosmos.handler";
 import { EvmEventHandler } from "../src/event-handlers/evm.handler";
 import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
 import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
+import { IbcTransferTxData as IbcTransferTxDataC2E } from "./data/cosmos-to-evm";
 import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/evm-to-evm";
 import { TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E } from "./data/oraichain-to-evm";
 
@@ -28,6 +31,7 @@ describe("test recover case", () => {
   let evmHandler: EvmEventHandler;
   let oraibridgeHandler: OraiBridgeHandler;
   let oraichainHandler: OraichainHandler;
+  let cosmosHandler: CosmosHandler;
   let im: IntepreterManager;
 
   beforeEach(async () => {
@@ -39,6 +43,7 @@ describe("test recover case", () => {
     evmHandler = new EvmEventHandler(duckDb, im);
     oraibridgeHandler = new OraiBridgeHandler(duckDb, im);
     oraichainHandler = new OraichainHandler(duckDb, im);
+    cosmosHandler = new CosmosHandler(duckDb, im);
   });
 
   afterEach(async () => {
@@ -62,7 +67,7 @@ describe("test recover case", () => {
 
     // trying to remove intepreter and create new one again
     console.log("Removing intepreter");
-    const intepreter = im.getIntepreter(0);
+    const intepreter = im.getIntepreter(0)._inner;
     const previousState = intepreter.getSnapshot();
     intepreter.stop();
     // assume we use the case store all state on localStorage for example
@@ -81,7 +86,7 @@ describe("test recover case", () => {
         db: duckDb
       }
     };
-    newIntepreter.start(initialState);
+    newIntepreter._inner.start(initialState);
     im.appendIntepreter(newIntepreter);
     await setTimeout(100);
     expect(im.getLengthIntepreters()).to.be.eq(1);
@@ -172,11 +177,11 @@ describe("test recover case", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(30000);
 
-  xit("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
+  it("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -191,20 +196,16 @@ describe("test recover case", () => {
     // trying to remove intepreter and create new one again
     console.log("Removing intepreter");
     const intepreter = im.getIntepreter(0);
-    const previousState = intepreter.getSnapshot();
+    const previousState = intepreter._inner.getSnapshot();
     // assume we use the case store all state on localStorage for example
     const stringifyState = JSON.stringify(previousState);
     im.deleteIntepreter(0);
+    intepreter._inner.stop();
     await setTimeout(100);
     expect(im.getLengthIntepreters()).to.be.eq(0);
 
     console.log("Starting with recover intepreters");
-    const newIntepreter = interpret(
-      createMachine({
-        predictableActionArguments: true,
-        preserveActionOrder: true
-      })
-    ).onTransition((state) => console.log(state.value));
+    const newIntepreter = createEvmIntepreter(duckDb);
     im.appendIntepreter(intepreter);
     await setTimeout(100);
     expect(im.getLengthIntepreters()).to.be.eq(1);
@@ -216,7 +217,7 @@ describe("test recover case", () => {
         db: duckDb
       }
     };
-    newIntepreter.execute(initialState);
+    newIntepreter._inner.start(initialState);
     await setTimeout(24000);
 
     // TEST DATA
@@ -342,11 +343,11 @@ describe("test recover case", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0);
+    const intepreterCount = im.getIntepreter(0)._inner;
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(35000);
 
-  xit("Testing 3 cases at one and do recoverIntepreters", async () => {
+  it("Testing 2 cases at one and do recoverIntepreters", async () => {
     const evmIntepreter = async () => {
       const ethEvent = new EthEvent(evmHandler);
       const gravity = ethEvent.listenToEthEvent(
@@ -365,22 +366,40 @@ describe("test recover case", () => {
       oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxDataO2E));
       await setTimeout(300);
     };
+    const cosmosIntepreter = async () => {
+      cosmosHandler.handleEvent([
+        {
+          txEvent: IbcTransferTxDataC2E,
+          chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+        }
+      ]);
+      await setTimeout(300);
+    };
 
-    await Promise.all([evmIntepreter(), oraiIntepreter()]);
+    cosmosIntepreter();
+    evmIntepreter();
+    oraiIntepreter();
     await setTimeout(5000);
     // trying to remove intepreter and create new one again
     console.log("Removing intepreter");
     // assume we use the case store all state on localStorage for example
+    let intepreter = im.getIntepreter(0);
+    intepreter._inner.stop();
     im.deleteIntepreter(0);
+    intepreter = im.getIntepreter(0);
+    intepreter._inner.stop();
     im.deleteIntepreter(0);
+    intepreter = im.getIntepreter(0);
+    intepreter._inner.stop();
     im.deleteIntepreter(0);
-    console.log(im.getLengthIntepreters());
+
     await setTimeout(800);
+
     expect(im.getLengthIntepreters()).to.be.eq(0);
     console.log("Recover intepreter");
     im.recoverInterpreters();
-    await setTimeout(500);
-    expect(im.getLengthIntepreters()).to.be.eq(2);
+    await setTimeout(1000);
+    expect(im.getLengthIntepreters()).to.be.eq(3);
     await setTimeout(30000);
 
     // TEST EVM DATA
@@ -588,6 +607,117 @@ describe("test recover case", () => {
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64140,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+
+    // TEST COSMOS DATA
+    expect(
+      await duckDb.select(DatabaseEnum.Cosmos, {
+        where: {
+          packetSequence: 64277
+        }
+      })
+    ).eql([
+      {
+        txHash: "9EBDB3009802EEF7B85B0E64BD1CD20E3F05849C4918B241F3DD0649A07F2F36",
+        height: 19897012,
+        chainId: "cosmoshub-4",
+        prevState: "",
+        prevTxHash: "",
+        nextState: "OraichainState",
+        packetSequence: 64277,
+        amount: "300000",
+        denom: "uatom",
+        memo: '{"wasm":{"contract":"orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm","msg":{"ibc_hooks_receive":{"func":"universal_swap","args":"ChTN93BiZ8jTFqOsHjuiiQGo1mlSwBIvb3JhaWIweDBkZUI1MjQ5OUMyZTlGMzkyMWM2MzFjYjZBZDM1MjJDNTc2ZDU0ODQaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1"}}}}',
+        receiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        srcPort: "transfer",
+        srcChannel: "channel-301",
+        dstPort: "transfer",
+        dstChannel: "channel-15",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Oraichain, {
+        where: {
+          packetSequence: 64277
+        }
+      })
+    ).eql([
+      {
+        txHash: "52FF42B92483D5BB85D876120E0BB60F728A5CD87BCDA4FBE44A1C79632592DA",
+        height: 17854166,
+        prevState: "CosmosState",
+        prevTxHash: "9EBDB3009802EEF7B85B0E64BD1CD20E3F05849C4918B241F3DD0649A07F2F36",
+        nextState: "OraiBridgeState",
+        packetSequence: 64277,
+        packetAck: "",
+        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        nextPacketSequence: 21698,
+        nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        nextAmount: "1940789000000000000",
+        nextReceiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        nextDestinationDenom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        status: "FINISHED",
+        srcChannel: "channel-29",
+        dstChannel: "channel-1"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.OraiBridge, {
+        where: {
+          packetSequence: 21698
+        }
+      })
+    ).eql([
+      {
+        txHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
+        height: 11868974,
+        prevState: "OraichainState",
+        prevTxHash: "52FF42B92483D5BB85D876120E0BB60F728A5CD87BCDA4FBE44A1C79632592DA",
+        nextState: "EvmState",
+        eventNonce: 64152,
+        batchNonce: 31338,
+        txId: 33193,
+        evmChainPrefix: "oraib",
+        packetSequence: 21698,
+        amount: "1940789000000000000",
+        denom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        srcPort: "transfer",
+        srcChannel: "channel-1",
+        dstPort: "",
+        dstChannel: "",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: { eventNonce: 64152, evmChainPrefix: "oraib" }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
+        nextState: "",
+        destination: "",
+        fromAmount: "0",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "",
+        destinationChannelId: "",
+        destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        eventNonce: 64152,
         evmChainPrefix: "oraib",
         status: "FINISHED"
       }

@@ -25,8 +25,8 @@ export class CosmosHandler extends EventHandler {
           // create new machine so we start a new context for the transaction
           const intepreter = createCosmosIntepreter(this.db);
           this.im.appendIntepreter(intepreter);
-          intepreter.start();
-          intepreter.send({
+          intepreter._inner.start();
+          intepreter._inner.send({
             type: invokableMachineStateKeys.STORE_ON_IBC_TRANSFER_FROM_REMOTE,
             payload: {
               event: event,

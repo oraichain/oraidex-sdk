@@ -30,16 +30,11 @@ export enum DatabaseEnum {
   Cosmos = "CosmosState"
 }
 
-export enum NetworkEventType {
+export enum IntepreterType {
   EVM,
-  ORAIBRIDGE,
   ORAICHAIN,
   COSMOS
 }
-
-// export enum EvmRpc {
-//   [EvmChainPrefix.BSC_MAINNET]: ""
-// }
 
 // this keys can be invoked to trigger events for our state machines
 export const invokableMachineStateKeys = {

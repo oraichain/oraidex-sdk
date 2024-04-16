@@ -1,6 +1,7 @@
 import { Event, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
 import { OraiBridgeRouteData } from "@oraichain/oraidex-universal-swap";
+import { BigNumber } from "ethers";
 import { AnyEventObject } from "xstate";
 import {
   COSMOS_DENOM,
@@ -46,13 +47,13 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
     prevTxHash: "",
     nextState: "OraiBridgeState",
     destination: eventData[2],
-    fromAmount: eventData[3].toString(),
+    fromAmount: BigNumber.from(eventData[3]).toString(),
     oraiBridgeChannelId: routeData.oraiBridgeChannel,
     oraiReceiver: routeData.oraiReceiver,
     destinationDenom: routeData.tokenIdentifier,
     destinationChannelId: routeData.finalDestinationChannel,
     destinationReceiver: routeData.finalReceiver,
-    eventNonce: parseInt(eventData[4].toString()),
+    eventNonce: parseInt(BigNumber.from(eventData[4]).toString()),
     evmChainPrefix,
     status: StateDBStatus.PENDING
   };
@@ -153,7 +154,7 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
   const dstChannel = sendPacketEvent.attributes.find((attr) => attr.key === "packet_dst_channel").value;
   const packetSequence = parseInt(packetSequenceAttr.value);
   const autoForwardData = {
-    txHash: convertTxHashToHex(txEvent.hash),
+    txHash: convertTxHashToHex(Uint8Array.from(Object.values(txEvent.hash))),
     height: txEvent.height,
     prevState: "EvmState",
     prevTxHash: prevEvmState[0].txHash,
@@ -186,7 +187,6 @@ export const handleCheckOnRequestBatch = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<{ batchNonce: number; txIds: number[] }> => {
-  console.log("event payload", event);
   const txEvent: TxEvent = event.payload;
   const events = parseRpcEvents(txEvent.result.events);
 
@@ -302,7 +302,7 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
   const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => memo.includes(prefix)) || "";
   ctx.evmChainPrefixOnRightTraverseOrder = evmChainPrefix;
   const oraiBridgeData = {
-    txHash: convertTxHashToHex(txEvent.hash),
+    txHash: convertTxHashToHex(Uint8Array.from(Object.values(txEvent.hash))),
     height: txEvent.height,
     prevState: "OraichainState",
     prevTxHash: prevOraichainState[0].txHash,
@@ -633,7 +633,7 @@ export const handleStoreOnRecvPacketOraichain = async (
     }
   );
   let onRecvPacketData = {
-    txHash: convertTxHashToHex(txEvent.hash),
+    txHash: convertTxHashToHex(Uint8Array.from(Object.values(txEvent.hash))),
     height: txEvent.height,
     prevState: DatabaseEnum.OraiBridge,
     prevTxHash: oraiBridgeData[0].txHash,
@@ -741,7 +741,7 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
 
   // we don't have previous packetSequence, so we save it as nextPacketSequence
   let onRecvPacketData = {
-    txHash: convertTxHashToHex(txEvent.hash),
+    txHash: convertTxHashToHex(Uint8Array.from(Object.values(txEvent.hash))),
     height: txEvent.height,
     prevState: "CosmosState",
     prevTxHash: cosmosData[0].txHash,
@@ -958,8 +958,8 @@ export const handleStoreOnTransferBackToRemoteChain = async (
   nextState = existEvmPath ? "OraiBridgeState" : "";
 
   // we don't have previous packetSequence, so we save it as nextPacketSequence
-  let onRecvPacketData = {
-    txHash: convertTxHashToHex(txEvent.hash),
+  let transferBackToRemoteChainData = {
+    txHash: convertTxHashToHex(Uint8Array.from(Object.values(txEvent.hash))),
     height: txEvent.height,
     prevState: "",
     prevTxHash: "",
@@ -973,8 +973,8 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     ...oraiChannels,
     status: StateDBStatus.PENDING
   };
-  console.log("onRecvPacketData", onRecvPacketData);
-  await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
+  console.log("storeOnTransferBackToRemoteChain", transferBackToRemoteChainData);
+  await ctx.db.insert(DatabaseEnum.Oraichain, transferBackToRemoteChainData);
 
   // no next state, we move to final state of the machine
   return Promise.resolve("");
@@ -999,7 +999,8 @@ export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter,
   const dstChannel = eventData.attributes.find((attr) => attr.key === "packet_dst_channel").value;
 
   const cosmosData = {
-    txHash: typeof txEvent.hash == "string" ? txEvent.hash : convertTxHashToHex(txEvent.hash),
+    txHash:
+      typeof txEvent.hash == "string" ? txEvent.hash : convertTxHashToHex(Uint8Array.from(Object.values(txEvent.hash))),
     height: txEvent.height,
     chainId: event.payload.chainId,
     prevState: "",
@@ -1013,12 +1014,12 @@ export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter,
     dstChannel,
     status: StateDBStatus.PENDING
   };
-  console.log(cosmosData);
   await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
 
   ctx.cosmosPacketSequence = parseInt(packetSequence.value);
   ctx.cosmosSrcChannel = cosmosData.srcChannel;
   ctx.cosmosDstChannel = cosmosData.dstChannel;
+
   return new Promise((resolve) =>
     resolve({
       packetSequence,
