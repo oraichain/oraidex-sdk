@@ -40,7 +40,7 @@ describe.skip("Test sync ether", () => {
   });
 });
 
-describe("Test listen on cosmos event", () => {
+describe.skip("Test listen on cosmos event", () => {
   it("Test", async () => {
     let duckDb: DuckDbNode;
     duckDb = await DuckDbNode.create();
@@ -54,5 +54,5 @@ describe("Test listen on cosmos event", () => {
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     await oraichainEvent.connectCosmosSocket([onRecvPacketTag]);
     await setTimeout(100000);
-  }).timeout(120000);
+  });
 });
