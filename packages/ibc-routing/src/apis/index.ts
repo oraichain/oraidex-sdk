@@ -1,4 +1,3 @@
-import { EvmChainPrefix } from "@oraichain/oraidex-common";
 import { HttpRequest, HttpResponse } from "uWebSockets.js";
 import { waitFor } from "xstate/lib/waitFor";
 import { invokableMachineStateKeys } from "../constants";
@@ -33,7 +32,7 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
       type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
       payload: {
         txHash: qObject.get("txHash"),
-        evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+        evmChainPrefix: qObject.get("evmChainPrefix")
       }
     });
     const doneState = await waitFor(actor, (state) => state.done);
@@ -91,8 +90,10 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
       try {
         if (obj.evmChainPrefix) {
           const evmData = await getSendToCosmosEvent(txHash, obj.evmChainPrefix);
-          const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
-          evmHandler.handleEvent([...evmData, obj.evmChainPrefix]);
+          for (const evmItem of evmData) {
+            const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
+            evmHandler.handleEvent([...evmItem, obj.evmChainPrefix]);
+          }
         }
 
         if (obj.chainId) {
