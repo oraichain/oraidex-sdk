@@ -74,7 +74,7 @@ export const sqlCommands = {
       srcChannel varchar,
       dstChannel varchar,
       status varchar,
-      primary key (packetSequence)
+      primary key (packetSequence, srcChannel, dstChannel)
     )`,
     [DatabaseEnum.Cosmos]: `create table if not exists CosmosState
     (

@@ -217,7 +217,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
             const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
             const txs = await stargateClient.searchTx(query);
             if (txs.length == 0) {
-              throw generateError("Can not find orai bridge data on oraiBridgeForEvmTimeout");
+              throw generateError("[COSMOS INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout");
             }
 
             return handleOnRecvPacketOnOraiBridge(ctx, {

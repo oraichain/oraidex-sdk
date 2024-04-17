@@ -98,7 +98,9 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
             const txs = await stargateClient.searchTx(query);
             if (txs.length == 0) {
-              throw generateError("Can not find orai bridge data on oraiBridgeForEvmTimeout");
+              throw generateError(
+                `[ORAICHAIN INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout ${JSON.stringify(ctx)}`
+              );
             }
 
             return handleOnRecvPacketOnOraiBridge(ctx, {
@@ -185,7 +187,7 @@ export const createOraichainIntepreter = (db: DuckDB) => {
             const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
             const txs = await stargateClient.searchTx(query);
             if (txs.length == 0) {
-              throw generateError("Can not find orai bridge data on onRequestBatchTimeout");
+              throw generateError("[ORAICHAIN INTEPRETER] orai bridge data on onRequestBatchTimeout");
             }
             for (const tx of txs) {
               const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => tx.rawLog.includes(prefix));

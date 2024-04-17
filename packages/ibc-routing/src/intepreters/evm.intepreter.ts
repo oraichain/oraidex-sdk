@@ -128,6 +128,9 @@ export const createEvmIntepreter = (db: DuckDB) => {
               });
               const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
               const txs = await stargateClient.searchTx(query);
+              if (txs.length == 0) {
+                throw generateError("there is no auto forward existed on orai bridge timeout");
+              }
               for (const tx of txs) {
                 try {
                   await handleStoreAutoForward(ctx, {
@@ -268,7 +271,6 @@ export const createEvmIntepreter = (db: DuckDB) => {
                   value: ctx.oraiBridgeSrcChannel
                 }
               ];
-              console.log(ctx.oraiBridgePacketSequence.toString(), ctx.oraiBridgeDstChannel, ctx.oraiBridgeSrcChannel);
               const query = buildQuery({
                 tags: queryTags
               });
@@ -359,7 +361,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
               const txs = await stargateClient.searchTx(query);
               if (txs.length == 0) {
-                throw generateError("Can not find orai bridge data on oraiBridgeForEvmTimeout");
+                throw generateError("[EVM INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout");
               }
               return handleUpdateOnAcknowledgementOnCosmos(ctx, {
                 ...event,

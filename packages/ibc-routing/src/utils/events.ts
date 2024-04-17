@@ -4,6 +4,7 @@ import { chainInfos, EvmChainPrefix, Gravity__factory } from "@oraichain/oraidex
 import axios from "axios";
 import { ethers } from "ethers";
 import { EvmRpcs, GravityAddress } from "../constants";
+import { convertStringToUint8Array } from "../helpers";
 
 export function isBase64(str: string) {
   try {
@@ -78,5 +79,8 @@ export const getCosmosTxEvent = async (txHash: any, chainId: string): Promise<Tx
   const result = await axios.get(`${chainMetadata.rpc}/tx?hash=${`0x${txHash}`}&prove=true`);
   const txData = result.data;
 
-  return { ...txData.result, result: txData.result.tx_result };
+  const hash =
+    typeof txData.result.hash == "string" ? convertStringToUint8Array(txData.result.hash) : txData.result.hash;
+
+  return { ...txData.result, result: txData.result.tx_result, hash };
 };

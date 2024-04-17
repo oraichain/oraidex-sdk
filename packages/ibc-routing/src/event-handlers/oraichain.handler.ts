@@ -20,15 +20,17 @@ export class OraichainHandler extends EventHandler {
           return;
         }
         const packetDataValue = packetData.value;
-        if (packetDataValue.includes("0x")) {
-          const intepreter = createOraichainIntepreter(this.db);
-          this.im.appendIntepreter(intepreter);
-          intepreter._inner.start();
-          intepreter._inner.send({
-            type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
-            payload: eventItem
-          });
-        }
+        try {
+          if (JSON.parse(packetDataValue).denom.includes("0x")) {
+            const intepreter = createOraichainIntepreter(this.db);
+            this.im.appendIntepreter(intepreter);
+            intepreter._inner.start();
+            intepreter._inner.send({
+              type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
+              payload: eventItem
+            });
+          }
+        } catch (err) {}
         return;
       }
       if (events.find((attr) => attr.type === "recv_packet")) {

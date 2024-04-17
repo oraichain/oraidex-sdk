@@ -83,56 +83,65 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
 };
 
 export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: IntepreterManager) => {
-  readJson(
-    res,
-    async (obj: any) => {
-      const txHash = obj.txHash;
-      try {
-        if (obj.evmChainPrefix) {
-          const evmData = await getSendToCosmosEvent(txHash, obj.evmChainPrefix);
-          for (const evmItem of evmData) {
-            const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
-            evmHandler.handleEvent([...evmItem, obj.evmChainPrefix]);
-          }
-        }
-
-        if (obj.chainId) {
-          const cosmosData = await getCosmosTxEvent(txHash, obj.chainId);
-          let cosmosHandler = new CosmosHandler(DuckDbNode.instances, im);
-          cosmosHandler.handleEvent([
-            {
-              txEvent: cosmosData,
-              chainId: obj.chainId
+  try {
+    readJson(
+      res,
+      async (obj: any) => {
+        const txHash = obj.txHash;
+        try {
+          if (obj.evmChainPrefix) {
+            const evmData = await getSendToCosmosEvent(txHash, obj.evmChainPrefix);
+            for (const evmItem of evmData) {
+              const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
+              evmHandler.handleEvent([...evmItem, obj.evmChainPrefix]);
             }
-          ]);
+          }
+
+          if (obj.chainId) {
+            const cosmosData = await getCosmosTxEvent(txHash, obj.chainId);
+            let cosmosHandler = new CosmosHandler(DuckDbNode.instances, im);
+            cosmosHandler.handleEvent([
+              {
+                txEvent: cosmosData,
+                chainId: obj.chainId
+              }
+            ]);
+          }
+
+          if (!obj.chainId && !obj.evmChainPrefix) {
+            const oraiData = await getCosmosTxEvent(txHash, "Oraichain");
+            let oraiHandler = new OraichainHandler(DuckDbNode.instances, im);
+            oraiHandler.handleEvent([oraiData]);
+          }
+        } catch (err) {
+          console.log(err);
         }
 
-        if (!obj.chainId && !obj.evmChainPrefix) {
-          const oraiData = await getCosmosTxEvent(txHash, "Oraichain");
-          let oraiHandler = new OraichainHandler(DuckDbNode.instances, im);
-          oraiHandler.handleEvent([oraiData]);
-        }
-      } catch (err) {
-        console.log(err);
+        res.writeStatus("200 Ok").end(
+          JSON.stringify({
+            message: "Success",
+            data: []
+          })
+        );
+      },
+      (err: any) => {
+        /* Request was prematurely aborted or invalid or missing, stop reading */
+        res.writeStatus("400 Bad Request").end(
+          JSON.stringify({
+            message: `${err?.message || "Something went wrong"}`,
+            data: []
+          })
+        );
       }
-
-      res.writeStatus("200 Ok").end(
-        JSON.stringify({
-          message: "Success",
-          data: []
-        })
-      );
-    },
-    (err: any) => {
-      /* Request was prematurely aborted or invalid or missing, stop reading */
-      res.writeStatus("400 Bad Request").end(
-        JSON.stringify({
-          message: `${err?.message || "Something went wrong"}`,
-          data: []
-        })
-      );
-    }
-  );
+    );
+  } catch (err) {
+    res.writeStatus("400 Bad Request").end(
+      JSON.stringify({
+        message: `${err?.message || "Something went wrong"}`,
+        data: []
+      })
+    );
+  }
 };
 
 // COPIED FROM EXAMPLES ON UWS

@@ -926,28 +926,29 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     dstChannel: ""
   };
   const sendPacketEvent = events.find((e) => e.type === "send_packet");
-  if (sendPacketEvent) {
-    let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
-    let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
-    let dstChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel").value;
-    nextPacketData = {
-      ...nextPacketData,
-      nextPacketSequence: parseInt(sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value),
-      nextMemo: nextPacketJson?.memo || "",
-      nextAmount: nextPacketJson.amount,
-      nextDestinationDenom: nextPacketJson.denom,
-      nextReceiver: nextPacketJson.receiver
-    };
-
-    oraiChannels = {
-      ...oraiChannels,
-      srcChannel,
-      dstChannel
-    };
-    ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
-    sender = nextPacketJson.sender;
-    localReceiver = nextPacketJson.sender;
+  if (!sendPacketEvent) {
+    throw generateError("send packet does not exist on tx on store on transfer back to remote chain");
   }
+  let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
+  let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
+  let dstChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_dst_channel").value;
+  nextPacketData = {
+    ...nextPacketData,
+    nextPacketSequence: parseInt(sendPacketEvent.attributes.find((attr) => attr.key == "packet_sequence").value),
+    nextMemo: nextPacketJson?.memo || "",
+    nextAmount: nextPacketJson.amount,
+    nextDestinationDenom: nextPacketJson.denom,
+    nextReceiver: nextPacketJson.receiver
+  };
+
+  oraiChannels = {
+    ...oraiChannels,
+    srcChannel,
+    dstChannel
+  };
+  ctx.oraiSendPacketSequence = nextPacketData.nextPacketSequence;
+  sender = nextPacketJson.sender;
+  localReceiver = nextPacketJson.sender;
 
   ctx.oraichainSrcChannel = oraiChannels.srcChannel;
   ctx.oraichainDstChannel = oraiChannels.dstChannel;
