@@ -1,6 +1,6 @@
 import { Mutex, MutexInterface } from "async-mutex";
 import fs from "fs";
-import { AnyInterpreter } from "xstate";
+import { AnyInterpreter, InterpreterStatus } from "xstate";
 import { IntepreterType } from "../constants";
 import { DuckDbNode } from "../db";
 import { createCosmosIntepreter } from "../intepreters/cosmos.intepreter";
@@ -32,10 +32,19 @@ class IntepreterManager {
   public transitionInterpreters(type: string, payload: any): any {
     this.mutex
       .runExclusive(() => {
-        this.intepreters = this.intepreters.filter((intepreter) => {
-          const data = intepreter._inner.send({ type, payload });
-          return data ? !data.done : false;
-        });
+        this.intepreters = [
+          ...this.intepreters.filter((intepreter) => {
+            if (intepreter._inner.status === InterpreterStatus.Stopped) {
+              console.log("Remove one of intepreters");
+              return false;
+            }
+
+            intepreter._inner.send({ type, payload });
+            return true;
+          })
+        ];
+
+        this.saveIntepreters();
       })
       .then(() => {
         this.mutex.release();
@@ -47,11 +56,7 @@ class IntepreterManager {
       .runExclusive(async () => {
         this.intepreters = [...this.intepreters, intepreter];
 
-        const data = this._getAllSnapshot();
-        await fs.promises.writeFile(this.path, JSON.stringify(data));
-        if (this.temporary) {
-          await fs.promises.unlink(this.path);
-        }
+        this.saveIntepreters();
       })
       .then(() => {
         this.mutex.release();
@@ -113,6 +118,14 @@ class IntepreterManager {
         recoverIntepreter._inner.start(initialState);
         this.appendIntepreter(recoverIntepreter);
       }
+    }
+  }
+
+  private saveIntepreters() {
+    const data = this._getAllSnapshot();
+    fs.writeFileSync(this.path, JSON.stringify(data));
+    if (this.temporary) {
+      fs.unlinkSync(this.path);
     }
   }
 
