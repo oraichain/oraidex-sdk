@@ -20,7 +20,8 @@ import {
   IBC_TRANSFER_TIMEOUT,
   toTokenInfo,
   IBC_WASM_CONTRACT_TEST,
-  USDC_CONTRACT
+  USDC_CONTRACT,
+  network
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
@@ -1015,6 +1016,39 @@ describe("test universal swap handler functions", () => {
     );
     const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
     expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
+  });
+
+  it("test-processUniversalSwap-swap-for-%s", async () => {
+    const generateMsgsSwapMock = jest.fn(() => ["msg1", "msg2"]);
+    const executeMultipleMock = jest.fn(() => Promise.resolve("executeMultipleMock"));
+    const getCosmWasmClientMock = jest.fn(() => Promise.resolve({ client: { executeMultiple: executeMultipleMock } }));
+    const cosmosWalletMock = { getCosmWasmClient: getCosmWasmClientMock };
+    const networks = { rpc: network.rpc, fee: { gasPrice: network.fee.gasPrice, denom: network.denom } };
+    const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "Oraichain")!;
+    const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "Oraichain")!;
+    const swapData = { sender: { cosmos: "orai1234" } };
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken,
+        ...swapData
+      },
+      {
+        cosmosWallet: cosmosWalletMock as any
+      }
+    );
+    universalSwap.generateMsgsSwap = generateMsgsSwapMock as any;
+
+    await universalSwap.swap();
+
+    expect(generateMsgsSwapMock).toHaveBeenCalled();
+    expect(getCosmWasmClientMock).toHaveBeenCalledWith(
+      { chainId: "Oraichain", rpc: networks.rpc },
+      { gasPrice: expect.any(Object) }
+    );
+
+    expect(executeMultipleMock).toHaveBeenCalledWith(swapData.sender.cosmos, ["msg1", "msg2"], "auto");
   });
 
   // it("test-swap()", async () => {
