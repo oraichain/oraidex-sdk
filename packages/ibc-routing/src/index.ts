@@ -43,18 +43,16 @@ uws
   //     console.log("ok: ", ok);
   //   }
   // })
-
-  /**
-   * @devs
-   * @notice about query params
-   * - { txHash, evmChainPrefix } => handleEvmIntepreter
-   * - { txHash, chainId } => handleCosmosIntepreter
-   * - { txHash } => handleOraichainIntepreter
-   */
+  .options("/api/routing", async (res, req) => {
+    setCorsHeaders(res);
+    res.end();
+  })
   .get("/api/routing", async (res, req) => {
+    setCorsHeaders(res);
     return getQueryRouting(res, req);
   })
   .post("/api/routing", (res, req) => {
+    setCorsHeaders(res);
     return submitRouting(res, req, im);
   })
   .listen(9001, async (listenSocket) => {
@@ -95,3 +93,10 @@ uws
     });
     await oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
   });
+
+function setCorsHeaders(response) {
+  response.writeHeader("Access-Control-Allow-Origin", "*");
+  response.writeHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.writeHeader("Access-Control-Allow-Headers", "origin, content-type, accept, x-requested-with");
+  response.writeHeader("Access-Control-Max-Age", "3600");
+}

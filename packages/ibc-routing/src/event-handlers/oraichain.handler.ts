@@ -1,5 +1,5 @@
 import { Event } from "@cosmjs/stargate";
-import { parseRpcEvents } from "@oraichain/oraidex-common";
+import { EvmChainPrefix, parseRpcEvents } from "@oraichain/oraidex-common";
 import { invokableMachineStateKeys, onExecuteContractTag } from "../constants";
 import { createOraichainIntepreter } from "../intepreters/oraichain.intepreter";
 import { EventHandler } from "./event.handler";
@@ -21,7 +21,9 @@ export class OraichainHandler extends EventHandler {
         }
         const packetDataValue = packetData.value;
         try {
-          if (JSON.parse(packetDataValue).denom.includes("0x")) {
+          if (
+            Object.values(EvmChainPrefix).find((item) => JSON.parse(packetDataValue).denom.includes(item)) !== undefined
+          ) {
             const intepreter = createOraichainIntepreter(this.db);
             this.im.appendIntepreter(intepreter);
             intepreter._inner.start();

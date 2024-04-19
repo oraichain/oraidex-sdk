@@ -1,4 +1,4 @@
-import { COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
+import { ChainIdEnum, COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
 import dotenv from "dotenv";
 import { DuckDB } from "./db";
 dotenv.config();
@@ -71,6 +71,12 @@ export enum ForwardTagOnOraichain {
   COSMOS = "Cosmos",
   EVM = "Evm"
 }
+
+export const ChainIdToEvmChainPrefix = {
+  [ChainIdEnum.BNBChain]: EvmChainPrefix.BSC_MAINNET,
+  [ChainIdEnum.Ethereum]: EvmChainPrefix.ETH_MAINNET,
+  [ChainIdEnum.TRON]: EvmChainPrefix.TRON_MAINNET
+};
 
 export const FinalTag = "Final";
 

@@ -1,6 +1,7 @@
+import { ChainIdEnum } from "@oraichain/oraidex-common";
 import { HttpRequest, HttpResponse } from "uWebSockets.js";
 import { waitFor } from "xstate/lib/waitFor";
-import { invokableMachineStateKeys } from "../constants";
+import { ChainIdToEvmChainPrefix, invokableMachineStateKeys } from "../constants";
 import { DuckDbNode } from "../db";
 import { CosmosHandler } from "../event-handlers/cosmos.handler";
 import { EvmEventHandler } from "../event-handlers/evm.handler";
@@ -25,54 +26,66 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
     data: {}
   };
 
-  if (qObject.get("evmChainPrefix")) {
-    const interpreter = createEvmIntepreter(duckDb);
-    const actor = interpreter._inner.start();
-    interpreter._inner.send({
-      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-      payload: {
-        txHash: qObject.get("txHash"),
-        evmChainPrefix: qObject.get("evmChainPrefix")
-      }
-    });
-    const doneState = await waitFor(actor, (state) => state.done);
-    responseData = {
-      ...responseData,
-      data: doneState.context.routingQueryData
-    };
-  }
+  const chainId = qObject.get("chainId");
+  const txHash = qObject.get("txHash");
 
-  if (qObject.get("chainId")) {
-    const interpreter = createCosmosIntepreter(duckDb);
-    const actor = interpreter._inner.start();
-    interpreter._inner.send({
-      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-      payload: {
-        txHash: qObject.get("txHash"),
-        chainId: qObject.get("chainId")
-      }
-    });
-    const doneState = await waitFor(actor, (state) => state.done);
-    responseData = {
-      ...responseData,
-      data: doneState.context.routingQueryData
-    };
-  }
+  switch (chainId) {
+    case ChainIdEnum.Ethereum:
+    case ChainIdEnum.BNBChain:
+    case ChainIdEnum.TRON:
+      await (async () => {
+        const interpreter = createEvmIntepreter(duckDb);
+        const actor = interpreter._inner.start();
+        interpreter._inner.send({
+          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+          payload: {
+            txHash: txHash,
+            evmChainPrefix: ChainIdToEvmChainPrefix[chainId]
+          }
+        });
+        const doneState = await waitFor(actor, (state) => state.done);
+        responseData = {
+          ...responseData,
+          data: doneState.context.routingQueryData
+        };
+      })();
+      break;
 
-  if (!qObject.get("evmChainPrefix") && !qObject.get("chainId")) {
-    const interpreter = createOraichainIntepreter(duckDb);
-    const actor = interpreter._inner.start();
-    interpreter._inner.send({
-      type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-      payload: {
-        txHash: qObject.get("txHash")
-      }
-    });
-    const doneState = await waitFor(actor, (state) => state.done);
-    responseData = {
-      ...responseData,
-      data: doneState.context.routingQueryData
-    };
+    case ChainIdEnum.Oraichain:
+      await (async () => {
+        const interpreter = createOraichainIntepreter(duckDb);
+        const actor = interpreter._inner.start();
+        interpreter._inner.send({
+          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+          payload: {
+            txHash: qObject.get("txHash")
+          }
+        });
+        const doneState = await waitFor(actor, (state) => state.done);
+        responseData = {
+          ...responseData,
+          data: doneState.context.routingQueryData
+        };
+      })();
+      break;
+
+    default:
+      await (async () => {
+        const interpreter = createCosmosIntepreter(duckDb);
+        const actor = interpreter._inner.start();
+        interpreter._inner.send({
+          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+          payload: {
+            txHash: qObject.get("txHash"),
+            chainId: qObject.get("chainId")
+          }
+        });
+        const doneState = await waitFor(actor, (state) => state.done);
+        responseData = {
+          ...responseData,
+          data: doneState.context.routingQueryData
+        };
+      })();
   }
 
   if (!res.aborted) {
@@ -88,30 +101,33 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
       res,
       async (obj: any) => {
         const txHash = obj.txHash;
+        const chainId = obj.chainId;
+
         try {
-          if (obj.evmChainPrefix) {
-            const evmData = await getSendToCosmosEvent(txHash, obj.evmChainPrefix);
-            for (const evmItem of evmData) {
-              const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
-              evmHandler.handleEvent([...evmItem, obj.evmChainPrefix]);
-            }
-          }
-
-          if (obj.chainId) {
-            const cosmosData = await getCosmosTxEvent(txHash, obj.chainId);
-            let cosmosHandler = new CosmosHandler(DuckDbNode.instances, im);
-            cosmosHandler.handleEvent([
-              {
-                txEvent: cosmosData,
-                chainId: obj.chainId
+          switch (chainId) {
+            case ChainIdEnum.Ethereum:
+            case ChainIdEnum.BNBChain:
+            case ChainIdEnum.TRON:
+              const evmData = await getSendToCosmosEvent(txHash, ChainIdToEvmChainPrefix[chainId]);
+              for (const evmItem of evmData) {
+                const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
+                evmHandler.handleEvent([...evmItem, obj.evmChainPrefix]);
               }
-            ]);
-          }
-
-          if (!obj.chainId && !obj.evmChainPrefix) {
-            const oraiData = await getCosmosTxEvent(txHash, "Oraichain");
-            let oraiHandler = new OraichainHandler(DuckDbNode.instances, im);
-            oraiHandler.handleEvent([oraiData]);
+              break;
+            case ChainIdEnum.Oraichain:
+              const oraiData = await getCosmosTxEvent(txHash, ChainIdEnum.Oraichain);
+              let oraiHandler = new OraichainHandler(DuckDbNode.instances, im);
+              oraiHandler.handleEvent([oraiData]);
+              break;
+            default:
+              const cosmosData = await getCosmosTxEvent(txHash, obj.chainId);
+              let cosmosHandler = new CosmosHandler(DuckDbNode.instances, im);
+              cosmosHandler.handleEvent([
+                {
+                  txEvent: cosmosData,
+                  chainId: obj.chainId
+                }
+              ]);
           }
         } catch (err) {
           console.log(err);
