@@ -51,9 +51,9 @@ export const invokableMachineStateKeys = {
 };
 
 export const EvmRpcs = {
-  [EvmChainPrefix.BSC_MAINNET]: "https://go.getblock.io/5364b225d0ea429e91f5f3f027c414a2",
-  [EvmChainPrefix.ETH_MAINNET]: "https://go.getblock.io/0efb9bd03a704cc8ad6cad84999bed4f",
-  [EvmChainPrefix.TRON_MAINNET]: "https://go.getblock.io/b7708ba91fd547a983d9cff2bac540e2"
+  [EvmChainPrefix.BSC_MAINNET]: "https://1rpc.io/bnb",
+  [EvmChainPrefix.ETH_MAINNET]: "https://eth-pokt.nodies.app",
+  [EvmChainPrefix.TRON_MAINNET]: "https://api.trongrid.io/jsonrpc"
 };
 
 export const GravityAddress = {

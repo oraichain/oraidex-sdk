@@ -3,7 +3,7 @@ import { getSendToCosmosEvent } from "./utils/events";
 
 const main = async () => {
   const data = await getSendToCosmosEvent(
-    "0x518f5351515bdfc3bce2ad99156171beb66b864d15a8e3ee3eb2e65000d1149f",
+    "0x8b3e1dd555e808bc597c8ff9a3740ae24aa31f8864d85a498fe4a2834d4c68cf",
     EvmChainPrefix.BSC_MAINNET
   );
   console.log(data);
