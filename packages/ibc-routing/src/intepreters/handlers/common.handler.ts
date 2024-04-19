@@ -57,6 +57,7 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
     evmChainPrefix,
     status: StateDBStatus.PENDING
   };
+  console.log("Data", sendToCosmosData);
 
   // this context data will be used for querying in the next state
   ctx.evmChainPrefixOnLeftTraverseOrder = evmChainPrefix;

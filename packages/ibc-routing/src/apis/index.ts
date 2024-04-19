@@ -111,7 +111,7 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
               const evmData = await getSendToCosmosEvent(txHash, ChainIdToEvmChainPrefix[chainId]);
               for (const evmItem of evmData) {
                 const evmHandler = new EvmEventHandler(DuckDbNode.instances, im);
-                evmHandler.handleEvent([...evmItem, obj.evmChainPrefix]);
+                evmHandler.handleEvent([...evmItem, ChainIdToEvmChainPrefix[chainId]]);
               }
               break;
             case ChainIdEnum.Oraichain:
