@@ -7,8 +7,11 @@ import {
   COSMOS_DENOM,
   ContextIntepreter,
   DatabaseEnum,
+  EvmState,
   FinalTag,
   ForwardTagOnOraichain,
+  OraiBridgeState,
+  OraichainState,
   StateDBStatus,
   batchSendToEthClaimEventType,
   eventBatchCreatedEventType,
@@ -31,7 +34,10 @@ export const handleQuerySendToCosmosEvm = async (ctx: ContextIntepreter, event: 
   if (sendToCosmosData.length == 0) {
     throw generateError("stopping on send to cosmos");
   }
-  ctx.routingQueryData[DatabaseEnum.Evm] = sendToCosmosData[0];
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.Evm,
+    data: sendToCosmosData[0]
+  });
   return sendToCosmosData[0].status === StateDBStatus.FINISHED ? Promise.resolve() : Promise.reject();
 };
 
@@ -68,18 +74,22 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
 
 // ORAI-BRIDGE
 export const handleQueryAutoForward = async (ctx: ContextIntepreter, _event: AnyEventObject) => {
-  const sendToCosmosState = ctx.routingQueryData[DatabaseEnum.Evm];
+  const allEvmData = ctx.routingQueryData.filter((item) => item.type === DatabaseEnum.Evm);
+  const lastEvmItem = allEvmData[allEvmData.length - 1];
   const autoForwardState = await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
-      evmChainPrefix: sendToCosmosState.evmChainPrefix,
-      eventNonce: sendToCosmosState.eventNonce,
-      prevTxHash: sendToCosmosState.txHash
+      evmChainPrefix: (lastEvmItem.data as EvmState).evmChainPrefix,
+      eventNonce: (lastEvmItem.data as EvmState).eventNonce,
+      prevTxHash: (lastEvmItem.data as EvmState).txHash
     }
   });
   if (autoForwardState.length === 0) {
     throw generateError("stopping on querying auto forward");
   }
-  ctx.routingQueryData[DatabaseEnum.OraiBridge] = autoForwardState[0];
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.OraiBridge,
+    data: autoForwardState[0]
+  });
   return autoForwardState[0].status == StateDBStatus.PENDING ? Promise.reject() : Promise.resolve(autoForwardState[0]);
 };
 
@@ -233,20 +243,21 @@ export const handleCheckOnRecvPacketOnOraiBridge = async (
 
 // TODO: add query logic here
 export const handleQueryOnRecvOraiBridgePacket = async (ctx: ContextIntepreter, event: AnyEventObject) => {
+  const allOraichainData = ctx.routingQueryData.filter((item) => item.type === DatabaseEnum.Oraichain);
+  const lastOraichainItem = allOraichainData[allOraichainData.length - 1];
   const recvOraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
-      prevTxHash: ctx.routingQueryData[DatabaseEnum.Oraichain].txHash,
-      packetSequence: ctx.routingQueryData[DatabaseEnum.Oraichain].nextPacketSequence
+      prevTxHash: (lastOraichainItem.data as OraichainState).txHash,
+      packetSequence: (lastOraichainItem.data as OraichainState).nextPacketSequence
     }
   });
   if (recvOraiBridgeData.length === 0) {
     throw generateError("stopping on recv orai bridge");
   }
-  if (ctx.routingQueryData[DatabaseEnum.OraiBridge]) {
-    ctx.routingQueryData[`${DatabaseEnum.OraiBridge}_NEXT`] = recvOraiBridgeData[0];
-  } else {
-    ctx.routingQueryData[DatabaseEnum.OraiBridge] = recvOraiBridgeData[0];
-  }
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.OraiBridge,
+    data: recvOraiBridgeData[0]
+  });
   return Promise.resolve();
 };
 
@@ -330,20 +341,30 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
 
 // TODO: add query logic here
 export const handleQueryOnRequestBatch = async (ctx: ContextIntepreter, event: AnyEventObject) => {
+  const allOraichainData = ctx.routingQueryData.filter((item) => item.type === DatabaseEnum.Oraichain);
+  const lastOraichainItem = allOraichainData[allOraichainData.length - 1];
   const recvOraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
-      prevTxHash: ctx.routingQueryData[DatabaseEnum.Oraichain].txHash,
-      packetSequence: ctx.routingQueryData[DatabaseEnum.Oraichain].nextPacketSequence
+      prevTxHash: (lastOraichainItem.data as OraichainState).txHash,
+      packetSequence: (lastOraichainItem.data as OraichainState).nextPacketSequence
     }
   });
   if (recvOraiBridgeData.length === 0) {
     throw generateError("stopping on recv orai bridge");
   }
-  if (ctx.routingQueryData[`${DatabaseEnum.OraiBridge}_NEXT`]) {
-    ctx.routingQueryData[`${DatabaseEnum.OraiBridge}_NEXT`] = recvOraiBridgeData[0];
-  } else {
-    ctx.routingQueryData[DatabaseEnum.OraiBridge] = recvOraiBridgeData[0];
+  const filteredOraiBridgeData = ctx.routingQueryData.filter(
+    (item) =>
+      item.type === DatabaseEnum.OraiBridge &&
+      item.data.prevTxHash === recvOraiBridgeData[0].prevTxHash &&
+      item.data.packetSequence === recvOraiBridgeData[0].packetSequence
+  );
+  if (filteredOraiBridgeData.length !== 1) {
+    throw generateError("something went wrong on handleRecvOnOraiBridge");
   }
+  filteredOraiBridgeData[0] = {
+    type: DatabaseEnum.OraiBridge,
+    data: recvOraiBridgeData[0]
+  };
   return recvOraiBridgeData[0].status === StateDBStatus.FINISHED ? Promise.resolve() : Promise.reject();
 };
 
@@ -386,14 +407,11 @@ export const handleStoreOnRequestBatchOraiBridge = async (
 
 // TODO: add query logic here
 export const handleQueryOnBatchSendToEthClaim = async (ctx: ContextIntepreter, event: AnyEventObject) => {
-  const isEvm2EvmFlow = ctx.routingQueryData[`${DatabaseEnum.OraiBridge}_NEXT`] !== undefined;
+  const allOraiBridgeData = ctx.routingQueryData.filter((item) => item.type === DatabaseEnum.OraiBridge);
+  const lastOraiBridgeItem = allOraiBridgeData[allOraiBridgeData.length - 1];
 
-  const prevTxHash = isEvm2EvmFlow
-    ? ctx.routingQueryData[`${DatabaseEnum.OraiBridge}_NEXT`].txHash
-    : ctx.routingQueryData[DatabaseEnum.OraiBridge].txHash;
-  const evmChainPrefix = isEvm2EvmFlow
-    ? ctx.routingQueryData[`${DatabaseEnum.OraiBridge}_NEXT`].evmChainPrefix
-    : ctx.routingQueryData[DatabaseEnum.OraiBridge].evmChainPrefix;
+  const prevTxHash = (lastOraiBridgeItem.data as OraiBridgeState).txHash;
+  const evmChainPrefix = (lastOraiBridgeItem.data as OraiBridgeState).evmChainPrefix;
 
   const evmData = await ctx.db.select(DatabaseEnum.Evm, {
     where: {
@@ -405,11 +423,11 @@ export const handleQueryOnBatchSendToEthClaim = async (ctx: ContextIntepreter, e
     throw generateError("stopping on query on batch send to eth");
   }
 
-  if (isEvm2EvmFlow) {
-    ctx.routingQueryData[`${DatabaseEnum.Evm}_NEXT`] = evmData[0];
-  } else {
-    ctx.routingQueryData[DatabaseEnum.Evm] = evmData[0];
-  }
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.Evm,
+    data: evmData[0]
+  });
+
   return Promise.resolve();
 };
 
@@ -511,7 +529,10 @@ export const handleQueryOnTransferBackToRemoteChain = async (ctx: ContextIntepre
   if (oraichainData.length === 0) {
     throw generateError("stopping on query on transfer back to remote chain");
   }
-  ctx.routingQueryData[DatabaseEnum.Oraichain] = oraichainData[0];
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.Oraichain,
+    data: oraichainData[0]
+  });
   return Promise.resolve();
 };
 
@@ -527,7 +548,10 @@ export const handleQueryOnRecvPacketOraichain = async (ctx: ContextIntepreter, e
   if (oraichainData.length == 0) {
     throw generateError("stopping on handle query on recv packet oraichain");
   }
-  ctx.routingQueryData[DatabaseEnum.Oraichain] = oraichainData[0];
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.Oraichain,
+    data: oraichainData[0]
+  });
   const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
     oraichainData[0].nextDestinationDenom.includes(prefix)
   );
@@ -797,21 +821,29 @@ export const handleQueryIbcTransferFromRemote = async (ctx: ContextIntepreter, e
   if (cosmosData.length === 0) {
     throw generateError("stopping on query ibc transfer from remote");
   }
-  ctx.routingQueryData[DatabaseEnum.Cosmos] = cosmosData[0];
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.Cosmos,
+    data: cosmosData[0]
+  });
   return cosmosData[0].status === StateDBStatus.FINISHED ? Promise.resolve({ ...cosmosData[0] }) : Promise.reject();
 };
 
 export const handleQueryOnRecvCosmosPacket = async (ctx: ContextIntepreter, event: AnyEventObject) => {
+  const allOraichainData = ctx.routingQueryData.filter((item) => item.type === DatabaseEnum.Oraichain);
+  const lastOraichainItem = allOraichainData[allOraichainData.length - 1];
   const cosmosData = await ctx.db.select(DatabaseEnum.Cosmos, {
     where: {
-      prevTxHash: ctx.routingQueryData[DatabaseEnum.Oraichain].txHash,
-      packetSequence: ctx.routingQueryData[DatabaseEnum.Oraichain].nextPacketSequence
+      prevTxHash: (lastOraichainItem.data as OraichainState).txHash,
+      packetSequence: (lastOraichainItem.data as OraichainState).nextPacketSequence
     }
   });
   if (cosmosData.length == 0) {
     throw generateError("stopping on query on recv cosmos packet");
   }
-  ctx.routingQueryData[DatabaseEnum.Cosmos] = cosmosData[0];
+  ctx.routingQueryData.push({
+    type: DatabaseEnum.Cosmos,
+    data: cosmosData[0]
+  });
   return Promise.resolve();
 };
 

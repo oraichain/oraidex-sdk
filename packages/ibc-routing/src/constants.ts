@@ -109,7 +109,7 @@ export interface EvmState {
   destinationReceiver: string;
   eventNonce: number;
   evmChainPrefix: string;
-  status: StateDBStatus;
+  status: string;
 }
 
 export interface OraiBridgeState {
@@ -122,7 +122,7 @@ export interface OraiBridgeState {
   batchNonce: number;
   txId: number;
   evmChainPrefix: string;
-  packetSequence: number; // primary key
+  packetSequence: number;
   amount: string;
   denom: string;
   memo: string;
@@ -132,7 +132,7 @@ export interface OraiBridgeState {
   srcChannel: string;
   dstPort: string;
   dstChannel: string;
-  status: StateDBStatus;
+  status: string;
 }
 
 export interface OraichainState {
@@ -141,7 +141,7 @@ export interface OraichainState {
   prevState: string;
   prevTxHash: string;
   nextState: string;
-  packetSequence: number; // primary key
+  packetSequence: number;
   packetAck: string;
   sender: string;
   localReceiver: string;
@@ -150,10 +150,50 @@ export interface OraichainState {
   nextAmount: string;
   nextReceiver: string;
   nextDestinationDenom: string;
-  status: StateDBStatus;
+  srcChannel: string;
+  dstChannel: string;
+  status: string;
 }
 
-export type GeneralDBState = EvmState | OraiBridgeState | OraichainState;
+export interface CosmosState {
+  txHash: string;
+  height: number;
+  chainId: string;
+  prevState: string;
+  prevTxHash: string;
+  nextState: string;
+  packetSequence: number;
+  amount: string;
+  denom: string;
+  memo: string;
+  receiver: string;
+  sender: string;
+  srcPort: string;
+  srcChannel: string;
+  dstPort: string;
+  dstChannel: string;
+  status: string;
+}
+
+export type DBStateType = EvmState | OraiBridgeState | OraichainState | CosmosState;
+
+export type RoutingQueryItem =
+  | {
+      type: DatabaseEnum.Evm;
+      data: EvmState;
+    }
+  | {
+      type: DatabaseEnum.Cosmos;
+      data: CosmosState;
+    }
+  | {
+      type: DatabaseEnum.OraiBridge;
+      data: OraiBridgeState;
+    }
+  | {
+      type: DatabaseEnum.Oraichain;
+      data: OraichainState;
+    };
 
 export interface ContextIntepreter {
   db: DuckDB;
@@ -172,5 +212,5 @@ export interface ContextIntepreter {
   cosmosPacketSequence?: number;
   cosmosSrcChannel?: string;
   cosmosDstChannel?: string;
-  routingQueryData?: { [dbState: string]: any };
+  routingQueryData?: RoutingQueryItem[];
 }

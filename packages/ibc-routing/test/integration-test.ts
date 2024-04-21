@@ -121,7 +121,7 @@ describe("test-integration", () => {
     });
     const doneState = await waitFor(actor, (state) => state.done);
     console.log("done state: ", doneState.context.routingQueryData);
-    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
     expect(queryKeys.length).eq(3);
     expect(queryKeys[0]).eq(DatabaseEnum.Evm);
     expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
@@ -268,7 +268,7 @@ describe("test-integration", () => {
     });
     const doneState = await waitFor(actor, (state) => state.done);
     console.log("done state: ", doneState.context.routingQueryData);
-    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
     expect(queryKeys.length).eq(4);
     expect(queryKeys[0]).eq(DatabaseEnum.Evm);
     expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
@@ -432,13 +432,13 @@ describe("test-integration", () => {
     });
     const doneState = await waitFor(actor, (state) => state.done);
     console.log("done state: ", doneState.context.routingQueryData);
-    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
     expect(queryKeys.length).eq(5);
     expect(queryKeys[0]).eq(DatabaseEnum.Evm);
     expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
     expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
-    expect(queryKeys[3]).eq(`${DatabaseEnum.OraiBridge}_NEXT`);
-    expect(queryKeys[4]).eq(`${DatabaseEnum.Evm}_NEXT`);
+    expect(queryKeys[3]).eq(DatabaseEnum.OraiBridge);
+    expect(queryKeys[4]).eq(DatabaseEnum.Evm);
   });
 
   it("[EVM->EVM] full-flow happy test", async () => {
@@ -637,7 +637,7 @@ describe("test-integration", () => {
     });
     const doneState = await waitFor(actor, (state) => state.done);
     console.log("done state: ", doneState.context.routingQueryData);
-    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
     expect(queryKeys.length).eq(4);
     expect(queryKeys[0]).eq(DatabaseEnum.Cosmos);
     expect(queryKeys[1]).eq(DatabaseEnum.Oraichain);
@@ -817,7 +817,7 @@ describe("test-integration", () => {
     });
     const doneState = await waitFor(actor, (state) => state.done);
     console.log("done state: ", doneState.context.routingQueryData);
-    const queryKeys = Object.keys(doneState.context.routingQueryData);
+    const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
     expect(queryKeys.length).eq(3);
     expect(queryKeys[0]).eq(DatabaseEnum.Oraichain);
     expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);

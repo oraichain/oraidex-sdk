@@ -61,7 +61,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         oraiBridgeDstChannel: "",
         oraichainSrcChannel: "",
         oraichainDstChannel: "",
-        routingQueryData: {}
+        routingQueryData: []
       },
       states: {
         evm: {

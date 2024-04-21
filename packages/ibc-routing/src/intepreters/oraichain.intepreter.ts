@@ -37,7 +37,7 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       oraiBridgeDstChannel: "",
       oraichainSrcChannel: "",
       oraichainDstChannel: "",
-      routingQueryData: {}
+      routingQueryData: []
     },
     states: {
       oraichain: {
