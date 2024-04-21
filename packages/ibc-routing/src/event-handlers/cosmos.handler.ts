@@ -1,6 +1,7 @@
 import { Event } from "@cosmjs/stargate";
 import { IbcWasmContract, invokableMachineStateKeys } from "../constants";
 import { createCosmosIntepreter } from "../intepreters/cosmos.intepreter";
+import { decodeIbcMemo } from "../utils/protobuf";
 import { EventHandler } from "./event.handler";
 
 export class CosmosHandler extends EventHandler {
@@ -22,6 +23,11 @@ export class CosmosHandler extends EventHandler {
 
         const decodedMemo = JSON.parse(packetData.memo);
         if (decodedMemo.wasm.contract === IbcWasmContract) {
+          const undecodedMemo = decodedMemo.wasm.msg.ibc_hooks_receive.args;
+          const decodedProtoMemo = decodeIbcMemo(undecodedMemo, true);
+          if (!decodedProtoMemo.destinationReceiver.includes("oraib")) {
+            return;
+          }
           // create new machine so we start a new context for the transaction
           const intepreter = createCosmosIntepreter(this.db);
           this.im.appendIntepreter(intepreter);
