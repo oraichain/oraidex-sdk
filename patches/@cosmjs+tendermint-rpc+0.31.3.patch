@@ -23,6 +23,19 @@ index 8c72817..2b810d2 100644
              .then((res) => res.data);
      }
  }
+diff --git a/node_modules/@cosmjs/tendermint-rpc/build/rpcclients/websocketclient.js b/node_modules/@cosmjs/tendermint-rpc/build/rpcclients/websocketclient.js
+index 4f6541d..3342967 100644
+--- a/node_modules/@cosmjs/tendermint-rpc/build/rpcclients/websocketclient.js
++++ b/node_modules/@cosmjs/tendermint-rpc/build/rpcclients/websocketclient.js
+@@ -121,7 +121,7 @@ class WebsocketClient {
+         const path = baseUrl.endsWith("/") ? "websocket" : "/websocket";
+         const cleanBaseUrl = (0, rpcclient_1.hasProtocol)(baseUrl) ? baseUrl : "ws://" + baseUrl;
+         this.url = cleanBaseUrl + path;
+-        this.socket = new socket_1.ReconnectingSocket(this.url);
++        this.socket = new socket_1.ReconnectingSocket(this.url, Number.MAX_VALUE);
+         const errorSubscription = this.socket.events.subscribe({
+             error: (error) => {
+                 onError(error);
 diff --git a/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js b/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js
 index a426641..9f33204 100644
 --- a/node_modules/@cosmjs/tendermint-rpc/build/tendermint34/adaptor/responses.js
