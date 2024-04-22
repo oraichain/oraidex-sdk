@@ -40,7 +40,10 @@ export abstract class BaseCosmosEvent {
           this.callback(txEvent);
         },
         error: (err) => console.log("error while subscribing websocket: ", err),
-        complete: () => console.log("completed")
+        complete: () => {
+          console.log("completed");
+          this.connectCosmosSocket(tags);
+        }
       });
     } catch (error) {
       console.log("error listening: ", error);
