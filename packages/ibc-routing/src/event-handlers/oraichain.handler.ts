@@ -12,7 +12,6 @@ export class OraichainHandler extends EventHandler {
       const decodedEvents = parseRpcEvents(events);
 
       for (const event of decodedEvents) {
-        console.log(event.type);
         if (event.type === "send_packet") {
           const packetData = event.attributes.find((item) => item.key == "packet_data");
           if (!packetData) {
