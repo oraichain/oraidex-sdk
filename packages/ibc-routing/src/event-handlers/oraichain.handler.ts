@@ -12,6 +12,7 @@ export class OraichainHandler extends EventHandler {
       const decodedEvents = parseRpcEvents(events);
 
       for (const event of decodedEvents) {
+        console.log(event.type);
         if (event.type === "send_packet") {
           const packetData = event.attributes.find((item) => item.key == "packet_data");
           if (!packetData) {
@@ -37,7 +38,7 @@ export class OraichainHandler extends EventHandler {
         if (event.type === "recv_packet") {
           this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, eventItem);
         }
-        if (event.type === "acknowledgement_packet") {
+        if (event.type === "acknowledge_packet") {
           this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN, eventItem);
         }
       }
