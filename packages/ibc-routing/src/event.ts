@@ -42,7 +42,6 @@ export abstract class BaseCosmosEvent {
         error: (err) => console.log("error while subscribing websocket: ", err),
         complete: () => {
           console.log("completed");
-          this.connectCosmosSocket(tags);
         }
       });
     } catch (error) {
