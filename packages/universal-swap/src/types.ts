@@ -48,19 +48,18 @@ export interface UniversalSwapData {
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
-  readonly isSourceReceiverTest?: boolean;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
 }
 
 /**
  * @property cosmosWallet - wallet used for cosmos based networks.
  * @property evmWallet - wallet used for evm based networks. Note that if you want to sign Tron transactions, you need to pass in tronWeb when initializing the EvmWallet object
- * @property ibcInfoTestMode - true if you want to use the IBC Wasm test contract and channel instead of the production version (default is undefined / false)
+ * @property swapOptions - optional configuration for swap
  */
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
   readonly evmWallet?: EvmWallet;
-  readonly ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
+  readonly swapOptions?: SwapOptions;
 }
 
 export interface SwapRoute {
@@ -74,6 +73,11 @@ export interface OraiBridgeRouteData {
   finalDestinationChannel: string;
   finalReceiver: string;
   tokenIdentifier: string;
+}
+
+export interface SwapOptions {
+  ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
+  isSourceReceiverTest?: boolean;
 }
 
 export enum Type {

@@ -1011,7 +1011,7 @@ describe("test universal swap handler functions", () => {
       {
         ...universalSwapData
       },
-      { ibcInfoTestMode: testMode }
+      { swapOptions: { ibcInfoTestMode: testMode } }
     );
     const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
     expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
