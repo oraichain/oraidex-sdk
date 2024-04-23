@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="1213" lines-covered="879" line-rate="0.7245999999999999" branches-valid="443" branches-covered="275" branch-rate="0.6207" timestamp="1712660979552" complexity="0" version="0.1">
+<coverage lines-valid="1213" lines-covered="879" line-rate="0.7245999999999999" branches-valid="443" branches-covered="275" branch-rate="0.6207" timestamp="1713845281629" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -2173,13 +2173,13 @@
             </method>
             <method name="(anonymous_4)" hits="2" signature="()V">
               <lines>
-                <line number="79" hits="2"/>
+                <line number="83" hits="2"/>
               </lines>
             </method>
           </methods>
           <lines>
             <line number="11" hits="2" branch="true" condition-coverage="100% (2/2)"/>
-            <line number="79" hits="2" branch="true" condition-coverage="100% (2/2)"/>
+            <line number="83" hits="2" branch="true" condition-coverage="100% (2/2)"/>
           </lines>
         </class>
       </classes>
