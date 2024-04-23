@@ -48,7 +48,6 @@ export interface UniversalSwapData {
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
-  readonly isSourceReceiverTest?: boolean;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
 }
 
@@ -60,7 +59,7 @@ export interface UniversalSwapData {
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
   readonly evmWallet?: EvmWallet;
-  readonly ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
+  readonly swapOptions?: SwapOptions;
 }
 
 export interface SwapRoute {
@@ -74,6 +73,11 @@ export interface OraiBridgeRouteData {
   finalDestinationChannel: string;
   finalReceiver: string;
   tokenIdentifier: string;
+}
+
+export interface SwapOptions {
+  ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
+  isSourceReceiverTest?: boolean;
 }
 
 export enum Type {

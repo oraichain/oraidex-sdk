@@ -55,12 +55,12 @@ export class UniversalSwapHandler {
   }
 
   private getCwIcs20ContractAddr() {
-    return this.config.ibcInfoTestMode ? IBC_WASM_CONTRACT_TEST : IBC_WASM_CONTRACT;
+    return this.config.swapOptions?.ibcInfoTestMode ? IBC_WASM_CONTRACT_TEST : IBC_WASM_CONTRACT;
   }
 
   public getIbcInfo(fromChainId: CosmosChainId, toChainId: NetworkChainId) {
     const ibcInfo = UniversalSwapHelper.getIbcInfo(fromChainId, toChainId);
-    if (!this.config.ibcInfoTestMode || !ibcInfo.testInfo) return ibcInfo;
+    if (!this.config.swapOptions?.ibcInfoTestMode || !ibcInfo.testInfo) return ibcInfo;
     return ibcInfo.testInfo;
   }
 
@@ -687,7 +687,7 @@ export class UniversalSwapHandler {
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
       toAddress,
-      this.swapData.isSourceReceiverTest
+      this.config.swapOptions?.isSourceReceiverTest
     );
 
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
