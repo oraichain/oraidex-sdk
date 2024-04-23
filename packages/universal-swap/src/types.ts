@@ -54,7 +54,7 @@ export interface UniversalSwapData {
 /**
  * @property cosmosWallet - wallet used for cosmos based networks.
  * @property evmWallet - wallet used for evm based networks. Note that if you want to sign Tron transactions, you need to pass in tronWeb when initializing the EvmWallet object
- * @property ibcInfoTestMode - true if you want to use the IBC Wasm test contract and channel instead of the production version (default is undefined / false)
+ * @property swapOptions - optional configuration for swap
  */
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
