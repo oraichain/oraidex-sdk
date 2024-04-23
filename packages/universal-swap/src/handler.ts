@@ -36,7 +36,8 @@ import {
   AmountDetails,
   buildMultipleExecuteMessages,
   ibcInfosOld,
-  checkValidateAddressWithNetwork
+  checkValidateAddressWithNetwork,
+  BigDecimal
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
@@ -739,6 +740,50 @@ export class UniversalSwapHandler {
         }
       }
       const to = this.swapData.recipientAddress;
+
+      // let routesSwap = await UniversalSwapHelper.generateSmartRouteForSwap(
+      //   offerInfo,
+      //   fromTokenOnOrai.chainId,
+      //   askInfo,
+      //   toTokenInOrai.chainId,
+      //   _fromAmount
+      // );
+
+      // let msgs: ExecuteInstruction[] = routesSwap.routes.map((route) => {
+      //   let minimumReceive = Math.trunc(
+      //     new BigDecimal(route.returnAmount)
+      //       .mul((100 - this.swapData.userSlippage) / 100)
+      //       .div(10n ** BigInt(fromTokenOnOrai.decimals))
+      //       .toNumber()
+      //   ).toString();
+
+      //   const inputTemp = {
+      //     execute_swap_operations: {
+      //       operations: route.swapOps,
+      //       minimum_receive: minimumReceive,
+      //       to
+      //     }
+      //   };
+
+      //   // if cw20 => has to send through cw20 contract
+      //   if (!fromTokenOnOrai.contractAddress) {
+      //     input = inputTemp;
+      //   } else {
+      //     input = {
+      //       send: {
+      //         contract: contractAddr,
+      //         amount: _fromAmount,
+      //         msg: toBinary(inputTemp)
+      //       }
+      //     };
+      //     contractAddr = fromTokenOnOrai.contractAddress;
+      //   }
+      //   return {
+      //     contractAddress: contractAddr,
+      //     msg: input,
+      //     funds
+      //   };
+      // });
 
       const inputTemp = {
         execute_swap_operations: {

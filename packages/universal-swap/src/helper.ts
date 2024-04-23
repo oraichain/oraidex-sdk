@@ -50,6 +50,8 @@ import {
   ConvertType,
   OraiBridgeRouteData,
   SimulateResponse,
+  SmartRouterResponse,
+  SmartRouteSwapOperations,
   SwapDirection,
   SwapRoute,
   Type,
@@ -430,6 +432,42 @@ export class UniversalSwapHelper {
 
     // Default case: ORAI_INFO
     return UniversalSwapHelper.generateSwapRoute(offerInfo, askInfo, [ORAI_INFO]);
+  };
+
+  static generateSmartRouteForSwap = async (
+    offerInfo: AssetInfo,
+    offerChainId: string,
+    askInfo: AssetInfo,
+    askChainId: string,
+    offerAmount: string
+  ): Promise<SmartRouterResponse> => {
+    let res: any = {};
+
+    let routes = res.routes.map((route) => {
+      let ops = [];
+      let currTokenIn = offerInfo;
+      for (let path of route.paths) {
+        ops.push({
+          orai_swap: {
+            offer_asset_info: currTokenIn,
+            ask_asset_info: path.tokenOut
+          }
+        });
+
+        currTokenIn = path.tokenOut;
+      }
+
+      return {
+        swapAmount: route.swapAmount,
+        returnAmount: route.returnAmount,
+        swapOps: ops
+      };
+    });
+    return {
+      swapAmount: offerAmount,
+      returnAmount: res.returnAmount,
+      routes
+    };
   };
 
   // simulate swap functions

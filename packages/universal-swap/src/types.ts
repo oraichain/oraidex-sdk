@@ -1,5 +1,5 @@
 import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
-import { Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
@@ -102,6 +102,18 @@ export type ConvertReverse = {
   inputToken: TokenItemType;
   inputAmount: string;
   outputToken: TokenItemType;
+};
+
+export type SmartRouteSwapOperations = {
+  swapAmount: string;
+  returnAmount: string;
+  swapOps: SwapOperation[];
+};
+
+export type SmartRouterResponse = {
+  swapAmount: string;
+  returnAmount: string;
+  routes: SmartRouteSwapOperations[];
 };
 
 export type ConvertType = Convert | ConvertReverse;
