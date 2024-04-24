@@ -454,9 +454,11 @@ export class UniversalSwapHelper {
       destChainId: askChainId,
       offerAmount: offerAmount
     };
+
     const res: {
       data: SmartRouterResponseAPI;
     } = await axios.post("/smart-router", data);
+
     return {
       swapAmount: res.data.swapAmount,
       returnAmount: res.data.returnAmount,
@@ -495,8 +497,8 @@ export class UniversalSwapHelper {
       }
 
       return {
-        swapAmount: routesSwap.swapAmount,
-        returnAmount: routesSwap.returnAmount,
+        swapAmount: route.swapAmount,
+        returnAmount: route.returnAmount,
         swapOps: ops
       };
     });
@@ -545,7 +547,6 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
-    routerClient: OraiswapRouterReadOnlyInterface;
   }): Promise<SmartRouterResponse> => {
     const { amount, fromInfo, toInfo } = query;
 
