@@ -189,11 +189,13 @@ export const calculateMinReceive = (
 };
 
 export const parseAssetInfoFromContractAddrOrDenom = (addressOrDenomToken: string) => {
-  const tokenItem = cosmosTokens.find((cosmos) => {
-    if (!cosmos.contractAddress) return cosmos.denom === addressOrDenomToken;
-    return cosmos.contractAddress === addressOrDenomToken;
+  if (!addressOrDenomToken) return null;
+  const tokenItem = cosmosTokens.find((cosmosToken) => {
+    return !cosmosToken.contractAddress
+      ? cosmosToken.denom === addressOrDenomToken
+      : cosmosToken.contractAddress === addressOrDenomToken;
   });
-  return parseTokenInfo(tokenItem).info;
+  return tokenItem ? parseTokenInfo(tokenItem).info : null;
 };
 
 export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string): { fund?: Coin; info: AssetInfo } => {

@@ -120,7 +120,6 @@ export type SmartRouterResponse = {
 export type SmartRouterResponseAPI = {
   swapAmount: string;
   returnAmount: string;
-  // routes: any;
   routes: {
     swapAmount: string;
     returnAmount: string;
