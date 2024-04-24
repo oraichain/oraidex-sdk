@@ -625,6 +625,7 @@ export class UniversalSwapHelper {
     originalToInfo: TokenItemType;
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
+    useSmartRoute?: boolean;
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
@@ -652,12 +653,22 @@ export class UniversalSwapHelper {
       throw new Error(
         `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
       );
-    const { amount } = await UniversalSwapHelper.simulateSwap({
-      fromInfo,
-      toInfo,
-      amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
-      routerClient: query.routerClient
-    });
+    const amount = query.useSmartRoute
+      ? (
+          await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+            fromInfo,
+            toInfo,
+            amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
+          })
+        ).returnAmount
+      : (
+          await UniversalSwapHelper.simulateSwap({
+            fromInfo,
+            toInfo,
+            amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+            routerClient: query.routerClient
+          })
+        ).amount;
     return {
       amount,
       displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals)
