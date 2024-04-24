@@ -998,28 +998,37 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  it.each<[boolean, boolean, string]>([
-    [false, false, "1"],
-    [false, true, "2"],
-    [true, false, "2"],
-    [true, true, "2"]
-  ])("test handleSimulateSwap", async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, expectedSimulateAmount) => {
-    const simulateSwapSpy = jest.spyOn(UniversalSwapHelper, "simulateSwap");
-    const simulateSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "simulateSwapEvm");
-    simulateSwapSpy.mockResolvedValue({ amount: "1" });
-    simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
-    const isSupportedNoPoolSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm");
-    const isEvmSwappableSpy = jest.spyOn(UniversalSwapHelper, "isEvmSwappable");
-    isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
-    isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
-    const simulateData = await handleSimulateSwap({
-      originalFromInfo: oraichainTokens[0],
-      originalToInfo: oraichainTokens[0],
-      originalAmount: 0,
-      routerClient: new OraiswapRouterQueryClient(client, "")
-    });
-    expect(simulateData.amount).toEqual(expectedSimulateAmount);
-  });
+  it.each<[boolean, boolean, boolean, string]>([
+    [false, false, false, "1"],
+    [false, true, false, "2"],
+    [true, false, false, "2"],
+    [true, true, false, "2"],
+    [false, false, true, "3"]
+  ])(
+    "test handleSimulateSwap",
+    async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, useSmartRoute, expectedSimulateAmount) => {
+      const simulateSwapSpy = jest.spyOn(UniversalSwapHelper, "simulateSwap");
+      const simulateSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "simulateSwapEvm");
+      const simulateSwapUseSmartRoute = jest.spyOn(UniversalSwapHelper, "querySmartRoute");
+
+      simulateSwapSpy.mockResolvedValue({ amount: "1" });
+      simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
+      simulateSwapUseSmartRoute.mockResolvedValue({ returnAmount: "3", swapAmount: "3", routes: [] });
+
+      const isSupportedNoPoolSwapEvmSpy = jest.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm");
+      const isEvmSwappableSpy = jest.spyOn(UniversalSwapHelper, "isEvmSwappable");
+      isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
+      isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
+      const simulateData = await handleSimulateSwap({
+        originalFromInfo: oraichainTokens[0],
+        originalToInfo: oraichainTokens[1],
+        originalAmount: 0,
+        routerClient: new OraiswapRouterQueryClient(client, ""),
+        useSmartRoute
+      });
+      expect(simulateData.amount).toEqual(expectedSimulateAmount);
+    }
+  );
 
   it.each<[boolean, string]>([
     [true, IBC_WASM_CONTRACT_TEST],
