@@ -540,6 +540,40 @@ export class UniversalSwapHelper {
     }
   };
 
+  // simulate swap functions
+  static simulateSwapUsingSmartRoute = async (query: {
+    fromInfo: TokenItemType;
+    toInfo: TokenItemType;
+    amount: string;
+    routerClient: OraiswapRouterReadOnlyInterface;
+  }): Promise<SmartRouterResponse> => {
+    const { amount, fromInfo, toInfo } = query;
+
+    // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
+    if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+      return {
+        swapAmount: amount,
+        returnAmount: amount,
+        routes: []
+      };
+    }
+
+    // check if they have pairs. If not then we go through ORAI
+    const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
+    const { info: askInfo } = parseTokenInfo(toInfo);
+    try {
+      return await UniversalSwapHelper.generateSmartRouteForSwap(
+        offerInfo,
+        fromInfo.chainId,
+        askInfo,
+        toInfo.chainId,
+        amount
+      );
+    } catch (error) {
+      throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+    }
+  };
+
   static simulateSwapEvm = async (query: {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;

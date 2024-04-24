@@ -49,6 +49,7 @@ export interface UniversalSwapData {
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
+  readonly smartRoutes?: SmartRouteSwapOperations[];
 }
 
 /**
