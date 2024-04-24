@@ -438,7 +438,7 @@ export class UniversalSwapHelper {
     return UniversalSwapHelper.generateSwapRoute(offerInfo, askInfo, [ORAI_INFO]);
   };
 
-  static generateRouteForSwap = async (
+  static querySmartRoute = async (
     offerInfo: AssetInfo,
     offerChainId: string,
     askInfo: AssetInfo,
@@ -471,7 +471,7 @@ export class UniversalSwapHelper {
     askChainId: string,
     offerAmount: string
   ): Promise<SmartRouterResponse> => {
-    const { returnAmount, routes } = await UniversalSwapHelper.generateRouteForSwap(
+    const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
       offerChainId,
       askInfo,
