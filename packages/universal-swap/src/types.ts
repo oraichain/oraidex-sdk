@@ -116,4 +116,18 @@ export type SmartRouterResponse = {
   routes: SmartRouteSwapOperations[];
 };
 
+export type SmartRouterResponseAPI = {
+  swapAmount: string;
+  returnAmount: string;
+  // routes: any;
+  routes: {
+    swapAmount: string;
+    returnAmount: string;
+    paths: {
+      poolId: string;
+      tokenOut: string;
+    }[];
+  }[];
+};
+
 export type ConvertType = Convert | ConvertReverse;

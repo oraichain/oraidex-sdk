@@ -43,7 +43,10 @@ import {
   tokenMap,
   oraib2oraichainTest,
   getSubAmountDetails,
-  evmChains
+  evmChains,
+  getAxios,
+  parseAssetInfoFromContractAddrOrDenom,
+  parseAssetInfo
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -51,6 +54,7 @@ import {
   OraiBridgeRouteData,
   SimulateResponse,
   SmartRouterResponse,
+  SmartRouterResponseAPI,
   SmartRouteSwapOperations,
   SwapDirection,
   SwapRoute,
@@ -434,6 +438,32 @@ export class UniversalSwapHelper {
     return UniversalSwapHelper.generateSwapRoute(offerInfo, askInfo, [ORAI_INFO]);
   };
 
+  static generateRouteForSwap = async (
+    offerInfo: AssetInfo,
+    offerChainId: string,
+    askInfo: AssetInfo,
+    askChainId: string,
+    offerAmount: string
+  ): Promise<SmartRouterResponseAPI> => {
+    const urlRouter = "https://router.oraidex.io";
+    const { axios } = await getAxios(urlRouter);
+    const data = {
+      sourceAsset: parseAssetInfo(offerInfo),
+      sourceChainId: offerChainId,
+      destAsset: parseAssetInfo(askInfo),
+      destChainId: askChainId,
+      offerAmount: offerAmount
+    };
+    const res: {
+      data: SmartRouterResponseAPI;
+    } = await axios.post("/smart-router", data);
+    return {
+      swapAmount: res.data.swapAmount,
+      returnAmount: res.data.returnAmount,
+      routes: res.data.routes
+    };
+  };
+
   static generateSmartRouteForSwap = async (
     offerInfo: AssetInfo,
     offerChainId: string,
@@ -441,32 +471,39 @@ export class UniversalSwapHelper {
     askChainId: string,
     offerAmount: string
   ): Promise<SmartRouterResponse> => {
-    let res: any = {};
+    const { returnAmount, routes } = await UniversalSwapHelper.generateRouteForSwap(
+      offerInfo,
+      offerChainId,
+      askInfo,
+      askChainId,
+      offerAmount
+    );
 
-    let routes = res.routes.map((route) => {
+    const routesSwap = routes.map((route) => {
       let ops = [];
       let currTokenIn = offerInfo;
       for (let path of route.paths) {
+        let tokenOut = parseAssetInfoFromContractAddrOrDenom(path.tokenOut);
         ops.push({
           orai_swap: {
             offer_asset_info: currTokenIn,
-            ask_asset_info: path.tokenOut
+            ask_asset_info: tokenOut
           }
         });
 
-        currTokenIn = path.tokenOut;
+        currTokenIn = tokenOut;
       }
 
       return {
-        swapAmount: route.swapAmount,
-        returnAmount: route.returnAmount,
+        swapAmount: routesSwap.swapAmount,
+        returnAmount: routesSwap.returnAmount,
         swapOps: ops
       };
     });
     return {
       swapAmount: offerAmount,
-      returnAmount: res.returnAmount,
-      routes
+      returnAmount,
+      routes: routesSwap
     };
   };
 
