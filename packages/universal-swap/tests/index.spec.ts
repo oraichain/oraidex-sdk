@@ -980,6 +980,24 @@ describe("test universal swap handler functions", () => {
     }
   );
 
+  it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
+    ["oraichain-token", "oraichain-token", "1000000", "1000000"],
+    ["tron", "airight", "100000", "100000"]
+  ])(
+    "test simulateSwapUsingSmartRoute-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
+    async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {
+      const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
+      const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
+      jest
+        .spyOn(UniversalSwapHelper, "querySmartRoute")
+        .mockResolvedValue({ swapAmount: amount, returnAmount: amount, routes: [] });
+      const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
+      const query = { fromInfo, toInfo, amount };
+      const simulateData = await UniversalSwapHelper.simulateSwapUsingSmartRoute(query);
+      expect(simulateData.returnAmount).toEqual(expectedSimulateData);
+    }
+  );
+
   it.each<[boolean, boolean, string]>([
     [false, false, "1"],
     [false, true, "2"],
