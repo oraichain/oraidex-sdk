@@ -13,7 +13,7 @@ export async function getAxios(baseUrl?: string) {
         threshold: AXIOS_THROTTLE_THRESHOLD
       })
     ),
-    baseURL: baseUrl ?? "https://api.oraidex.io"
+    baseURL: baseUrl
   });
 
   return { axios };
