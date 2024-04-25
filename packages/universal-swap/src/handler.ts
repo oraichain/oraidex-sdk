@@ -797,10 +797,7 @@ export class UniversalSwapHandler {
   ): ExecuteInstruction[] {
     const msgs: ExecuteInstruction[] = routes.map((route) => {
       const minimumReceive = Math.trunc(
-        new BigDecimal(route.returnAmount)
-          .mul((100 - this.swapData.userSlippage) / 100)
-          .div(10n ** BigInt(fromTokenOnOrai.decimals))
-          .toNumber()
+        new BigDecimal(route.returnAmount).mul((100 - this.swapData.userSlippage) / 100).toNumber()
       ).toString();
 
       const swapOps = {
