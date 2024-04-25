@@ -6,11 +6,16 @@
     "build/"
   ],
   "license": "MIT",
+  "scripts": {
+    "dev": "cross-env NODE_ENV=development ts-node src/index.ts",
+    "prod": "cross-env NODE_ENV=production ts-node src/index.ts",
+    "test": "cross-env NODE_ENV=development hardhat test"
+  },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.27.1-dev125.0",
     "@oraichain/oraidex-common": "^1.0.10",
     "@oraichain/oraidex-contracts-sdk": "^1.0.24",
-    "@oraichain/oraidex-universal-swap": "1.0.14",
+    "@oraichain/oraidex-universal-swap": "^1.0.15",
     "@xstate/inspect": "^0.8.0",
     "bech32": "1.1.4",
     "ethers": "^5.5.1",
@@ -19,7 +24,8 @@
     "web-worker": "^1.2.0",
     "ws": "^8.14.2",
     "xstate": "^4.38.2",
-    "duckdb-async": "^0.9.2"
+    "duckdb-async": "^0.9.2",
+    "async-mutex": "^0.5.0"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.2.3",
@@ -32,6 +38,10 @@
     "hardhat": "^2.18.2",
     "jest-websocket-mock": "^2.5.0",
     "mockthereum": "^0.2.0",
-    "ts-results": "^3.3.0"
+    "ts-results": "^3.3.0",
+    "@types/chai": "^4.3.14",
+    "@types/mocha": "^10.0.6",
+    "cross-env": "^7.0.3",
+    "chai": "^4.4.1"
   }
 }

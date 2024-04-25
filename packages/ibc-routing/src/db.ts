@@ -1,13 +1,18 @@
-import * as duckdb from "@duckdb/duckdb-wasm";
-import { generateError, toObject } from "@oraichain/oraidex-common";
 import { Connection, Database } from "duckdb-async";
-import fs from "fs";
-import { resolve } from "path";
-import Worker from "web-worker";
+import _ from "lodash";
+import { DatabaseEnum } from "./constants";
 
+// The below state field to confirm whether a state is completedly finished or not
+// Notice: there are some tuples that are unique, such as:
+// 1. (eventNonce, evmChainPrefix)
+// 2. (txId, evmChainPrefix)
+// 3. (batchNonce, denom, evmChainPrefix)
+// 4. (packetSequence, srcChannel, portChannel)
+// 5. soon...
+// TODO: fix passing data flow by apache-arrow
 export const sqlCommands = {
   create: {
-    EvmState: `create table if not exists EvmState 
+    [DatabaseEnum.Evm]: `create table if not exists EvmState 
     (
       txHash varchar,
       height uinteger,
@@ -15,15 +20,18 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       destination varchar,
-      fromAmount hugeint,
+      fromAmount varchar,
       oraiBridgeChannelId varchar,
       oraiReceiver varchar,
       destinationDenom varchar,
       destinationChannelId varchar,
       destinationReceiver varchar,
-      eventNonce uinteger primary key,
+      eventNonce uinteger,
+      evmChainPrefix varchar,
+      status varchar,
+      primary key (eventNonce, evmChainPrefix),
     )`,
-    OraiBridgeState: `create table if not exists OraiBridgeState 
+    [DatabaseEnum.OraiBridge]: `create table if not exists OraiBridgeState 
     (
       txHash varchar,
       height uinteger,
@@ -31,8 +39,11 @@ export const sqlCommands = {
       prevTxHash varchar,
       nextState varchar,
       eventNonce uinteger,
-      packetSequence uinteger primary key,
-      amount hugeint,
+      batchNonce uinteger,
+      txId uinteger,
+      evmChainPrefix varchar,
+      packetSequence uinteger,
+      amount varchar,
       denom varchar,
       memo varchar,
       receiver varchar,
@@ -41,48 +52,76 @@ export const sqlCommands = {
       srcChannel varchar,
       dstPort varchar,
       dstChannel varchar,
+      status varchar,
+      primary key (packetSequence, srcChannel, dstChannel)
     )`,
-    OraichainState: `create table if not exists OraichainState 
+    [DatabaseEnum.Oraichain]: `create table if not exists OraichainState 
     (
-        txHash varchar,
-        height uinteger,
-        prevState varchar,
-        prevTxHash varchar,
-        nextState varchar,
-        packetSequence uinteger primary key,
-        packetAck varchar,
-        nextPacketSequence uinteger,
-        nextMemo varchar,
-        nextAmount hugeint,
-        nextReceiver varchar,
-        nextDestinationDenom varchar,
-    )`
-  },
-  query: {
-    evmStateByHash: "SELECT * from EvmState where txHash = ?",
-    evmStateByNonce: "SELECT * from EvmState where eventNonce = ?",
-    oraiBridgeStateByNonce: `
-      SELECT * from OraiBridgeState where eventNonce = ?
-      `,
-    oraiBridgeStateBySequence: `
-      SELECT * from OraiBridgeState where packetSequence = ?
-      `,
-    oraichainStateByPacketSequence: `
-      SELECT * from OraichainState where packetSequence = ?
-      `,
-    stateDataByPacketSequence: (tableName: string) => `SELECT * from ${tableName} where packetSequence = ?`
+      txHash varchar,
+      height uinteger,
+      prevState varchar,
+      prevTxHash varchar,
+      nextState varchar,
+      packetSequence uinteger,
+      packetAck varchar,
+      sender varchar,
+      localReceiver varchar,
+      nextPacketSequence uinteger,
+      nextMemo varchar,
+      nextAmount varchar,
+      nextReceiver varchar,
+      nextDestinationDenom varchar,
+      srcChannel varchar,
+      dstChannel varchar,
+      status varchar,
+      primary key (packetSequence, srcChannel, dstChannel)
+    )`,
+    [DatabaseEnum.Cosmos]: `create table if not exists CosmosState
+    (
+      txHash varchar,
+      height uinteger,
+      chainId varchar,
+      prevState varchar,
+      prevTxHash varchar,
+      nextState varchar,
+      packetSequence uinteger,
+      amount varchar,
+      denom varchar,
+      memo varchar,
+      receiver varchar,
+      sender varchar,
+      srcPort varchar,
+      srcChannel varchar,
+      dstPort varchar,
+      dstChannel varchar,
+      status varchar,
+      primary key (packetSequence, srcChannel, dstChannel)
+    )
+    `
   }
 };
 
+// TODO: Change some query and update here to make it more general
+// to use all at one function instead of create multiple functions here.
 export abstract class DuckDB {
   abstract createTable(): Promise<void>;
-  abstract queryInitialEvmStateByHash(txHash: string): Promise<any>;
-  abstract queryInitialEvmStateByNonce(nonce: number): Promise<any>;
-  abstract queryOraiBridgeStateByNonce(eventNonce: number): Promise<any>;
-  abstract queryOraiBridgeStateBySequence(packetSequence: number): Promise<any>;
-  abstract queryOraichainStateBySequence(packetSequence: number): Promise<any>;
-  abstract findStateByPacketSequence(packetSequence: number): Promise<any>;
-  abstract insertData(data: any, tableName: string): Promise<void>;
+  // General
+  abstract select(tableName: DatabaseEnum, options?: OptionInterface): Promise<any>;
+  abstract insert(tableName: DatabaseEnum, data: Object): Promise<void>;
+  abstract update(tableName: DatabaseEnum, overrideData: Object, options: OptionInterface): Promise<void>;
+  // ONLY FOR TEST
+  abstract dropTable(tableName: string): Promise<void>;
+}
+
+export interface PaginationInterface {
+  limit?: number;
+  offset?: number;
+}
+
+export interface OptionInterface {
+  where?: Object;
+  attributes?: string[];
+  pagination?: PaginationInterface;
 }
 
 // TODO: use vector instead of writing to files
@@ -105,154 +144,92 @@ export class DuckDbNode extends DuckDB {
     return DuckDbNode.instances;
   }
 
+  // GENERAL FUNCTIONS (IDEA SAME AS ORM)
+  // SEE db.spec.ts for sampleing usage
+  /**
+   * @dev
+   * @params where: which is where query
+   * @params attributes: is the columns that you want to display, empty is *
+   * @params pagination: for pagination like limit and offset
+   */
+  async select(tableName: DatabaseEnum, options?: OptionInterface): Promise<any> {
+    const defaultOptions = {
+      where: {},
+      attributes: [],
+      pagination: {}
+    };
+    const [query, values] = this.selectClause(tableName, { ...defaultOptions, ...options });
+    const result = await this.conn.all(query, ...values);
+    return result;
+  }
+
+  async insert(tableName: DatabaseEnum, data: Object): Promise<void> {
+    const [query, values] = this.insertClause(tableName, data);
+    await this.conn.run(query, ...values);
+  }
+
+  async update(tableName: DatabaseEnum, overrideData: Object, options: OptionInterface): Promise<void> {
+    const [query, values] = this.updateClause(tableName, overrideData, options);
+    await this.conn.run(query, ...values);
+  }
+
   async createTable() {
     for (const createCommand of Object.values(sqlCommands.create)) {
       await this.conn.exec(createCommand);
     }
   }
 
-  async queryInitialEvmStateByHash(txHash: string) {
-    const result = await this.conn.all(sqlCommands.query.evmStateByHash, txHash);
-    if (result.length > 0) return result[0];
-    return [];
+  async dropTable(tableName: string) {
+    const query = `DROP TABLE ${tableName}`;
+    await this.conn.run(query);
   }
 
-  async queryInitialEvmStateByNonce(nonce: number) {
-    const result = await this.conn.all(sqlCommands.query.evmStateByNonce, nonce);
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraiBridgeStateByNonce(eventNonce: number) {
-    const result = await this.conn.all(sqlCommands.query.oraiBridgeStateByNonce, eventNonce);
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
-    const result = await this.conn.all(sqlCommands.query.oraiBridgeStateBySequence, packetSequence);
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraichainStateBySequence(packetSequence: number) {
-    const result = await this.conn.all(sqlCommands.query.oraichainStateByPacketSequence, packetSequence);
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async findStateByPacketSequence(packetSequence: number): Promise<any> {
-    for (const tableName of Object.keys(sqlCommands.create)) {
-      try {
-        const result = await this.conn.all(sqlCommands.query.stateDataByPacketSequence(tableName), packetSequence);
-        if (result.length > 0) return { tableName, state: result[0] };
-      } catch (error) {
-        // ignore errors because some tables may not have packetSequence column
-      }
+  // ORM BASIC
+  selectClause(
+    tableName: string,
+    options: OptionInterface = {
+      where: {},
+      attributes: [],
+      pagination: {}
     }
-    return { tableName: "", state: "" };
+  ): [string, any[]] {
+    const attributes = options.attributes;
+    const whereKeys = Object.keys(options.where);
+    const whereValues = Object.values(options.where);
+    const whereClauses = whereKeys.length > 0 ? `WHERE ${whereKeys.map((item) => `${item} = ?`).join(" AND ")}` : "";
+    const paginationKeys = Object.keys(options.pagination);
+    const paginationValues = Object.values(options.pagination);
+    const paginationClause =
+      paginationKeys.length > 0
+        ? `${options.pagination?.limit ? `LIMIT ?` : ""} ${options.pagination?.offset ? "OFFSET ?" : ""}`
+        : "";
+
+    const query = _.trim(
+      `SELECT ${
+        attributes.length > 0 ? attributes.join(", ") : "*"
+      } FROM ${tableName} ${whereClauses} ${paginationClause}`
+    );
+
+    return [query, [...whereValues, ...paginationValues]];
   }
 
-  // TODO: use typescript here instead of any
-  async insertData(data: any, tableName: string) {
-    const tableFile = `${tableName}.json`;
-    // the file written out is temporary only. Will be deleted after insertion
-    await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-    const query = `INSERT INTO ${tableName} SELECT * FROM read_json_auto(?)`;
-    await this.conn.run(query, tableFile);
-    await fs.promises.unlink(tableFile);
-  }
-}
-
-export class DuckDbWasm extends DuckDB {
-  static instances: DuckDbWasm;
-  protected constructor(public readonly conn: duckdb.AsyncDuckDBConnection, private db: duckdb.AsyncDuckDB) {
-    super();
+  insertClause(tableName: string, data: Object): [string, any[]] {
+    const keys = Object.keys(data);
+    const values = Object.values(data);
+    const query = `INSERT OR IGNORE INTO ${tableName} (${keys.join(", ")}) VALUES (${keys.map((_) => "?").join(", ")})`;
+    return [_.trim(query), values];
   }
 
-  static async create(currentRootDir: string): Promise<DuckDbWasm> {
-    const DUCKDB_DIST = resolve(currentRootDir, "node_modules/@duckdb/duckdb-wasm/dist");
-    const getDuckDbDist = (type: string) => {
-      return {
-        mainModule: resolve(DUCKDB_DIST, `./duckdb-${type}.wasm`),
-        mainWorker: resolve(DUCKDB_DIST, `./duckdb-node-${type}.worker.cjs`)
-      };
-    };
-    const MANUAL_BUNDLES: duckdb.DuckDBBundles = {
-      mvp: getDuckDbDist("mvp"),
-      eh: getDuckDbDist("eh")
-    };
-    // Select a bundle based on browser checks
-    // Select a bundle based on browser checks
-    const bundle = await duckdb.selectBundle(MANUAL_BUNDLES);
-    // Instantiate the asynchronus version of DuckDB-wasm
-    const worker = new Worker(bundle.mainWorker!);
-    const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.INFO);
-    const db = new duckdb.AsyncDuckDB(logger, worker);
-    // Instantiate the asynchronus version of DuckDB-wasm
-    await db.instantiate(MANUAL_BUNDLES.eh.mainModule);
-    const conn = await db.connect();
-    DuckDbWasm.instances = new DuckDbWasm(conn, db);
-    return DuckDbWasm.instances;
-  }
+  updateClause(tableName: DatabaseEnum, overrideData: Object, options: OptionInterface): [string, any[]] {
+    const overrideDataKeys = Object.keys(overrideData);
+    const overrideDataValues = Object.values(overrideData);
+    const setDataClause = `SET ${overrideDataKeys.map((item) => `${item} = ?`).join(", ")}`;
+    const whereKeys = Object.keys(options.where);
+    const whereValues = Object.values(options.where);
+    const whereClauses = whereKeys.length > 0 ? `WHERE ${whereKeys.map((item) => `${item} = ?`).join(" AND ")}` : "";
 
-  async createTable() {
-    for (const createCommand of Object.values(sqlCommands.create)) {
-      await this.conn.send(createCommand);
-    }
-  }
+    const query = _.trim(`UPDATE ${tableName} ${setDataClause} ${whereClauses}`);
 
-  async queryInitialEvmStateByHash(txHash: string) {
-    const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
-    const result = (await stmt.query(txHash)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryInitialEvmStateByNonce(nonce: number) {
-    const stmt = await this.conn.prepare(sqlCommands.query.evmStateByHash);
-    const result = (await stmt.query(nonce)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraiBridgeStateByNonce(eventNonce: number) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateByNonce);
-    const result = (await stmt.query(eventNonce)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraiBridgeStateBySequence(packetSequence: number): Promise<any> {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraiBridgeStateBySequence);
-    const result = (await stmt.query(packetSequence)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async queryOraichainStateBySequence(packetSequence: number) {
-    const stmt = await this.conn.prepare(sqlCommands.query.oraichainStateByPacketSequence);
-    const result = (await stmt.query(packetSequence)).toArray();
-    if (result.length > 0) return result[0];
-    return [];
-  }
-
-  async findStateByPacketSequence(packetSequence: number): Promise<any> {
-    throw generateError("Not implemented");
-  }
-
-  async insertData(data: any, tableName: string) {
-    // TODO: FIXME
-    //   try {
-    //     const tableFile = `${tableName}.json`;
-    //     // the file written out is temporary only. Will be deleted after insertion
-    //     await fs.promises.writeFile(tableFile, JSON.stringify(toObject(data)));
-    //     const query = `INSERT OR REPLACE INTO ${tableName} SELECT * FROM read_json_auto(?)`;
-    //     const stmt = await this.conn.prepare(query);
-    //     await stmt.send(query, tableFile);
-    //     await fs.promises.unlink(tableFile);
-    //   } catch (error) {
-    //     console.log("insert data error: ", error);
-    //   }
+    return [query, [...overrideDataValues, ...whereValues]];
   }
 }

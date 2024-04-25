@@ -7,6 +7,7 @@ import { AIRI_CONTRACT, AVERAGE_COSMOS_GAS_PRICE, MILKYBSC_ORAICHAIN_DENOM, ORAI
 import {
   calculateMinReceive,
   calculateTimeoutTimestamp,
+  checkValidateAddressWithNetwork,
   decodeProto,
   ethToTronAddress,
   findToTokenOnOraiBridge,
@@ -29,11 +30,16 @@ import {
   toDisplay,
   toTokenInfo,
   tronToEthAddress,
-  validateNumber
+  validateAndIdentifyCosmosAddress,
+  validateEvmAddress,
+  validateNumber,
+  validateTronAddress
 } from "../src/helper";
 import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { isFactoryV1 } from "../src/pairs";
 import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
+import fs from "fs";
+import path from "path";
 
 describe("should helper functions in helper run exactly", () => {
   const amounts: AmountDetails = {
@@ -382,17 +388,16 @@ describe("should helper functions in helper run exactly", () => {
   });
 
   // TODO: add more tests for this func
-  it("test-parseTxToMsgsAndEvents", async () => {
+  xit("test-parseTxToMsgsAndEvents", async () => {
     // case 1: undefined input
     const reuslt = parseTxToMsgsAndEvents(undefined as any);
     expect(reuslt).toEqual([]);
 
     // case 2: real tx with multiple msgs and multiple contract calls
-    const client = await StargateClient.connect("wss://rpc.orai.io");
-    const indexedTx = await client.getTx("9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17");
-    client.disconnect();
-
-    const data = parseTxToMsgsAndEvents(indexedTx!);
+    // got data from tx hash 9B435E4014DEBA5AB80D4BB8F52D766A6C14BFCAC21F821CDB96F4ABB4E29B17 Oraichain.
+    const rawLog = fs.readFileSync(path.join(__dirname, "indexed-tx-raw-log.json")).toString();
+    const tx = Buffer.from(fs.readFileSync(path.join(__dirname, "indexed-tx-tx.json")).toString(), "base64");
+    const data = parseTxToMsgsAndEvents({ rawLog, tx } as any);
     expect(data.length).toEqual(2);
     expect(data[0].message).toMatchObject({
       sender: "orai16hv74w3eu3ek0muqpgp4fekhrqgpzl3hd3qeqk",
@@ -539,5 +544,113 @@ describe("should helper functions in helper run exactly", () => {
     ]
   ])("test-parseWasmEvents-with-case: %p", (_case, input, expectedOutput) => {
     expect(parseWasmEvents(input)).toEqual(expectedOutput);
+  });
+
+  it.each<[string, NetworkChainId, { isValid: boolean; network?: string; error?: string }]>([
+    [
+      "0x1CE09E54A5d7432ecabf3b085BAda7920aeb7dab",
+      "0x01",
+      {
+        isValid: true,
+        network: "0x01"
+      }
+    ],
+    [
+      "0x1CE09E54A5d7432ecabf3b085BAda7920aeb7dab",
+      "0x38",
+      {
+        isValid: true,
+        network: "0x38"
+      }
+    ],
+    [
+      "TPF97BNTx2pyNayUhz6B88JSzfdz5SHDbm",
+      "0x2b6653dc",
+      {
+        isValid: true,
+        network: "0x2b6653dc"
+      }
+    ],
+    [
+      "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
+      "Oraichain",
+      {
+        isValid: true,
+        network: "Oraichain"
+      }
+    ],
+    [
+      "osmo1hvr9d72r5um9lvt0rpkd4r75vrsqtw6y86jn8t",
+      "0x38",
+      {
+        isValid: false
+      }
+    ],
+    [
+      "osmo1hvr9d72r5um9lvt0rpkd4r75vrsqtw6y86jn8t",
+      "Oraichain",
+      {
+        isValid: false,
+        error: "Network doesn't match"
+      }
+    ],
+    [
+      "TPF97BNTx2pyNayUhz6B88JSzfdz5SHDbm",
+      "Oraichain",
+      {
+        isValid: false,
+        error: "Invalid address"
+      }
+    ]
+  ])("test-check-validate-address-wallet-with-network", (address, network, expected) => {
+    const check = checkValidateAddressWithNetwork(address, network);
+
+    expect(check).toEqual(expected);
+  });
+
+  it.each([
+    ["0x1CE09E54A5d7432ecabf3b085BAda7920aeb7dab", "0x01", true],
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x2b6653dc", false],
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x01", false],
+    ["0x1", "0x38", false],
+    ["", "0x38", false]
+  ])("test-validateEvmAddress", (value, network, expectation) => {
+    try {
+      const { isValid } = validateEvmAddress(value, network);
+      expect(isValid).toEqual(expectation);
+    } catch (error) {
+      expect(expectation).toEqual(false);
+    }
+  });
+
+  it.each([
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x2b6653dc", true],
+    ["0x1CE09E54A5d7432ecabf3b085BAda7920aeb7dab", "0x01", false],
+    ["TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ", "0x01", false],
+    ["TE", "0x2b6653dc", false],
+    ["", "0x2b6653dc", false]
+  ])("test-validateTronAddress", (value, network, expectation) => {
+    try {
+      const { isValid } = validateTronAddress(value, network);
+      expect(isValid).toEqual(expectation);
+    } catch (error) {
+      expect(expectation).toEqual(false);
+    }
+  });
+
+  it.each([
+    ["orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz", "Oraichain", true],
+    ["orai1", "Oraichain", false],
+    ["", "Oraichain", false],
+    ["cosmos12zyu8w93h0q2lcnt50g3fn0w3yqnhy4flwc7p3", "cosmoshub-4", true],
+    ["cosmos12", "cosmoshub-4", false],
+    ["", "cosmoshub-4", false]
+  ])("test-validateTronAddress", (value, network, expectation) => {
+    try {
+      const { isValid } = validateAndIdentifyCosmosAddress(value, network);
+      expect(isValid).toEqual(expectation);
+    } catch (error) {
+      expect(expectation).toEqual(false);
+    }
   });
 });

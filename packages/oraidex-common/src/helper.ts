@@ -1,39 +1,39 @@
 import { ExecuteInstruction, JsonObject, fromBinary, toBinary, wasmTypes } from "@cosmjs/cosmwasm-stargate";
 import { fromAscii, toUtf8 } from "@cosmjs/encoding";
 import { Coin, EncodeObject, Registry, decodeTxRaw } from "@cosmjs/proto-signing";
-import { Event, Attribute } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { defaultRegistryTypes as defaultStargateTypes, logs } from "@cosmjs/stargate";
+import { Attribute, Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import bech32 from "bech32";
+import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { ethers } from "ethers";
 import Long from "long";
+import { BigDecimal } from "./bigdecimal";
 import {
   AVERAGE_COSMOS_GAS_PRICE,
+  CW20_DECIMALS,
+  GAS_ESTIMATION_BRIDGE_DEFAULT,
+  MULTIPLIER,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
   atomic,
-  truncDecimals,
-  GAS_ESTIMATION_BRIDGE_DEFAULT,
-  MULTIPLIER,
-  CW20_DECIMALS
+  truncDecimals
 } from "./constant";
-import { CoinGeckoId, NetworkChainId } from "./network";
+import { CoinGeckoId, NetworkChainId, cosmosChains } from "./network";
 import {
   AmountDetails,
+  CoinGeckoPrices,
   TokenInfo,
   TokenItemType,
   cosmosTokens,
   flattenTokens,
   oraichainTokens,
-  CoinGeckoPrices,
   tokenMap
 } from "./token";
 import { StargateMsg, Tx } from "./tx";
-import { BigDecimal } from "./bigdecimal";
-import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
-import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -431,10 +431,10 @@ export const fetchRetry = async (url: RequestInfo | URL, options: RequestInit & 
 /**
  * @deprecated since version 1.0.76. Use `parseAssetInfo` instead.
  */
-export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
+export const parseAssetInfoOnlyDenom = (info: AssetInfo): string => {
   if ("native_token" in info) return info.native_token.denom;
   return info.token.contract_addr;
-}
+};
 
 export const decodeProto = (value: JsonObject) => {
   if (!value) throw "value is not defined";
@@ -488,4 +488,124 @@ export const parseTxToMsgsAndEvents = (indexedTx: Tx, eventsParser?: (events: re
     const attrs = eventsParser ? eventsParser(log.events) : parseWasmEvents(log.events);
     return { attrs, message: messages[index] };
   });
+};
+
+export const splitOnce = (s: string, seperator: string) => {
+  const i = s.indexOf(seperator);
+  // cannot find seperator then return string
+  if (i === -1) return [s];
+  return [s.slice(0, i), s.slice(i + 1)];
+};
+
+export const validateAndIdentifyCosmosAddress = (address: string, network: string) => {
+  try {
+    const cosmosAddressRegex = /^[a-z]{1,6}[0-9a-z]{0,64}$/;
+    if (!cosmosAddressRegex.test(address)) {
+      throw new Error("Invalid address");
+    }
+
+    const decodedAddress = bech32.decode(address);
+    const prefix = decodedAddress.prefix;
+
+    let chainInfo;
+    const networkMap = cosmosChains.reduce((acc, cur) => {
+      if (cur.chainId === network) chainInfo = cur;
+      return {
+        ...acc,
+        [cur.bech32Config.bech32PrefixAccAddr]: true
+      };
+    }, {});
+
+    if (chainInfo && chainInfo.bech32Config.bech32PrefixAccAddr !== prefix) {
+      throw new Error("Network doesn't match");
+    }
+
+    if (networkMap.hasOwnProperty(prefix)) {
+      return {
+        isValid: true,
+        network
+      };
+    } else {
+      throw new Error("Unsupported address network");
+    }
+  } catch (error) {
+    console.log("error:", error);
+    return {
+      isValid: false,
+      error: error.message
+    };
+  }
+};
+
+export const validateEvmAddress = (address: string, network: string) => {
+  try {
+    const isEvm = ethers.utils.isAddress(address);
+
+    if (isEvm) {
+      return {
+        isValid: true,
+        network
+      };
+    }
+
+    return {
+      isValid: false
+    };
+  } catch (error) {
+    return {
+      isValid: false
+    };
+  }
+};
+
+export const validateTronAddress = (address: string, network: string) => {
+  try {
+    if (!/T[a-zA-Z0-9]{32}/.test(address)) {
+      throw new Error("Invalid tron address");
+    }
+
+    return {
+      isValid: true,
+      network
+    };
+
+    // const tronWeb = new TronWeb({
+    //   fullHost: "https://api.trongrid.io"
+    // });
+
+    // tronWeb.trx.getAccount(address).then((isValid) => {
+    //   if (isValid) {
+    //     return {
+    //       isValid: true,
+    //       network: "0x2b6653dc" //"tron"
+    //     };
+    //   } else {
+    //     console.error("Invalid address");
+
+    //     return {
+    //       isValid: false,
+    //       network: "0x2b6653dc" //"tron"
+    //     };
+    //   }
+    // });
+  } catch (error) {
+    return {
+      isValid: false
+    };
+  }
+};
+
+export const checkValidateAddressWithNetwork = (address: string, network: NetworkChainId) => {
+  switch (network) {
+    case "0x01":
+    case "0x38":
+      return validateEvmAddress(address, network);
+
+    // tron
+    case "0x2b6653dc":
+      return validateTronAddress(address, network);
+
+    default:
+      return validateAndIdentifyCosmosAddress(address, network);
+  }
 };

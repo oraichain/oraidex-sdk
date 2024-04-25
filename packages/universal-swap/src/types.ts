@@ -1,6 +1,5 @@
-import { CwIcs20LatestClient, CwIcs20LatestReadOnlyInterface } from "@oraichain/common-contracts-sdk";
 import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
-import { OraiswapRouterInterface, OraiswapRouterReadOnlyInterface, Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
@@ -36,6 +35,7 @@ export interface RelayerFeeData {
 }
 
 /**
+ * @property recipientAddress - recipient address from client, if user want to send to another address
  * @property simulatePrice - price of the token calculated with the quote. Eg: swapping ORAI to USDT => 1 ORAI = 2 USDT, then simulate price = 2. TODO: Auto simulate price if not passed
  */
 export interface UniversalSwapData {
@@ -49,6 +49,7 @@ export interface UniversalSwapData {
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
   readonly isSourceReceiverTest?: boolean;
+  readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
 }
 
 /**

@@ -2,11 +2,27 @@
 
 import "dotenv/config";
 import { ethers } from "ethers";
+import { resolve } from "path";
 import uws from "uWebSockets.js";
-import { autoForwardTag, onRecvPacketTag } from "./constants";
+import { getQueryRouting, submitRouting } from "./apis";
+import { config } from "./config";
+import {
+  autoForwardTag,
+  batchSendToEthClaimTag,
+  EvmRpcs,
+  GravityAddress,
+  onExecuteContractTag,
+  onRecvPacketTag,
+  requestBatchTag
+} from "./constants";
 import { DuckDbNode } from "./db";
 import { EthEvent, OraiBridgeEvent, OraichainEvent } from "./event";
-import { EvmEventHandler } from "./event-handler/evm-handler";
+import { EvmEventHandler } from "./event-handlers/evm.handler";
+import { OraiBridgeHandler } from "./event-handlers/oraibridge.handler";
+import { OraichainHandler } from "./event-handlers/oraichain.handler";
+import IntepreterManager from "./managers/intepreter.manager";
+
+let im = new IntepreterManager(false, resolve(__dirname, "../src/data"));
 
 uws
   .App({
@@ -27,41 +43,60 @@ uws
   //     console.log("ok: ", ok);
   //   }
   // })
-  .get("/*", (res, req) => {
-    /* It does Http as well */
-    res.writeStatus("200 OK").writeHeader("IsExample", "Yes").end("Hello there!");
+  .options("/api/routing", async (res, req) => {
+    setCorsHeaders(res);
+    res.end();
+  })
+  .get("/api/routing", async (res, req) => {
+    setCorsHeaders(res);
+    return getQueryRouting(res, req);
+  })
+  .post("/api/routing", (res, req) => {
+    setCorsHeaders(res);
+    return submitRouting(res, req, im);
   })
   .listen(9001, async (listenSocket) => {
     console.log("dirname: ", __dirname);
     if (listenSocket) {
       console.log("Listening to port 9001");
     }
-    // let duckDb: DuckDbNode | DuckDbWasm;
-    // if (process.env.NODE_ENV !== "production") {
-    //   duckDb = await DuckDbWasm.create(__dirname);
-    // } else {
-    //   duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME);
-    // }
-    const duckDb = await DuckDbNode.create(process.env.DUCKDB_FILE_NAME || ":memory:");
+    let duckDb: DuckDbNode;
+    duckDb = await DuckDbNode.create(resolve(__dirname, "data/db.duckdb"));
     await duckDb.createTable();
 
-    const evmEventHandler = new EvmEventHandler(duckDb);
-    const oraichainEventHandler = new EvmEventHandler(duckDb);
-    const oraibridgeEventHandler = new EvmEventHandler(duckDb);
-    // recover all previous intepreters so that we can be at the current states for all contexts
-    await evmEventHandler.recoverInterpreters();
-    await oraichainEventHandler.recoverInterpreters();
-    await oraibridgeEventHandler.recoverInterpreters();
-    const ethEvent = new EthEvent(evmEventHandler);
-    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, "bridge-v2.rpc.orai.io");
-    const oraichainEvent = new OraichainEvent(oraichainEventHandler, "rpc.orai.io");
-    // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
-    ethEvent.listenToEthEvent(
-      new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb"),
-      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"
-    );
-    await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
-    await oraichainEvent.connectCosmosSocket([onRecvPacketTag]);
+    im.recoverInterpreters();
 
-    // const { evmToOraichainMachine } = createMachines(duckDb);
+    const evmEventHandler = new EvmEventHandler(duckDb, im);
+    const oraichainEventHandler = new OraichainHandler(duckDb, im);
+    const oraibridgeEventHandler = new OraiBridgeHandler(duckDb, im);
+
+    const ethEvent = new EthEvent(evmEventHandler);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, config.ORAIBRIDGE_RPC_URL);
+    const oraichainEvent = new OraichainEvent(oraichainEventHandler, config.ORAICHAIN_RPC_URL);
+
+    // // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
+    for (const evmChainPrefix of Object.keys(EvmRpcs)) {
+      console.log("connecting socket to", evmChainPrefix);
+      ethEvent.listenToEthEvent(
+        new ethers.providers.JsonRpcProvider(EvmRpcs[evmChainPrefix]),
+        GravityAddress[evmChainPrefix],
+        evmChainPrefix
+      );
+    }
+
+    [autoForwardTag, requestBatchTag, batchSendToEthClaimTag].forEach((item) => {
+      oraiBridgeEvent.connectCosmosSocket([item]);
+    });
+
+    [onRecvPacketTag, onExecuteContractTag].forEach((item) => {
+      oraichainEvent.connectCosmosSocket([item]);
+    });
+    await oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
   });
+
+function setCorsHeaders(response) {
+  response.writeHeader("Access-Control-Allow-Origin", "*");
+  response.writeHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.writeHeader("Access-Control-Allow-Headers", "origin, content-type, accept, x-requested-with");
+  response.writeHeader("Access-Control-Max-Age", "3600");
+}

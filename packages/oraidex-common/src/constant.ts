@@ -1,4 +1,4 @@
-import { CosmosChainId, EvmChainId, chainInfos, cosmosChains, evmChains } from "./network";
+import { EvmChainId } from "./network";
 
 export const truncDecimals = 6;
 export const atomic = 10 ** truncDecimals;
@@ -39,10 +39,15 @@ export const BSC_SCAN = "https://bscscan.com";
 export const TRON_SCAN = "https://tronscan.org";
 export const KWT_SCAN = "https://scan.kawaii.global";
 
+export enum EvmChainPrefix {
+  BSC_MAINNET = "oraib",
+  ETH_MAINNET = "eth-mainnet",
+  TRON_MAINNET = "trontrx-mainnet"
+}
 export const ORAI_BRIDGE_UDENOM = "uoraib";
-export const ORAI_BRIDGE_EVM_DENOM_PREFIX = "oraib";
-export const ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX = "eth-mainnet";
-export const ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX = "trontrx-mainnet";
+export const ORAI_BRIDGE_EVM_DENOM_PREFIX = EvmChainPrefix.BSC_MAINNET;
+export const ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX = EvmChainPrefix.ETH_MAINNET;
+export const ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX = EvmChainPrefix.TRON_MAINNET;
 export const ORAI_BRIDGE_EVM_FEE = "1";
 export const ORAI_BRIDGE_CHAIN_FEE = "1";
 
