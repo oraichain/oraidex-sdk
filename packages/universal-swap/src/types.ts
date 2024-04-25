@@ -1,5 +1,5 @@
 import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
-import { Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
@@ -49,6 +49,7 @@ export interface UniversalSwapData {
   readonly relayerFee?: RelayerFeeData;
   readonly amounts?: AmountDetails;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
+  readonly smartRoutes?: SmartRouteSwapOperations[];
 }
 
 /**
@@ -102,6 +103,31 @@ export type ConvertReverse = {
   inputToken: TokenItemType;
   inputAmount: string;
   outputToken: TokenItemType;
+};
+
+export type SmartRouteSwapOperations = {
+  swapAmount: string;
+  returnAmount: string;
+  swapOps: SwapOperation[];
+};
+
+export type SmartRouterResponse = {
+  swapAmount: string;
+  returnAmount: string;
+  routes: SmartRouteSwapOperations[];
+};
+
+export type SmartRouterResponseAPI = {
+  swapAmount: string;
+  returnAmount: string;
+  routes: {
+    swapAmount: string;
+    returnAmount: string;
+    paths: {
+      poolId: string;
+      tokenOut: string;
+    }[];
+  }[];
 };
 
 export type ConvertType = Convert | ConvertReverse;

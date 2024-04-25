@@ -3,7 +3,7 @@ import { toBinary } from "@cosmjs/cosmwasm-stargate";
 import { StargateClient } from "@cosmjs/stargate";
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
-import { AIRI_CONTRACT, AVERAGE_COSMOS_GAS_PRICE, MILKYBSC_ORAICHAIN_DENOM, ORAI } from "../src/constant";
+import { AIRI_CONTRACT, AVERAGE_COSMOS_GAS_PRICE, BTC_CONTRACT, MILKYBSC_ORAICHAIN_DENOM, ORAI } from "../src/constant";
 import {
   calculateMinReceive,
   calculateTimeoutTimestamp,
@@ -33,7 +33,8 @@ import {
   validateAndIdentifyCosmosAddress,
   validateEvmAddress,
   validateNumber,
-  validateTronAddress
+  validateTronAddress,
+  parseAssetInfoFromContractAddrOrDenom
 } from "../src/helper";
 import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { isFactoryV1 } from "../src/pairs";
@@ -652,5 +653,15 @@ describe("should helper functions in helper run exactly", () => {
     } catch (error) {
       expect(expectation).toEqual(false);
     }
+  });
+
+  it.each<[string, AssetInfo | null]>([
+    ["", null],
+    ["orai333", null],
+    ["orai", { native_token: { denom: "orai" } }],
+    [BTC_CONTRACT, { token: { contract_addr: BTC_CONTRACT } }]
+  ])("test-generateConvertErc20Cw20Message-should-return-correct-message", (addressOrDenom, expectedMessage) => {
+    const result = parseAssetInfoFromContractAddrOrDenom(addressOrDenom);
+    expect(result).toEqual(expectedMessage);
   });
 });

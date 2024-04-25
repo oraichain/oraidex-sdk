@@ -157,11 +157,11 @@ export const getEncodedExecuteContractMsgs = (senderAddress: string, msgs: Execu
 };
 
 export const buildMultipleExecuteMessages = (
-  mainMsg?: ExecuteInstruction,
+  mainMsg?: ExecuteInstruction[],
   ...preMessages: ExecuteInstruction[]
 ): ExecuteInstruction[] => {
   try {
-    var messages: ExecuteInstruction[] = mainMsg ? [mainMsg] : [];
+    var messages: ExecuteInstruction[] = mainMsg ? mainMsg : [];
     messages.unshift(...preMessages.flat(1));
     return messages;
   } catch (error) {
@@ -186,6 +186,17 @@ export const calculateMinReceive = (
       .div(10n ** BigInt(decimals))
       .toNumber()
   ).toString();
+};
+
+export const parseAssetInfoFromContractAddrOrDenom = (addressOrDenomToken: string) => {
+  if (!addressOrDenomToken) return null;
+  const addressOrDenomLowerCase = addressOrDenomToken.toLowerCase();
+  const tokenItem = cosmosTokens.find((cosmosToken) => {
+    return !cosmosToken.contractAddress
+      ? cosmosToken.denom.toLowerCase() === addressOrDenomLowerCase
+      : cosmosToken.contractAddress.toLowerCase() === addressOrDenomLowerCase;
+  });
+  return tokenItem ? parseTokenInfo(tokenItem).info : null;
 };
 
 export const parseTokenInfo = (tokenInfo: TokenItemType, amount?: string): { fund?: Coin; info: AssetInfo } => {
