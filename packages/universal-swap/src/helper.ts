@@ -653,25 +653,31 @@ export class UniversalSwapHelper {
       throw new Error(
         `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
       );
-    const amount = query.useSmartRoute
-      ? (
-          await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-            fromInfo,
-            toInfo,
-            amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
-          })
-        ).returnAmount
-      : (
-          await UniversalSwapHelper.simulateSwap({
-            fromInfo,
-            toInfo,
-            amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
-            routerClient: query.routerClient
-          })
-        ).amount;
+    let amount;
+    let routes = [];
+    if (query.useSmartRoute) {
+      const { returnAmount, routes: routesSwap }: SmartRouterResponse =
+        await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+          fromInfo,
+          toInfo,
+          amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
+        });
+      routes = routesSwap;
+      amount = returnAmount;
+    } else {
+      amount = (
+        await UniversalSwapHelper.simulateSwap({
+          fromInfo,
+          toInfo,
+          amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+          routerClient: query.routerClient
+        })
+      ).amount;
+    }
     return {
       amount,
-      displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals)
+      displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals),
+      routes
     };
   };
 
