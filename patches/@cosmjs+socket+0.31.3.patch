@@ -1,0 +1,17 @@
+diff --git a/node_modules/@cosmjs/socket/build/reconnectingsocket.js b/node_modules/@cosmjs/socket/build/reconnectingsocket.js
+index d94109b..6d00ac9 100644
+--- a/node_modules/@cosmjs/socket/build/reconnectingsocket.js
++++ b/node_modules/@cosmjs/socket/build/reconnectingsocket.js
+@@ -68,9 +68,9 @@ class ReconnectingSocket {
+         this.disconnected = true;
+     }
+     queueRequest(request) {
+-        if (this.disconnected) {
+-            throw new Error("Cannot queue request: socket has disconnected");
+-        }
++        // if (this.disconnected) {
++        //     throw new Error("Cannot queue request: socket has disconnected");
++        // }
+         this.socket.queueRequest(request);
+     }
+ }

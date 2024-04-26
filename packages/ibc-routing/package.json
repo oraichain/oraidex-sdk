@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development ts-node src/index.ts",
     "prod": "cross-env NODE_ENV=production ts-node src/index.ts",
-    "test": "cross-env NODE_ENV=development hardhat test"
+    "test": "cross-env NODE_ENV=development hardhat test",
+    "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.27.1-dev125.0",

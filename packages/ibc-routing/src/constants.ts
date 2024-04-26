@@ -81,7 +81,7 @@ export const ChainIdToEvmChainPrefix = {
 export const FinalTag = "Final";
 
 // Total time to wait for one state to be transition to another state
-export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 60000;
+export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 20000;
 
 export const IbcWasmContract = "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm";
 
