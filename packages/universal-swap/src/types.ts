@@ -16,7 +16,7 @@ export enum SwapDirection {
 export interface SimulateResponse {
   amount: Uint128;
   displayAmount: number;
-  routes?: SmartRouteSwapOperations[];
+  routes?: SmartRouteSwapAPIOperations[];
 }
 
 export interface SwapData {
@@ -116,19 +116,22 @@ export type SmartRouterResponse = {
   swapAmount: string;
   returnAmount: string;
   routes: SmartRouteSwapOperations[];
+  routesSwap?: SmartRouteSwapAPIOperations[];
+};
+
+export type SmartRouteSwapAPIOperations = {
+  swapAmount: string;
+  returnAmount: string;
+  paths: {
+    poolId: string;
+    tokenOut: string;
+  }[];
 };
 
 export type SmartRouterResponseAPI = {
   swapAmount: string;
   returnAmount: string;
-  routes: {
-    swapAmount: string;
-    returnAmount: string;
-    paths: {
-      poolId: string;
-      tokenOut: string;
-    }[];
-  }[];
+  routes: SmartRouteSwapAPIOperations[];
 };
 
 export type ConvertType = Convert | ConvertReverse;
