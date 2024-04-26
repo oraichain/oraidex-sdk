@@ -471,7 +471,7 @@ export class UniversalSwapHelper {
     askChainId: string,
     offerAmount: string
   ): Promise<SmartRouterResponse> => {
-    const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
+    const { returnAmount, routes: routesSwap } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
       offerChainId,
       askInfo,
@@ -479,7 +479,7 @@ export class UniversalSwapHelper {
       offerAmount
     );
 
-    const routesSwap = routes.map((route) => {
+    const routes = routesSwap.map((route) => {
       let ops = [];
       let currTokenIn = offerInfo;
       for (let path of route.paths) {
@@ -503,7 +503,8 @@ export class UniversalSwapHelper {
     return {
       swapAmount: offerAmount,
       returnAmount,
-      routes: routesSwap
+      routes,
+      routesSwap
     };
   };
 
@@ -656,12 +657,11 @@ export class UniversalSwapHelper {
     let amount;
     let routes = [];
     if (query.useSmartRoute) {
-      const { returnAmount, routes: routesSwap }: SmartRouterResponse =
-        await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-          fromInfo,
-          toInfo,
-          amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
-        });
+      const { returnAmount, routesSwap }: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+        fromInfo,
+        toInfo,
+        amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
+      });
       routes = routesSwap;
       amount = returnAmount;
     } else {
