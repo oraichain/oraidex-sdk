@@ -7,7 +7,7 @@ describe("Testing searchTx using rpc", () => {
     const queryTags: QueryTag[] = [
       {
         key: "gravity.v1.EventSendToCosmosExecutedIbcAutoForward.nonce",
-        value: "63870"
+        value: "65220"
       }
     ];
     const query = buildQuery({

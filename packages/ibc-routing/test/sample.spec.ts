@@ -8,9 +8,9 @@ import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
 import IntepreterManager from "../src/managers/intepreter.manager";
 
-describe.skip("Test sync ether", () => {
+describe("Test sync ether", () => {
   it("Listen to event", async () => {
-    const provider = new ethers.providers.JsonRpcProvider("https://go.getblock.io/5364b225d0ea429e91f5f3f027c414a2");
+    const provider = new ethers.providers.JsonRpcProvider("https://1rpc.io/bnb");
     const gravity = Gravity__factory.connect(
       ethers.utils.getAddress("0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"),
       provider
@@ -19,8 +19,10 @@ describe.skip("Test sync ether", () => {
       "0x55d398326f99059fF775485246999027B3197955",
       "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5"
     );
-    const data = await gravity.queryFilter(eventFilter, 37534323, 37534325);
-    console.log(data, data[0].args);
+    const data = await gravity.queryFilter(eventFilter, 38194529, 38194529);
+    data.forEach((item) => {
+      console.log(item, item.args);
+    });
   });
 });
 
