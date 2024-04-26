@@ -123,6 +123,12 @@ export const mockJsonRpcServer = async () => {
 
   await mockServer
     .forJsonRpcRequest({
+      method: "broadcast_tx_async"
+    })
+    .thenSendJsonRpcResult(mockResponse);
+
+  await mockServer
+    .forJsonRpcRequest({
       method: "tx_search"
     })
     .thenSendJsonRpcResult(mockTxSearch);
