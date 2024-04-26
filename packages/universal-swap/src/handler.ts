@@ -35,25 +35,21 @@ import {
   tokenMap,
   AmountDetails,
   buildMultipleExecuteMessages,
-  ibcInfosOld
+  ibcInfosOld,
+  checkValidateAddressWithNetwork,
+  BigDecimal
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
+import { UniversalSwapHelper } from "./helper";
 import {
-  UniversalSwapHelper,
-  addOraiBridgeRoute,
-  checkBalanceChannelIbc,
-  checkBalanceIBCOraichain,
-  checkFeeRelayer,
-  generateConvertCw20Erc20Message,
-  generateConvertErc20Cw20Message,
-  generateSwapOperationMsgs,
-  getEvmSwapRoute,
-  getIbcInfo,
-  getRoute,
-  isEvmSwappable,
-  isSupportedNoPoolSwapEvm
-} from "./helper";
-import { ConvertReverse, ConvertType, Type, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
+  ConvertReverse,
+  ConvertType,
+  SmartRouteSwapOperations,
+  Type,
+  UniversalSwapConfig,
+  UniversalSwapData,
+  UniversalSwapType
+} from "./types";
 import { GasPrice } from "@cosmjs/stargate";
 import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
@@ -68,12 +64,12 @@ export class UniversalSwapHandler {
   }
 
   private getCwIcs20ContractAddr() {
-    return this.config.ibcInfoTestMode ? IBC_WASM_CONTRACT_TEST : IBC_WASM_CONTRACT;
+    return this.config.swapOptions?.ibcInfoTestMode ? IBC_WASM_CONTRACT_TEST : IBC_WASM_CONTRACT;
   }
 
   public getIbcInfo(fromChainId: CosmosChainId, toChainId: NetworkChainId) {
-    const ibcInfo = getIbcInfo(fromChainId, toChainId);
-    if (!this.config.ibcInfoTestMode || !ibcInfo.testInfo) return ibcInfo;
+    const ibcInfo = UniversalSwapHelper.getIbcInfo(fromChainId, toChainId);
+    if (!this.config.swapOptions?.ibcInfoTestMode || !ibcInfo.testInfo) return ibcInfo;
     return ibcInfo.testInfo;
   }
 
@@ -109,8 +105,20 @@ export class UniversalSwapHandler {
       return getEncodedExecuteContractMsgs(sender, msgSwap);
     }
     const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
-    const ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
-    if (!ibcReceiveAddr) throw generateError("Please login keplr!");
+
+    let ibcReceiveAddr = "";
+
+    if (this.swapData.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toChainId);
+
+      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+      ibcReceiveAddr = this.swapData.recipientAddress;
+    } else {
+      ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
+    }
+
+    if (!ibcReceiveAddr) throw generateError("Please login cosmos wallet!");
+
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
     const isSpecialCoingecko = ["kawaii-islands", "milky-token", "injective-protocol"].includes(toCoinGeckoId);
@@ -149,7 +157,7 @@ export class UniversalSwapHandler {
       if (fromCoinGeckoId === toCoinGeckoId && isSpecialCoingecko) {
         const evmToken = tokenMap[toTokenInOrai.denom];
         const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
-        const msgConvertReverses = generateConvertCw20Erc20Message(
+        const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
           this.swapData.amounts,
           getTokenOnOraichain(toCoinGeckoId),
           sender,
@@ -196,9 +204,18 @@ export class UniversalSwapHandler {
     metamaskAddress: string,
     tronAddress: string,
     channel: string,
-    toToken: { chainId: string; prefix: string }
+    toToken: { chainId: string; prefix: string; originalChainId: NetworkChainId },
+    recipientAddress?: string
   ) {
-    const transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
+    let transferAddress;
+    if (recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toToken.originalChainId);
+      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+      transferAddress = recipientAddress;
+    } else {
+      transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
+    }
+
     return toToken.chainId === "oraibridge-subnet-2" ? toToken.prefix + transferAddress : "";
   }
 
@@ -208,7 +225,7 @@ export class UniversalSwapHandler {
    */
   async combineMsgEvm(metamaskAddress: string, tronAddress: string) {
     let msgExecuteSwap: EncodeObject[] = [];
-    const { originalFromToken, originalToToken, sender } = this.swapData;
+    const { originalFromToken, originalToToken, sender, recipientAddress } = this.swapData;
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
     if (originalFromToken.coinGeckoId !== originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
@@ -217,14 +234,22 @@ export class UniversalSwapHandler {
 
     // then find new _toToken in Oraibridge that have same coingeckoId with originalToToken.
     const newToToken = findToTokenOnOraiBridge(originalToToken.coinGeckoId, originalToToken.chainId);
+
     const toAddress = await this.config.cosmosWallet.getKeplrAddr(newToToken.chainId as CosmosChainId);
-    if (!toAddress) throw generateError("Please login keplr!");
+    if (!toAddress) throw generateError("Please login cosmos wallet!");
 
     const ibcInfo = this.getIbcInfo(originalFromToken.chainId as CosmosChainId, newToToken.chainId);
-    const ibcMemo = this.getIbcMemo(metamaskAddress, tronAddress, ibcInfo.channel, {
-      chainId: newToToken.chainId,
-      prefix: newToToken.prefix
-    });
+    const ibcMemo = this.getIbcMemo(
+      metamaskAddress,
+      tronAddress,
+      ibcInfo.channel,
+      {
+        chainId: newToToken.chainId,
+        prefix: newToToken.prefix,
+        originalChainId: originalToToken.chainId
+      },
+      recipientAddress
+    );
 
     let ibcInfos = ibcInfo;
     let getEncodedExecuteMsgs = [];
@@ -233,7 +258,7 @@ export class UniversalSwapHandler {
       const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId, IBC_DECIMALS);
       const evmToken = tokenMap[toTokenInOrai.denom];
       const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
-      const msgConvertReverses = generateConvertCw20Erc20Message(
+      const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
         this.swapData.amounts,
         getTokenOnOraichain(originalToToken.coinGeckoId),
         this.swapData.sender.cosmos,
@@ -327,7 +352,7 @@ export class UniversalSwapHandler {
     } else if (!toTokenContractAddr) {
       // Case 2: swap to native eth / bnb. Get evm route so that we can swap from token -> native eth / bnb
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
-      const evmRoute = getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
+      const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
 
       result = await routerV2.swapExactTokensForETH(
         finalFromAmount,
@@ -454,7 +479,7 @@ export class UniversalSwapHandler {
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
         const routerClient = new OraiswapRouterQueryClient(client, network.router);
-        const isSufficient = await checkFeeRelayer({
+        const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
           originalFromToken: this.swapData.originalFromToken,
           fromAmount: this.swapData.fromAmount,
           relayerFee: this.swapData.relayerFee,
@@ -470,7 +495,7 @@ export class UniversalSwapHandler {
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
     const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
-    await checkBalanceChannelIbc(
+    await UniversalSwapHelper.checkBalanceChannelIbc(
       ibcInfo,
       originalFromToken,
       originalToToken,
@@ -527,7 +552,7 @@ export class UniversalSwapHandler {
     // has to switch network to the correct chain id on evm since users can swap between network tokens
     if (!this.config.evmWallet.isTron(originalFromToken.chainId))
       await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
-    if (isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
@@ -539,11 +564,14 @@ export class UniversalSwapHandler {
     }
 
     // special case for tokens not having a pool on Oraichain. We need to swap on evm instead then transfer to Oraichain
-    if (isEvmSwappable(swappableData) && isSupportedNoPoolSwapEvm(originalFromToken.coinGeckoId)) {
+    if (
+      UniversalSwapHelper.isEvmSwappable(swappableData) &&
+      UniversalSwapHelper.isSupportedNoPoolSwapEvm(originalFromToken.coinGeckoId)
+    ) {
       return this.evmSwap(evmSwapData);
     }
 
-    await checkBalanceIBCOraichain(
+    await UniversalSwapHelper.checkBalanceIBCOraichain(
       originalToToken,
       originalFromToken,
       fromAmount,
@@ -553,7 +581,7 @@ export class UniversalSwapHandler {
     );
 
     const routerClient = new OraiswapRouterQueryClient(client, network.router);
-    const isSufficient = await checkFeeRelayer({
+    const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
       originalFromToken,
       fromAmount,
       relayerFee,
@@ -593,7 +621,8 @@ export class UniversalSwapHandler {
 
     // get swapRoute
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
-    const { swapRoute } = getRoute(
+
+    const { swapRoute } = UniversalSwapHelper.getRoute(
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
       destinationReceiver,
@@ -622,7 +651,17 @@ export class UniversalSwapHandler {
 
     // check if from chain is noble, use ibc-wasm instead of ibc-hooks
     if (originalFromToken.chainId === "noble-1") {
-      msgTransfer.receiver = oraiAddress;
+      if (this.swapData.recipientAddress) {
+        const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, "Oraichain");
+
+        if (!isValidRecipient.isValid || isValidRecipient.network !== "Oraichain") {
+          throw generateError("Recipient address invalid! Only support bridge to Oraichain");
+        }
+        msgTransfer.receiver = this.swapData.recipientAddress;
+      } else {
+        msgTransfer.receiver = oraiAddress;
+      }
+
       msgTransfer.memo = swapRoute;
     }
 
@@ -635,17 +674,29 @@ export class UniversalSwapHandler {
 
   async processUniversalSwap() {
     const { cosmos, evm, tron } = this.swapData.sender;
-    const toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
-      metamaskAddress: evm,
-      tronAddress: tron
-    });
+    let toAddress = "";
+    const currentToNetwork = this.swapData.originalToToken.chainId;
+
+    if (this.swapData.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
+
+      if (!isValidRecipient.isValid) {
+        throw generateError("Recipient address invalid!");
+      }
+      toAddress = this.swapData.recipientAddress;
+    } else {
+      toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
+        metamaskAddress: evm,
+        tronAddress: tron
+      });
+    }
 
     const { swapRoute, universalSwapType } = UniversalSwapHelper.addOraiBridgeRoute(
       cosmos,
       this.swapData.originalFromToken,
       this.swapData.originalToToken,
       toAddress,
-      this.swapData.isSourceReceiverTest
+      this.config.swapOptions?.isSourceReceiverTest
     );
 
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
@@ -664,50 +715,122 @@ export class UniversalSwapHandler {
     const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
-      const msgConvertsFrom = generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
-      const msgConvertTo = generateConvertErc20Cw20Message(this.swapData.amounts, toTokenInOrai);
+      const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(
+        this.swapData.amounts,
+        fromTokenOnOrai
+      );
+      const msgConvertTo = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, toTokenInOrai);
       const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
-      if (!this.swapData.simulatePrice || !isValidSlippage)
+      if (!this.swapData.simulatePrice || !isValidSlippage) {
         throw generateError(
           "Could not calculate the minimum receive value because there is no simulate price or user slippage"
         );
-      const minimumReceive = calculateMinReceive(
-        this.swapData.simulatePrice,
-        _fromAmount,
-        this.swapData.userSlippage,
-        fromTokenOnOrai.decimals
-      );
+      }
+
       const { fund: offerSentFund, info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
       const { fund: askSentFund, info: askInfo } = parseTokenInfo(toTokenInOrai);
       const funds = handleSentFunds(offerSentFund, askSentFund);
-      const inputTemp = {
-        execute_swap_operations: {
-          operations: generateSwapOperationMsgs(offerInfo, askInfo),
-          minimum_receive: minimumReceive
+
+      if (this.swapData.recipientAddress) {
+        const isValidRecipient = checkValidateAddressWithNetwork(
+          this.swapData.recipientAddress,
+          this.swapData.originalToToken.chainId
+        );
+
+        if (!isValidRecipient.isValid) {
+          throw generateError("Recipient address invalid!");
         }
-      };
-      // if cw20 => has to send through cw20 contract
-      if (!fromTokenOnOrai.contractAddress) {
-        input = inputTemp;
+      }
+      const to = this.swapData.recipientAddress;
+      let msgs: ExecuteInstruction[];
+
+      if (this.swapData.smartRoutes) {
+        msgs = this.buildSwapMsgsFromSmartRoute(this.swapData.smartRoutes, fromTokenOnOrai, to, contractAddr);
       } else {
-        input = {
-          send: {
-            contract: contractAddr,
-            amount: _fromAmount,
-            msg: toBinary(inputTemp)
+        const minimumReceive = calculateMinReceive(
+          this.swapData.simulatePrice,
+          _fromAmount,
+          this.swapData.userSlippage,
+          fromTokenOnOrai.decimals
+        );
+
+        const inputTemp = {
+          execute_swap_operations: {
+            operations: UniversalSwapHelper.generateSwapOperationMsgs(offerInfo, askInfo),
+            minimum_receive: minimumReceive,
+            to
           }
         };
-        contractAddr = fromTokenOnOrai.contractAddress;
+
+        // if cw20 => has to send through cw20 contract
+        if (!fromTokenOnOrai.contractAddress) {
+          input = inputTemp;
+        } else {
+          input = {
+            send: {
+              contract: contractAddr,
+              amount: _fromAmount,
+              msg: toBinary(inputTemp)
+            }
+          };
+          contractAddr = fromTokenOnOrai.contractAddress;
+        }
+        const msg: ExecuteInstruction = {
+          contractAddress: contractAddr,
+          msg: input,
+          funds
+        };
+
+        msgs = [msg];
       }
-      const msg: ExecuteInstruction = {
-        contractAddress: contractAddr,
-        msg: input,
-        funds
-      };
-      return buildMultipleExecuteMessages(msg, ...msgConvertsFrom, ...msgConvertTo);
+      return buildMultipleExecuteMessages(msgs, ...msgConvertsFrom, ...msgConvertTo);
     } catch (error) {
       throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error)}`);
     }
+  }
+
+  buildSwapMsgsFromSmartRoute(
+    routes: SmartRouteSwapOperations[],
+    fromTokenOnOrai: TokenItemType,
+    to: string,
+    routerContract: string
+  ): ExecuteInstruction[] {
+    const msgs: ExecuteInstruction[] = routes.map((route) => {
+      const minimumReceive = Math.trunc(
+        new BigDecimal(route.returnAmount).mul((100 - this.swapData.userSlippage) / 100).toNumber()
+      ).toString();
+
+      const swapOps = {
+        execute_swap_operations: {
+          operations: route.swapOps,
+          minimum_receive: minimumReceive,
+          to
+        }
+      };
+
+      // if cw20 => has to send through cw20 contract
+      if (!fromTokenOnOrai.contractAddress) {
+        return {
+          contractAddress: routerContract,
+          msg: swapOps,
+          funds: handleSentFunds(parseTokenInfo(fromTokenOnOrai, route.swapAmount).fund)
+        };
+      } else {
+        return {
+          contractAddress: fromTokenOnOrai.contractAddress,
+          msg: {
+            send: {
+              contract: routerContract,
+              amount: route.swapAmount,
+              msg: toBinary(swapOps)
+            }
+          },
+          funds: []
+        };
+      }
+    });
+
+    return msgs;
   }
 
   /**

@@ -43,13 +43,19 @@ import {
   tokenMap,
   oraib2oraichainTest,
   getSubAmountDetails,
-  evmChains
+  evmChains,
+  getAxios,
+  parseAssetInfoFromContractAddrOrDenom,
+  parseAssetInfo
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
   ConvertType,
   OraiBridgeRouteData,
   SimulateResponse,
+  SmartRouterResponse,
+  SmartRouterResponseAPI,
+  SmartRouteSwapOperations,
   SwapDirection,
   SwapRoute,
   Type,
@@ -59,12 +65,12 @@ import {
   AssetInfo,
   OraiswapRouterQueryClient,
   OraiswapRouterReadOnlyInterface,
-  OraiswapTokenQueryClient
+  OraiswapTokenQueryClient,
+  SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
-import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { isEqual } from "lodash";
 import { ethers } from "ethers";
-import { Amount, CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
+import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
@@ -432,13 +438,82 @@ export class UniversalSwapHelper {
     return UniversalSwapHelper.generateSwapRoute(offerInfo, askInfo, [ORAI_INFO]);
   };
 
+  static querySmartRoute = async (
+    offerInfo: AssetInfo,
+    offerChainId: string,
+    askInfo: AssetInfo,
+    askChainId: string,
+    offerAmount: string
+  ): Promise<SmartRouterResponseAPI> => {
+    const urlRouter = "https://router.oraidex.io";
+    const { axios } = await getAxios(urlRouter);
+    const data = {
+      sourceAsset: parseAssetInfo(offerInfo),
+      sourceChainId: offerChainId,
+      destAsset: parseAssetInfo(askInfo),
+      destChainId: askChainId,
+      offerAmount: offerAmount
+    };
+    const res: {
+      data: SmartRouterResponseAPI;
+    } = await axios.post("/smart-router", data);
+    return {
+      swapAmount: res.data.swapAmount,
+      returnAmount: res.data.returnAmount,
+      routes: res.data.routes
+    };
+  };
+
+  static generateSmartRouteForSwap = async (
+    offerInfo: AssetInfo,
+    offerChainId: string,
+    askInfo: AssetInfo,
+    askChainId: string,
+    offerAmount: string
+  ): Promise<SmartRouterResponse> => {
+    const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
+      offerInfo,
+      offerChainId,
+      askInfo,
+      askChainId,
+      offerAmount
+    );
+
+    const routesSwap = routes.map((route) => {
+      let ops = [];
+      let currTokenIn = offerInfo;
+      for (let path of route.paths) {
+        let tokenOut = parseAssetInfoFromContractAddrOrDenom(path.tokenOut);
+        ops.push({
+          orai_swap: {
+            offer_asset_info: currTokenIn,
+            ask_asset_info: tokenOut
+          }
+        });
+
+        currTokenIn = tokenOut;
+      }
+
+      return {
+        swapAmount: route.swapAmount,
+        returnAmount: route.returnAmount,
+        swapOps: ops
+      };
+    });
+    return {
+      swapAmount: offerAmount,
+      returnAmount,
+      routes: routesSwap
+    };
+  };
+
   // simulate swap functions
   static simulateSwap = async (query: {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
     routerClient: OraiswapRouterReadOnlyInterface;
-  }) => {
+  }): Promise<{ amount: Uint128 }> => {
     const { amount, fromInfo, toInfo, routerClient } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
@@ -462,6 +537,39 @@ export class UniversalSwapHelper {
       return data;
     } catch (error) {
       throw new Error(`Error when trying to simulate swap using router v2: ${JSON.stringify(error)}`);
+    }
+  };
+
+  // simulate swap functions
+  static simulateSwapUsingSmartRoute = async (query: {
+    fromInfo: TokenItemType;
+    toInfo: TokenItemType;
+    amount: string;
+  }): Promise<SmartRouterResponse> => {
+    const { amount, fromInfo, toInfo } = query;
+
+    // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
+    if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+      return {
+        swapAmount: amount,
+        returnAmount: amount,
+        routes: []
+      };
+    }
+
+    // check if they have pairs. If not then we go through ORAI
+    const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
+    const { info: askInfo } = parseTokenInfo(toInfo);
+    try {
+      return await UniversalSwapHelper.generateSmartRouteForSwap(
+        offerInfo,
+        fromInfo.chainId,
+        askInfo,
+        toInfo.chainId,
+        amount
+      );
+    } catch (error) {
+      throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
     }
   };
 
@@ -517,6 +625,7 @@ export class UniversalSwapHelper {
     originalToInfo: TokenItemType;
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
+    useSmartRoute?: boolean;
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
@@ -544,12 +653,22 @@ export class UniversalSwapHelper {
       throw new Error(
         `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
       );
-    const { amount } = await UniversalSwapHelper.simulateSwap({
-      fromInfo,
-      toInfo,
-      amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
-      routerClient: query.routerClient
-    });
+    const amount = query.useSmartRoute
+      ? (
+          await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+            fromInfo,
+            toInfo,
+            amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
+          })
+        ).returnAmount
+      : (
+          await UniversalSwapHelper.simulateSwap({
+            fromInfo,
+            toInfo,
+            amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+            routerClient: query.routerClient
+          })
+        ).amount;
     return {
       amount,
       displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals)
