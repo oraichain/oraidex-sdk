@@ -8,7 +8,7 @@ import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
 import IntepreterManager from "../src/managers/intepreter.manager";
 
-describe("Test sync ether", () => {
+describe.skip("Test sync ether", () => {
   it("Listen to event", async () => {
     const provider = new ethers.providers.JsonRpcProvider("https://bsc-pokt.nodies.app");
     const gravity = Gravity__factory.connect(
