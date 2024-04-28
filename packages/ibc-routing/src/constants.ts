@@ -51,7 +51,7 @@ export const invokableMachineStateKeys = {
 };
 
 export const EvmRpcs = {
-  [EvmChainPrefix.BSC_MAINNET]: "https://1rpc.io/bnb",
+  [EvmChainPrefix.BSC_MAINNET]: "https://bsc-pokt.nodies.app",
   [EvmChainPrefix.ETH_MAINNET]: "https://eth-pokt.nodies.app",
   [EvmChainPrefix.TRON_MAINNET]: "https://api.trongrid.io/jsonrpc"
 };
@@ -92,6 +92,8 @@ export const COSMOS_DENOM = {
   [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: "inj",
   [COSMOS_CHAIN_ID_COMMON.KAWAII_COSMOS_CHAIN_ID]: "oraie"
 };
+
+export const WaitTimePerEachTransition = 100;
 
 // INTERFACES
 export interface EvmState {

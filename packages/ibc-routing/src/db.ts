@@ -10,6 +10,10 @@ import { DatabaseEnum } from "./constants";
 // 4. (packetSequence, srcChannel, portChannel)
 // 5. soon...
 // TODO: fix passing data flow by apache-arrow
+
+// EVM db notes:
+// EVM -> Oraichain: unique key (eventNonce, evmChainPrefix)
+// Oraichain -> EVM: unique key (eventNonce, evmChainPrefix, destinationReceiver)
 export const sqlCommands = {
   create: {
     [DatabaseEnum.Evm]: `create table if not exists EvmState 
@@ -29,7 +33,7 @@ export const sqlCommands = {
       eventNonce uinteger,
       evmChainPrefix varchar,
       status varchar,
-      primary key (eventNonce, evmChainPrefix),
+      primary key (eventNonce, evmChainPrefix, destinationReceiver),
     )`,
     [DatabaseEnum.OraiBridge]: `create table if not exists OraiBridgeState 
     (

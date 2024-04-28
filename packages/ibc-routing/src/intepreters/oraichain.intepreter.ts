@@ -21,6 +21,7 @@ import {
   handleStoreOnRequestBatchOraiBridge,
   handleStoreOnTransferBackToRemoteChain
 } from "./handlers/common.handler";
+import { handleOraiBridgeForEvmTimeout } from "./handlers/timeout.handler";
 
 export const createOraichainIntepreter = (db: DuckDB) => {
   const machine = createMachine({
@@ -77,39 +78,7 @@ export const createOraichainIntepreter = (db: DuckDB) => {
       },
       oraiBridgeForEvmTimeout: {
         invoke: {
-          src: async (ctx, event) => {
-            const queryTags: QueryTag[] = [
-              {
-                key: `recv_packet.packet_sequence`,
-                value: `${ctx.oraiSendPacketSequence}`
-              },
-              {
-                key: `recv_packet.packet_src_channel`,
-                value: ctx.oraichainSrcChannel
-              },
-              {
-                key: `recv_packet.packet_dst_channel`,
-                value: ctx.oraichainDstChannel
-              }
-            ];
-            const query = buildQuery({
-              tags: queryTags
-            });
-            const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
-            const txs = await stargateClient.searchTx(query);
-            if (txs.length == 0) {
-              throw generateError(
-                `[ORAICHAIN INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout ${JSON.stringify(ctx)}`
-              );
-            }
-
-            return handleOnRecvPacketOnOraiBridge(ctx, {
-              ...event,
-              data: {
-                txEvent: convertIndexedTxToTxEvent(txs[0])
-              }
-            });
-          },
+          src: handleOraiBridgeForEvmTimeout,
           onError: {
             actions: (ctx, event) => {
               console.log("error handling orai bridge for evm timeout", event.data);
