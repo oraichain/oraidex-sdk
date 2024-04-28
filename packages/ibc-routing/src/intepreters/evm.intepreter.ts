@@ -1,7 +1,7 @@
 import { StargateClient } from "@cosmjs/stargate";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
-import { EvmChainPrefix, generateError, parseRpcEvents } from "@oraichain/oraidex-common";
+import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import { config } from "../config";
 import {
@@ -38,7 +38,11 @@ import {
   handleUpdateOnAcknowledgementOnCosmos,
   onDoneOnRecvPacketOraichain
 } from "./handlers/common.handler";
-import { handleOraiBridgeForEvmTimeout } from "./handlers/timeout.handler";
+import {
+  handleOnBatchSendToETHClaimTimeout,
+  handleOnRequestBatchTimeout,
+  handleOraiBridgeForEvmTimeout
+} from "./handlers/timeout.handler";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
 // TODO: add precheck correct type of evm handle case
@@ -501,32 +505,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         onRequestBatchTimeout: {
           invoke: {
-            src: async (ctx, event) => {
-              const queryTags: QueryTag[] = [
-                {
-                  key: `batched_tx_ids.batched_tx_id`,
-                  value: `${ctx.oraiBridgePendingTxId}`
-                }
-              ];
-              const query = buildQuery({
-                tags: queryTags
-              });
-              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
-              const txs = await stargateClient.searchTx(query);
-              if (txs.length == 0) {
-                throw generateError("Can not find orai bridge data on onRequestBatchTimeout");
-              }
-              for (const tx of txs) {
-                const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => tx.rawLog.includes(prefix));
-                if (evmChainPrefix === ctx.evmChainPrefixOnRightTraverseOrder) {
-                  return handleCheckOnRequestBatch(ctx, {
-                    ...event,
-                    payload: convertIndexedTxToTxEvent(tx)
-                  });
-                }
-              }
-              throw generateError("there is no matching tx data on onRequestBatchTimeout");
-            },
+            src: handleOnRequestBatchTimeout,
             onError: {
               actions: (ctx, event) => {
                 console.log("error handling request batch timeout", event.data);
@@ -590,30 +569,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         onBatchSendToETHClaimTimeout: {
           invoke: {
-            src: async (ctx, event) => {
-              const queryTags: QueryTag[] = [
-                {
-                  key: `gravity.v1.MsgBatchSendToEthClaim.batch_nonce`,
-                  value: `${ctx.oraiBridgeBatchNonce}`
-                },
-                {
-                  key: `gravity.v1.MsgBatchSendToEthClaim.evm_chain_prefix`,
-                  value: ctx.evmChainPrefixOnRightTraverseOrder
-                }
-              ];
-              const query = buildQuery({
-                tags: queryTags
-              });
-              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
-              const txs = await stargateClient.searchTx(query);
-              if (txs.length == 0) {
-                throw generateError("Can not find orai bridge data on onBatchSendToETHClaimTimeout");
-              }
-              return handleCheckOnBatchSendToEthClaim(ctx, {
-                ...event,
-                payload: convertIndexedTxToTxEvent(txs[0])
-              });
-            },
+            src: handleOnBatchSendToETHClaimTimeout,
             onError: {
               actions: (ctx, event) => {
                 console.log("error handling batch send to eth timeout", event.data);

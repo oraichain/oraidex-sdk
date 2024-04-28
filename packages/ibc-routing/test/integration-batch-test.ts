@@ -420,13 +420,7 @@ describe("test-integration", () => {
     await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxData1O2E));
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxData2O2E));
-    await setTimeout(sleepTimeMs);
-    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataO2E));
-    await setTimeout(sleepTimeMs);
-    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataO2E));
-    await setTimeout(sleepTimeMs);
-    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataO2E));
-    await setTimeout(sleepTimeMs);
+    await setTimeout(20000);
 
     // Test Data
     // ORAICHAIN
@@ -585,5 +579,5 @@ describe("test-integration", () => {
     expect(intepreterCount1.status).eql(InterpreterStatus.Stopped);
     const intepreterCount2 = im.getIntepreter(1)._inner;
     expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
-  });
+  }).timeout(30000);
 });

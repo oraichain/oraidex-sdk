@@ -1,7 +1,7 @@
 import { StargateClient } from "@cosmjs/stargate";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { EvmChainPrefix, generateError } from "@oraichain/oraidex-common";
+import { generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import { config } from "../config";
 import { IntepreterType, TimeOut, invokableMachineStateKeys } from "../constants";
@@ -24,7 +24,11 @@ import {
   handleStoreOnRecvPacketOraichainReverse,
   handleStoreOnRequestBatchOraiBridge
 } from "./handlers/common.handler";
-import { handleOraiBridgeForEvmTimeout } from "./handlers/timeout.handler";
+import {
+  handleOnBatchSendToETHClaimTimeout,
+  handleOnRequestBatchTimeout,
+  handleOraiBridgeForEvmTimeout
+} from "./handlers/timeout.handler";
 
 export const createCosmosIntepreter = (db: DuckDB) => {
   const machine = createMachine({
@@ -262,32 +266,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       },
       onRequestBatchTimeout: {
         invoke: {
-          src: async (ctx, event) => {
-            const queryTags: QueryTag[] = [
-              {
-                key: `batched_tx_ids.batched_tx_id`,
-                value: `${ctx.oraiBridgePendingTxId}`
-              }
-            ];
-            const query = buildQuery({
-              tags: queryTags
-            });
-            const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
-            const txs = await stargateClient.searchTx(query);
-            if (txs.length == 0) {
-              throw generateError("Can not find orai bridge data on onRequestBatchTimeout");
-            }
-            for (const tx of txs) {
-              const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => tx.rawLog.includes(prefix));
-              if (evmChainPrefix === ctx.evmChainPrefixOnRightTraverseOrder) {
-                return handleCheckOnRequestBatch(ctx, {
-                  ...event,
-                  payload: convertIndexedTxToTxEvent(tx)
-                });
-              }
-            }
-            throw generateError("there is no matching tx data on onRequestBatchTimeout");
-          },
+          src: handleOnRequestBatchTimeout,
           onError: {
             actions: (ctx, event) => {
               console.log("error handling request batch timeout", event.data);
@@ -353,30 +332,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       },
       onBatchSendToETHClaimTimeout: {
         invoke: {
-          src: async (ctx, event) => {
-            const queryTags: QueryTag[] = [
-              {
-                key: `gravity.v1.MsgBatchSendToEthClaim.batch_nonce`,
-                value: `${ctx.oraiBridgeBatchNonce}`
-              },
-              {
-                key: `gravity.v1.MsgBatchSendToEthClaim.evm_chain_prefix`,
-                value: ctx.evmChainPrefixOnRightTraverseOrder
-              }
-            ];
-            const query = buildQuery({
-              tags: queryTags
-            });
-            const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
-            const txs = await stargateClient.searchTx(query);
-            if (txs.length == 0) {
-              throw generateError("Can not find orai bridge data on onBatchSendToETHClaimTimeout");
-            }
-            return handleCheckOnBatchSendToEthClaim(ctx, {
-              ...event,
-              payload: convertIndexedTxToTxEvent(txs[0])
-            });
-          },
+          src: handleOnBatchSendToETHClaimTimeout,
           onError: {
             actions: (ctx, event) => {
               console.log("error handling batch send to eth timeout", event.data);
