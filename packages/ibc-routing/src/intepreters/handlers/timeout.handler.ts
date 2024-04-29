@@ -3,13 +3,14 @@ import { QueryTag } from "@cosmjs/tendermint-rpc";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
 import { generateError } from "@oraichain/oraidex-common";
 import { config } from "../../config";
-import { GravityAddress, outgoingBatchEventType } from "../../constants";
+import { executedIbcAutoForwardType, GravityAddress, outgoingBatchEventType } from "../../constants";
 import { convertIndexedTxToTxEvent } from "../../helpers";
 import { parseRpcEvents } from "../../utils/events";
 import {
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRequestBatch,
-  handleOnRecvPacketOnOraiBridge
+  handleOnRecvPacketOnOraiBridge,
+  handleStoreAutoForward
 } from "./common.handler";
 
 export const handleOraiBridgeForEvmTimeout = async (ctx, event) => {
@@ -106,4 +107,34 @@ export const handleOnBatchSendToETHClaimTimeout = async (ctx, event) => {
     ...event,
     payload: convertIndexedTxToTxEvent(txs[0])
   });
+};
+
+export const handleOraiBridgeTimeOut = async (ctx, event) => {
+  const queryTags: QueryTag[] = [
+    {
+      key: `${executedIbcAutoForwardType}.nonce`,
+      value: `${ctx.evmEventNonce}`
+    }
+  ];
+  const query = buildQuery({
+    tags: queryTags
+  });
+  const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
+  const txs = await stargateClient.searchTx(query);
+  if (txs.length == 0) {
+    throw generateError("there is no auto forward existed on orai bridge timeout");
+  }
+  for (const tx of txs) {
+    try {
+      await handleStoreAutoForward(ctx, {
+        ...event,
+        data: {
+          txEvent: convertIndexedTxToTxEvent(tx),
+          eventNonce: ctx.evmEventNonce
+        }
+      });
+    } catch (err) {
+      throw generateError(err?.message);
+    }
+  }
 };

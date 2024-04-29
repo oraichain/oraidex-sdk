@@ -7,9 +7,9 @@ import { parseRpcEvents } from "../utils/events";
 import { EventHandler } from "./event.handler";
 
 export class OraichainHandler extends EventHandler {
-  public handleEvent(eventData: any[]) {
-    for (const eventItem of eventData) {
-      const events: Event[] = eventItem.result.events;
+  public handleEvent(txEventData: any[]) {
+    for (const txEventItem of txEventData) {
+      const events: Event[] = txEventItem.result.events;
       const decodedEvents = parseRpcEvents(events);
 
       let previousEventType = "";
@@ -32,17 +32,20 @@ export class OraichainHandler extends EventHandler {
                 intepreter._inner.start();
                 intepreter._inner.send({
                   type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
-                  payload: eventItem
+                  payload: txEventItem
                 });
               }
             } catch (err) {}
             return;
           }
           if (event.type === "recv_packet") {
-            this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, eventItem);
+            this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, {
+              txEvent: txEventItem,
+              eventItem: event
+            });
           }
           if (event.type === "acknowledge_packet") {
-            this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN, eventItem);
+            this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN, txEventItem);
           }
           previousEventType = event.type;
         });

@@ -4,14 +4,7 @@ import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
 import { config } from "../config";
-import {
-  FinalTag,
-  ForwardTagOnOraichain,
-  IntepreterType,
-  TimeOut,
-  executedIbcAutoForwardType,
-  invokableMachineStateKeys
-} from "../constants";
+import { FinalTag, ForwardTagOnOraichain, IntepreterType, TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
 import { convertIndexedTxToTxEvent } from "../helpers";
 import { IntepreterInterface } from "../managers/intepreter.manager";
@@ -41,7 +34,8 @@ import {
 import {
   handleOnBatchSendToETHClaimTimeout,
   handleOnRequestBatchTimeout,
-  handleOraiBridgeForEvmTimeout
+  handleOraiBridgeForEvmTimeout,
+  handleOraiBridgeTimeOut
 } from "./handlers/timeout.handler";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
@@ -120,36 +114,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         oraiBridgeTimeOut: {
           invoke: {
-            src: async (ctx, event) => {
-              const queryTags: QueryTag[] = [
-                {
-                  key: `${executedIbcAutoForwardType}.nonce`,
-                  value: `${ctx.evmEventNonce}`
-                }
-              ];
-              console.log(ctx.evmEventNonce);
-              const query = buildQuery({
-                tags: queryTags
-              });
-              const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
-              const txs = await stargateClient.searchTx(query);
-              if (txs.length == 0) {
-                throw generateError("there is no auto forward existed on orai bridge timeout");
-              }
-              for (const tx of txs) {
-                try {
-                  await handleStoreAutoForward(ctx, {
-                    ...event,
-                    data: {
-                      txEvent: convertIndexedTxToTxEvent(tx),
-                      eventNonce: ctx.evmEventNonce
-                    }
-                  });
-                } catch (err) {
-                  throw generateError(err?.message);
-                }
-              }
-            },
+            src: handleOraiBridgeTimeOut,
             onError: {
               target: "oraibridge",
               // rejected promise data is on event.data property

@@ -20,9 +20,16 @@ import { CosmosHandler } from "../src/event-handlers/cosmos.handler";
 import { EvmEventHandler } from "../src/event-handlers/evm.handler";
 import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
 import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
+import {
+  OnRecvPacketTxData as OnRecvPacketTxDataEvm2Oraichain,
+  OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Oraichain,
+  SendToCosmosData1 as SendToCosmosDataEvm2Oraichain1,
+  SendToCosmosData2 as SendToCosmosDataEvm2Oraichain2
+} from "./data/batch/evm-to-oraichain";
 import {
   BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataO2E,
   OnRecvPacketTxData as OnRecvPacketTxDataO2E,
@@ -30,11 +37,6 @@ import {
   TransferBackToRemoteTxData1 as TransferBackToRemoteTxData1O2E,
   TransferBackToRemoteTxData2 as TransferBackToRemoteTxData2O2E
 } from "./data/batch/oraichain-to-evm";
-import {
-  OnRecvPacketTxData as OnRecvPacketTxDataEvm2Oraichain,
-  OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Oraichain,
-  SendToCosmosData as SendToCosmosDataEvm2Oraichain
-} from "./data/evm-to-oraichain";
 const sleepTimeMs = 300;
 
 // TODO: at each testcase, i should test the final stored database to make it more concise
@@ -65,72 +67,191 @@ describe("test-integration", () => {
 
   const [owner] = getSigners(1);
 
-  xit("[EVM->Oraichain] full-flow happy test", async () => {
+  it("[EVM->Oraichain] query happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
       "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
       EvmChainPrefix.BSC_MAINNET
     );
-    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain);
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain1);
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain2);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
     const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
     // has to convert back to bytes because javascript object is not friendly with Uint8Array
     stream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Oraichain));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Oraichain));
-    await setTimeout(300);
+    await setTimeout(sleepTimeMs);
 
-    // TEST DATA
+    // action. Create a new interpreter and try to invoke the query flow
+    await (async () => {
+      const interpreter = createEvmIntepreter(duckDb);
+      const actor = interpreter._inner.start();
+      interpreter._inner.send({
+        type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+        payload: {
+          txHash: "0x4f857ebe31d8e0e73757796052c7c2736495bda7f854824e1a8185139e31decc",
+          evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+        }
+      });
+      const doneState = await waitFor(actor, (state) => state.done);
+      console.log("done state: ", doneState.context.routingQueryData);
+      const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
+      expect(queryKeys.length).eq(3);
+      expect(queryKeys[0]).eq(DatabaseEnum.Evm);
+      expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+      expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
+    })();
+    await (async () => {
+      const interpreter = createEvmIntepreter(duckDb);
+      const actor = interpreter._inner.start();
+      interpreter._inner.send({
+        type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+        payload: {
+          txHash: "0xf80b880b1f302fd4e94be7d4c98e2f331cfe3744b4b02e55e606a79a7c400d18",
+          evmChainPrefix: EvmChainPrefix.BSC_MAINNET
+        }
+      });
+      const doneState = await waitFor(actor, (state) => state.done);
+      console.log("done state: ", doneState.context.routingQueryData);
+      const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
+      expect(queryKeys.length).eq(3);
+      expect(queryKeys[0]).eq(DatabaseEnum.Evm);
+      expect(queryKeys[1]).eq(DatabaseEnum.OraiBridge);
+      expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
+    })();
+  });
+
+  it("[EVM->Oraichain] full-flow happy test", async () => {
+    const ethEvent = new EthEvent(evmHandler);
+    const gravity = ethEvent.listenToEthEvent(
+      owner.provider,
+      "0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f",
+      EvmChainPrefix.BSC_MAINNET
+    );
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain1);
+    gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Oraichain2);
+    // TODO: how to wait for emit event to finish then start the next
+    await setTimeout(sleepTimeMs);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const stream = await oraiBridgeEvent.connectCosmosSocket([autoForwardTag]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    // has to convert back to bytes because javascript object is not friendly with Uint8Array
+    stream.shamefullySendNext(unmarshalTxEvent(OraiBridgeAutoForwardTxDataEvm2Oraichain));
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketTxDataEvm2Oraichain));
+    await setTimeout(sleepTimeMs);
+
     expect(
       await duckDb.select(DatabaseEnum.Evm, {
-        where: { txHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4" }
+        where: {
+          txHash: "0x4f857ebe31d8e0e73757796052c7c2736495bda7f854824e1a8185139e31decc"
+        }
       })
     ).eql([
       {
-        txHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4",
-        height: 37469703,
+        txHash: "0x4f857ebe31d8e0e73757796052c7c2736495bda7f854824e1a8185139e31decc",
+        height: 38194529,
         prevState: "",
         prevTxHash: "",
         nextState: "OraiBridgeState",
         destination:
-          "channel-1/orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy:CitvcmFpMXJxaGpxcGFxcnYyNnd1cTYyN2dhdjNrYTQ5OTR1MzllODRsbmN5EgAaK29yYWkxMmh6anhmaDc3d2w1NzJnZHpjdDJmeHYyYXJ4Y3doNmd5a2M3cWg=",
-        fromAmount: "1783597583898563052",
+          "channel-1/orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd:CitvcmFpMWVobWhxY244ZXJmM2RnYXZyY2E2OXpncDRydHhqNWtxZ3RjbnlkEgAaAA==",
+        fromAmount: "3484735000000000000",
+        oraiBridgeChannelId: "channel-1",
+        oraiReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
+        destinationDenom: "",
+        destinationChannelId: "",
+        destinationReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
+        eventNonce: 65355,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          txHash: "0xf80b880b1f302fd4e94be7d4c98e2f331cfe3744b4b02e55e606a79a7c400d18"
+        }
+      })
+    ).eql([
+      {
+        txHash: "0xf80b880b1f302fd4e94be7d4c98e2f331cfe3744b4b02e55e606a79a7c400d18",
+        height: 38194529,
+        prevState: "",
+        prevTxHash: "",
+        nextState: "OraiBridgeState",
+        destination:
+          "channel-1/orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy:CitvcmFpMXJxaGpxcGFxcnYyNnd1cTYyN2dhdjNrYTQ5OTR1MzllODRsbmN5EgAaAA==",
+        fromAmount: "2154324000000000000",
         oraiBridgeChannelId: "channel-1",
         oraiReceiver: "orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy",
-        destinationDenom: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+        destinationDenom: "",
         destinationChannelId: "",
         destinationReceiver: "orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy",
-        eventNonce: 63593,
+        eventNonce: 65356,
         evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+    // ORAIBRIDGE
+    expect(
+      await duckDb.select(DatabaseEnum.OraiBridge, {
+        where: {
+          eventNonce: 65355
+        }
+      })
+    ).eql([
+      {
+        txHash: "16416F42BB94346E859D09036E18AC78F85FF509F3617CF648FED5B406ECC785",
+        height: 12961046,
+        prevState: "EvmState",
+        prevTxHash: "0x4f857ebe31d8e0e73757796052c7c2736495bda7f854824e1a8185139e31decc",
+        nextState: "OraichainState",
+        eventNonce: 65355,
+        batchNonce: 0,
+        txId: 0,
+        evmChainPrefix: "oraib",
+        packetSequence: 19320,
+        amount: "3484735000000000000",
+        denom: "oraib0x55d398326f99059fF775485246999027B3197955",
+        memo: "",
+        receiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
+        sender: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        srcPort: "transfer",
+        srcChannel: "channel-1",
+        dstPort: "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        dstChannel: "channel-29",
         status: "FINISHED"
       }
     ]);
     expect(
       await duckDb.select(DatabaseEnum.OraiBridge, {
         where: {
-          packetSequence: 18337
+          eventNonce: 65356
         }
       })
     ).eql([
       {
-        txHash: "7CB195EFA9178EC2A1E06F8DCE1D4CEC7A760B0EFC4605E0FBFC87E999FD8B22",
-        height: 11498709,
+        txHash: "16416F42BB94346E859D09036E18AC78F85FF509F3617CF648FED5B406ECC785",
+        height: 12961046,
         prevState: "EvmState",
-        prevTxHash: "0xf55ed0825f55f18bd6ae618127e8cc0d889cc3253442ebe88c9280d669ebafb4",
+        prevTxHash: "0xf80b880b1f302fd4e94be7d4c98e2f331cfe3744b4b02e55e606a79a7c400d18",
         nextState: "OraichainState",
-        eventNonce: 63593,
+        eventNonce: 65356,
         batchNonce: 0,
         txId: 0,
         evmChainPrefix: "oraib",
-        packetSequence: 18337,
-        amount: "1783597583898563052",
+        packetSequence: 19321,
+        amount: "2154324000000000000",
         denom: "oraib0x55d398326f99059fF775485246999027B3197955",
-        memo: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+        memo: "",
         receiver: "orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy",
         sender: "oraib1rqhjqpaqrv26wuq627gav3ka4994u39es5mlf8",
         srcPort: "transfer",
@@ -140,20 +261,48 @@ describe("test-integration", () => {
         status: "FINISHED"
       }
     ]);
+    // ORAICHAIN
     expect(
       await duckDb.select(DatabaseEnum.Oraichain, {
         where: {
-          packetSequence: 18337
+          packetSequence: 19320
         }
       })
     ).eql([
       {
-        txHash: "D8A6224EAB18B0195E7C26C567403F8481FCFB714C84636E4404592B1849F51C",
-        height: 17439082,
+        txHash: "B1468B5DEEE12C4205820DE26DAE977B24A8C3EC163B27F889B3A746C690651F",
+        height: 19088216,
         prevState: "OraiBridgeState",
-        prevTxHash: "7CB195EFA9178EC2A1E06F8DCE1D4CEC7A760B0EFC4605E0FBFC87E999FD8B22",
+        prevTxHash: "16416F42BB94346E859D09036E18AC78F85FF509F3617CF648FED5B406ECC785",
         nextState: "",
-        packetSequence: 18337,
+        packetSequence: 19320,
+        packetAck: "MQ==",
+        sender: "",
+        localReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
+        nextPacketSequence: 0,
+        nextMemo: "",
+        nextAmount: "0",
+        nextReceiver: "",
+        nextDestinationDenom: "",
+        srcChannel: "channel-29",
+        dstChannel: "",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Oraichain, {
+        where: {
+          packetSequence: 19321
+        }
+      })
+    ).eql([
+      {
+        txHash: "B1468B5DEEE12C4205820DE26DAE977B24A8C3EC163B27F889B3A746C690651F",
+        height: 19088216,
+        prevState: "OraiBridgeState",
+        prevTxHash: "16416F42BB94346E859D09036E18AC78F85FF509F3617CF648FED5B406ECC785",
+        nextState: "",
+        packetSequence: 19321,
         packetAck: "MQ==",
         sender: "",
         localReceiver: "orai1rqhjqpaqrv26wuq627gav3ka4994u39e84lncy",
@@ -168,8 +317,10 @@ describe("test-integration", () => {
       }
     ]);
 
-    const intepreterCount = im.getIntepreter(0)._inner;
-    expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
+    const intepreterCount1 = im.getIntepreter(0)._inner;
+    expect(intepreterCount1.status).eql(InterpreterStatus.Stopped);
+    const intepreterCount2 = im.getIntepreter(1)._inner;
+    expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
   });
 
   it("[Oraichain->EVM] query happy", async () => {
@@ -199,7 +350,8 @@ describe("test-integration", () => {
       interpreter._inner.send({
         type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
         payload: {
-          txHash: TransferBackToRemoteTxData1O2E.hash
+          txHash: TransferBackToRemoteTxData1O2E.hash,
+          evmChainPrefix: EvmChainPrefix.BSC_MAINNET
         }
       });
       const doneState = await waitFor(actor, (state) => state.done);
