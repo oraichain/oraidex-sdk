@@ -8,7 +8,7 @@ import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
 import IntepreterManager from "../src/managers/intepreter.manager";
 
-describe.skip("Test sync ether", () => {
+describe("Test sync ether", () => {
   it("Listen to event", async () => {
     const provider = new ethers.providers.JsonRpcProvider("https://bsc-pokt.nodies.app");
     const gravity = Gravity__factory.connect(
@@ -23,8 +23,8 @@ describe.skip("Test sync ether", () => {
     //   32408,
     //   "0x55d398326f99059fF775485246999027B3197955"
     // );
-    const data = await gravity.queryFilter(eventFilter, 37534323, 37534325);
-    console.log(data, data[0].args);
+    const data = await gravity.queryFilter(eventFilter, 38318558, 38318558);
+    console.log(data[1]);
   });
 });
 
