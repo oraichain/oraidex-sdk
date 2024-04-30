@@ -32,13 +32,13 @@ import {
   OnRecvPacketOraiBridgeTxData as OnRecvPacketOraiBridgeTxDataC2E,
   OnRecvPacketOraichainTxData as OnRecvPacketOraichainTxDataC2E,
   OnRequestBatchTxData as OnRequestBatchTxDataC2E
-} from "./data/cosmos-to-evm";
+} from "./data/single/cosmos-to-evm";
 import {
   OnAcknowledgement as OnAcknowledgementEvm2Cosmos,
   OnRecvPacketTxData as OnRecvPacketTxDataEvm2Cosmos,
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Cosmos,
   SendToCosmosData as SendToCosmosDataEvm2Cosmos
-} from "./data/evm-to-cosmos";
+} from "./data/single/evm-to-cosmos";
 import {
   BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataEvm2Evm,
   OnRecvPacketOraiBridgeTxData as OnRecvPacketOraiBridgeTxDataEvm2Evm,
@@ -46,18 +46,18 @@ import {
   OnRequestBatchTxData as OnRequestBatchTxDataEvm2Evm,
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Evm,
   SendToCosmosData as SendToCosmosDataEvm2Evm
-} from "./data/evm-to-evm";
+} from "./data/single/evm-to-evm";
 import {
   OnRecvPacketTxData as OnRecvPacketTxDataEvm2Oraichain,
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Oraichain,
   SendToCosmosData as SendToCosmosDataEvm2Oraichain
-} from "./data/evm-to-oraichain";
+} from "./data/single/evm-to-oraichain";
 import {
   BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataO2E,
   OnRecvPacketTxData as OnRecvPacketTxDataO2E,
   OnRequestBatchTxData as OnRequestBatchTxDataO2E,
   TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E
-} from "./data/oraichain-to-evm";
+} from "./data/single/oraichain-to-evm";
 const sleepTimeMs = 300;
 
 // TODO: at each testcase, i should test the final stored database to make it more concise
@@ -935,7 +935,7 @@ describe("test-integration", () => {
   });
 });
 
-describe("test-integration time-out", () => {
+describe.skip("test-integration time-out", () => {
   let duckDb: DuckDbNode;
   let evmHandler: EvmEventHandler;
   let oraibridgeHandler: OraiBridgeHandler;

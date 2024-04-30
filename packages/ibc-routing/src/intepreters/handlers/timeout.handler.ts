@@ -3,14 +3,20 @@ import { QueryTag } from "@cosmjs/tendermint-rpc";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
 import { generateError } from "@oraichain/oraidex-common";
 import { config } from "../../config";
-import { executedIbcAutoForwardType, GravityAddress, outgoingBatchEventType } from "../../constants";
+import {
+  executedIbcAutoForwardType,
+  GravityAddress,
+  oraiBridgeAutoForwardEventType,
+  outgoingBatchEventType
+} from "../../constants";
 import { convertIndexedTxToTxEvent } from "../../helpers";
 import { parseRpcEvents } from "../../utils/events";
 import {
+  handleCheckAutoForward,
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
-  handleStoreAutoForward
+  handleStoreOnRecvPacketOraichain
 } from "./common.handler";
 
 export const handleOraiBridgeForEvmTimeout = async (ctx, event) => {
@@ -40,9 +46,6 @@ export const handleOraiBridgeForEvmTimeout = async (ctx, event) => {
   const txEvent = convertIndexedTxToTxEvent(txs[0]);
   const events = parseRpcEvents(txEvent.result.events);
   const recvPacketEvents = events.filter((ev) => ev.type === "recv_packet");
-  recvPacketEvents.forEach((item) => {
-    console.log(JSON.stringify(item));
-  });
   const eventItem = recvPacketEvents.find((item) => {
     return item.attributes.find((item) => item.key === "packet_sequence")?.value === packetSequence.toString();
   });
@@ -124,17 +127,59 @@ export const handleOraiBridgeTimeOut = async (ctx, event) => {
   if (txs.length == 0) {
     throw generateError("there is no auto forward existed on orai bridge timeout");
   }
+
   for (const tx of txs) {
-    try {
-      await handleStoreAutoForward(ctx, {
+    const txEvent = convertIndexedTxToTxEvent(tx);
+    const events = parseRpcEvents(txEvent.result.events);
+    const eventItems = events.filter((item) => item.type === oraiBridgeAutoForwardEventType);
+    const eventItem = eventItems.find((item) => {
+      const tokenAddress = item.attributes.find((ev) => ev.key === "token").value;
+      const nonce = item.attributes.find((ev) => ev.key === "nonce").value;
+      return (
+        tokenAddress.includes(ctx.evmChainPrefixOnLeftTraverseOrder) &&
+        parseInt(JSON.parse(nonce)) === ctx.evmEventNonce
+      );
+    });
+    if (eventItem !== undefined) {
+      return handleCheckAutoForward(ctx, {
         ...event,
-        data: {
-          txEvent: convertIndexedTxToTxEvent(tx),
-          eventNonce: ctx.evmEventNonce
+        payload: {
+          txEvent,
+          eventItem
         }
       });
-    } catch (err) {
-      throw generateError(err?.message);
     }
   }
+};
+
+export const handleOraichainTimeout = async (ctx, event) => {
+  const queryTags: QueryTag[] = [
+    {
+      key: "recv_packet.packet_sequence",
+      value: ctx.oraiBridgePacketSequence.toString()
+    },
+    {
+      key: "recv_packet.packet_dst_channel",
+      value: ctx.oraiBridgeDstChannel
+    },
+    {
+      key: "recv_packet.packet_src_channel",
+      value: ctx.oraiBridgeSrcChannel
+    }
+  ];
+  const query = buildQuery({
+    tags: queryTags
+  });
+  const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
+  const txs = await stargateClient.searchTx(query);
+  if (txs.length == 0) {
+    throw generateError("tx does not exist on oraichain");
+  }
+  return handleStoreOnRecvPacketOraichain(ctx, {
+    ...event,
+    data: {
+      txEvent: convertIndexedTxToTxEvent(txs[0]),
+      packetSequence: ctx.oraiBridgePacketSequence
+    }
+  });
 };

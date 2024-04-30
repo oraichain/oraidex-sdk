@@ -35,7 +35,8 @@ import {
   handleOnBatchSendToETHClaimTimeout,
   handleOnRequestBatchTimeout,
   handleOraiBridgeForEvmTimeout,
-  handleOraiBridgeTimeOut
+  handleOraiBridgeTimeOut,
+  handleOraichainTimeout
 } from "./handlers/timeout.handler";
 
 // TODO: add more cases for each state to make the machine more resistent. Eg: switch to polling state when idle at a state for too long
@@ -120,7 +121,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               // rejected promise data is on event.data property
               actions: (ctx, event) => console.log("error on handling oraibridge timeout", event.data)
             },
-            onDone: "oraichain"
+            onDone: "storeAutoForward"
           }
         },
         queryAutoForward: {
@@ -226,37 +227,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         oraichainTimeOut: {
           invoke: {
-            src: async (ctx, event) => {
-              const queryTags: QueryTag[] = [
-                {
-                  key: "recv_packet.packet_sequence",
-                  value: ctx.oraiBridgePacketSequence.toString()
-                },
-                {
-                  key: "recv_packet.packet_dst_channel",
-                  value: ctx.oraiBridgeDstChannel
-                },
-                {
-                  key: "recv_packet.packet_src_channel",
-                  value: ctx.oraiBridgeSrcChannel
-                }
-              ];
-              const query = buildQuery({
-                tags: queryTags
-              });
-              const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
-              const txs = await stargateClient.searchTx(query);
-              if (txs.length == 0) {
-                throw generateError("tx does not exist on oraichain");
-              }
-              return handleStoreOnRecvPacketOraichain(ctx, {
-                ...event,
-                data: {
-                  txEvent: convertIndexedTxToTxEvent(txs[0]),
-                  packetSequence: ctx.oraiBridgePacketSequence
-                }
-              });
-            },
+            src: handleOraichainTimeout,
             onError: {
               target: "oraichain",
               // rejected promise data is on event.data property

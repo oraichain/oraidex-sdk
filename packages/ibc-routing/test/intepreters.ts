@@ -22,9 +22,9 @@ import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
 import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
-import { IbcTransferTxData as IbcTransferTxDataC2E } from "./data/cosmos-to-evm";
-import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/evm-to-evm";
-import { TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E } from "./data/oraichain-to-evm";
+import { IbcTransferTxData as IbcTransferTxDataC2E } from "./data/single/cosmos-to-evm";
+import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/single/evm-to-evm";
+import { TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E } from "./data/single/oraichain-to-evm";
 
 describe("test recover case", () => {
   let duckDb: DuckDbNode;

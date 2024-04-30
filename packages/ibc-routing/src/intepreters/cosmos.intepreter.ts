@@ -1,12 +1,6 @@
-import { StargateClient } from "@cosmjs/stargate";
-import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint34/requests";
-import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { generateError } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
-import { config } from "../config";
 import { IntepreterType, TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
-import { convertIndexedTxToTxEvent } from "../helpers";
 import { IntepreterInterface } from "../managers/intepreter.manager";
 import {
   handleCheckOnBatchSendToEthClaim,
@@ -27,7 +21,8 @@ import {
 import {
   handleOnBatchSendToETHClaimTimeout,
   handleOnRequestBatchTimeout,
-  handleOraiBridgeForEvmTimeout
+  handleOraiBridgeForEvmTimeout,
+  handleOraichainTimeout
 } from "./handlers/timeout.handler";
 
 export const createCosmosIntepreter = (db: DuckDB) => {
@@ -88,36 +83,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       },
       oraichainTimeout: {
         invoke: {
-          src: async (ctx, event) => {
-            const queryTags: QueryTag[] = [
-              {
-                key: "recv_packet.packet_sequence",
-                value: ctx.cosmosPacketSequence.toString()
-              },
-              {
-                key: "recv_packet.packet_dst_channel",
-                value: ctx.cosmosDstChannel
-              },
-              {
-                key: "recv_packet.packet_src_channel",
-                value: ctx.cosmosSrcChannel
-              }
-            ];
-            const query = buildQuery({
-              tags: queryTags
-            });
-            const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
-            const txs = await stargateClient.searchTx(query);
-            if (txs.length == 0) {
-              throw generateError("tx does not exist on oraichain");
-            }
-            return handleStoreOnRecvPacketOraichainReverse(ctx, {
-              ...event,
-              data: {
-                txEvent: convertIndexedTxToTxEvent(txs[0])
-              }
-            });
-          },
+          src: handleOraichainTimeout,
           onError: {
             target: "oraichain",
             // rejected promise data is on event.data property
