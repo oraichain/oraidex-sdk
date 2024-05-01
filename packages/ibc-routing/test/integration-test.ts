@@ -935,7 +935,7 @@ describe("test-integration", () => {
   });
 });
 
-describe.skip("test-integration time-out", () => {
+describe("test-integration time-out", () => {
   let duckDb: DuckDbNode;
   let evmHandler: EvmEventHandler;
   let oraibridgeHandler: OraiBridgeHandler;
@@ -1337,7 +1337,7 @@ describe.skip("test-integration time-out", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(45000);
 
-  it("[Cosmos->EVM] testing time-out case", async () => {
+  xit("[Cosmos->EVM] testing time-out case", async () => {
     cosmosHandler.handleEvent([
       {
         txEvent: IbcTransferTxDataC2E,

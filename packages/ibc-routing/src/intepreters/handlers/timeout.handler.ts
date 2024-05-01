@@ -13,6 +13,7 @@ import { convertIndexedTxToTxEvent } from "../../helpers";
 import { parseRpcEvents } from "../../utils/events";
 import {
   handleCheckAutoForward,
+  handleCheckOnAcknowledgementOnCosmos,
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
@@ -180,6 +181,49 @@ export const handleOraichainTimeout = async (ctx, event) => {
     data: {
       txEvent: convertIndexedTxToTxEvent(txs[0]),
       packetSequence: ctx.oraiBridgePacketSequence
+    }
+  });
+};
+
+export const handleCosmosTimeout = async (ctx, event) => {
+  const queryTags: QueryTag[] = [
+    {
+      key: `acknowledge_packet.packet_sequence`,
+      value: `${ctx.oraiSendPacketSequence}`
+    },
+    {
+      key: `acknowledge_packet.packet_dst_channel`,
+      value: ctx.oraichainDstChannel
+    },
+    {
+      key: `acknowledge_packet.packet_src_channel`,
+      value: ctx.oraichainSrcChannel
+    }
+  ];
+  const query = buildQuery({
+    tags: queryTags
+  });
+  const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
+  const txs = await stargateClient.searchTx(query);
+  if (txs.length == 0) {
+    throw generateError("[EVM INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout");
+  }
+  const txEvent = convertIndexedTxToTxEvent(txs[0]);
+  const events = parseRpcEvents(txEvent.result.events);
+  const eventItem = events
+    .filter((item) => item.type === "acknowledge_packet")
+    .find(
+      (ev) =>
+        ev.attributes.find((attr) => attr.key === "packet_sequence").value === ctx.oraiSendPacketSequence.toString()
+    );
+  if (!eventItem) {
+    generateError("something went wrong on handleCosmosTimeout");
+  }
+  return handleCheckOnAcknowledgementOnCosmos(ctx, {
+    ...event,
+    payload: {
+      txEvent,
+      eventItem
     }
   });
 };

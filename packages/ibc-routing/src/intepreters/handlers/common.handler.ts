@@ -900,23 +900,27 @@ export const handleCheckOnAcknowledgementOnCosmos = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<{ packetSequence: number }> => {
-  const events = parseRpcEvents(event.payload.result.events);
-  const ackPacket = events.find((attr) => attr.type === "acknowledge_packet");
-  if (!ackPacket) {
-    throw generateError("Acknowledgement packet not found on step checkOnAcknowledgementOnCosmos");
-  }
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
+  const ackPacket = eventItem;
   const value = ackPacket.attributes.find((attr: any) => attr.key === "packet_sequence").value;
   const data = parseInt(value);
   const srcChannel = ackPacket.attributes.find((attr: any) => attr.key === "packet_src_channel").value;
   const dstChannel = ackPacket.attributes.find((attr: any) => attr.key === "packet_dst_channel").value;
 
-  return Promise.resolve({ packetSequence: data, ackSrcChannel: srcChannel, ackDstChannel: dstChannel, events });
+  return Promise.resolve({
+    packetSequence: data,
+    ackSrcChannel: srcChannel,
+    ackDstChannel: dstChannel,
+    eventItem,
+    txEvent
+  });
 };
 
 export const handleUpdateOnAcknowledgementOnCosmos = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.data;
   const packetSequence = ctx.oraiSendPacketSequence;
   let oraichainData = await ctx.db.select(DatabaseEnum.Oraichain, {
     where: {
@@ -941,16 +945,21 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   );
 
   // Insert data on cosmos
-  const events: Event[] = event.data.events;
-  const fungibleTokenPacket = events.find(
+  const events: Event[] = parseRpcEvents(txEvent.result.events);
+  const eventItemIndex = events
+    .filter((item) => item.type === "acknowledge_packet")
+    .findIndex(
+      (ev) => ev.attributes.find((item) => item.key === "packet_sequence").value === packetSequence.toString()
+    );
+  if (eventItemIndex === -1) {
+    throw generateError("can not find acknowledgement packet on handleUpdateOnAcknowledgementOnCosmos");
+  }
+  const fungibleTokenPacket = events.filter(
     (item) =>
       item.type === "fungible_token_packet" &&
       item.attributes.find((item) => item.key === "module" && item.value === "transfer")
-  );
-  const ackPacket = events.find((item) => item.type === "acknowledge_packet");
-  if (!ackPacket) {
-    throw generateError("ack packet does not exist on handleUpdateOnAcknowledgementOnCosmos");
-  }
+  )[eventItemIndex];
+  const ackPacket = eventItem;
   let cosmosData = {
     txHash: "",
     height: 0,

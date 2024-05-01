@@ -45,7 +45,10 @@ export class OraichainHandler extends EventHandler {
             });
           }
           if (event.type === "acknowledge_packet") {
-            this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN, txEventItem);
+            this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_ACKNOWLEDGEMENT_ORAICHAIN, {
+              txEvent: txEventItem,
+              eventItem: event
+            });
           }
           previousEventType = event.type;
         });

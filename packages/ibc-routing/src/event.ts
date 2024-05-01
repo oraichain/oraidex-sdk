@@ -33,8 +33,9 @@ export abstract class BaseCosmosEvent {
         tags
       })
     );
+
     try {
-      stream.subscribe({
+      const listener = stream.subscribe({
         next: (txEvent) => {
           console.log("[Cosmos] Txhash:", convertTxHashToHex(txEvent.hash));
           this.callback(txEvent);
@@ -42,6 +43,9 @@ export abstract class BaseCosmosEvent {
         error: (err) => console.log("[Cosmos Socket] error while subscribing websocket: ", err),
         complete: () => {
           console.log("[Cosmos Socket] completed");
+          listener.unsubscribe();
+          // stream stop, so we need to create producer and stream again
+          this.connectCosmosSocket(tags);
         }
       });
     } catch (error) {

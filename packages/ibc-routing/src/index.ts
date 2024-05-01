@@ -75,9 +75,6 @@ uws
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, removeProtocol(config.ORAIBRIDGE_RPC_URL));
     const oraichainEvent = new OraichainEvent(oraichainEventHandler, removeProtocol(config.ORAICHAIN_RPC_URL));
 
-    oraiBridgeEvent.listenBlockSocket();
-    oraichainEvent.listenBlockSocket();
-
     // // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
     for (const evmChainPrefix of Object.keys(EvmRpcs)) {
       console.log("connecting socket to", evmChainPrefix);

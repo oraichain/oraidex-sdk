@@ -82,3 +82,7 @@ export const OraiBridgeAutoForwardTxData = JSON.parse(
 export const OnRecvPacketTxData = JSON.parse(
   fs.readFileSync(path.join(__dirname, "./on_recv_packet.json")).toString("utf-8")
 );
+
+export const OnAcknowledgementTxData = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "./on_acknowledgement.json")).toString("utf-8")
+);

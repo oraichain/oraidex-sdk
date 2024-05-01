@@ -1,12 +1,6 @@
-import { StargateClient } from "@cosmjs/stargate";
-import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
-import { generateError, parseRpcEvents } from "@oraichain/oraidex-common";
 import { createMachine, interpret } from "xstate";
-import { config } from "../config";
 import { FinalTag, ForwardTagOnOraichain, IntepreterType, TimeOut, invokableMachineStateKeys } from "../constants";
 import { DuckDB } from "../db";
-import { convertIndexedTxToTxEvent } from "../helpers";
 import { IntepreterInterface } from "../managers/intepreter.manager";
 import {
   handleCheckAutoForward,
@@ -32,6 +26,7 @@ import {
   onDoneOnRecvPacketOraichain
 } from "./handlers/common.handler";
 import {
+  handleCosmosTimeout,
   handleOnBatchSendToETHClaimTimeout,
   handleOnRequestBatchTimeout,
   handleOraiBridgeForEvmTimeout,
@@ -281,43 +276,14 @@ export const createEvmIntepreter = (db: DuckDB) => {
         },
         cosmosTimeout: {
           invoke: {
-            src: async (ctx, event) => {
-              const queryTags: QueryTag[] = [
-                {
-                  key: `acknowledge_packet.packet_sequence`,
-                  value: `${ctx.oraiSendPacketSequence}`
-                },
-                {
-                  key: `acknowledge_packet.packet_dst_channel`,
-                  value: ctx.oraichainDstChannel
-                },
-                {
-                  key: `acknowledge_packet.packet_src_channel`,
-                  value: ctx.oraichainSrcChannel
-                }
-              ];
-              const query = buildQuery({
-                tags: queryTags
-              });
-              const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
-              const txs = await stargateClient.searchTx(query);
-              if (txs.length == 0) {
-                throw generateError("[EVM INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout");
-              }
-              return handleUpdateOnAcknowledgementOnCosmos(ctx, {
-                ...event,
-                data: {
-                  events: parseRpcEvents(convertIndexedTxToTxEvent(txs[0]).result.events)
-                }
-              });
-            },
+            src: handleCosmosTimeout,
             onError: {
               actions: (ctx, event) => {
                 console.log("error handling on cosmos", event.data);
               },
               target: "cosmos"
             },
-            onDone: "finalState"
+            onDone: "updateOnAcknowledgementOnCosmos"
           }
         },
         queryOnRecvCosmosPacket: {
@@ -332,7 +298,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
             src: handleCheckOnAcknowledgementOnCosmos,
             onDone: [
               {
-                target: "oraichain",
+                target: "cosmos",
                 cond: (ctx, event) =>
                   event.data.packetSequence !== ctx.oraiSendPacketSequence ||
                   ctx.oraichainSrcChannel !== event.data.ackSrcChannel ||
