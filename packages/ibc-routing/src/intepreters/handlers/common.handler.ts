@@ -999,8 +999,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<string> => {
-  const txEvent: TxEvent = event.payload;
-  const events = parseRpcEvents(txEvent.result.events);
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
 
   let nextState = "";
   let nextPacketData = {
@@ -1016,7 +1015,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     srcChannel: "",
     dstChannel: ""
   };
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
+  const sendPacketEvent = eventItem;
   if (!sendPacketEvent) {
     throw generateError("send packet does not exist on tx on store on transfer back to remote chain");
   }

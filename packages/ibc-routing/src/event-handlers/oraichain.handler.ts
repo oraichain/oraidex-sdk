@@ -27,16 +27,21 @@ export class OraichainHandler extends EventHandler {
                 Object.values(EvmChainPrefix).find((item) => JSON.parse(packetDataValue).denom.includes(item)) !==
                 undefined
               ) {
-                const intepreter = createOraichainIntepreter(this.db);
-                this.im.appendIntepreter(intepreter);
-                intepreter._inner.start();
-                intepreter._inner.send({
-                  type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
-                  payload: txEventItem
-                });
+                // Only create intepreter when it is rooted from Oraichain
+                if (decodedEvents.findIndex((ev) => ev.type === "recv_packet") === -1) {
+                  const intepreter = createOraichainIntepreter(this.db);
+                  this.im.appendIntepreter(intepreter);
+                  intepreter._inner.start();
+                  intepreter._inner.send({
+                    type: invokableMachineStateKeys.STORE_ON_TRANSFER_BACK_TO_REMOTE_CHAIN,
+                    payload: {
+                      txEvent: txEventItem,
+                      eventItem: event
+                    }
+                  });
+                }
               }
             } catch (err) {}
-            return;
           }
           if (event.type === "recv_packet") {
             this.im.transitionInterpreters(invokableMachineStateKeys.STORE_ON_RECV_PACKET_ORAICHAIN, {
