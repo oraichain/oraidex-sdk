@@ -1060,7 +1060,7 @@ describe("test-batch-integration", () => {
     expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
   });
 
-  xit("[Oraichain->EVM] query happy", async () => {
+  it("[Oraichain->EVM] query happy", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -1525,7 +1525,7 @@ describe("test-batch-integration-timeout", () => {
     await setTimeout(sleepTimeMs);
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxData1O2E));
     oraiStream.shamefullySendNext(unmarshalTxEvent(TransferBackToRemoteTxData2O2E));
-    await setTimeout(20000);
+    await setTimeout(30000);
 
     // Test Data
     // ORAICHAIN
@@ -1684,7 +1684,7 @@ describe("test-batch-integration-timeout", () => {
     expect(intepreterCount1.status).eql(InterpreterStatus.Stopped);
     const intepreterCount2 = im.getIntepreter(1)._inner;
     expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
-  }).timeout(30000);
+  }).timeout(40000);
 
   it("[EVM->Cosmos] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
@@ -1696,7 +1696,7 @@ describe("test-batch-integration-timeout", () => {
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos1);
     gravity.emit("SendToCosmosEvent", ...SendToCosmosDataEvm2Cosmos2);
     // TODO: how to wait for emit event to finish then start the next
-    await setTimeout(23000);
+    await setTimeout(36000);
 
     expect(
       await duckDb.select(DatabaseEnum.Evm, {
@@ -1930,7 +1930,7 @@ describe("test-batch-integration-timeout", () => {
     expect(intepreterCount1.status).eql(InterpreterStatus.Stopped);
     const intepreterCount2 = im.getIntepreter(1)._inner;
     expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
-  }).timeout(30000);
+  }).timeout(40000);
 
   it("[EVM->EVM] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);

@@ -88,7 +88,7 @@ describe("test-integration", () => {
 
   const [owner] = getSigners(1);
 
-  xit("[EVM->Oraichain] query happy test", async () => {
+  it("[EVM->Oraichain] query happy test", async () => {
     // fixture, setup a successful ibc routing flow from evm -> oraichain
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
@@ -128,7 +128,7 @@ describe("test-integration", () => {
     expect(queryKeys[2]).eq(DatabaseEnum.Oraichain);
   });
 
-  xit("[EVM->Oraichain] full-flow happy test", async () => {
+  it("[EVM->Oraichain] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -235,7 +235,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
-  xit("[EVM->Cosmos] query happy test", async () => {
+  it("[EVM->Cosmos] query happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -276,7 +276,7 @@ describe("test-integration", () => {
     expect(queryKeys[3]).eq(DatabaseEnum.Cosmos);
   });
 
-  xit("[EVM->Cosmos] full-flow happy test", async () => {
+  it("[EVM->Cosmos] full-flow happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -391,7 +391,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
-  xit("[EVM->EVM] query happy test", async () => {
+  it("[EVM->EVM] query happy test", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -598,7 +598,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
-  xit("[Cosmos->EVM] query happy test", async () => {
+  it("[Cosmos->EVM] query happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -645,7 +645,7 @@ describe("test-integration", () => {
     expect(queryKeys[3]).eq(DatabaseEnum.Evm);
   });
 
-  xit("[Cosmos->EVM] full-flow happy test", async () => {
+  it("[Cosmos->EVM] full-flow happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -787,7 +787,7 @@ describe("test-integration", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   });
 
-  xit("[Oraichain->EVM] query happy test", async () => {
+  it("[Oraichain->EVM] query happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -824,7 +824,7 @@ describe("test-integration", () => {
     expect(queryKeys[2]).eq(DatabaseEnum.Evm);
   });
 
-  xit("[Oraichain->EVM] full-flow happy test", async () => {
+  it("[Oraichain->EVM] full-flow happy test", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
       autoForwardTag,
@@ -935,7 +935,7 @@ describe("test-integration", () => {
   });
 });
 
-describe.skip("test-integration time-out", () => {
+describe("test-integration time-out", () => {
   let duckDb: DuckDbNode;
   let evmHandler: EvmEventHandler;
   let oraibridgeHandler: OraiBridgeHandler;
