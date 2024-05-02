@@ -1025,10 +1025,10 @@ describe("test-batch-integration", () => {
         prevTxHash: "8979A718511CF608EB7C3AC2368D666F58414649923322589D71D1DC27EEF05A",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "2442556",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         eventNonce: 6954,
@@ -1051,10 +1051,10 @@ describe("test-batch-integration", () => {
         prevTxHash: "8979A718511CF608EB7C3AC2368D666F58414649923322589D71D1DC27EEF05A",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "4438556",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 6954,
@@ -1370,10 +1370,10 @@ describe("test-batch-integration", () => {
         prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "11370620000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 65538,
@@ -1396,10 +1396,10 @@ describe("test-batch-integration", () => {
         prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1166126000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         eventNonce: 65538,
@@ -1622,7 +1622,8 @@ describe("test-batch-integration", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: {
           eventNonce: 65347,
-          destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00"
+          destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
+          fromAmount: "570339000000000000"
         }
       })
     ).eql([
@@ -1633,10 +1634,37 @@ describe("test-batch-integration", () => {
         prevTxHash: "6FC035DF8F555C502B8706AF5AEE4761E597AAF869E43F1370B9FF02A82D12CC",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "570339000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
+        destinationChannelId: "",
+        destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
+        eventNonce: 65347,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          eventNonce: 65347,
+          destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
+          fromAmount: "124142000000000000"
+        }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "6FC035DF8F555C502B8706AF5AEE4761E597AAF869E43F1370B9FF02A82D12CC",
+        nextState: "",
+        destination: "",
+        fromAmount: "124142000000000000",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
         eventNonce: 65347,
@@ -2011,7 +2039,8 @@ describe("test-batch-integration-timeout", () => {
       await duckDb.select(DatabaseEnum.Evm, {
         where: {
           eventNonce: 65347,
-          destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00"
+          destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
+          fromAmount: "124142000000000000"
         }
       })
     ).eql([
@@ -2022,10 +2051,37 @@ describe("test-batch-integration-timeout", () => {
         prevTxHash: "6FC035DF8F555C502B8706AF5AEE4761E597AAF869E43F1370B9FF02A82D12CC",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "124142000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
+        destinationChannelId: "",
+        destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
+        eventNonce: 65347,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          eventNonce: 65347,
+          destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
+          fromAmount: "570339000000000000"
+        }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "6FC035DF8F555C502B8706AF5AEE4761E597AAF869E43F1370B9FF02A82D12CC",
+        nextState: "",
+        destination: "",
+        fromAmount: "570339000000000000",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
         eventNonce: 65347,
@@ -2496,10 +2552,10 @@ describe("test-batch-integration-timeout", () => {
         prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "11370620000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 65538,
@@ -2522,10 +2578,10 @@ describe("test-batch-integration-timeout", () => {
         prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1166126000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         eventNonce: 65538,
@@ -2808,10 +2864,10 @@ describe("test-batch-integration-timeout", () => {
         prevTxHash: "8979A718511CF608EB7C3AC2368D666F58414649923322589D71D1DC27EEF05A",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "2442556",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         eventNonce: 6954,
@@ -2834,10 +2890,10 @@ describe("test-batch-integration-timeout", () => {
         prevTxHash: "8979A718511CF608EB7C3AC2368D666F58414649923322589D71D1DC27EEF05A",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "4438556",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 6954,

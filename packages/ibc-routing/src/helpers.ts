@@ -1,5 +1,6 @@
 import { IndexedTx } from "@cosmjs/stargate";
 import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { EvmChainPrefix } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { encodeRpcEvents } from "./utils/events";
 
@@ -34,4 +35,24 @@ export const convertIndexedTxToTxEvent = (tx: IndexedTx): TxEvent => {
     },
     tx: tx.tx
   };
+};
+
+// denom here is denom from oraibridge to evm, this will have form like:
+// Input: wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955
+// Output: 0x55d398326f99059fF775485246999027B3197955
+export const decodeDenomToTokenAddress = (denom: string): string => {
+  const splittedDenom = denom.split("/");
+  const lastDenom = splittedDenom[splittedDenom.length - 1];
+  const evmChainPrefix = Object.values(EvmChainPrefix).find((item) => lastDenom.includes(item)) || "";
+  const splittedLastDenom = lastDenom.split(evmChainPrefix);
+  return splittedLastDenom[splittedLastDenom.length - 1];
+};
+
+// denom here is denom from oraibridge to evm, this will have form like:
+// Input: oraib0x55d398326f99059fF775485246999027B3197955
+// Output: 0x55d398326f99059fF775485246999027B3197955
+export const decodeMemoToTokenAddress = (denom: string): string => {
+  const evmChainPrefix = Object.values(EvmChainPrefix).find((item) => denom.includes(item)) || "";
+  const splittedLastDenom = denom.split(evmChainPrefix);
+  return splittedLastDenom[splittedLastDenom.length - 1];
 };

@@ -18,7 +18,7 @@ import {
   oraiBridgeAutoForwardEventType,
   outGoingTxIdEventType
 } from "../../constants";
-import { convertTxHashToHex } from "../../helpers";
+import { convertTxHashToHex, decodeDenomToTokenAddress, decodeMemoToTokenAddress } from "../../helpers";
 import { isBase64, parseRpcEvents } from "../../utils/events";
 import { unmarshalOraiBridgeRoute } from "../../utils/marshal";
 import { decodeIbcMemo } from "../../utils/protobuf";
@@ -423,11 +423,15 @@ export const handleQueryOnBatchSendToEthClaim = async (ctx: ContextIntepreter, e
 
   const prevTxHash = (lastOraiBridgeItem.data as OraiBridgeState).txHash;
   const evmChainPrefix = (lastOraiBridgeItem.data as OraiBridgeState).evmChainPrefix;
+  const receiver = decodeMemoToTokenAddress((lastOraiBridgeItem.data as OraiBridgeState).memo);
+  const amount = (lastOraiBridgeItem.data as OraiBridgeState).amount;
 
   const evmData = await ctx.db.select(DatabaseEnum.Evm, {
     where: {
       prevTxHash,
-      evmChainPrefix
+      evmChainPrefix,
+      destinationReceiver: receiver,
+      fromAmount: amount
     }
   });
   if (evmData.length == 0) {
@@ -470,12 +474,12 @@ export const handleStoreOnBatchSendToEthClaim = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
-  const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
+  const oraiBridgeData = (await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
       txId: ctx.oraiBridgePendingTxId,
       evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
     }
-  });
+  })) as OraiBridgeState[];
   if (oraiBridgeData.length == 0) {
     throw generateError("error on saving batch nonce to eventNonce in OraiBridgeState");
   }
@@ -500,10 +504,10 @@ export const handleStoreOnBatchSendToEthClaim = async (
     prevTxHash: oraiBridgeData[0].txHash,
     nextState: "",
     destination: "",
-    fromAmount: 0,
+    fromAmount: oraiBridgeData[0].amount,
     oraiBridgeChannelId: "",
     oraiReceiver: "",
-    destinationDenom: "",
+    destinationDenom: decodeDenomToTokenAddress(oraiBridgeData[0].denom),
     destinationChannelId: "",
     destinationReceiver: `0x${oraiBridgeData[0].memo.split("0x")[1]}`,
     eventNonce: event.data.eventNonce,

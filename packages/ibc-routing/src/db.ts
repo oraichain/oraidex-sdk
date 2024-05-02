@@ -33,7 +33,7 @@ export const sqlCommands = {
       eventNonce uinteger,
       evmChainPrefix varchar,
       status varchar,
-      primary key (eventNonce, evmChainPrefix, destinationReceiver),
+      primary key (eventNonce, evmChainPrefix, destinationReceiver, fromAmount),
     )`,
     [DatabaseEnum.OraiBridge]: `create table if not exists OraiBridgeState 
     (
