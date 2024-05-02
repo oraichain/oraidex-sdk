@@ -8,7 +8,7 @@
   "module": "dist/umd/main.js",
   "types": "dist/umd/types/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/umd && node script.js && webpack && tsc",
+    "build": "rimraf dist/umd && webpack && tsc",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
