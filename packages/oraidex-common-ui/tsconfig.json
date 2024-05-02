@@ -1,8 +1,10 @@
 {
   "compilerOptions": {
+    "downlevelIteration": true,
     "module": "esnext",
     "target": "esnext",
     "sourceMap": true,
+    "allowJs": true,
     "declaration": true,
     "declarationDir": "./dist/umd/types",
     "declarationMap": true,

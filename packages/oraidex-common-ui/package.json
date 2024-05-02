@@ -8,7 +8,7 @@
   "module": "dist/umd/main.js",
   "types": "dist/umd/types/index.d.ts",
   "scripts": {
-    "build": "rimraf dist/umd && webpack && tsc",
+    "build": "rimraf dist/umd && node script.js && webpack && tsc",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -41,6 +41,7 @@
     "stream-browserify": "^3.0.0",
     "stream-http": "^3.2.0",
     "terser-webpack-plugin": "5.3.10",
+    "vm-browserify": "^1.1.2",
     "webpack": "5.89.0",
     "webpack-cli": "^5.1.4"
   },

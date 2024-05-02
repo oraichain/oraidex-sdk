@@ -61,8 +61,18 @@ module.exports = {
     modules: [path.resolve(__dirname, "."), "node_modules"],
     fallback: {
       fs: false,
-      crypto: false,
-      https: false
+      tls: false,
+      net: false,
+      os: false,
+      url: false,
+      path: false,
+      assert: false,
+      querystring: false,
+      http: require.resolve("stream-http"),
+      crypto: require.resolve("crypto-browserify"),
+      stream: require.resolve("stream-browserify"),
+      https: require.resolve("https-browserify"),
+      vm: require.resolve("vm-browserify")
     }
   },
   module: {
@@ -94,6 +104,9 @@ module.exports = {
 
             plugins: ["@babel/plugin-proposal-class-properties"].filter(Boolean)
           }
+        },
+        resolve: {
+          fullySpecified: false
         }
       },
       {
