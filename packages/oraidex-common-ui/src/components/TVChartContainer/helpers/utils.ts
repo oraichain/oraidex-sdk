@@ -1,4 +1,4 @@
-import { PAIRS } from "@oraichain/oraidex-common/build/pairs";
+import { PAIRS, PairMapping } from "@oraichain/oraidex-common/build/pairs";
 import { Timezone } from "../charting_library";
 import { CHART_PERIODS } from "./constants";
 import { Bar } from "./types";
@@ -144,29 +144,33 @@ export function parseFullSymbol(fullSymbol) {
   };
 }
 
-export const parseChannelFromPair = (pair: string) => {
-  const checkPair = PAIRS.map((pair) => {
-    const assets = pair.asset_infos.map((info) => {
-      if ("native_token" in info) return info.native_token.denom;
-      return info.token.contract_addr;
+export const parseChannelFromPair = (pair: string, pairMap: any[] = PAIRS) => {
+  const checkPair = pairMap
+    .map((pair) => {
+      const assets = pair?.asset_infos?.map((info) => {
+        if ("native_token" in info) return info.native_token.denom;
+        return info.token.contract_addr;
+      });
+
+      const symbolArr = pair.symbol ? pair.symbol.split("/") : pair.symbols || [];
+
+      return {
+        ...pair,
+        symbol: `${symbolArr[0]}/${symbolArr[1]}`,
+        info: assets ? `${assets[0]}-${assets[1]}` : pair?.info,
+        baseSymbol: symbolArr[0],
+        quoteSymbol: symbolArr[1]
+      };
+    })
+    .find((currentPair) => {
+      const newPairArr =
+        pair
+          ?.split("-")
+          ?.map((p) => p?.trim())
+          ?.join("-") || pair;
+
+      return newPairArr === currentPair.info || pair === currentPair.info;
     });
-
-    return {
-      ...pair,
-      symbol: `${pair.symbols[0]}/${pair.symbols[1]}`,
-      info: `${assets[0]}-${assets[1]}`,
-      baseSymbol: pair.symbols[0],
-      quoteSymbol: pair.symbols[1]
-    };
-  }).find((currentPair) => {
-    const pairArr =
-      pair
-        ?.split("-")
-        ?.map((p) => p?.trim())
-        ?.join("-") || pair;
-
-    return pairArr === currentPair.info;
-  });
 
   return checkPair?.symbol;
 };

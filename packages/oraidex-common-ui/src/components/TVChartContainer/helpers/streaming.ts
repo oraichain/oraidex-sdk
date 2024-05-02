@@ -1,14 +1,16 @@
 import { parseChannelFromPair, parseFullSymbol, roundTime } from "./utils";
 
 const channelToSubscription = new Map();
-const handleTradeEvent = (data) => {
+const handleTradeEvent = (data, pairMap) => {
   const { open, close, low, high, volume, time, pair } = data;
 
   // DEBT: update this func later to get pair denom, no need to parse
-  const channelString = parseChannelFromPair(pair);
+  const channelString = parseChannelFromPair(pair, pairMap);
   // const channelString = pair;
 
   const subscriptionItem = channelToSubscription.get(channelString);
+
+  console.log("channelString", channelString);
 
   if (subscriptionItem === undefined) {
     return;

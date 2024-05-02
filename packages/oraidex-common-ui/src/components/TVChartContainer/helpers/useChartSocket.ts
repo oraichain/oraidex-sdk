@@ -1,4 +1,4 @@
-import { WEBSOCKET_RECONNECT_ATTEMPTS, WEBSOCKET_RECONNECT_INTERVAL } from "@oraichain/oraidex-common";
+import { PAIRS, WEBSOCKET_RECONNECT_ATTEMPTS, WEBSOCKET_RECONNECT_INTERVAL } from "@oraichain/oraidex-common";
 import { handleTradeEvent } from "./streaming";
 import { useEffect, useState } from "react";
 import { WS_URL } from "./requests";
@@ -15,7 +15,13 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
   const [currentData, setData] = useState(null);
   const [currentPeriod, setPeriod] = useState(period);
   const [pairActive, setPairActive] = useState(currentPair);
-  const { retryOnError = true, reconnectAttempts, reconnectInterval, wsUrl: socketUrl } = socketConfig || {};
+  const {
+    retryOnError = true,
+    reconnectAttempts,
+    reconnectInterval,
+    wsUrl: socketUrl,
+    pairMapping = PAIRS
+  } = socketConfig || {};
 
   const { lastJsonMessage, sendJsonMessage } = useWebSocket<LastJsonMessageType>(socketUrl || WS_URL, {
     onOpen: () => {
@@ -76,8 +82,9 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
       if (stream === `${currentPair.info}@${period}`) {
         // if (stream !== `Pong`) {
         // console.info("Data stream: ", data);
+
         setData(data);
-        handleTradeEvent(data);
+        handleTradeEvent(data, pairMapping);
       }
     }
   }, [lastJsonMessage]);
