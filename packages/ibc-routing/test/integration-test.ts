@@ -32,13 +32,13 @@ import {
   OnRecvPacketOraiBridgeTxData as OnRecvPacketOraiBridgeTxDataC2E,
   OnRecvPacketOraichainTxData as OnRecvPacketOraichainTxDataC2E,
   OnRequestBatchTxData as OnRequestBatchTxDataC2E
-} from "./data/cosmos-to-evm";
+} from "./data/single/cosmos-to-evm";
 import {
   OnAcknowledgement as OnAcknowledgementEvm2Cosmos,
   OnRecvPacketTxData as OnRecvPacketTxDataEvm2Cosmos,
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Cosmos,
   SendToCosmosData as SendToCosmosDataEvm2Cosmos
-} from "./data/evm-to-cosmos";
+} from "./data/single/evm-to-cosmos";
 import {
   BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataEvm2Evm,
   OnRecvPacketOraiBridgeTxData as OnRecvPacketOraiBridgeTxDataEvm2Evm,
@@ -46,18 +46,18 @@ import {
   OnRequestBatchTxData as OnRequestBatchTxDataEvm2Evm,
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Evm,
   SendToCosmosData as SendToCosmosDataEvm2Evm
-} from "./data/evm-to-evm";
+} from "./data/single/evm-to-evm";
 import {
   OnRecvPacketTxData as OnRecvPacketTxDataEvm2Oraichain,
   OraiBridgeAutoForwardTxData as OraiBridgeAutoForwardTxDataEvm2Oraichain,
   SendToCosmosData as SendToCosmosDataEvm2Oraichain
-} from "./data/evm-to-oraichain";
+} from "./data/single/evm-to-oraichain";
 import {
   BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataO2E,
   OnRecvPacketTxData as OnRecvPacketTxDataO2E,
   OnRequestBatchTxData as OnRequestBatchTxDataO2E,
   TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E
-} from "./data/oraichain-to-evm";
+} from "./data/single/oraichain-to-evm";
 const sleepTimeMs = 300;
 
 // TODO: at each testcase, i should test the final stored database to make it more concise
@@ -582,10 +582,10 @@ describe("test-integration", () => {
         prevTxHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1106616",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 6501,
@@ -771,10 +771,10 @@ describe("test-integration", () => {
         prevTxHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1940789000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64152,
@@ -918,10 +918,10 @@ describe("test-integration", () => {
         prevTxHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1388829000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64140,
@@ -1082,10 +1082,10 @@ describe("test-integration time-out", () => {
         prevTxHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1106616",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 6501,
@@ -1444,10 +1444,10 @@ describe("test-integration time-out", () => {
         prevTxHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1940789000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64152,
@@ -1544,10 +1544,10 @@ describe("test-integration time-out", () => {
         prevTxHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1388829000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64140,

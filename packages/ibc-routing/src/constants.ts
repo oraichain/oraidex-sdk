@@ -20,6 +20,7 @@ export const oraiBridgeAutoForwardEventType = "gravity.v1.EventSendToCosmosExecu
 export const outGoingTxIdEventType = "gravity.v1.EventOutgoingTxId";
 export const eventBatchCreatedEventType = "gravity.v1.EventBatchCreated";
 export const batchSendToEthClaimEventType = "gravity.v1.MsgBatchSendToEthClaim";
+export const outgoingBatchEventType = "gravity.v1.EventOutgoingBatch";
 export const ibcRecvPacketEventType = "recv_packet";
 export const evmGravityEvents = [sendToCosmosEvent];
 
@@ -51,7 +52,7 @@ export const invokableMachineStateKeys = {
 };
 
 export const EvmRpcs = {
-  [EvmChainPrefix.BSC_MAINNET]: "https://1rpc.io/bnb",
+  [EvmChainPrefix.BSC_MAINNET]: "https://bsc-pokt.nodies.app",
   [EvmChainPrefix.ETH_MAINNET]: "https://eth-pokt.nodies.app",
   [EvmChainPrefix.TRON_MAINNET]: "https://api.trongrid.io/jsonrpc"
 };
@@ -81,7 +82,7 @@ export const ChainIdToEvmChainPrefix = {
 export const FinalTag = "Final";
 
 // Total time to wait for one state to be transition to another state
-export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 60000;
+export const TimeOut = process.env.NODE_ENV == "development" ? 3000 : 20000;
 
 export const IbcWasmContract = "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm";
 
@@ -92,6 +93,8 @@ export const COSMOS_DENOM = {
   [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: "inj",
   [COSMOS_CHAIN_ID_COMMON.KAWAII_COSMOS_CHAIN_ID]: "oraie"
 };
+
+export const WaitTimePerEachTransition = 100;
 
 // INTERFACES
 export interface EvmState {

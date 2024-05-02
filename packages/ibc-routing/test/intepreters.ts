@@ -22,9 +22,9 @@ import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
 import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
-import { IbcTransferTxData as IbcTransferTxDataC2E } from "./data/cosmos-to-evm";
-import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/evm-to-evm";
-import { TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E } from "./data/oraichain-to-evm";
+import { IbcTransferTxData as IbcTransferTxDataC2E } from "./data/single/cosmos-to-evm";
+import { SendToCosmosData as SendToCosmosDataEvm2Evm } from "./data/single/evm-to-evm";
+import { TransferBackToRemoteTxData as TransferBackToRemoteTxDataO2E } from "./data/single/oraichain-to-evm";
 
 describe("test recover case", () => {
   let duckDb: DuckDbNode;
@@ -165,10 +165,10 @@ describe("test recover case", () => {
         prevTxHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1388829000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64140,
@@ -331,10 +331,10 @@ describe("test recover case", () => {
         prevTxHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1106616",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 6501,
@@ -513,10 +513,10 @@ describe("test recover case", () => {
         prevTxHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1106616",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 6501,
@@ -600,10 +600,10 @@ describe("test recover case", () => {
         prevTxHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1388829000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64140,
@@ -711,10 +711,10 @@ describe("test recover case", () => {
         prevTxHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
         nextState: "",
         destination: "",
-        fromAmount: "0",
+        fromAmount: "1940789000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
-        destinationDenom: "",
+        destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         eventNonce: 64152,

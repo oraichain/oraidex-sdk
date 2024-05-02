@@ -21,6 +21,7 @@ import { EvmEventHandler } from "./event-handlers/evm.handler";
 import { OraiBridgeHandler } from "./event-handlers/oraibridge.handler";
 import { OraichainHandler } from "./event-handlers/oraichain.handler";
 import IntepreterManager from "./managers/intepreter.manager";
+import { removeProtocol } from "./utils/url";
 
 let im = new IntepreterManager(false, resolve(__dirname, "../src/data"));
 
@@ -71,8 +72,8 @@ uws
     const oraibridgeEventHandler = new OraiBridgeHandler(duckDb, im);
 
     const ethEvent = new EthEvent(evmEventHandler);
-    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, config.ORAIBRIDGE_RPC_URL);
-    const oraichainEvent = new OraichainEvent(oraichainEventHandler, config.ORAICHAIN_RPC_URL);
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeEventHandler, removeProtocol(config.ORAIBRIDGE_RPC_URL));
+    const oraichainEvent = new OraichainEvent(oraichainEventHandler, removeProtocol(config.ORAICHAIN_RPC_URL));
 
     // // TODO: here, we create multiple listeners to listen to multiple evms and cosmos networks
     for (const evmChainPrefix of Object.keys(EvmRpcs)) {

@@ -1,0 +1,127 @@
+{
+  "hash": "8DF91F785479EC7CB024BABAC29BBCD42DAF57F0AEEC66C239CAD2017F5232BF",
+  "height": "13211665",
+  "index": 0,
+  "result": {
+    "code": 0,
+    "data": "CiQKIi9ncmF2aXR5LnYxLk1zZ0JhdGNoU2VuZFRvRXRoQ2xhaW0=",
+    "log": "[{\"events\":[{\"type\":\"gravity.v1.EventClaim\",\"attributes\":[{\"key\":\"attestation_id\",\"value\":\"\\\"\\\\u000b\\\\ufffd\\\\u0016_\\\\ufffd\\\\ufffdU\\\\ufffd=\\\\u000bb\\\\ufffdMJF\\\\ufffdeth-mainnet\\\\u0000\\\\u0000\\\\u0000\\\\u0000\\\\u0000\\\\u0000\\\\u001b*\\\\ufffd\\\\ufffdn\\\\u0026\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\u001c\\\\ufffd\\\\ufffd\\\\u0007\\\\r\\\\u0026\\\\ufffd،\\\\ufffd6\\\\ufffd\\\\ufffd\\\\u0017\\\\ufffd9z\\\\ufffdK\\\\ufffde\\\"\"},{\"key\":\"claim_hash\",\"value\":\"\\\"\\\\ufffd\\\\ufffdn\\\\u0026\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\ufffd\\\\u001c\\\\ufffd\\\\ufffd\\\\u0007\\\\r\\\\u0026\\\\ufffd،\\\\ufffd6\\\\ufffd\\\\ufffd\\\\u0017\\\\ufffd9z\\\\ufffdK\\\\ufffde\\\"\"},{\"key\":\"message\",\"value\":\"\\\"\\\\u0002\\\"\"}]},{\"type\":\"gravity.v1.MsgBatchSendToEthClaim\",\"attributes\":[{\"key\":\"batch_nonce\",\"value\":\"\\\"4385\\\"\"},{\"key\":\"eth_block_height\",\"value\":\"\\\"19769644\\\"\"},{\"key\":\"event_nonce\",\"value\":\"\\\"6954\\\"\"},{\"key\":\"evm_chain_prefix\",\"value\":\"\\\"eth-mainnet\\\"\"},{\"key\":\"orchestrator\",\"value\":\"\\\"oraib19wq4d7lmkkyd960rakgyff5fqfeaczjeev05l4\\\"\"},{\"key\":\"token_contract\",\"value\":\"\\\"0xdAC17F958D2ee523a2206206994597C13D831ec7\\\"\"}]},{\"type\":\"message\",\"attributes\":[{\"key\":\"action\",\"value\":\"/gravity.v1.MsgBatchSendToEthClaim\"}]}]}]",
+    "info": "",
+    "gas_wanted": "191512",
+    "gas_used": "95826",
+    "events": [
+      {
+        "type": "tx",
+        "attributes": [
+          {
+            "key": "ZmVl",
+            "value": "MHVvcmFpYg==",
+            "index": true
+          },
+          {
+            "key": "ZmVlX3BheWVy",
+            "value": "b3JhaWIxOXdxNGQ3bG1ra3lkOTYwcmFrZ3lmZjVmcWZlYWN6amVldjA1bDQ=",
+            "index": true
+          }
+        ]
+      },
+      {
+        "type": "tx",
+        "attributes": [
+          {
+            "key": "YWNjX3NlcQ==",
+            "value": "b3JhaWIxOXdxNGQ3bG1ra3lkOTYwcmFrZ3lmZjVmcWZlYWN6amVldjA1bDQvMzA2NjY=",
+            "index": true
+          }
+        ]
+      },
+      {
+        "type": "tx",
+        "attributes": [
+          {
+            "key": "c2lnbmF0dXJl",
+            "value": "c0dwdVJIUEREcU0yck5BVko1cldYdS9wdkZCMXNjR21GREtydmJzNVBaVVVtZ2VoK3FuaEFGbUNWemtXS1JscFhOQVQ1NXZ5VVdkanNpRXhrTkJYWEE9PQ==",
+            "index": true
+          }
+        ]
+      },
+      {
+        "type": "message",
+        "attributes": [
+          {
+            "key": "YWN0aW9u",
+            "value": "L2dyYXZpdHkudjEuTXNnQmF0Y2hTZW5kVG9FdGhDbGFpbQ==",
+            "index": true
+          }
+        ]
+      },
+      {
+        "type": "gravity.v1.EventClaim",
+        "attributes": [
+          {
+            "key": "YXR0ZXN0YXRpb25faWQ=",
+            "value": "Ilx1MDAwYlx1ZmZmZFx1MDAxNl9cdWZmZmRcdWZmZmRVXHVmZmZkPVx1MDAwYmJcdWZmZmRNSkZcdWZmZmRldGgtbWFpbm5ldFx1MDAwMFx1MDAwMFx1MDAwMFx1MDAwMFx1MDAwMFx1MDAwMFx1MDAxYipcdWZmZmRcdWZmZmRuXHUwMDI2XHVmZmZkXHVmZmZkXHVmZmZkXHVmZmZkXHVmZmZkXHVmZmZkXHVmZmZkXHUwMDFjXHVmZmZkXHVmZmZkXHUwMDA3XHJcdTAwMjZcdWZmZmTYjFx1ZmZmZDZcdWZmZmRcdWZmZmRcdTAwMTdcdWZmZmQ5elx1ZmZmZEtcdWZmZmRlIg==",
+            "index": true
+          },
+          {
+            "key": "Y2xhaW1faGFzaA==",
+            "value": "Ilx1ZmZmZFx1ZmZmZG5cdTAwMjZcdWZmZmRcdWZmZmRcdWZmZmRcdWZmZmRcdWZmZmRcdWZmZmRcdWZmZmRcdTAwMWNcdWZmZmRcdWZmZmRcdTAwMDdcclx1MDAyNlx1ZmZmZNiMXHVmZmZkNlx1ZmZmZFx1ZmZmZFx1MDAxN1x1ZmZmZDl6XHVmZmZkS1x1ZmZmZGUi",
+            "index": true
+          },
+          {
+            "key": "bWVzc2FnZQ==",
+            "value": "Ilx1MDAwMiI=",
+            "index": true
+          }
+        ]
+      },
+      {
+        "type": "gravity.v1.MsgBatchSendToEthClaim",
+        "attributes": [
+          {
+            "key": "YmF0Y2hfbm9uY2U=",
+            "value": "IjQzODUi",
+            "index": true
+          },
+          {
+            "key": "ZXRoX2Jsb2NrX2hlaWdodA==",
+            "value": "IjE5NzY5NjQ0Ig==",
+            "index": true
+          },
+          {
+            "key": "ZXZlbnRfbm9uY2U=",
+            "value": "IjY5NTQi",
+            "index": true
+          },
+          {
+            "key": "ZXZtX2NoYWluX3ByZWZpeA==",
+            "value": "ImV0aC1tYWlubmV0Ig==",
+            "index": true
+          },
+          {
+            "key": "b3JjaGVzdHJhdG9y",
+            "value": "Im9yYWliMTl3cTRkN2xta2t5ZDk2MHJha2d5ZmY1ZnFmZWFjemplZXYwNWw0Ig==",
+            "index": true
+          },
+          {
+            "key": "dG9rZW5fY29udHJhY3Q=",
+            "value": "IjB4ZEFDMTdGOTU4RDJlZTUyM2EyMjA2MjA2OTk0NTk3QzEzRDgzMWVjNyI=",
+            "index": true
+          }
+        ]
+      }
+    ],
+    "codespace": ""
+  },
+  "tx": "CrYBCpgBCiIvZ3Jhdml0eS52MS5Nc2dCYXRjaFNlbmRUb0V0aENsYWltEnIIqjYQrNK2CRihIiIqMHhkQUMxN0Y5NThEMmVlNTIzYTIyMDYyMDY5OTQ1OTdDMTNEODMxZWM3KixvcmFpYjE5d3E0ZDdsbWtreWQ5NjByYWtneWZmNWZxZmVhY3pqZWV2MDVsNDILZXRoLW1haW5uZXQSFFNlbnQgd2l0aCBEZWVwIFNwYWNlGPSwpgYSZwpSCkYKHy9jb3Ntb3MuY3J5cHRvLnNlY3AyNTZrMS5QdWJLZXkSIwohAxEm/mx99+y/7lTpms5WkqF+L5L5BzNPFAOw9Hp+OBi+EgQKAggBGMrvARIRCgsKBnVvcmFpYhIBMBCY2AsaQLBqbkRzww6jNqzQFSea1l7v6bxQdbHBphQyq727OT2VFJoHofqp4QBZglc5FikZaVzQE+eb8lFnY7IhMZDQV1w=",
+  "proof": {
+    "root_hash": "3CACE1C96BE8631D514047B0D8079E8F9C54A18982629F868C1EDF13216B4503",
+    "data": "CrYBCpgBCiIvZ3Jhdml0eS52MS5Nc2dCYXRjaFNlbmRUb0V0aENsYWltEnIIqjYQrNK2CRihIiIqMHhkQUMxN0Y5NThEMmVlNTIzYTIyMDYyMDY5OTQ1OTdDMTNEODMxZWM3KixvcmFpYjE5d3E0ZDdsbWtreWQ5NjByYWtneWZmNWZxZmVhY3pqZWV2MDVsNDILZXRoLW1haW5uZXQSFFNlbnQgd2l0aCBEZWVwIFNwYWNlGPSwpgYSZwpSCkYKHy9jb3Ntb3MuY3J5cHRvLnNlY3AyNTZrMS5QdWJLZXkSIwohAxEm/mx99+y/7lTpms5WkqF+L5L5BzNPFAOw9Hp+OBi+EgQKAggBGMrvARIRCgsKBnVvcmFpYhIBMBCY2AsaQLBqbkRzww6jNqzQFSea1l7v6bxQdbHBphQyq727OT2VFJoHofqp4QBZglc5FikZaVzQE+eb8lFnY7IhMZDQV1w=",
+    "proof": {
+      "total": "1",
+      "index": "0",
+      "leaf_hash": "PKzhyWvoYx1RQEew2Aeej5xUoYmCYp+GjB7fEyFrRQM=",
+      "aunts": []
+    }
+  }
+}

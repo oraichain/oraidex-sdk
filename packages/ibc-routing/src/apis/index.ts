@@ -29,63 +29,72 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
   const chainId = qObject.get("chainId");
   const txHash = qObject.get("txHash");
 
-  switch (chainId) {
-    case ChainIdEnum.Ethereum:
-    case ChainIdEnum.BNBChain:
-    case ChainIdEnum.TRON:
-      await (async () => {
-        const interpreter = createEvmIntepreter(duckDb);
-        const actor = interpreter._inner.start();
-        interpreter._inner.send({
-          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-          payload: {
-            txHash: txHash,
-            evmChainPrefix: ChainIdToEvmChainPrefix[chainId]
-          }
-        });
-        const doneState = await waitFor(actor, (state) => state.done);
-        responseData = {
-          ...responseData,
-          data: doneState.context.routingQueryData
-        };
-      })();
-      break;
+  try {
+    switch (chainId) {
+      case ChainIdEnum.Ethereum:
+      case ChainIdEnum.BNBChain:
+      case ChainIdEnum.TRON:
+        await (async () => {
+          const interpreter = createEvmIntepreter(duckDb);
+          const actor = interpreter._inner.start();
+          interpreter._inner.send({
+            type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+            payload: {
+              txHash: txHash,
+              evmChainPrefix: ChainIdToEvmChainPrefix[chainId]
+            }
+          });
+          const doneState = await waitFor(actor, (state) => state.done);
+          responseData = {
+            ...responseData,
+            data: doneState.context.routingQueryData
+          };
+        })();
+        break;
 
-    case ChainIdEnum.Oraichain:
-      await (async () => {
-        const interpreter = createOraichainIntepreter(duckDb);
-        const actor = interpreter._inner.start();
-        interpreter._inner.send({
-          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-          payload: {
-            txHash: qObject.get("txHash")
-          }
-        });
-        const doneState = await waitFor(actor, (state) => state.done);
-        responseData = {
-          ...responseData,
-          data: doneState.context.routingQueryData
-        };
-      })();
-      break;
+      case ChainIdEnum.Oraichain:
+        await (async () => {
+          const interpreter = createOraichainIntepreter(duckDb);
+          const actor = interpreter._inner.start();
+          interpreter._inner.send({
+            type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+            payload: {
+              txHash: qObject.get("txHash")
+            }
+          });
+          const doneState = await waitFor(actor, (state) => state.done);
+          responseData = {
+            ...responseData,
+            data: doneState.context.routingQueryData
+          };
+        })();
+        break;
 
-    default:
-      await (async () => {
-        const interpreter = createCosmosIntepreter(duckDb);
-        const actor = interpreter._inner.start();
-        interpreter._inner.send({
-          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-          payload: {
-            txHash: qObject.get("txHash"),
-            chainId: qObject.get("chainId")
-          }
-        });
-        const doneState = await waitFor(actor, (state) => state.done);
-        responseData = {
-          ...responseData,
-          data: doneState.context.routingQueryData
-        };
-      })();
+      default:
+        await (async () => {
+          const interpreter = createCosmosIntepreter(duckDb);
+          const actor = interpreter._inner.start();
+          interpreter._inner.send({
+            type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+            payload: {
+              txHash: qObject.get("txHash"),
+              chainId: qObject.get("chainId")
+            }
+          });
+          const doneState = await waitFor(actor, (state) => state.done);
+          responseData = {
+            ...responseData,
+            data: doneState.context.routingQueryData
+          };
+        })();
+    }
+  } catch (err) {
+    res.cork(() => {
+      res
+        .writeStatus("500 Internal Server Error")
+        .writeHeader("Content-Type", "application/json")
+        .end(JSON.stringify({ ...responseData, message: err?.message || "Something went wrong" }));
+    });
   }
 
   if (!res.aborted) {
@@ -102,7 +111,6 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
       async (obj: any) => {
         const txHash = obj.txHash;
         const chainId = obj.chainId;
-
         try {
           switch (chainId) {
             case ChainIdEnum.Ethereum:
@@ -130,24 +138,31 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
               ]);
           }
         } catch (err) {
-          console.log(err);
+          res
+            .writeStatus("500 Internal Server Error")
+            .writeHeader("Content-Type", "application/json")
+            .end(
+              JSON.stringify({
+                message: err?.message || "Something went wrong",
+                data: []
+              })
+            );
         }
 
-        res.writeStatus("200 Ok").end(
-          JSON.stringify({
-            message: "Success",
-            data: []
-          })
-        );
+        if (!res.aborted) {
+          res
+            .writeStatus("200 OK")
+            .writeHeader("Content-Type", "application/json")
+            .end(
+              JSON.stringify({
+                message: "Success",
+                data: []
+              })
+            );
+        }
       },
       (err: any) => {
-        /* Request was prematurely aborted or invalid or missing, stop reading */
-        res.writeStatus("400 Bad Request").end(
-          JSON.stringify({
-            message: `${err?.message || "Something went wrong"}`,
-            data: []
-          })
-        );
+        res.aborted = true;
       }
     );
   } catch (err) {

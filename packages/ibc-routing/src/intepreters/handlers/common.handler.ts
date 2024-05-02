@@ -18,7 +18,7 @@ import {
   oraiBridgeAutoForwardEventType,
   outGoingTxIdEventType
 } from "../../constants";
-import { convertTxHashToHex } from "../../helpers";
+import { convertTxHashToHex, decodeDenomToTokenAddress, decodeMemoToTokenAddress } from "../../helpers";
 import { isBase64, parseRpcEvents } from "../../utils/events";
 import { unmarshalOraiBridgeRoute } from "../../utils/marshal";
 import { decodeIbcMemo } from "../../utils/protobuf";
@@ -96,22 +96,23 @@ export const handleQueryAutoForward = async (ctx: ContextIntepreter, _event: Any
 export const handleCheckAutoForward = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
-): Promise<{ txEvent: any; eventNonce: number; evmChainPrefix: string }> => {
+): Promise<{
+  txEvent: any;
+  eventNonce: number;
+  evmChainPrefix: string;
+  autoForwardEvent: Event;
+  sendPacketEvent: Event;
+}> => {
   if (!event.payload) throw generateError("There should be payload for this auto forward state event");
-  const txEvent: TxEvent = event.payload;
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
   const events = parseRpcEvents(txEvent.result.events);
-  const autoForwardEvent = events.find((event) => event.type === oraiBridgeAutoForwardEventType);
-  if (!autoForwardEvent) {
-    console.log("not autoforward event");
-    return;
-  }
+  const autoForwardEvent = eventItem;
   const nonceAttr = autoForwardEvent.attributes.find((attr) => attr.key === "nonce");
-  if (!nonceAttr) {
-    console.log("There is no event nonce attribute.");
-    return;
-  }
   const eventNonce = parseInt(JSON.parse(nonceAttr.value));
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
+  const eventItemIndex = events
+    .filter((item) => item.type === oraiBridgeAutoForwardEventType)
+    .findIndex((ev) => ev.attributes.find((item) => item.key === "nonce")?.value === nonceAttr.value);
+  const sendPacketEvent = events.filter((e) => e.type === "send_packet")[eventItemIndex];
   if (!sendPacketEvent) throw generateError("Cannot find the send packet event in auto forward message");
   const packetSequenceAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
   if (!packetSequenceAttr) throw generateError("Cannot find the packet sequence in send_packet of auto forward");
@@ -124,22 +125,24 @@ export const handleCheckAutoForward = async (
   const evmChainPrefix = Object.values(EvmChainPrefix).find((prefix) => denom.includes(prefix));
   if (!evmChainPrefix) throw generateError(`Cannot find the matched evm chain prefix given denom ${denom}`);
   console.log("event nonce: ", eventNonce, "evm chain prefix: ", evmChainPrefix);
-  return Promise.resolve({ txEvent, eventNonce, evmChainPrefix });
+  return Promise.resolve({ txEvent, eventNonce, evmChainPrefix, autoForwardEvent, sendPacketEvent });
 };
 
 export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<any> => {
-  const txEvent: TxEvent = event.data.txEvent; // should have { txEvent, eventNonce } sent from checkAutoForward
-  const events = parseRpcEvents(txEvent.result.events);
+  const {
+    txEvent,
+    eventNonce,
+    evmChainPrefix,
+    sendPacketEvent
+  }: { txEvent: TxEvent; eventNonce: number; evmChainPrefix: EvmChainPrefix; sendPacketEvent: Event } = event.data; // should have { txEvent, eventNonce } sent from checkAutoForward
   const prevEvmState = await ctx.db.select(DatabaseEnum.Evm, {
     where: {
-      eventNonce: event.data.eventNonce,
-      evmChainPrefix: ctx.evmChainPrefixOnLeftTraverseOrder
+      eventNonce,
+      evmChainPrefix
     }
   });
-
   if (prevEvmState.length == 0) throw generateError("Cannot find the previous evm state data");
   // collect packet sequence
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
   if (!sendPacketEvent) throw generateError("Cannot find the send packet event in auto forward message");
   const packetSequenceAttr = sendPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
   if (!packetSequenceAttr) throw generateError("Cannot find the packet sequence in send_packet of auto forward");
@@ -217,28 +220,29 @@ export const handleCheckOnRequestBatch = async (
 };
 
 export const handleCheckOnRecvPacketOnOraiBridge = async (
-  ctx: ContextIntepreter,
+  _: ContextIntepreter,
   event: AnyEventObject
-): Promise<{ packetSequence: number; txEvent: TxEvent; recvSrcChannel: string; recvDstChannel: string }> => {
-  const txEvent = event.payload as TxEvent;
-  const events = parseRpcEvents(txEvent.result.events);
-  const recvPacket = events.find((attr) => attr.type == "recv_packet");
-  if (!recvPacket) {
-    throw generateError("Could not find the recv packet event from the payload at checkOnRecvPacketOraichain");
-  }
-  const recvSrcChannel = recvPacket.attributes.find((attr) => attr.key == "packet_src_channel")?.value;
+): Promise<{
+  packetSequence: number;
+  txEvent: TxEvent;
+  recvSrcChannel: string;
+  recvDstChannel: string;
+  eventItem: Event;
+}> => {
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
+  const recvSrcChannel = eventItem.attributes.find((attr) => attr.key == "packet_src_channel")?.value;
   if (!recvSrcChannel) {
     throw generateError("Could not find recv packet src channel attr in checkOnRecvPacketOraichain");
   }
-  const recvDstChannel = recvPacket.attributes.find((attr) => attr.key == "packet_dst_channel")?.value;
+  const recvDstChannel = eventItem.attributes.find((attr) => attr.key == "packet_dst_channel")?.value;
   if (!recvDstChannel) {
     throw generateError("Could not find recv packet dst channel attr in checkOnRecvPacketOraichain");
   }
-  const packetSequenceAttr = recvPacket.attributes.find((attr) => attr.key === "packet_sequence");
+  const packetSequenceAttr = eventItem.attributes.find((attr) => attr.key === "packet_sequence");
   const packetSequence = parseInt(packetSequenceAttr.value);
 
   // Forward next event data
-  return Promise.resolve({ packetSequence, txEvent: txEvent, recvSrcChannel, recvDstChannel });
+  return Promise.resolve({ packetSequence, txEvent: txEvent, eventItem, recvSrcChannel, recvDstChannel });
 };
 
 // TODO: add query logic here
@@ -262,9 +266,17 @@ export const handleQueryOnRecvOraiBridgePacket = async (ctx: ContextIntepreter, 
 };
 
 export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, event: AnyEventObject): Promise<void> => {
-  const txEvent = event.data.txEvent as TxEvent;
+  const { txEvent, eventItem, packetSequence }: { txEvent: TxEvent; eventItem: Event; packetSequence: number } =
+    event.data;
   const events = parseRpcEvents(txEvent.result.events);
-  const outGoingEvent = events.find((attr) => attr.type == outGoingTxIdEventType);
+  const eventItemIndex = events
+    .filter((item) => item.type === eventItem.type)
+    .findIndex((e) => e.attributes.find((item) => item.key == "packet_sequence").value === packetSequence.toString());
+  if (eventItemIndex === -1) {
+    throw generateError("something went wrong on handleOnRecvPacketOnOraiBridge");
+  }
+
+  const outGoingEvent = events.filter((attr) => attr.type == outGoingTxIdEventType)[eventItemIndex];
   if (!outGoingEvent) {
     throw generateError("Could not find the recv packet event from the payload at checkOnRecvPacketOraichain");
   }
@@ -272,7 +284,7 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
   ctx.oraiBridgePendingTxId = parseInt(JSON.parse(txId));
 
   // Store on Recv Packet
-  const recvPacketEvent = events.find((e) => e.type === "recv_packet");
+  const recvPacketEvent = eventItem;
   const packetSequenceAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
   if (!packetSequenceAttr) throw generateError("Cannot find the packet sequence in send_packet of auto forward");
   const packetDataAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_data");
@@ -285,7 +297,6 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
   ctx.oraiBridgeSrcChannel = srcChannel;
   ctx.oraiBridgeDstChannel = "";
 
-  const packetSequence = parseInt(packetSequenceAttr.value);
   const prevOraichainState = await ctx.db.select(DatabaseEnum.Oraichain, {
     where: {
       nextPacketSequence: packetSequence,
@@ -412,11 +423,15 @@ export const handleQueryOnBatchSendToEthClaim = async (ctx: ContextIntepreter, e
 
   const prevTxHash = (lastOraiBridgeItem.data as OraiBridgeState).txHash;
   const evmChainPrefix = (lastOraiBridgeItem.data as OraiBridgeState).evmChainPrefix;
+  const receiver = decodeMemoToTokenAddress((lastOraiBridgeItem.data as OraiBridgeState).memo);
+  const amount = (lastOraiBridgeItem.data as OraiBridgeState).amount;
 
   const evmData = await ctx.db.select(DatabaseEnum.Evm, {
     where: {
       prevTxHash,
-      evmChainPrefix
+      evmChainPrefix,
+      destinationReceiver: receiver,
+      fromAmount: amount
     }
   });
   if (evmData.length == 0) {
@@ -459,12 +474,12 @@ export const handleStoreOnBatchSendToEthClaim = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
-  const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
+  const oraiBridgeData = (await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
       txId: ctx.oraiBridgePendingTxId,
       evmChainPrefix: ctx.evmChainPrefixOnRightTraverseOrder
     }
-  });
+  })) as OraiBridgeState[];
   if (oraiBridgeData.length == 0) {
     throw generateError("error on saving batch nonce to eventNonce in OraiBridgeState");
   }
@@ -489,10 +504,10 @@ export const handleStoreOnBatchSendToEthClaim = async (
     prevTxHash: oraiBridgeData[0].txHash,
     nextState: "",
     destination: "",
-    fromAmount: 0,
+    fromAmount: oraiBridgeData[0].amount,
     oraiBridgeChannelId: "",
     oraiReceiver: "",
-    destinationDenom: "",
+    destinationDenom: decodeDenomToTokenAddress(oraiBridgeData[0].denom),
     destinationChannelId: "",
     destinationReceiver: `0x${oraiBridgeData[0].memo.split("0x")[1]}`,
     eventNonce: event.data.eventNonce,
@@ -569,13 +584,22 @@ export const handleStoreOnRecvPacketOraichain = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<string> => {
-  const txEvent: TxEvent = event.data.txEvent;
+  const { txEvent, packetSequence }: { txEvent: TxEvent; eventItem: Event; packetSequence: number } = event.data;
   const events: Event[] = parseRpcEvents(txEvent.result.events);
-  const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
+  const eventItemIndex = events
+    .filter((item) => item.type === "recv_packet")
+    .findIndex(
+      (ev) => ev.attributes.find((item) => item.key === "packet_sequence")?.value === packetSequence.toString()
+    );
+  // recv_packet >< write_acknowledgement packet is mapping 1-to-1
+  const writeAckEvent = events.filter((e) => e.type === "write_acknowledgement")[eventItemIndex];
   if (!writeAckEvent)
     throw generateError("Could not find the write acknowledgement event in storeOnRecvPacketOraichain");
   const packetAckAttr = writeAckEvent.attributes.find((attr) => attr.key === "packet_ack");
   if (!packetAckAttr) throw generateError("Could not find packet ack attr in storeOnRecvPacketOraichain");
+  const packetDataAttr = JSON.parse(writeAckEvent.attributes.find((attr) => attr.key === "packet_data").value);
+  console.log("Memo:", decodeIbcMemo(packetDataAttr.memo, false));
+
   // packet ack format: {"result":"MQ=="} or {"result":"<something-else-in-base-64"}
   const packetAck = JSON.parse(packetAckAttr.value).result;
   // if equals 1 it means the ack is successful. Otherwise, this packet has some errors
@@ -601,7 +625,35 @@ export const handleStoreOnRecvPacketOraichain = async (
     nextReceiver: "",
     nextDestinationDenom: ""
   };
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
+
+  // send_packet >< write_acknowledgement packet is not mapping 1-to-1
+  // o we need to find index again
+  const sendPacketIndex = events
+    .filter((item) => {
+      if (item.type !== "recv_packet") return false;
+      const packetData = item.attributes.find((item) => item.key === "packet_data").value;
+      if (!packetData) {
+        return false;
+      }
+      const packetDataAttr = JSON.parse(packetData);
+      const memo = packetDataAttr?.memo;
+      if (!memo) {
+        return false;
+      }
+      const decodeMemo = decodeIbcMemo(memo);
+      // which mean it does not have send packet
+      if (decodeMemo.destinationReceiver.includes("orai1")) {
+        return false;
+      }
+      return true;
+    })
+    .findIndex(
+      (ev) => ev.attributes.find((item) => item.key === "packet_sequence")?.value === packetSequence.toString()
+    );
+  // filter sendPacketEvent with actual index.
+  const sendPacketEvent = events.filter((e) => {
+    return e.type === "send_packet";
+  })[sendPacketIndex];
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
     let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
@@ -626,11 +678,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   ctx.oraichainSrcChannel = oraiChannels.srcChannel;
   ctx.oraichainDstChannel = oraiChannels.dstChannel;
 
-  const wasmData = events.find((e) => e.type === "wasm");
-  if (!wasmData) {
-    throw generateError("there is no wasm data in storeOnRecvPacket");
-  }
-  const localReceiver = wasmData.attributes.find((attr) => attr.key == "receiver").value;
+  const localReceiver = packetDataAttr.receiver;
 
   const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
     nextPacketData.nextDestinationDenom.includes(prefix)
@@ -690,9 +738,14 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<string> => {
-  const txEvent: TxEvent = event.data.txEvent;
+  const { txEvent, packetSequence }: { txEvent: TxEvent; eventItem: Event; packetSequence: number } = event.data;
   const events = parseRpcEvents(txEvent.result.events);
-  const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
+  const eventItemIndex = events
+    .filter((ev) => ev.type === "recv_packet")
+    .findIndex(
+      (item) => item.attributes.find((attr) => attr.key === "packet_sequence").value === packetSequence.toString()
+    );
+  const writeAckEvent = events.filter((e) => e.type === "write_acknowledgement")[eventItemIndex];
   if (!writeAckEvent)
     throw generateError("Could not find the write acknowledgement event in storeOnRecvPacketOraichain");
   const packetDataAttrStr = writeAckEvent.attributes.find((attr) => attr.key === "packet_data").value;
@@ -711,7 +764,37 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
     nextReceiver: "",
     nextDestinationDenom: ""
   };
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
+
+  // send_packet >< write_acknowledgement packet is not mapping 1-to-1
+  // o we need to find index again
+  const sendPacketIndex = events
+    .filter((item) => {
+      if (item.type !== "recv_packet") return false;
+      const packetData = item.attributes.find((item) => item.key === "packet_data").value;
+      if (!packetData) {
+        return false;
+      }
+      const packetDataAttr = JSON.parse(packetData);
+      const memo = packetDataAttr?.memo;
+      if (!memo) {
+        return false;
+      }
+      try {
+        const args = JSON.parse(memo).wasm.msg.ibc_hooks_receive.args;
+        const decodeMemo = decodeIbcMemo(args, true);
+        // which mean it does not have send packet
+        if (!decodeMemo.destinationReceiver.includes("oraib")) {
+          return false;
+        }
+      } catch (err) {
+        return false;
+      }
+      return true;
+    })
+    .findIndex((ev) => {
+      return ev.attributes.find((item) => item.key === "packet_sequence")?.value === packetSequence.toString();
+    });
+  const sendPacketEvent = events.filter((e) => e.type === "send_packet")[sendPacketIndex];
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
     let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
@@ -790,10 +873,15 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
 export const handleCheckOnRecvPacketOraichain = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
-): Promise<{ packetSequence: number; txEvent: TxEvent; recvSrcChannel: string; recvDstChannel: string }> => {
-  const txEvent: TxEvent = event.payload;
-  const events = parseRpcEvents(txEvent.result.events);
-  const recvPacketEvent = events.find((e) => e.type === "recv_packet");
+): Promise<{
+  packetSequence: number;
+  txEvent: TxEvent;
+  recvSrcChannel: string;
+  recvDstChannel: string;
+  eventItem: Event;
+}> => {
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
+  const recvPacketEvent = eventItem;
   if (!recvPacketEvent)
     throw generateError("Could not find the recv packet event from the payload at checkOnRecvPacketOraichain");
   const recvSrcChannel = recvPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel")?.value;
@@ -807,7 +895,7 @@ export const handleCheckOnRecvPacketOraichain = async (
   const packetSequenceAttr = recvPacketEvent.attributes.find((attr) => attr.key === "packet_sequence");
   if (!packetSequenceAttr) throw generateError("Could not find packet sequence attr in checkOnRecvPacketOraichain");
   const packetSequence = parseInt(packetSequenceAttr.value);
-  return Promise.resolve({ packetSequence, txEvent, recvSrcChannel, recvDstChannel });
+  return Promise.resolve({ packetSequence, txEvent, recvSrcChannel, recvDstChannel, eventItem });
 };
 
 // COSMOS
@@ -851,23 +939,27 @@ export const handleCheckOnAcknowledgementOnCosmos = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<{ packetSequence: number }> => {
-  const events = parseRpcEvents(event.payload.result.events);
-  const ackPacket = events.find((attr) => attr.type === "acknowledge_packet");
-  if (!ackPacket) {
-    throw generateError("Acknowledgement packet not found on step checkOnAcknowledgementOnCosmos");
-  }
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
+  const ackPacket = eventItem;
   const value = ackPacket.attributes.find((attr: any) => attr.key === "packet_sequence").value;
   const data = parseInt(value);
   const srcChannel = ackPacket.attributes.find((attr: any) => attr.key === "packet_src_channel").value;
   const dstChannel = ackPacket.attributes.find((attr: any) => attr.key === "packet_dst_channel").value;
 
-  return Promise.resolve({ packetSequence: data, ackSrcChannel: srcChannel, ackDstChannel: dstChannel, events });
+  return Promise.resolve({
+    packetSequence: data,
+    ackSrcChannel: srcChannel,
+    ackDstChannel: dstChannel,
+    eventItem,
+    txEvent
+  });
 };
 
 export const handleUpdateOnAcknowledgementOnCosmos = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<void> => {
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.data;
   const packetSequence = ctx.oraiSendPacketSequence;
   let oraichainData = await ctx.db.select(DatabaseEnum.Oraichain, {
     where: {
@@ -892,16 +984,21 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   );
 
   // Insert data on cosmos
-  const events: Event[] = event.data.events;
-  const fungibleTokenPacket = events.find(
+  const events: Event[] = parseRpcEvents(txEvent.result.events);
+  const eventItemIndex = events
+    .filter((item) => item.type === "acknowledge_packet")
+    .findIndex(
+      (ev) => ev.attributes.find((item) => item.key === "packet_sequence").value === packetSequence.toString()
+    );
+  if (eventItemIndex === -1) {
+    throw generateError("can not find acknowledgement packet on handleUpdateOnAcknowledgementOnCosmos");
+  }
+  const fungibleTokenPacket = events.filter(
     (item) =>
       item.type === "fungible_token_packet" &&
       item.attributes.find((item) => item.key === "module" && item.value === "transfer")
-  );
-  const ackPacket = events.find((item) => item.type === "acknowledge_packet");
-  if (!ackPacket) {
-    throw generateError("ack packet does not exist on handleUpdateOnAcknowledgementOnCosmos");
-  }
+  )[eventItemIndex];
+  const ackPacket = eventItem;
   let cosmosData = {
     txHash: "",
     height: 0,
@@ -941,8 +1038,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<string> => {
-  const txEvent: TxEvent = event.payload;
-  const events = parseRpcEvents(txEvent.result.events);
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
 
   let nextState = "";
   let nextPacketData = {
@@ -958,7 +1054,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     srcChannel: "",
     dstChannel: ""
   };
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
+  const sendPacketEvent = eventItem;
   if (!sendPacketEvent) {
     throw generateError("send packet does not exist on tx on store on transfer back to remote chain");
   }
@@ -1015,22 +1111,21 @@ export const handleStoreOnTransferBackToRemoteChain = async (
 };
 
 export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter, event: AnyEventObject) => {
-  const txEvent: TxEvent = event.payload.txEvent;
-  const eventData: Event = event.payload.event;
-  const sendPacket = eventData.attributes.find((attr) => attr.key == "packet_data");
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
+  const sendPacket = eventItem.attributes.find((attr) => attr.key == "packet_data");
   if (!sendPacket) {
     throw generateError("sendPacketData does not exist on handleStoreOnIbcTransferFromRemote");
   }
   const sendPacketData = JSON.parse(sendPacket.value);
-  const packetSequence = eventData.attributes.find((attr) => attr.key == "packet_sequence");
+  const packetSequence = eventItem.attributes.find((attr) => attr.key == "packet_sequence");
   if (!packetSequence) {
     throw generateError("packetSequence does not exist on handleStoreOnIbcTransferFromRemote");
   }
   // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
-  const srcPort = eventData.attributes.find((attr) => attr.key === "packet_src_port").value;
-  const srcChannel = eventData.attributes.find((attr) => attr.key === "packet_src_channel").value;
-  const dstPort = eventData.attributes.find((attr) => attr.key === "packet_dst_port").value;
-  const dstChannel = eventData.attributes.find((attr) => attr.key === "packet_dst_channel").value;
+  const srcPort = eventItem.attributes.find((attr) => attr.key === "packet_src_port").value;
+  const srcChannel = eventItem.attributes.find((attr) => attr.key === "packet_src_channel").value;
+  const dstPort = eventItem.attributes.find((attr) => attr.key === "packet_dst_port").value;
+  const dstChannel = eventItem.attributes.find((attr) => attr.key === "packet_dst_channel").value;
 
   const cosmosData = {
     txHash:
@@ -1048,6 +1143,7 @@ export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter,
     dstChannel,
     status: StateDBStatus.PENDING
   };
+  console.log("Cosmos Data:", cosmosData);
   await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
 
   ctx.cosmosPacketSequence = parseInt(packetSequence.value);

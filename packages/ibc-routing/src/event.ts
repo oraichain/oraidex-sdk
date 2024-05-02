@@ -33,21 +33,40 @@ export abstract class BaseCosmosEvent {
         tags
       })
     );
+
     try {
-      stream.subscribe({
+      const listener = stream.subscribe({
         next: (txEvent) => {
           console.log("[Cosmos] Txhash:", convertTxHashToHex(txEvent.hash));
           this.callback(txEvent);
         },
-        error: (err) => console.log("error while subscribing websocket: ", err),
+        error: (err) => console.log("[Cosmos Socket] error while subscribing websocket: ", err),
         complete: () => {
-          console.log("completed");
+          console.log("[Cosmos Socket] completed");
+          listener.unsubscribe();
+          // stream stop, so we need to create producer and stream again
+          this.connectCosmosSocket(tags);
         }
       });
     } catch (error) {
       console.log("error listening: ", error);
     }
     return stream;
+  };
+
+  // This is only to keep socket open
+  listenBlockSocket = async () => {
+    const client = await Tendermint37Client.create(new WebsocketClient(this.baseUrl));
+    const stream = client.subscribeNewBlock();
+    stream.subscribe({
+      next: (_) => {
+        // console.log("Block height:", block.header.height, "Chain id:", block.header.chainId);
+      },
+      error: (err) => console.log("[Block Socket] error while subscribing websocket: ", err),
+      complete: () => {
+        console.log("[Block Socket] completed");
+      }
+    });
   };
 }
 
