@@ -54,6 +54,12 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
         setPairActive(currentPair);
       }
 
+      console.info("SUBSCRIBE", {
+        id: 1,
+        method: "SUBSCRIBE",
+        params: [`${currentPair.info}@${period}`]
+      });
+
       sendJsonMessage({
         id: 1,
         method: "SUBSCRIBE",
