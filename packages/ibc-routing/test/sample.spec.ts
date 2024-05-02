@@ -15,14 +15,14 @@ describe("Test sync ether", () => {
       ethers.utils.getAddress("0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f"),
       provider
     );
-    const eventFilter = gravity.filters["SendToCosmosEvent(address,address,string,uint256,uint256)"](
-      "0x55d398326f99059fF775485246999027B3197955",
-      "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5"
-    );
-    // const eventFilter = gravity.filters["TransactionBatchExecutedEvent(uint256,address,uint256)"](
-    //   32408,
-    //   "0x55d398326f99059fF775485246999027B3197955"
+    // const eventFilter = gravity.filters["SendToCosmosEvent(address,address,string,uint256,uint256)"](
+    //   "0x55d398326f99059fF775485246999027B3197955",
+    //   "0x9a0A02B296240D2620E339cCDE386Ff612f07Be5"
     // );
+    const eventFilter = gravity.filters["TransactionBatchExecutedEvent(uint256,address,uint256)"](
+      32408,
+      "0x55d398326f99059fF775485246999027B3197955"
+    );
     const data = await gravity.queryFilter(eventFilter, 38318558, 38318558);
     console.log(data[1]);
   });
