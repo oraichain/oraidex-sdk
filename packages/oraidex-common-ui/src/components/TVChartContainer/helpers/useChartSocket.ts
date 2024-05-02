@@ -18,7 +18,9 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
   const { retryOnError = true, reconnectAttempts, reconnectInterval, wsUrl: socketUrl } = socketConfig || {};
 
   const { lastJsonMessage, sendJsonMessage } = useWebSocket<LastJsonMessageType>(socketUrl || WS_URL, {
-    onOpen: () => {},
+    onOpen: () => {
+      console.info("useChartSocket: connect WebSocket - ", socketUrl);
+    },
     onClose: () => {
       console.info("useChartSocket: WebSocket connection closed.");
     },
@@ -52,6 +54,12 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
         setPairActive(currentPair);
       }
 
+      console.info("SUBSCRIBE", {
+        id: 1,
+        method: "SUBSCRIBE",
+        params: [`${currentPair.info}@${period}`]
+      });
+
       sendJsonMessage({
         id: 1,
         method: "SUBSCRIBE",
@@ -65,8 +73,9 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
       const { data, stream } = lastJsonMessage || {};
 
       // TODO: check event type
-      // if (stream === `${currentPair.info}@${period}`) {
-      if (stream !== `Pong`) {
+      if (stream === `${currentPair.info}@${period}`) {
+        // if (stream !== `Pong`) {
+        // console.info("Data stream: ", data);
         setData(data);
         handleTradeEvent(data);
       }
