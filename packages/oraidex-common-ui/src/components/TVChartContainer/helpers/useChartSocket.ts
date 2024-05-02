@@ -67,7 +67,6 @@ export const useChartSocket = ({ currentPair, period, socketConfig }) => {
       // TODO: check event type
       // if (stream === `${currentPair.info}@${period}`) {
       if (stream !== `Pong`) {
-        console.log("1111", { data });
         setData(data);
         handleTradeEvent(data);
       }
