@@ -40,6 +40,7 @@ export type TVChartContainerProsp = {
   customCssUrl?: string;
   socketConfig?: {
     wsUrl: string;
+    pairMapping?: any[];
     reconnectAttempts?: number;
     reconnectInterval?: number;
     retryOnError?: boolean;
