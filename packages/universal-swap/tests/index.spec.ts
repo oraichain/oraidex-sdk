@@ -25,6 +25,7 @@ import {
   flattenTokens,
   matchCosmWasmQueryRequest,
   mockJsonRpcServer,
+  network,
   oraichain2osmosis,
   oraichainTokens,
   toAmount,
@@ -47,7 +48,17 @@ import { readFileSync } from "fs";
 import Long from "long";
 import TronWeb from "tronweb";
 import { UniversalSwapHandler } from "../src/handler";
-import { UniversalSwapHelper, checkBalanceChannelIbc, checkBalanceIBCOraichain, checkFeeRelayer, checkFeeRelayerNotOrai, getBalanceIBCOraichain, getIbcInfo, handleSimulateSwap, simulateSwap } from "../src/helper";
+import {
+  UniversalSwapHelper,
+  checkBalanceChannelIbc,
+  checkBalanceIBCOraichain,
+  checkFeeRelayer,
+  checkFeeRelayerNotOrai,
+  getBalanceIBCOraichain,
+  getIbcInfo,
+  handleSimulateSwap,
+  simulateSwap
+} from "../src/helper";
 import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 
@@ -662,11 +673,7 @@ describe("test universal swap handler functions", () => {
     if (mockToken.contractAddress) {
       if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
     }
-    const { balance } = await getBalanceIBCOraichain(
-      mockToken,
-      ics20Contract.client,
-      ics20Contract.contractAddress
-    );
+    const { balance } = await getBalanceIBCOraichain(mockToken, ics20Contract.client, ics20Contract.contractAddress);
     expect(balance).toEqual(expectedBalance);
   });
 
@@ -1103,6 +1110,95 @@ describe("test universal swap handler functions", () => {
     const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
     expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
   });
+
+  it("test-processUniversalSwap-swap()-for-%s", async () => {
+    const generateMsgsSwapMock = jest.fn(() => ["msg1", "msg2"]);
+    const executeMultipleMock = jest.fn(() => Promise.resolve("executeMultipleMock"));
+    const getCosmWasmClientMock = jest.fn(() => Promise.resolve({ client: { executeMultiple: executeMultipleMock } }));
+    const cosmosWalletMock = { getCosmWasmClient: getCosmWasmClientMock };
+    const networks = { rpc: network.rpc, fee: { gasPrice: network.fee.gasPrice, denom: network.denom } };
+    const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "Oraichain")!;
+    const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "Oraichain")!;
+    const sender = { cosmos: "orai1234" };
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken,
+        sender
+      },
+      {
+        cosmosWallet: cosmosWalletMock as any
+      }
+    );
+    universalSwap.generateMsgsSwap = generateMsgsSwapMock as any;
+
+    await universalSwap.swap();
+
+    expect(generateMsgsSwapMock).toHaveBeenCalled();
+    expect(getCosmWasmClientMock).toHaveBeenCalledWith(
+      { chainId: "Oraichain", rpc: networks.rpc },
+      { gasPrice: expect.any(Object) }
+    );
+
+    expect(executeMultipleMock).toHaveBeenCalledWith(sender.cosmos, ["msg1", "msg2"], "auto");
+  });
+
+  it.each<[string, string, string, string, string]>([
+    ["tether", "cosmos", "Oraichain", "cosmoshub-4", "oraichain-to-cosmos"],
+    ["tether", "tether", "Oraichain", "0x38", "oraichain-to-evm"]
+  ])(
+    "test-processUniversalSwap-swapAndTransferToOtherNetworks()-for-%s",
+    async (fromCoingecko, toCoingecko, fromChainId, toChainId, swapRoute) => {
+      const fromToken = flattenTokens.find(
+        (item) => item.coinGeckoId === fromCoingecko && item.chainId === fromChainId
+      )!;
+      const toToken = flattenTokens.find((item) => item.coinGeckoId === toCoingecko && item.chainId === toChainId)!;
+      const networks = { rpc: network.rpc, fee: { gasPrice: network.fee.gasPrice, denom: network.denom } };
+      const combineSwapMsgOraichain = jest.fn(() => ["msg1", "msg2"]);
+      const signAndBroadcastMock = jest.fn(() => Promise.resolve("signAndBroadcastMock"));
+      const getCosmWasmClientMock = jest.fn(() =>
+        Promise.resolve({
+          client: { signAndBroadcast: signAndBroadcastMock }
+        })
+      );
+      const cosmosWalletMock = {
+        getCosmWasmClient: getCosmWasmClientMock,
+        getKeplrAddr: () => {
+          return "orai1234";
+        }
+      };
+
+      const sender = {
+        cosmos: "orai1234",
+        evm: "0x1234"
+      };
+      const universalSwap = new FakeUniversalSwapHandler(
+        {
+          ...universalSwapData,
+          originalFromToken: fromToken,
+          originalToToken: toToken,
+          fromAmount: 100,
+          sender
+        },
+        {
+          cosmosWallet: cosmosWalletMock as any
+        }
+      );
+
+      if (swapRoute === "oraichain-to-cosmos") universalSwap.combineSwapMsgOraichain = combineSwapMsgOraichain as any;
+      if (swapRoute === "oraichain-to-evm") universalSwap.combineMsgEvm = combineSwapMsgOraichain as any;
+
+      await universalSwap.swapAndTransferToOtherNetworks(swapRoute as UniversalSwapType);
+
+      expect(combineSwapMsgOraichain).toHaveBeenCalled();
+      expect(getCosmWasmClientMock).toHaveBeenCalledWith(
+        { chainId: "Oraichain", rpc: networks.rpc },
+        { gasPrice: expect.any(Object) }
+      );
+      expect(signAndBroadcastMock).toHaveBeenCalledWith(sender.cosmos, ["msg1", "msg2"], "auto");
+    }
+  );
 
   // it("test-swap()", async () => {
   //   const universalSwap = new FakeUniversalSwapHandler({
