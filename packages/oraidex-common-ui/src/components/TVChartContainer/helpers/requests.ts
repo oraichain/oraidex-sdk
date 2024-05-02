@@ -12,7 +12,7 @@ export enum BASE_API_URL {
 
   ORAIDEX_STAGING = "https://api-staging.oraidex.io",
   FUTURE_STAGING = "https://futures-backend-staging.oraidex.io",
-  ORDERBOOK_STAGING = "https://server.oraidex.io"
+  ORDERBOOK_STAGING = "https://server-staging.oraidex.io"
 }
 
 export enum BASE_SOCKET_URL {
@@ -22,7 +22,7 @@ export enum BASE_SOCKET_URL {
 
   ORAIDEX_STAGING = "wss://api-staging.oraidex.io/websocket",
   FUTURE_STAGING = "wss://futures-backend-staging.oraidex.io/websocket",
-  ORDERBOOK_STAGING = "wss://server.oraidex.io/websocket"
+  ORDERBOOK_STAGING = "wss://server-staging.oraidex.io/websocket/"
 }
 
 export const API_CANDLE_BY_BASE_URL = {

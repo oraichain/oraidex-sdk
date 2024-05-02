@@ -159,7 +159,13 @@ export const parseChannelFromPair = (pair: string) => {
       quoteSymbol: pair.symbols[1]
     };
   }).find((currentPair) => {
-    return pair === currentPair.info;
+    const pairArr =
+      pair
+        ?.split("-")
+        ?.map((p) => p?.trim())
+        ?.join("-") || pair;
+
+    return pairArr === currentPair.info;
   });
 
   return checkPair?.symbol;

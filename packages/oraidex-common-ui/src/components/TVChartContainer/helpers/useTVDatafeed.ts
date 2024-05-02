@@ -9,6 +9,7 @@ import {
 import { TVDataProvider } from "./TVDataProvider";
 import { SUPPORTED_RESOLUTIONS } from "./constants";
 import { Bar, FetchChartDataParams } from "./types";
+import { subscribeOnStream } from "./streaming";
 
 export type PairToken = {
   symbol: string;
@@ -143,14 +144,14 @@ export default function useTVDatafeed({
           onResetCacheNeededCallback: () => void
         ) {
           console.log("[subscribeBars]: Method call with subscriberUID:", subscribeUID);
-          // subscribeOnStream(
-          //   symbolInfo,
-          //   resolution,
-          //   onRealtimeCallback,
-          //   subscribeUID,
-          //   onResetCacheNeededCallback,
-          //   lastBarsCache.get(symbolInfo.full_name)
-          // );
+          subscribeOnStream(
+            symbolInfo,
+            resolution,
+            onRealtimeCallback,
+            subscribeUID,
+            onResetCacheNeededCallback,
+            lastBarsCache.get(symbolInfo.full_name)
+          );
         },
         unsubscribeBars: () => {
           if (intervalRef.current) clearInterval(intervalRef.current);

@@ -61,7 +61,8 @@ module.exports = {
     modules: [path.resolve(__dirname, "."), "node_modules"],
     fallback: {
       fs: false,
-      crypto: false
+      crypto: false,
+      https: false
     }
   },
   module: {
