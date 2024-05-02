@@ -152,7 +152,7 @@ export const parseChannelFromPair = (pair: string, pairMap: any[] = PAIRS) => {
         return info.token.contract_addr;
       });
 
-      const symbolArr = pair.symbol?.split("/") || [];
+      const symbolArr = pair.symbol ? pair.symbol.split("/") : pair.symbols || [];
 
       return {
         ...pair,

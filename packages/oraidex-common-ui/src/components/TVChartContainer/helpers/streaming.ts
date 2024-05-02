@@ -10,6 +10,8 @@ const handleTradeEvent = (data, pairMap) => {
 
   const subscriptionItem = channelToSubscription.get(channelString);
 
+  console.log("channelString", channelString);
+
   if (subscriptionItem === undefined) {
     return;
   }
