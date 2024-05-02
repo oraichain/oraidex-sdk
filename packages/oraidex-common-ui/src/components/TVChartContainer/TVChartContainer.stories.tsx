@@ -98,8 +98,8 @@ OraiUsdcChart.args = {
       info: "orai-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
     }
   ],
-  baseUrl: BASE_API_URL.FUTURE,
-  wsUrl: BASE_SOCKET_URL.FUTURE
+  baseUrl: BASE_API_URL.FUTURE
+  // wsUrl: BASE_SOCKET_URL.FUTURE
 };
 
 export const OraiUsdtODTChart: Story = (args: TVChartContainerProsp) => (
@@ -111,7 +111,7 @@ OraiUsdtODTChart.args = {
   theme: "dark",
   currentPair: {
     symbol: "ORAI/USDT",
-    info: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+    info: "orai - orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
   },
   pairsChart: [
     {
@@ -122,13 +122,15 @@ OraiUsdtODTChart.args = {
   setChartTimeFrame: (resolution) => {
     console.log({ resolutionUpdate: resolution });
   },
-  baseUrl: BASE_API_URL.ORDERBOOK,
-  wsUrl: BASE_SOCKET_URL.ORDERBOOK,
+
+  baseUrl: BASE_API_URL.ORDERBOOK_STAGING,
+
   fetchDataChart: async (prams: { pair: string; startTime: number; endTime: number; tf: number }): Promise<Bar[]> => {
     const { pair, startTime, endTime, tf } = prams;
     console.log("paams", prams);
+
     try {
-      const res = await axios.get(BASE_API_URL.ORDERBOOK + "/v1/candles/", {
+      const res = await axios.get(BASE_API_URL.ORDERBOOK_STAGING + "/v1/candles/", {
         params: {
           pair: pair.split("-").join(" - "),
           startTime: Math.round(startTime / 60),
@@ -149,5 +151,8 @@ OraiUsdtODTChart.args = {
       console.error("GetTokenChartPrice", e);
       return [];
     }
+  },
+  socketConfig: {
+    wsUrl: BASE_SOCKET_URL.ORDERBOOK_STAGING
   }
 };

@@ -2,19 +2,20 @@ import { parseChannelFromPair, parseFullSymbol, roundTime } from "./utils";
 
 const channelToSubscription = new Map();
 const handleTradeEvent = (data) => {
-  const { open, close, low, high, volume, timestamp: time, pair } = data;
+  const { open, close, low, high, volume, time, pair } = data;
 
   // DEBT: update this func later to get pair denom, no need to parse
   const channelString = parseChannelFromPair(pair);
   // const channelString = pair;
 
   const subscriptionItem = channelToSubscription.get(channelString);
+
   if (subscriptionItem === undefined) {
     return;
   }
   const { lastDailyBar, resolution } = subscriptionItem;
   const roundLastBarTime = roundTime(new Date(lastDailyBar.time), resolution);
-  const roundNextOrderTime = roundTime(new Date(time * 1000), resolution);
+  const roundNextOrderTime = roundTime(new Date(Number(time) * 1000), resolution);
 
   let bar;
   if (roundNextOrderTime > roundLastBarTime) {
@@ -24,7 +25,7 @@ const handleTradeEvent = (data) => {
       high,
       low,
       close,
-      volume: volume * Math.pow(10, -6)
+      volume: Number(volume) * Math.pow(10, -6)
     };
     console.info("[socket] Generate new bar", bar);
   } else if (roundNextOrderTime === roundLastBarTime) {
@@ -33,7 +34,7 @@ const handleTradeEvent = (data) => {
       high: Math.max(lastDailyBar.high, high),
       low: Math.min(lastDailyBar.low, low),
       close,
-      volume: volume * Math.pow(10, -6) + lastDailyBar.volume
+      volume: Number(volume) * Math.pow(10, -6) + lastDailyBar.volume
     };
     console.info("[socket] Update the latest bar by price", bar);
   } else {

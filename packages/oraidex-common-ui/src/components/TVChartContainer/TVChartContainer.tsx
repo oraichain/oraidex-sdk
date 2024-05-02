@@ -36,9 +36,14 @@ export type TVChartContainerProsp = {
   pairsChart: PairToken[];
   setChartTimeFrame?: (tf: number) => void;
   baseUrl?: string;
-  wsUrl?: string;
   fetchDataChart?: (arg: FetchChartDataParams) => Promise<Bar[]>;
   customCssUrl?: string;
+  socketConfig?: {
+    wsUrl: string;
+    reconnectAttempts?: number;
+    reconnectInterval?: number;
+    retryOnError?: boolean;
+  };
 };
 
 export default function TVChartContainer({
@@ -48,9 +53,9 @@ export default function TVChartContainer({
   pairsChart,
   setChartTimeFrame,
   baseUrl,
-  wsUrl,
   fetchDataChart,
-  customCssUrl
+  customCssUrl,
+  socketConfig
 }: TVChartContainerProsp) {
   const chartContainerRef = useRef<HTMLDivElement | null>(null);
   const tvWidgetRef = useRef<IChartingLibraryWidget | null>(null);
@@ -70,7 +75,7 @@ export default function TVChartContainer({
   const [period, setPeriod] = useLocalStorageSerializeKey([currentPair.symbol, "Chart-period"], DEFAULT_PERIOD);
   const symbolRef = useRef(currentPair.symbol);
 
-  // const { currentPair: pairUpdate, data: socketData } = useChartSocket(currentPair, wsUrl);
+  useChartSocket({ currentPair, period, socketConfig });
 
   const checkChartReady = async () => {
     try {
