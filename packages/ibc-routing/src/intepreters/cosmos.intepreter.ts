@@ -22,7 +22,7 @@ import {
   handleOnBatchSendToETHClaimTimeout,
   handleOnRequestBatchTimeout,
   handleOraiBridgeForEvmTimeout,
-  handleOraichainTimeout
+  handleOraichainReverseTimeout
 } from "./handlers/timeout.handler";
 
 export const createCosmosIntepreter = (db: DuckDB) => {
@@ -83,7 +83,7 @@ export const createCosmosIntepreter = (db: DuckDB) => {
       },
       oraichainTimeout: {
         invoke: {
-          src: handleOraichainTimeout,
+          src: handleOraichainReverseTimeout,
           onError: {
             target: "oraichain",
             // rejected promise data is on event.data property

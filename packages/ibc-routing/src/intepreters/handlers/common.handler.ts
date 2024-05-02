@@ -734,9 +734,14 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
   ctx: ContextIntepreter,
   event: AnyEventObject
 ): Promise<string> => {
-  const txEvent: TxEvent = event.data.txEvent;
+  const { txEvent, packetSequence }: { txEvent: TxEvent; eventItem: Event; packetSequence: number } = event.data;
   const events = parseRpcEvents(txEvent.result.events);
-  const writeAckEvent = events.find((e) => e.type === "write_acknowledgement");
+  const eventItemIndex = events
+    .filter((ev) => ev.type === "recv_packet")
+    .findIndex(
+      (item) => item.attributes.find((attr) => attr.key === "packet_sequence").value === packetSequence.toString()
+    );
+  const writeAckEvent = events.filter((e) => e.type === "write_acknowledgement")[eventItemIndex];
   if (!writeAckEvent)
     throw generateError("Could not find the write acknowledgement event in storeOnRecvPacketOraichain");
   const packetDataAttrStr = writeAckEvent.attributes.find((attr) => attr.key === "packet_data").value;
@@ -755,7 +760,37 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
     nextReceiver: "",
     nextDestinationDenom: ""
   };
-  const sendPacketEvent = events.find((e) => e.type === "send_packet");
+
+  // send_packet >< write_acknowledgement packet is not mapping 1-to-1
+  // o we need to find index again
+  const sendPacketIndex = events
+    .filter((item) => {
+      if (item.type !== "recv_packet") return false;
+      const packetData = item.attributes.find((item) => item.key === "packet_data").value;
+      if (!packetData) {
+        return false;
+      }
+      const packetDataAttr = JSON.parse(packetData);
+      const memo = packetDataAttr?.memo;
+      if (!memo) {
+        return false;
+      }
+      try {
+        const args = JSON.parse(memo).wasm.msg.ibc_hooks_receive.args;
+        const decodeMemo = decodeIbcMemo(args, true);
+        // which mean it does not have send packet
+        if (!decodeMemo.destinationReceiver.includes("oraib")) {
+          return false;
+        }
+      } catch (err) {
+        return false;
+      }
+      return true;
+    })
+    .findIndex((ev) => {
+      return ev.attributes.find((item) => item.key === "packet_sequence")?.value === packetSequence.toString();
+    });
+  const sendPacketEvent = events.filter((e) => e.type === "send_packet")[sendPacketIndex];
   if (sendPacketEvent) {
     let nextPacketJson = JSON.parse(sendPacketEvent.attributes.find((attr) => attr.key == "packet_data").value);
     let srcChannel = sendPacketEvent.attributes.find((attr) => attr.key == "packet_src_channel").value;
@@ -1072,22 +1107,21 @@ export const handleStoreOnTransferBackToRemoteChain = async (
 };
 
 export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter, event: AnyEventObject) => {
-  const txEvent: TxEvent = event.payload.txEvent;
-  const eventData: Event = event.payload.event;
-  const sendPacket = eventData.attributes.find((attr) => attr.key == "packet_data");
+  const { txEvent, eventItem }: { txEvent: TxEvent; eventItem: Event } = event.payload;
+  const sendPacket = eventItem.attributes.find((attr) => attr.key == "packet_data");
   if (!sendPacket) {
     throw generateError("sendPacketData does not exist on handleStoreOnIbcTransferFromRemote");
   }
   const sendPacketData = JSON.parse(sendPacket.value);
-  const packetSequence = eventData.attributes.find((attr) => attr.key == "packet_sequence");
+  const packetSequence = eventItem.attributes.find((attr) => attr.key == "packet_sequence");
   if (!packetSequence) {
     throw generateError("packetSequence does not exist on handleStoreOnIbcTransferFromRemote");
   }
   // double down that given packet sequence & packet data, the event is surely send_packet of ibc => no need to guard check other attrs
-  const srcPort = eventData.attributes.find((attr) => attr.key === "packet_src_port").value;
-  const srcChannel = eventData.attributes.find((attr) => attr.key === "packet_src_channel").value;
-  const dstPort = eventData.attributes.find((attr) => attr.key === "packet_dst_port").value;
-  const dstChannel = eventData.attributes.find((attr) => attr.key === "packet_dst_channel").value;
+  const srcPort = eventItem.attributes.find((attr) => attr.key === "packet_src_port").value;
+  const srcChannel = eventItem.attributes.find((attr) => attr.key === "packet_src_channel").value;
+  const dstPort = eventItem.attributes.find((attr) => attr.key === "packet_dst_port").value;
+  const dstChannel = eventItem.attributes.find((attr) => attr.key === "packet_dst_channel").value;
 
   const cosmosData = {
     txHash:
@@ -1105,6 +1139,7 @@ export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter,
     dstChannel,
     status: StateDBStatus.PENDING
   };
+  console.log("Cosmos Data:", cosmosData);
   await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
 
   ctx.cosmosPacketSequence = parseInt(packetSequence.value);

@@ -6,10 +6,11 @@ import { EventHandler } from "./event.handler";
 
 export class CosmosHandler extends EventHandler {
   // This function will be used to handle the case frontend submit txhash
-  public handleEvent(eventData: any[]) {
-    for (const eventItem of eventData) {
+  public handleEvent(txEventData: any[]) {
+    for (const txEventItem of txEventData) {
+      const { txEvent, chainId } = txEventItem;
       // we don't need to parse event on cosmos
-      const events: Event[] = eventItem.txEvent.result.events;
+      const events: Event[] = txEventItem.txEvent.result.events;
       for (const event of events) {
         if (event.type != "send_packet") {
           continue;
@@ -35,8 +36,9 @@ export class CosmosHandler extends EventHandler {
           intepreter._inner.send({
             type: invokableMachineStateKeys.STORE_ON_IBC_TRANSFER_FROM_REMOTE,
             payload: {
-              event: event,
-              ...eventItem
+              eventItem: event,
+              txEvent: txEvent,
+              chainId
             }
           });
           return;

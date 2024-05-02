@@ -2,7 +2,7 @@ import { expect } from "chai";
 import { decodeIbcMemo } from "../src/utils/protobuf";
 
 describe("Protobuf decode", () => {
-  it("Test decode hook memo", () => {
+  xit("Test decode hook memo", () => {
     const memo =
       "ChTN93BiZ8jTFqOsHjuiiQGo1mlSwBIvb3JhaWIweDBkZUI1MjQ5OUMyZTlGMzkyMWM2MzFjYjZBZDM1MjJDNTc2ZDU0ODQaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1";
     const decodedData = decodeIbcMemo(memo, true);
@@ -17,6 +17,7 @@ describe("Protobuf decode", () => {
     const memo =
       "ChTN93BiZ8jTFqOsHjuiiQGo1mlSwBIvb3JhaWIweDBkZUI1MjQ5OUMyZTlGMzkyMWM2MzFjYjZBZDM1MjJDNTc2ZDU0ODQaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1";
     const decodedData = decodeIbcMemo(memo, true);
+    console.log(decodedData);
     expect(decodedData).eql({
       receiver: "zfdwYmfI0xajrB47ookBqNZpUsA=",
       destinationReceiver: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",

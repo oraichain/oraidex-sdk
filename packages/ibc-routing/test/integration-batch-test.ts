@@ -1,7 +1,7 @@
 import { getSigners } from "hardhat";
 import { InterpreterStatus } from "xstate";
 // import { ChainId } from "../src/@types/chain";
-import { EvmChainPrefix } from "@oraichain/oraidex-common";
+import { COSMOS_CHAIN_ID_COMMON, EvmChainPrefix } from "@oraichain/oraidex-common";
 import { expect } from "chai";
 import { setTimeout } from "timers/promises";
 import { waitFor } from "xstate/lib/waitFor";
@@ -20,10 +20,19 @@ import { CosmosHandler } from "../src/event-handlers/cosmos.handler";
 import { EvmEventHandler } from "../src/event-handlers/evm.handler";
 import { OraiBridgeHandler } from "../src/event-handlers/oraibridge.handler";
 import { OraichainHandler } from "../src/event-handlers/oraichain.handler";
+import { createCosmosIntepreter } from "../src/intepreters/cosmos.intepreter";
 import { createEvmIntepreter } from "../src/intepreters/evm.intepreter";
 import { createOraichainIntepreter } from "../src/intepreters/oraichain.intepreter";
 import IntepreterManager from "../src/managers/intepreter.manager";
 import { unmarshalTxEvent } from "./common";
+import {
+  BatchSendToEthClaimTxData as BatchSendToEthClaimTxDataC2E,
+  IbcTransferTxData1 as IbcTransferTxData1C2E,
+  IbcTransferTxData2 as IbcTransferTxData2C2E,
+  OnRecvPacketOraiBridgeTxData as OnRecvPacketOraiBridgeTxDataC2E,
+  OnRecvPacketOraichainTxData as OnRecvPacketOraichainTxDataC2E,
+  OnRequestBatchTxData as OnRequestBatchTxDataC2E
+} from "./data/batch/cosmos-to-evm";
 import {
   OnAcknowledgementTxData as OnAcknowledgementTxDataEvm2Cosmos,
   OnRecvPacketTxData as OnRecvPacketTxDataEvm2Cosmos,
@@ -1060,6 +1069,351 @@ describe("test-batch-integration", () => {
     expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
   });
 
+  it("[Cosmos->EVM] query happy", async () => {
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
+      autoForwardTag,
+      requestBatchTag,
+      batchSendToEthClaimTag
+    ]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxData1C2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxData2C2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    await setTimeout(300);
+
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
+    await setTimeout(sleepTimeMs);
+
+    await (async () => {
+      const interpreter = createCosmosIntepreter(duckDb);
+      const actor = interpreter._inner.start();
+      interpreter._inner.send({
+        type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+        payload: {
+          txHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6",
+          chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+        }
+      });
+      const doneState = await waitFor(actor, (state) => state.done);
+      console.log("done state: ", doneState.context.routingQueryData);
+      const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
+      expect(queryKeys.length).eq(4);
+      expect(queryKeys[0]).eq(DatabaseEnum.Cosmos);
+      expect(queryKeys[1]).eq(DatabaseEnum.Oraichain);
+      expect(queryKeys[2]).eq(DatabaseEnum.OraiBridge);
+      expect(queryKeys[3]).eq(DatabaseEnum.Evm);
+    })();
+    await (async () => {
+      const interpreter = createCosmosIntepreter(duckDb);
+      const actor = interpreter._inner.start();
+      interpreter._inner.send({
+        type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+        payload: {
+          txHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B",
+          chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+        }
+      });
+      const doneState = await waitFor(actor, (state) => state.done);
+      console.log("done state: ", doneState.context.routingQueryData);
+      const queryKeys = doneState.context.routingQueryData.map((item) => item.type);
+      expect(queryKeys.length).eq(4);
+      expect(queryKeys[0]).eq(DatabaseEnum.Cosmos);
+      expect(queryKeys[1]).eq(DatabaseEnum.Oraichain);
+      expect(queryKeys[2]).eq(DatabaseEnum.OraiBridge);
+      expect(queryKeys[3]).eq(DatabaseEnum.Evm);
+    })();
+  });
+
+  it("[Cosmos->EVM] full-flow happy test", async () => {
+    const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
+    const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
+      autoForwardTag,
+      requestBatchTag,
+      batchSendToEthClaimTag
+    ]);
+    const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxData1C2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxData2C2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    await setTimeout(300);
+
+    const oraiStream = await oraiEvent.connectCosmosSocket([onRecvPacketTag]);
+    await setTimeout(sleepTimeMs);
+    oraiStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraichainTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRecvPacketOraiBridgeTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(OnRequestBatchTxDataC2E));
+    await setTimeout(sleepTimeMs);
+    oraiBridgeStream.shamefullySendNext(unmarshalTxEvent(BatchSendToEthClaimTxDataC2E));
+    await setTimeout(sleepTimeMs);
+
+    // COSMOS
+    expect(
+      await duckDb.select(DatabaseEnum.Cosmos, {
+        where: {
+          txHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6"
+        }
+      })
+    ).eql([
+      {
+        txHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6",
+        height: 20226577,
+        chainId: "cosmoshub-4",
+        prevState: "",
+        prevTxHash: "",
+        nextState: "OraichainState",
+        packetSequence: 65362,
+        amount: "1587568",
+        denom: "uatom",
+        memo: '{"wasm":{"contract":"orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm","msg":{"ibc_hooks_receive":{"func":"universal_swap","args":"ChTN93BiZ8jTFqOsHjuiiQGo1mlSwBIvb3JhaWIweDBkZUI1MjQ5OUMyZTlGMzkyMWM2MzFjYjZBZDM1MjJDNTc2ZDU0ODQaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1"}}}}',
+        receiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        srcPort: "transfer",
+        srcChannel: "channel-301",
+        dstPort: "transfer",
+        dstChannel: "channel-15",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Cosmos, {
+        where: {
+          txHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B"
+        }
+      })
+    ).eql([
+      {
+        txHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B",
+        height: 20226577,
+        chainId: "cosmoshub-4",
+        prevState: "",
+        prevTxHash: "",
+        nextState: "OraichainState",
+        packetSequence: 65363,
+        amount: "274039",
+        denom: "uatom",
+        memo: '{"wasm":{"contract":"orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm","msg":{"ibc_hooks_receive":{"func":"universal_swap","args":"ChQeLzs0MDCuDnNRJodZVXTwZ4K4+RIvb3JhaWIweGIxQURFODQ1NjZkQjExN0I0QjI0MWZDNDQ2Y2ViMWM0NjYxNmUxNzIaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1"}}}}',
+        receiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        sender: "cosmos1rchnkdpsxzhquu63y6r4j4t57pnc9w8ey7p6v4",
+        srcPort: "transfer",
+        srcChannel: "channel-301",
+        dstPort: "transfer",
+        dstChannel: "channel-15",
+        status: "FINISHED"
+      }
+    ]);
+    // ORAICHAIN
+    expect(
+      await duckDb.select(DatabaseEnum.Oraichain, {
+        where: {
+          txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+          packetSequence: 65362
+        }
+      })
+    ).eql([
+      {
+        txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        height: 19505710,
+        prevState: "CosmosState",
+        prevTxHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6",
+        nextState: "OraiBridgeState",
+        packetSequence: 65362,
+        packetAck: "",
+        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        nextPacketSequence: 22773,
+        nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        nextAmount: "11370620000000000000",
+        nextReceiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        nextDestinationDenom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        srcChannel: "channel-29",
+        dstChannel: "channel-1",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Oraichain, {
+        where: {
+          txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+          packetSequence: 65363
+        }
+      })
+    ).eql([
+      {
+        txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        height: 19505710,
+        prevState: "CosmosState",
+        prevTxHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B",
+        nextState: "OraiBridgeState",
+        packetSequence: 65363,
+        packetAck: "",
+        sender: "cosmos1rchnkdpsxzhquu63y6r4j4t57pnc9w8ey7p6v4",
+        localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        nextPacketSequence: 22774,
+        nextMemo: "oraib0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+        nextAmount: "1166126000000000000",
+        nextReceiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        nextDestinationDenom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        srcChannel: "channel-29",
+        dstChannel: "channel-1",
+        status: "FINISHED"
+      }
+    ]);
+    // ORAIBRIDGE
+    expect(
+      await duckDb.select(DatabaseEnum.OraiBridge, {
+        where: {
+          txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+          packetSequence: 22773
+        }
+      })
+    ).eql([
+      {
+        txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        height: 13207849,
+        prevState: "OraichainState",
+        prevTxHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        nextState: "EvmState",
+        eventNonce: 65538,
+        batchNonce: 32179,
+        txId: 34055,
+        evmChainPrefix: "oraib",
+        packetSequence: 22773,
+        amount: "11370620000000000000",
+        denom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        srcPort: "transfer",
+        srcChannel: "channel-1",
+        dstPort: "",
+        dstChannel: "",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.OraiBridge, {
+        where: {
+          txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+          packetSequence: 22774
+        }
+      })
+    ).eql([
+      {
+        txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        height: 13207849,
+        prevState: "OraichainState",
+        prevTxHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        nextState: "EvmState",
+        eventNonce: 65538,
+        batchNonce: 32179,
+        txId: 34056,
+        evmChainPrefix: "oraib",
+        packetSequence: 22774,
+        amount: "1166126000000000000",
+        denom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        memo: "oraib0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+        receiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        srcPort: "transfer",
+        srcChannel: "channel-1",
+        dstPort: "",
+        dstChannel: "",
+        status: "FINISHED"
+      }
+    ]);
+    // EVM
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+          eventNonce: 65538
+        }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        nextState: "",
+        destination: "",
+        fromAmount: "0",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "",
+        destinationChannelId: "",
+        destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        eventNonce: 65538,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+          eventNonce: 65538
+        }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        nextState: "",
+        destination: "",
+        fromAmount: "0",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "",
+        destinationChannelId: "",
+        destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+        eventNonce: 65538,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+
+    const intepreterCount1 = im.getIntepreter(0)._inner;
+    expect(intepreterCount1.status).eql(InterpreterStatus.Stopped);
+    const intepreterCount2 = im.getIntepreter(1)._inner;
+    expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
+  });
+
   it("[Oraichain->EVM] query happy", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     const oraiBridgeStream = await oraiBridgeEvent.connectCosmosSocket([
@@ -1923,6 +2277,260 @@ describe("test-batch-integration-timeout", () => {
         amount: "261948",
         memo: "",
         chainId: "cosmoshub-4"
+      }
+    ]);
+
+    const intepreterCount1 = im.getIntepreter(0)._inner;
+    expect(intepreterCount1.status).eql(InterpreterStatus.Stopped);
+    const intepreterCount2 = im.getIntepreter(1)._inner;
+    expect(intepreterCount2.status).eql(InterpreterStatus.Stopped);
+  }).timeout(40000);
+
+  it("[Cosmos->EVM] full-flow happy test", async () => {
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxData1C2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    cosmosHandler.handleEvent([
+      {
+        txEvent: IbcTransferTxData2C2E,
+        chainId: COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID
+      }
+    ]);
+    await setTimeout(30000);
+
+    // COSMOS
+    expect(
+      await duckDb.select(DatabaseEnum.Cosmos, {
+        where: {
+          txHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6"
+        }
+      })
+    ).eql([
+      {
+        txHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6",
+        height: 20226577,
+        chainId: "cosmoshub-4",
+        prevState: "",
+        prevTxHash: "",
+        nextState: "OraichainState",
+        packetSequence: 65362,
+        amount: "1587568",
+        denom: "uatom",
+        memo: '{"wasm":{"contract":"orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm","msg":{"ibc_hooks_receive":{"func":"universal_swap","args":"ChTN93BiZ8jTFqOsHjuiiQGo1mlSwBIvb3JhaWIweDBkZUI1MjQ5OUMyZTlGMzkyMWM2MzFjYjZBZDM1MjJDNTc2ZDU0ODQaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1"}}}}',
+        receiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        srcPort: "transfer",
+        srcChannel: "channel-301",
+        dstPort: "transfer",
+        dstChannel: "channel-15",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Cosmos, {
+        where: {
+          txHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B"
+        }
+      })
+    ).eql([
+      {
+        txHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B",
+        height: 20226577,
+        chainId: "cosmoshub-4",
+        prevState: "",
+        prevTxHash: "",
+        nextState: "OraichainState",
+        packetSequence: 65363,
+        amount: "274039",
+        denom: "uatom",
+        memo: '{"wasm":{"contract":"orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm","msg":{"ibc_hooks_receive":{"func":"universal_swap","args":"ChQeLzs0MDCuDnNRJodZVXTwZ4K4+RIvb3JhaWIweGIxQURFODQ1NjZkQjExN0I0QjI0MWZDNDQ2Y2ViMWM0NjYxNmUxNzIaCmNoYW5uZWwtMjkiL29yYWliMHg1NWQzOTgzMjZmOTkwNTlmRjc3NTQ4NTI0Njk5OTAyN0IzMTk3OTU1"}}}}',
+        receiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        sender: "cosmos1rchnkdpsxzhquu63y6r4j4t57pnc9w8ey7p6v4",
+        srcPort: "transfer",
+        srcChannel: "channel-301",
+        dstPort: "transfer",
+        dstChannel: "channel-15",
+        status: "FINISHED"
+      }
+    ]);
+    // ORAICHAIN
+    expect(
+      await duckDb.select(DatabaseEnum.Oraichain, {
+        where: {
+          txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+          packetSequence: 65362
+        }
+      })
+    ).eql([
+      {
+        txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        height: 19505710,
+        prevState: "CosmosState",
+        prevTxHash: "DFEBDFE952C113936AA1F7CE63966C9076F54EB061C51A7C9A134607E1E6ADF6",
+        nextState: "OraiBridgeState",
+        packetSequence: 65362,
+        packetAck: "",
+        sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
+        localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        nextPacketSequence: 22773,
+        nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        nextAmount: "11370620000000000000",
+        nextReceiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        nextDestinationDenom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        srcChannel: "channel-29",
+        dstChannel: "channel-1",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Oraichain, {
+        where: {
+          txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+          packetSequence: 65363
+        }
+      })
+    ).eql([
+      {
+        txHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        height: 19505710,
+        prevState: "CosmosState",
+        prevTxHash: "DB75E50D97C904D258C8683F97DFAF1334081E6FCB1702A03BBC9D05509AF40B",
+        nextState: "OraiBridgeState",
+        packetSequence: 65363,
+        packetAck: "",
+        sender: "cosmos1rchnkdpsxzhquu63y6r4j4t57pnc9w8ey7p6v4",
+        localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        nextPacketSequence: 22774,
+        nextMemo: "oraib0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+        nextAmount: "1166126000000000000",
+        nextReceiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        nextDestinationDenom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        srcChannel: "channel-29",
+        dstChannel: "channel-1",
+        status: "FINISHED"
+      }
+    ]);
+    // ORAIBRIDGE
+    expect(
+      await duckDb.select(DatabaseEnum.OraiBridge, {
+        where: {
+          txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+          packetSequence: 22773
+        }
+      })
+    ).eql([
+      {
+        txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        height: 13207849,
+        prevState: "OraichainState",
+        prevTxHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        nextState: "EvmState",
+        eventNonce: 65538,
+        batchNonce: 32179,
+        txId: 34055,
+        evmChainPrefix: "oraib",
+        packetSequence: 22773,
+        amount: "11370620000000000000",
+        denom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        srcPort: "transfer",
+        srcChannel: "channel-1",
+        dstPort: "",
+        dstChannel: "",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.OraiBridge, {
+        where: {
+          txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+          packetSequence: 22774
+        }
+      })
+    ).eql([
+      {
+        txHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        height: 13207849,
+        prevState: "OraichainState",
+        prevTxHash: "72BD571D1047F1A2162E272199AE3D93317E485111491D0AB63AE52390F7AB1A",
+        nextState: "EvmState",
+        eventNonce: 65538,
+        batchNonce: 32179,
+        txId: 34056,
+        evmChainPrefix: "oraib",
+        packetSequence: 22774,
+        amount: "1166126000000000000",
+        denom:
+          "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
+        memo: "oraib0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+        receiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        srcPort: "transfer",
+        srcChannel: "channel-1",
+        dstPort: "",
+        dstChannel: "",
+        status: "FINISHED"
+      }
+    ]);
+    // EVM
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+          eventNonce: 65538
+        }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        nextState: "",
+        destination: "",
+        fromAmount: "0",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "",
+        destinationChannelId: "",
+        destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
+        eventNonce: 65538,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
+      }
+    ]);
+    expect(
+      await duckDb.select(DatabaseEnum.Evm, {
+        where: {
+          destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+          eventNonce: 65538
+        }
+      })
+    ).eql([
+      {
+        txHash: "",
+        height: 0,
+        prevState: "OraiBridgeState",
+        prevTxHash: "DE564B9FE14D60F583CFA7AE3F5B4A14AE004D434F6329EC6307D6B70F30DF1C",
+        nextState: "",
+        destination: "",
+        fromAmount: "0",
+        oraiBridgeChannelId: "",
+        oraiReceiver: "",
+        destinationDenom: "",
+        destinationChannelId: "",
+        destinationReceiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
+        eventNonce: 65538,
+        evmChainPrefix: "oraib",
+        status: "FINISHED"
       }
     ]);
 

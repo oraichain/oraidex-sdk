@@ -17,7 +17,8 @@ import {
   handleCheckOnBatchSendToEthClaim,
   handleCheckOnRequestBatch,
   handleOnRecvPacketOnOraiBridge,
-  handleStoreOnRecvPacketOraichain
+  handleStoreOnRecvPacketOraichain,
+  handleStoreOnRecvPacketOraichainReverse
 } from "./common.handler";
 
 export const handleOraiBridgeForEvmTimeout = async (ctx, event) => {
@@ -181,6 +182,38 @@ export const handleOraichainTimeout = async (ctx, event) => {
     data: {
       txEvent: convertIndexedTxToTxEvent(txs[0]),
       packetSequence: ctx.oraiBridgePacketSequence
+    }
+  });
+};
+
+export const handleOraichainReverseTimeout = async (ctx, event) => {
+  const queryTags: QueryTag[] = [
+    {
+      key: "recv_packet.packet_sequence",
+      value: ctx.cosmosPacketSequence.toString()
+    },
+    {
+      key: "recv_packet.packet_dst_channel",
+      value: ctx.cosmosDstChannel
+    },
+    {
+      key: "recv_packet.packet_src_channel",
+      value: ctx.cosmosSrcChannel
+    }
+  ];
+  const query = buildQuery({
+    tags: queryTags
+  });
+  const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
+  const txs = await stargateClient.searchTx(query);
+  if (txs.length == 0) {
+    throw generateError("tx does not exist on oraichain");
+  }
+  return handleStoreOnRecvPacketOraichainReverse(ctx, {
+    ...event,
+    data: {
+      txEvent: convertIndexedTxToTxEvent(txs[0]),
+      packetSequence: ctx.cosmosPacketSequence
     }
   });
 };

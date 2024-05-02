@@ -1337,7 +1337,7 @@ describe("test-integration time-out", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(45000);
 
-  xit("[Cosmos->EVM] testing time-out case", async () => {
+  it("[Cosmos->EVM] testing time-out case", async () => {
     cosmosHandler.handleEvent([
       {
         txEvent: IbcTransferTxDataC2E,
