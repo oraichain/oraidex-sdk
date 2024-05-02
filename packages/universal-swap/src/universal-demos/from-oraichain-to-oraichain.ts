@@ -7,35 +7,49 @@ import {
   flattenTokens,
   generateError,
   toAmount,
-  USDT_CONTRACT
+  USDT_CONTRACT,
+  ORAI,
+  SCATOM_CONTRACT
 } from "@oraichain/oraidex-common";
+import { UniversalSwapHelper } from "src/helper";
 
-const oraichainToEvm = async (chainId: "Oraichain") => {
+const oraichainToOraichain = async (chainId: "Oraichain") => {
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);
 
   const sender = await wallet.getKeplrAddr(chainId);
-  const fromAmount = 90;
+  const fromAmount = 0.01;
   let originalFromToken = cosmosTokens.find(
     (t) => t.chainId === chainId && t.contractAddress && t.contractAddress === USDT_CONTRACT
   );
 
   let originalToToken = flattenTokens.find(
-    (t) => t.chainId === "0x01" && t.contractAddress && t.contractAddress === ORAI_ETH_CONTRACT
+    (t) => t.chainId === chainId && t.contractAddress && t.contractAddress === SCATOM_CONTRACT
   );
-  const evmAddress = "0xf2846a1E4dAFaeA38C1660a618277d67605bd2B5";
+
   if (!originalFromToken) throw generateError("Could not find original from token");
   if (!originalToToken) throw generateError("Could not find original to token");
+
+  const smartRoutes = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+    fromInfo: originalFromToken,
+    toInfo: originalToToken,
+    amount: toAmount(fromAmount, originalToToken.decimals).toString()
+  });
+
+  console.log("expected amount: ", smartRoutes.returnAmount);
   const universalHandler = new UniversalSwapHandler(
     {
       originalFromToken,
       originalToToken,
-      sender: { cosmos: sender, evm: evmAddress },
+      sender: { cosmos: sender },
       relayerFee: {
-        relayerAmount: "1000000",
+        relayerAmount: "0",
         relayerDecimals: 6
       },
+      simulatePrice: "1",
       fromAmount,
-      simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString()
+      simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
+      userSlippage: 0.01,
+      smartRoutes: smartRoutes.routes
     },
     { cosmosWallet: wallet, swapOptions: {} }
   );
@@ -49,5 +63,5 @@ const oraichainToEvm = async (chainId: "Oraichain") => {
 };
 
 (() => {
-  return oraichainToEvm("Oraichain");
+  return oraichainToOraichain("Oraichain");
 })();
