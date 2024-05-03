@@ -20,7 +20,7 @@ const handleTradeEvent = (data, pairMap) => {
   const roundNextOrderTime = roundTime(new Date(Number(time) * 1000), resolution);
 
   let bar;
-  if (roundNextOrderTime > roundLastBarTime) {
+  if (!roundLastBarTime || roundNextOrderTime > roundLastBarTime) {
     bar = {
       time: roundNextOrderTime * 1000,
       open,
