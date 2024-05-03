@@ -6,6 +6,7 @@ import {
   DARK_BACKGROUND_CHART,
   DEFAULT_PERIOD,
   LIGHT_BACKGROUND_CHART,
+  PERIOD_TO_MINUTE,
   defaultChartProps,
   disabledFeaturesOnMobile
 } from "./config";
@@ -76,7 +77,7 @@ export default function TVChartContainer({
   const [period, setPeriod] = useLocalStorageSerializeKey([currentPair.symbol, "Chart-period"], DEFAULT_PERIOD);
   const symbolRef = useRef(currentPair.symbol);
 
-  useChartSocket({ currentPair, period, socketConfig });
+  useChartSocket({ currentPair, period: PERIOD_TO_MINUTE[period] || period, socketConfig });
 
   const checkChartReady = async () => {
     try {
@@ -218,8 +219,8 @@ export default function TVChartContainer({
       <div
         style={{
           height: "100%",
-          width: "100%",
-          visibility: chartDataLength > 0 ? "visible" : "hidden"
+          width: "100%"
+          // visibility: chartDataLength > 0 ? "visible" : "hidden"
         }}
         ref={chartContainerRef}
       />

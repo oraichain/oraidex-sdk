@@ -82,7 +82,7 @@ OraiUsdtODTChart.args = {
           pair: pair.split("-").join(" - "),
           startTime: Math.round(startTime / 60),
           endTime: Math.round(endTime / 60),
-          tf: tf / 10
+          tf: tf / 60
         }
       });
 
@@ -137,7 +137,7 @@ BtcUsdtODTChart.args = {
           pair: pair.split("-").join(" - "),
           startTime: Math.round(startTime / 60),
           endTime: Math.round(endTime / 60),
-          tf: tf / 10
+          tf: tf / 60
         }
       });
 
@@ -193,7 +193,7 @@ XOCHUsdtODTChart.args = {
           pair: pair.split("-").join(" - "),
           startTime: Math.round(startTime / 60),
           endTime: Math.round(endTime / 60),
-          tf: tf / 10
+          tf: tf / 60
         }
       });
 

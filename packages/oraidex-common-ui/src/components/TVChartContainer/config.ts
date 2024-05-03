@@ -43,6 +43,19 @@ export const DEFAULT_PERIOD = "4h";
 export const DARK_BACKGROUND_CHART = "#1b1c1a";
 export const LIGHT_BACKGROUND_CHART = "#fff";
 
+export enum PERIOD_TO_MINUTE {
+  "1m" = 1,
+  "5m" = 5,
+  "15m" = 15,
+  "30m" = 30,
+  "1h" = 60,
+  "2h" = 120,
+  "4h" = 240,
+  "6h" = 360,
+  "8h" = 480,
+  "24h" = 1440
+}
+
 const chartStyleOverrides = ["candleStyle", "hollowCandleStyle", "haStyle"].reduce((acc, cv) => {
   acc[`mainSeriesProperties.${cv}.drawWick`] = true;
   acc[`mainSeriesProperties.${cv}.drawBorder`] = false;
