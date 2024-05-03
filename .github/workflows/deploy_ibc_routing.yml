@@ -1,0 +1,64 @@
+name: publish_package
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    tags:
+      - "ibc-routing[0-9]+.[0-9]+.[0-9]+"
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3 # Ensure using the latest release
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2 # Updated to the latest version
+
+      - name: Cache Docker layers
+        uses: actions/cache@v3 # Updated to the latest version
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: Login to DockerHub
+        uses: docker/login-action@v2 # Updated to the latest version
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v3 # Updated to the latest version
+        with:
+          context: .
+          file: ./Dockerfile.ibc
+          push: true
+          tags: devorai/oraidex-ibc-routing:${{ github.ref_name }}
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+
+  swarm:
+    runs-on: orai-swarm
+    needs: build
+    steps:
+      - name: Deploy to Swarm
+        run: |
+          curl -X POST \
+           ${{ secrets.WEBHOOK_IBC_ROUTING_SERVICE }}?tag=${{ github.ref_name }}
+
+      - name: Send discord message
+        uses: appleboy/discord-action@master
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          username: "GitBot"
+          message: ":loudspeaker: Repo oraidex-sdk:ibc-routing has just deployed to swarm with tag: ${{ github.ref_name }}"

@@ -1,0 +1,36 @@
+# Use the official Node.js 18 image.
+# https://hub.docker.com/_/node
+FROM node:18.18.0 AS builder
+
+# Install global package
+RUN yarn global add tsx tsc patch-package lerna nx
+
+# Create app directory.
+WORKDIR /app
+
+# Create server folder path
+RUN mkdir -p packages/ibc-routing
+RUN mkdir -p packages/oraidex-common
+
+# Copy application dependency manifests to the container image.
+# A wildcard is used to ensure both package.json AND package-lock.json are copied.
+# Copying this separately prevents re-running npm install on every code change.
+COPY lerna.json package.json tsconfig.json ./
+COPY packages/ibc-routing/package*.json packages/ibc-routing/tsconfig.json ./packages/ibc-routing/
+COPY packages/oraidex-common/package*.json packages/oraidex-common/tsconfig.json ./packages/oraidex-common/
+
+# Install production dependencies.
+RUN yarn
+
+# Copy local code to the container image.
+COPY packages/ibc-routing/. ./packages/ibc-routing/
+COPY packages/oraidex-common/. ./packages/oraidex-common/
+
+# Use the TypeScript compiler to build the application.
+RUN yarn build
+
+# Change to the app directory.
+WORKDIR /app/packages/ibc-routing
+
+# Run the web service on container startup.
+CMD [ "yarn", "prod" ]
