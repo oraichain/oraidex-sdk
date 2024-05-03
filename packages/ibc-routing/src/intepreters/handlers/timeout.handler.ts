@@ -74,23 +74,11 @@ export const handleOnRequestBatchTimeout = async (ctx, event) => {
       value: `${GravityAddress[evmChainPrefix]}`
     }
   ];
-  console.log("handleOnRequestBatchTimeout", [
-    {
-      key: `batched_tx_ids.batched_tx_id`,
-      value: `${ctx.oraiBridgePendingTxId}`
-    },
-    {
-      key: `${outgoingBatchEventType}.bridge_contract`,
-      value: `${GravityAddress[evmChainPrefix]}`
-    }
-  ]);
   const query = buildQuery({
     tags: queryTags
   });
   const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
   const txs = await stargateClient.searchTx(query);
-  console.log(config.ORAIBRIDGE_RPC_URL);
-  console.log("RequestBatchTimeout Txs:", txs);
   if (txs.length == 0) {
     throw generateError(evmChainPrefix + "- orai bridge data on onRequestBatchTimeout");
   }
