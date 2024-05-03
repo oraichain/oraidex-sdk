@@ -2,7 +2,7 @@ import { StargateClient } from "@cosmjs/stargate";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 
-describe("Testing searchTx using rpc", () => {
+describe.skip("Testing searchTx using rpc", () => {
   it("Try testing stargate-client query", async () => {
     const queryTags: QueryTag[] = [
       {
