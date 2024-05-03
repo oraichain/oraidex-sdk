@@ -89,6 +89,7 @@ export const handleOnRequestBatchTimeout = async (ctx, event) => {
   });
   const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
   const txs = await stargateClient.searchTx(query);
+  console.log(config.ORAIBRIDGE_RPC_URL);
   console.log("RequestBatchTimeout Txs:", txs);
   if (txs.length == 0) {
     throw generateError(evmChainPrefix + "- orai bridge data on onRequestBatchTimeout");
