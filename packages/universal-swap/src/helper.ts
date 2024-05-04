@@ -656,6 +656,7 @@ export class UniversalSwapHelper {
       );
     let amount;
     let routes = [];
+    let routeSwapOps;
     if (query.useSmartRoute) {
       const { returnAmount, routesSwap }: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo,
@@ -664,6 +665,7 @@ export class UniversalSwapHelper {
       });
       routes = routesSwap;
       amount = returnAmount;
+      routeSwapOps = routeSwapOps;
     } else {
       amount = (
         await UniversalSwapHelper.simulateSwap({
@@ -677,7 +679,8 @@ export class UniversalSwapHelper {
     return {
       amount,
       displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals),
-      routes
+      routes,
+      routeSwapOps
     };
   };
 
