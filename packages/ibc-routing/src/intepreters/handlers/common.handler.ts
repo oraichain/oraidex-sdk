@@ -598,7 +598,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   const packetAckAttr = writeAckEvent.attributes.find((attr) => attr.key === "packet_ack");
   if (!packetAckAttr) throw generateError("Could not find packet ack attr in storeOnRecvPacketOraichain");
   const packetDataAttr = JSON.parse(writeAckEvent.attributes.find((attr) => attr.key === "packet_data").value);
-  console.log("Memo:", decodeIbcMemo(packetDataAttr.memo, false));
+  // console.log("Memo:", decodeIbcMemo(packetDataAttr.memo, false));
 
   // packet ack format: {"result":"MQ=="} or {"result":"<something-else-in-base-64"}
   const packetAck = JSON.parse(packetAckAttr.value).result;
@@ -640,7 +640,15 @@ export const handleStoreOnRecvPacketOraichain = async (
       if (!memo) {
         return false;
       }
-      const decodeMemo = decodeIbcMemo(memo);
+
+      // The error case from Vault Trading Contract, so we have to handle it also
+      let decodeMemo = {
+        destinationReceiver: memo
+      };
+      try {
+        decodeMemo = decodeIbcMemo(memo);
+      } catch (err) {}
+
       // which mean it does not have send packet
       if (decodeMemo.destinationReceiver.includes("orai1")) {
         return false;
