@@ -14,6 +14,7 @@ import {
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
   NetworkChainId,
+  Networks,
   ORAI_BRIDGE_EVM_DENOM_PREFIX,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   OSMOSIS_ORAICHAIN_DENOM,
@@ -76,6 +77,8 @@ describe("test universal swap handler functions", () => {
   const airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
   const bobAddress = "orai1ur2vsjrjarygawpdwtqteaazfchvw4fg6uql76";
   const oraiAddress = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
+  const evmAddress = "0x8c7E0A841269a01c0Ab389Ce8Fb3Cf150A94E797";
+  const tronAddress = "TEu6u8JLCFs6x1w5s8WosNqYqVx2JMC5hQ";
   const cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
   const nobleSenderAddress = bech32.encode("noble", bech32.decode(oraiAddress).words);
 
@@ -1182,7 +1185,6 @@ describe("test universal swap handler functions", () => {
         ...universalSwapData,
         originalFromToken: fromToken,
         originalToToken: toToken,
-        fromAmount: 100,
         sender
       },
       {
@@ -1377,7 +1379,7 @@ describe("test universal swap handler functions", () => {
       false
     ]
   ])(
-    "test-processUniversalSwap-swapCosmosToOtherNetwork()-for-%s",
+    "test-processUniversalSwap-swapCosmosToOtherNetwork()-with-mock-%s",
     async (fromToken, toToken, destinationReceiver, willThrow) => {
       const mockServer = await mockJsonRpcServer();
       const spy = jest.spyOn(UniversalSwapHelper, "getIbcInfo");
@@ -1427,6 +1429,74 @@ describe("test universal swap handler functions", () => {
       }
     }
   );
+
+  it.each<[TokenItemType, TokenItemType, boolean, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      false,
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "0x2b6653dc" && t.coinGeckoId === "tron")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      true,
+      false
+    ]
+  ])("test-transferToGravity()-for-%s", async (fromToken, toToken, isTron, willThrow) => {
+    const evmWalletMock = {
+      isTron: (chainId) => Number(chainId) == Networks.tron,
+      checkTron: jest.fn().mockReturnValue(true),
+      checkEthereum: jest.fn().mockReturnValue(true),
+      submitTronSmartContract: jest.fn().mockResolvedValue({ transactionHash: "mockTransactionHash" }),
+      ethToTronAddress: jest.fn().mockReturnValue(tronAddress),
+      tronToEthAddress: jest.fn().mockReturnValue(evmAddress),
+      getSigner: jest.fn().mockReturnValue("getSigner")
+    };
+
+    const sender = {
+      cosmos: "orai1234",
+      evm: evmAddress,
+      tron: tronAddress
+    };
+
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken,
+        sender
+      },
+      {
+        evmWallet: evmWalletMock as any
+      }
+    );
+
+    const spy = jest.spyOn(universalSwap, "connectBridgeFactory");
+    if (!isTron) {
+      //@ts-ignore
+      spy.mockReturnValue({
+        sendToCosmos: jest.fn().mockResolvedValue({
+          hash: "mockHash",
+          blockNumber: 1,
+          blockHash: "mockBlockHash",
+          timestamp: 1,
+          confirmations: 1,
+          from: "mockFromAddress",
+          raw: "mockRawTransaction",
+          wait: jest.fn().mockResolvedValue("mockTransactionHash")
+        })
+      });
+    }
+
+    try {
+      await universalSwap.transferToGravity(evmAddress);
+      if (!isTron) expect(spy).toHaveBeenCalled();
+      expect(willThrow).toBe(false);
+    } catch (error) {
+      expect(willThrow).toBe(true);
+    }
+  });
 
   // it("test-swap()", async () => {
   //   const universalSwap = new FakeUniversalSwapHandler({

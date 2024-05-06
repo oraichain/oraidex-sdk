@@ -314,7 +314,7 @@ export class UniversalSwapHandler {
     const finalFromAmount = toAmount(fromAmount, fromToken.decimals).toString();
     const gravityContractAddr = ethers.utils.getAddress(gravityContracts[fromToken.chainId]);
     const checkSumAddress = ethers.utils.getAddress(finalTransferAddress);
-    const gravityContract = Bridge__factory.connect(gravityContractAddr, signer);
+    const gravityContract = this.connectBridgeFactory(gravityContractAddr, signer);
     const routerV2Addr = await gravityContract.swapRouter();
     const minimumReceive = BigInt(calculateMinReceive(simulatePrice, finalFromAmount, slippage, fromToken.decimals));
     let result: ethers.ContractTransaction;
@@ -363,7 +363,6 @@ export class UniversalSwapHandler {
     return { transactionHash: result.hash };
   }
 
-  // TODO: write test cases
   public async transferToGravity(to: string): Promise<EvmResponse> {
     const token = this.swapData.originalFromToken;
     let from = this.swapData.sender.evm;
@@ -391,12 +390,16 @@ export class UniversalSwapHandler {
       // if you call this function on evm, you have to switch network before calling. Otherwise, unexpected errors may happen
       if (!gravityContractAddr || !from || !to)
         throw generateError("OraiBridge contract addr or from or to is not specified. Cannot transfer!");
-      const gravityContract = Bridge__factory.connect(gravityContractAddr, evmWallet.getSigner());
+      const gravityContract = this.connectBridgeFactory(gravityContractAddr, evmWallet.getSigner());
       const result = await gravityContract.sendToCosmos(token.contractAddress, to, amountVal, { from });
       const res = await result.wait();
       return { transactionHash: res.transactionHash };
     }
   }
+
+  connectBridgeFactory = (gravityContractAddr, signer) => {
+    return Bridge__factory.connect(gravityContractAddr, signer);
+  };
 
   // TODO: write test cases
   transferEvmToIBC = async (swapRoute: string): Promise<EvmResponse> => {
