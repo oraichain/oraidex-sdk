@@ -401,7 +401,6 @@ export class UniversalSwapHandler {
     return Bridge__factory.connect(gravityContractAddr, signer);
   };
 
-  // TODO: write test cases
   transferEvmToIBC = async (swapRoute: string): Promise<EvmResponse> => {
     const from = this.swapData.originalFromToken;
     const fromAmount = this.swapData.fromAmount;
@@ -498,7 +497,6 @@ export class UniversalSwapHandler {
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
   }
 
-  // TODO: write test cases
   // transfer evm to ibc
   async transferAndSwap(swapRoute: string): Promise<EvmResponse> {
     const {

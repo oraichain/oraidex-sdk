@@ -1498,6 +1498,121 @@ describe("test universal swap handler functions", () => {
     }
   });
 
+  it.each<[TokenItemType, TokenItemType, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "tether")!,
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "airight")!,
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "0x2b6653dc" && t.coinGeckoId === "tron")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      false
+    ]
+  ])("test-transferAndSwap()-for-%s", async (fromToken, toToken, willThrow) => {
+    const evmWalletMock = {
+      getFinalEvmAddress: jest.fn().mockReturnValue(fromToken.chainId === "0x2b6653dc" ? tronAddress : evmAddress),
+      isTron: (chainId) => Number(chainId) == Networks.tron,
+      switchNetwork: jest.fn().mockResolvedValue(true)
+    };
+
+    let mockValue = false;
+    if (fromToken.chainId === toToken.chainId) mockValue = true;
+    jest.spyOn(UniversalSwapHelper, "isEvmSwappable").mockReturnValue(mockValue);
+    jest.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm").mockReturnValue(mockValue);
+    jest
+      .spyOn(UniversalSwapHelper, "checkBalanceIBCOraichain")
+      .mockReturnValue(new Promise((resolve) => resolve("checkBalanceIBCOraichain" as any)));
+    jest.spyOn(UniversalSwapHelper, "checkFeeRelayer").mockReturnValue(new Promise((resolve) => resolve(true)));
+
+    const getCosmWasmClientMock = jest.fn(() => Promise.resolve({ client: {} }));
+    const cosmosWalletMock = { getCosmWasmClient: getCosmWasmClientMock };
+
+    const sender = {
+      cosmos: "orai1234",
+      evm: evmAddress,
+      tron: tronAddress
+    };
+
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken,
+        sender
+      },
+      {
+        evmWallet: evmWalletMock as any,
+        cosmosWallet: cosmosWalletMock as any
+      }
+    );
+
+    jest
+      .spyOn(universalSwap, "transferEvmToIBC")
+      .mockReturnValue(new Promise((resolve) => resolve({ transactionHash: "transactionHash" })));
+
+    try {
+      const res = await universalSwap.transferAndSwap(fromToken.chainId === "0x2b6653dc" ? tronAddress : evmAddress);
+      expect(res.transactionHash).toBe("transactionHash");
+      expect(willThrow).toBe(false);
+    } catch (error) {
+      expect(willThrow).toBe(true);
+    }
+  });
+
+  it.each<[TokenItemType, TokenItemType, boolean, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      false,
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "0x2b6653dc" && t.coinGeckoId === "tron")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      true,
+      false
+    ]
+  ])("test-transferEvmToIBC()-for-%s", async (fromToken, toToken, isTron, willThrow) => {
+    const evmWalletMock = {
+      checkOrIncreaseAllowance: jest.fn().mockReturnValue(true),
+      getFinalEvmAddress: jest.fn().mockReturnValue(isTron ? tronAddress : evmAddress)
+    };
+    const sender = {
+      cosmos: "orai1234",
+      evm: evmAddress,
+      tron: tronAddress
+    };
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken,
+        sender
+      },
+      {
+        evmWallet: evmWalletMock as any
+      }
+    );
+
+    jest
+      .spyOn(universalSwap, "transferToGravity")
+      .mockReturnValue(new Promise((resolve) => resolve({ transactionHash: "transactionHash" })));
+
+    try {
+      const res = await universalSwap.transferEvmToIBC(isTron ? tronAddress : evmAddress);
+      expect(res.transactionHash).toBe("transactionHash");
+      expect(willThrow).toBe(false);
+    } catch (error) {
+      expect(willThrow).toBe(true);
+    }
+  });
+
   // it("test-swap()", async () => {
   //   const universalSwap = new FakeUniversalSwapHandler({
   //     ...universalSwapData
