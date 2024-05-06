@@ -1,59 +1,48 @@
-import { Coin, EncodeObject, coin } from "@cosmjs/proto-signing";
-import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ExecuteInstruction, ExecuteResult, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { EncodeObject, coin } from "@cosmjs/proto-signing";
+import { GasPrice } from "@cosmjs/stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
-  TokenItemType,
-  NetworkChainId,
-  IBCInfo,
-  calculateTimeoutTimestamp,
-  generateError,
-  getEncodedExecuteContractMsgs,
-  toAmount,
-  // buildMultipleExecuteMessages,
-  parseTokenInfo,
-  calculateMinReceive,
-  handleSentFunds,
-  tronToEthAddress,
-  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
-  oraichain2oraib,
-  CosmosChainId,
-  findToTokenOnOraiBridge,
-  getTokenOnSpecificChainId,
-  UNISWAP_ROUTER_DEADLINE,
-  gravityContracts,
+  BigDecimal,
   Bridge__factory,
-  IUniswapV2Router02__factory,
-  ethToTronAddress,
-  network,
-  EvmResponse,
-  getTokenOnOraichain,
-  getCosmosGasPrice,
   CoinGeckoId,
+  CosmosChainId,
+  EvmResponse,
+  IBCInfo,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  tokenMap,
-  AmountDetails,
+  IUniswapV2Router02__factory,
+  NetworkChainId,
+  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
+  TokenItemType,
+  UNISWAP_ROUTER_DEADLINE,
   buildMultipleExecuteMessages,
-  ibcInfosOld,
+  calculateMinReceive,
+  calculateTimeoutTimestamp,
   checkValidateAddressWithNetwork,
-  BigDecimal
+  ethToTronAddress,
+  findToTokenOnOraiBridge,
+  generateError,
+  getCosmosGasPrice,
+  getEncodedExecuteContractMsgs,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
+  gravityContracts,
+  handleSentFunds,
+  ibcInfosOld,
+  network,
+  oraichain2oraib,
+  // buildMultipleExecuteMessages,
+  parseTokenInfo,
+  toAmount,
+  tokenMap,
+  tronToEthAddress
 } from "@oraichain/oraidex-common";
+import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
-import {
-  ConvertReverse,
-  ConvertType,
-  SmartRouteSwapOperations,
-  Type,
-  UniversalSwapConfig,
-  UniversalSwapData,
-  UniversalSwapType
-} from "./types";
-import { GasPrice } from "@cosmjs/stargate";
-import { Height } from "cosmjs-types/ibc/core/client/v1/client";
-import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
-import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { SmartRouteSwapOperations, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
@@ -292,7 +281,6 @@ export class UniversalSwapHandler {
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
-  // TODO: write test cases
   async swap(): Promise<ExecuteResult> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(

@@ -25,6 +25,7 @@ import {
   flattenTokens,
   matchCosmWasmQueryRequest,
   mockJsonRpcServer,
+  mockResponse,
   network,
   oraichain2osmosis,
   oraichainTokens,
@@ -1198,6 +1199,50 @@ describe("test universal swap handler functions", () => {
       );
       expect(signAndBroadcastMock).toHaveBeenCalledWith(sender.cosmos, ["msg1", "msg2"], "auto");
     }
+  );
+
+  it.each<[TokenItemType, TokenItemType, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      false
+    ]
+  ])(
+    "test-universal-swap-func-swap()-with-mock-%",
+    async (fromToken, toToken, willThrow) => {
+      const mockServer = await mockJsonRpcServer();
+      const executeMultipleMock = jest.fn(() =>
+        mockServer
+          .forJsonRpcRequest({
+            method: "broadcast_tx_sync"
+          })
+          .thenSendJsonRpcResult(mockResponse)
+      );
+      const getCosmWasmClientMock = jest.fn(() =>
+        Promise.resolve({ client: { executeMultiple: executeMultipleMock } })
+      );
+      const cosmosWalletMock = { getCosmWasmClient: getCosmWasmClientMock };
+      const universalSwap = new FakeUniversalSwapHandler(
+        {
+          ...universalSwapData,
+          originalFromToken: fromToken,
+          originalToToken: toToken,
+          sender: { cosmos: "orai1234" }
+        },
+        {
+          cosmosWallet: cosmosWalletMock as any
+        }
+      );
+      try {
+        await universalSwap.swap();
+        expect(willThrow).toEqual(false);
+      } catch (error) {
+        expect(willThrow).toEqual(true);
+      } finally {
+        await mockServer.stop();
+      }
+    },
+    50000
   );
 
   // it("test-swap()", async () => {
