@@ -97,8 +97,6 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
   const chainId = qObject.get("chainId");
   const txHash = qObject.get("txHash");
 
-  console.log("txHash", { chainId, txHash });
-
   try {
     responseData = await getRouteDetail({ chainId, txHash });
   } catch (err) {
