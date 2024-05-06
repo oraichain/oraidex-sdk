@@ -139,13 +139,7 @@ export const getQueryAllRouting = async (res: HttpResponse, req: HttpRequest) =>
   }
 
   try {
-    const promiseAll = [];
-
-    for (const param of dataQueries) {
-      const detailRoute = getRouteDetail(param);
-
-      promiseAll.push(detailRoute);
-    }
+    const promiseAll = dataQueries.map((param) => getRouteDetail(param)) || [];
 
     const dataRes = await Promise.all(promiseAll);
 
