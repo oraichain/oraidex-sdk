@@ -441,7 +441,6 @@ export class UniversalSwapHandler {
     );
   }
 
-  // TODO: write test cases
   async swapAndTransferToOtherNetworks(universalSwapType: UniversalSwapType) {
     let encodedObjects: EncodeObject[];
     const { originalToToken, originalFromToken, simulateAmount, sender } = this.swapData;
@@ -585,7 +584,6 @@ export class UniversalSwapHandler {
 
   // this method allows swapping from cosmos networks to arbitrary networks using ibc wasm hooks
   // Oraichain will be use as a proxy
-  // TODO: write test cases
   async swapCosmosToOtherNetwork(destinationReceiver: string) {
     const { originalFromToken, originalToToken, sender } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
