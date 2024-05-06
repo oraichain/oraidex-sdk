@@ -149,9 +149,17 @@ export const getQueryAllRouting = async (res: HttpResponse, req: HttpRequest) =>
 
     const dataRes = await Promise.all(promiseAll);
 
+    const fmtData = dataQueries.reduce((acc, cur, index) => {
+      if (cur.txHash) {
+        acc[cur.txHash] = dataRes[index]?.data || [];
+      }
+
+      return acc;
+    }, {});
+
     responseData = {
       ...responseData,
-      data: dataRes.map((dt) => dt.data)
+      data: fmtData
     };
   } catch (err) {
     res.cork(() => {
