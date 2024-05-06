@@ -4,13 +4,13 @@ import "dotenv/config";
 import { ethers } from "ethers";
 import { resolve } from "path";
 import uws from "uWebSockets.js";
-import { getQueryRouting, submitRouting } from "./apis";
+import { getQueryAllRouting, getQueryRouting, submitRouting } from "./apis";
 import { config } from "./config";
 import {
-  autoForwardTag,
-  batchSendToEthClaimTag,
   EvmRpcs,
   GravityAddress,
+  autoForwardTag,
+  batchSendToEthClaimTag,
   onExecuteContractTag,
   onRecvPacketTag,
   requestBatchTag
@@ -51,6 +51,10 @@ uws
   .get("/api/routing", async (res, req) => {
     setCorsHeaders(res);
     return getQueryRouting(res, req);
+  })
+  .get("/api/all-routing", async (res, req) => {
+    setCorsHeaders(res);
+    return getQueryAllRouting(res, req);
   })
   .post("/api/routing", (res, req) => {
     setCorsHeaders(res);
