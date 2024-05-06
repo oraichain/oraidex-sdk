@@ -1245,6 +1245,72 @@ describe("test universal swap handler functions", () => {
     50000
   );
 
+  it.each<[TokenItemType, TokenItemType, string, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "cosmoshub-4" && t.coinGeckoId === "cosmos")!,
+      "oraichain-to-cosmos",
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "tether")!,
+      "oraichain-to-evm",
+      false
+    ]
+  ])(
+    "test-universal-swap-func-swapAndTransferToOtherNetworks()-with-mock-%",
+    async (fromToken, toToken, swapRoute, willThrow) => {
+      const mockServer = await mockJsonRpcServer();
+      const signAndBroadcastMock = jest.fn(() =>
+        mockServer
+          .forJsonRpcRequest({
+            method: "broadcast_tx_sync"
+          })
+          .thenSendJsonRpcResult(mockResponse)
+      );
+
+      const getCosmWasmClientMock = jest.fn(() =>
+        Promise.resolve({
+          client: { signAndBroadcast: signAndBroadcastMock }
+        })
+      );
+      const cosmosWalletMock = {
+        getCosmWasmClient: getCosmWasmClientMock,
+        getKeplrAddr: () => {
+          return "orai1234";
+        }
+      };
+
+      const sender = {
+        cosmos: "orai1234",
+        evm: "0x1234"
+      };
+
+      const universalSwap = new FakeUniversalSwapHandler(
+        {
+          ...universalSwapData,
+          originalFromToken: fromToken,
+          originalToToken: toToken,
+          sender
+        },
+        {
+          cosmosWallet: cosmosWalletMock as any
+        }
+      );
+
+      try {
+        await universalSwap.swapAndTransferToOtherNetworks(swapRoute as UniversalSwapType);
+        expect(willThrow).toEqual(false);
+      } catch (error) {
+        expect(willThrow).toEqual(true);
+      } finally {
+        await mockServer.stop();
+      }
+    },
+    50000
+  );
+
   // it("test-swap()", async () => {
   //   const universalSwap = new FakeUniversalSwapHandler({
   //     ...universalSwapData
