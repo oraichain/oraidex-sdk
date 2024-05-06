@@ -71,7 +71,14 @@ export const getSendToCosmosEvent = async (txHash: string, evmChainPrefix: EvmCh
 };
 
 export const getCosmosTxEvent = async (txHash: any, chainId: string): Promise<TxEvent> => {
-  const chainMetadata = chainInfos.find((item) => item.chainId === chainId);
+  let chainMetadata = chainInfos.find((item) => item.chainId === chainId);
+
+  if (chainId === "cosmoshub-4") {
+    chainMetadata = {
+      ...chainMetadata,
+      rpc: "https://rpc-cosmoshub.keplr.app"
+    };
+  }
 
   if (!chainMetadata) {
     throw new Error("chain id does not exist!");

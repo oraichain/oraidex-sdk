@@ -7,7 +7,7 @@ describe("Testing searchTx using rpc", () => {
     const queryTags: QueryTag[] = [
       {
         key: `send_packet.packet_sequence`,
-        value: `${"22866"}`
+        value: `${"22865"}`
       },
       {
         key: `send_packet.packet_src_channel`,

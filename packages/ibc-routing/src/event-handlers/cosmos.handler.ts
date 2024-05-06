@@ -29,6 +29,7 @@ export class CosmosHandler extends EventHandler {
           if (!decodedProtoMemo.destinationReceiver.includes("oraib")) {
             return;
           }
+
           // create new machine so we start a new context for the transaction
           const intepreter = createCosmosIntepreter(this.db);
           this.im.appendIntepreter(intepreter);

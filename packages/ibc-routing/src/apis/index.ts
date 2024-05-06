@@ -111,6 +111,8 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
       async (obj: any) => {
         const txHash = obj.txHash;
         const chainId = obj.chainId;
+        let message = "Success";
+        let isError = false;
         try {
           switch (chainId) {
             case ChainIdEnum.Ethereum:
@@ -138,27 +140,22 @@ export const submitRouting = async (res: HttpResponse, req: HttpRequest, im: Int
               ]);
           }
         } catch (err) {
-          res
-            .writeStatus("500 Internal Server Error")
-            .writeHeader("Content-Type", "application/json")
-            .end(
-              JSON.stringify({
-                message: err?.message || "Something went wrong",
-                data: []
-              })
-            );
+          isError = true;
+          message = err?.message || "Something went wrong";
         }
 
         if (!res.aborted) {
-          res
-            .writeStatus("200 OK")
-            .writeHeader("Content-Type", "application/json")
-            .end(
-              JSON.stringify({
-                message: "Success",
-                data: []
-              })
-            );
+          res.cork(() => {
+            res
+              .writeStatus(!isError ? "200 OK" : "500 Internal Server Error")
+              .writeHeader("Content-Type", "application/json")
+              .end(
+                JSON.stringify({
+                  message,
+                  data: []
+                })
+              );
+          });
         }
       },
       (err: any) => {
