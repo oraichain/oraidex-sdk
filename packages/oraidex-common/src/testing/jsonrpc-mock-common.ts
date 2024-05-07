@@ -24,15 +24,15 @@ export const buildCosmWasmAbciQueryResponse = (expectedResult: any) => {
   );
 };
 
-const mockAccountInfo = buildAbciQueryResponse(
+export const mockAccountInfo = buildAbciQueryResponse(
   "Cp8BCiAvY29zbW9zLmF1dGgudjFiZXRhMS5CYXNlQWNjb3VudBJ7CitvcmFpMWc0aDY0eWp0MGZ2enY1djJqOHR5Zm5wZTVrbW5ldGVqdmZnczdnEkYKHy9jb3Ntb3MuY3J5cHRvLnNlY3AyNTZrMS5QdWJLZXkSIwohA/7NDxzUr4iFC8PmBZllh5P6RdDtLgnvL32OVolC+2tGGKwQIN0R"
 );
 
-const mockSimulate = buildAbciQueryResponse(
+export const mockSimulate = buildAbciQueryResponse(
   "CgQQp6kDEroJCiAKHgocL2Nvc21vcy5iYW5rLnYxYmV0YTEuTXNnU2VuZBLEBVt7ImV2ZW50cyI6W3sidHlwZSI6ImNvaW5fcmVjZWl2ZWQiLCJhdHRyaWJ1dGVzIjpbeyJrZXkiOiJyZWNlaXZlciIsInZhbHVlIjoib3JhaTFnNGg2NHlqdDBmdnp2NXYyajh0eWZucGU1a21uZXRlanZmZ3M3ZyJ9LHsia2V5IjoiYW1vdW50IiwidmFsdWUiOiIxb3JhaSJ9XX0seyJ0eXBlIjoiY29pbl9zcGVudCIsImF0dHJpYnV0ZXMiOlt7ImtleSI6InNwZW5kZXIiLCJ2YWx1ZSI6Im9yYWkxZzRoNjR5anQwZnZ6djV2Mmo4dHlmbnBlNWttbmV0ZWp2ZmdzN2cifSx7ImtleSI6ImFtb3VudCIsInZhbHVlIjoiMW9yYWkifV19LHsidHlwZSI6Im1lc3NhZ2UiLCJhdHRyaWJ1dGVzIjpbeyJrZXkiOiJhY3Rpb24iLCJ2YWx1ZSI6Ii9jb3Ntb3MuYmFuay52MWJldGExLk1zZ1NlbmQifSx7ImtleSI6InNlbmRlciIsInZhbHVlIjoib3JhaTFnNGg2NHlqdDBmdnp2NXYyajh0eWZucGU1a21uZXRlanZmZ3M3ZyJ9LHsia2V5IjoibW9kdWxlIiwidmFsdWUiOiJiYW5rIn1dfSx7InR5cGUiOiJ0cmFuc2ZlciIsImF0dHJpYnV0ZXMiOlt7ImtleSI6InJlY2lwaWVudCIsInZhbHVlIjoib3JhaTFnNGg2NHlqdDBmdnp2NXYyajh0eWZucGU1a21uZXRlanZmZ3M3ZyJ9LHsia2V5Ijoic2VuZGVyIiwidmFsdWUiOiJvcmFpMWc0aDY0eWp0MGZ2enY1djJqOHR5Zm5wZTVrbW5ldGVqdmZnczdnIn0seyJrZXkiOiJhbW91bnQiLCJ2YWx1ZSI6IjFvcmFpIn1dfV19XRoxCgdtZXNzYWdlEiYKBmFjdGlvbhIcL2Nvc21vcy5iYW5rLnYxYmV0YTEuTXNnU2VuZBpVCgpjb2luX3NwZW50EjYKB3NwZW5kZXISK29yYWkxZzRoNjR5anQwZnZ6djV2Mmo4dHlmbnBlNWttbmV0ZWp2ZmdzN2cSDwoGYW1vdW50EgUxb3JhaRpZCg1jb2luX3JlY2VpdmVkEjcKCHJlY2VpdmVyEitvcmFpMWc0aDY0eWp0MGZ2enY1djJqOHR5Zm5wZTVrbW5ldGVqdmZnczdnEg8KBmFtb3VudBIFMW9yYWkajAEKCHRyYW5zZmVyEjgKCXJlY2lwaWVudBIrb3JhaTFnNGg2NHlqdDBmdnp2NXYyajh0eWZucGU1a21uZXRlanZmZ3M3ZxI1CgZzZW5kZXISK29yYWkxZzRoNjR5anQwZnZ6djV2Mmo4dHlmbnBlNWttbmV0ZWp2ZmdzN2cSDwoGYW1vdW50EgUxb3JhaRpACgdtZXNzYWdlEjUKBnNlbmRlchIrb3JhaTFnNGg2NHlqdDBmdnp2NXYyajh0eWZucGU1a21uZXRlanZmZ3M3ZxoZCgdtZXNzYWdlEg4KBm1vZHVsZRIEYmFuaw=="
 );
 
-const mockStatus = {
+export const mockStatus = {
   node_info: {
     protocol_version: { p2p: "8", block: "11", app: "0" },
     id: "6ffa64f7e7d78421d43eafa800fb11df3ce9c176",
@@ -61,7 +61,7 @@ const mockStatus = {
   }
 };
 
-const mockResponse = {
+export const mockResponse = {
   code: 0,
   data: "",
   log: "[]",
@@ -69,7 +69,7 @@ const mockResponse = {
   hash: "2F59A5318ED6350976244EAD25CB78ACFEBC1B9C9A96809269A793EDFB529065"
 };
 
-const mockTxSearch = {
+export const mockTxSearch = {
   txs: [
     {
       hash: "2F59A5318ED6350976244EAD25CB78ACFEBC1B9C9A96809269A793EDFB529065",
