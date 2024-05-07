@@ -1,4 +1,4 @@
-import { ChainIdEnum } from "@oraichain/oraidex-common";
+import { ChainIdEnum, generateError } from "@oraichain/oraidex-common";
 import { HttpRequest, HttpResponse } from "uWebSockets.js";
 import { waitFor } from "xstate/lib/waitFor";
 import { ChainIdToEvmChainPrefix, invokableMachineStateKeys } from "../constants";
@@ -12,6 +12,74 @@ import { createOraichainIntepreter } from "../intepreters/oraichain.intepreter";
 import IntepreterManager from "../managers/intepreter.manager";
 import { getCosmosTxEvent, getSendToCosmosEvent } from "../utils/events";
 
+export const getRouteDetail = async ({ chainId, txHash }: { chainId: string; txHash: string }) => {
+  const duckDb = DuckDbNode.instances;
+  let responseData = {
+    message: "Success",
+    data: {}
+  };
+  switch (chainId) {
+    case ChainIdEnum.Ethereum:
+    case ChainIdEnum.BNBChain:
+    case ChainIdEnum.TRON:
+      await (async () => {
+        const interpreter = createEvmIntepreter(duckDb);
+        const actor = interpreter._inner.start();
+        interpreter._inner.send({
+          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+          payload: {
+            txHash: txHash,
+            evmChainPrefix: ChainIdToEvmChainPrefix[chainId]
+          }
+        });
+        const doneState = await waitFor(actor, (state) => state.done);
+        responseData = {
+          ...responseData,
+          data: doneState.context.routingQueryData
+        };
+      })();
+      break;
+
+    case ChainIdEnum.Oraichain:
+      await (async () => {
+        const interpreter = createOraichainIntepreter(duckDb);
+        const actor = interpreter._inner.start();
+        interpreter._inner.send({
+          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+          payload: {
+            txHash
+          }
+        });
+        const doneState = await waitFor(actor, (state) => state.done);
+        responseData = {
+          ...responseData,
+          data: doneState.context.routingQueryData
+        };
+      })();
+      break;
+
+    default:
+      await (async () => {
+        const interpreter = createCosmosIntepreter(duckDb);
+        const actor = interpreter._inner.start();
+        interpreter._inner.send({
+          type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
+          payload: {
+            txHash,
+            chainId
+          }
+        });
+        const doneState = await waitFor(actor, (state) => state.done);
+        responseData = {
+          ...responseData,
+          data: doneState.context.routingQueryData
+        };
+      })();
+  }
+
+  return responseData;
+};
+
 export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
   res.onAborted(() => {
     res.aborted = true;
@@ -19,7 +87,7 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
 
   const qString = req.getQuery();
   const qObject = new URLSearchParams(qString);
-  const duckDb = DuckDbNode.instances;
+  // const duckDb = DuckDbNode.instances;
 
   let responseData = {
     message: "Success",
@@ -30,64 +98,63 @@ export const getQueryRouting = async (res: HttpResponse, req: HttpRequest) => {
   const txHash = qObject.get("txHash");
 
   try {
-    switch (chainId) {
-      case ChainIdEnum.Ethereum:
-      case ChainIdEnum.BNBChain:
-      case ChainIdEnum.TRON:
-        await (async () => {
-          const interpreter = createEvmIntepreter(duckDb);
-          const actor = interpreter._inner.start();
-          interpreter._inner.send({
-            type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-            payload: {
-              txHash: txHash,
-              evmChainPrefix: ChainIdToEvmChainPrefix[chainId]
-            }
-          });
-          const doneState = await waitFor(actor, (state) => state.done);
-          responseData = {
-            ...responseData,
-            data: doneState.context.routingQueryData
-          };
-        })();
-        break;
+    responseData = await getRouteDetail({ chainId, txHash });
+  } catch (err) {
+    res.cork(() => {
+      res
+        .writeStatus("500 Internal Server Error")
+        .writeHeader("Content-Type", "application/json")
+        .end(JSON.stringify({ ...responseData, message: err?.message || "Something went wrong" }));
+    });
+  }
 
-      case ChainIdEnum.Oraichain:
-        await (async () => {
-          const interpreter = createOraichainIntepreter(duckDb);
-          const actor = interpreter._inner.start();
-          interpreter._inner.send({
-            type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-            payload: {
-              txHash: qObject.get("txHash")
-            }
-          });
-          const doneState = await waitFor(actor, (state) => state.done);
-          responseData = {
-            ...responseData,
-            data: doneState.context.routingQueryData
-          };
-        })();
-        break;
+  if (!res.aborted) {
+    res.cork(() => {
+      res.writeStatus("200 OK").writeHeader("Content-Type", "application/json").end(JSON.stringify(responseData));
+    });
+  }
+};
 
-      default:
-        await (async () => {
-          const interpreter = createCosmosIntepreter(duckDb);
-          const actor = interpreter._inner.start();
-          interpreter._inner.send({
-            type: invokableMachineStateKeys.QUERY_IBC_ROUTING_DATA,
-            payload: {
-              txHash: qObject.get("txHash"),
-              chainId: qObject.get("chainId")
-            }
-          });
-          const doneState = await waitFor(actor, (state) => state.done);
-          responseData = {
-            ...responseData,
-            data: doneState.context.routingQueryData
-          };
-        })();
-    }
+export const getQueryAllRouting = async (res: HttpResponse, req: HttpRequest) => {
+  res.onAborted(() => {
+    res.aborted = true;
+  });
+
+  const qString = req.getQuery();
+  const qObject = new URLSearchParams(qString);
+  const duckDb = DuckDbNode.instances;
+
+  let responseData = {
+    message: "Success",
+    data: []
+  };
+
+  const params = qObject.getAll("data[]");
+  const dataQueries = [];
+  try {
+    params.map((param) => dataQueries.push(JSON.parse(param)));
+  } catch (error) {
+    console.log("error", error);
+    throw generateError("Query params Error");
+  }
+
+  try {
+    const promiseAll = dataQueries.map((param) => getRouteDetail(param)) || [];
+
+    const dataRes = await Promise.all(promiseAll);
+
+    const fmtData = dataQueries.reduce((acc, cur, index) => {
+      if (cur.txHash) {
+        acc[cur.txHash] = dataRes[index]?.data || [];
+      }
+
+      return acc;
+    }, {});
+
+    responseData = {
+      ...responseData,
+      data: fmtData
+    };
   } catch (err) {
     res.cork(() => {
       res
