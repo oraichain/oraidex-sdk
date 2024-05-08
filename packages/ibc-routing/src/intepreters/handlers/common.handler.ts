@@ -45,7 +45,7 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
   const eventData = event.payload;
   const { transactionHash: txHash, blockNumber: height } = eventData[5];
   const routeData: OraiBridgeRouteData = unmarshalOraiBridgeRoute(eventData[2]);
-  const denom = eventData[2];
+  const denom = eventData[0];
   const evmChainPrefix = eventData[6];
   const sendToCosmosData = {
     txHash,
@@ -509,6 +509,7 @@ export const handleStoreOnBatchSendToEthClaim = async (
     fromAmount: oraiBridgeData[0].amount,
     oraiBridgeChannelId: "",
     oraiReceiver: "",
+    denom: decodeDenomToTokenAddress(oraiBridgeData[0].denom),
     destinationDenom: decodeDenomToTokenAddress(oraiBridgeData[0].denom),
     destinationChannelId: "",
     destinationReceiver: `0x${oraiBridgeData[0].memo.split("0x")[1]}`,
