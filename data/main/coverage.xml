@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="1261" lines-covered="913" line-rate="0.7240000000000001" branches-valid="455" branches-covered="284" branch-rate="0.6241" timestamp="1714808248609" complexity="0" version="0.1">
+<coverage lines-valid="1262" lines-covered="914" line-rate="0.7242000000000001" branches-valid="457" branches-covered="286" branch-rate="0.6258" timestamp="1715158540184" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -100,7 +100,7 @@
         </class>
       </classes>
     </package>
-    <package name="oraidex-common.src" line-rate="0.8107" branch-rate="0.6728000000000001">
+    <package name="oraidex-common.src" line-rate="0.8109999999999999" branch-rate="0.6768000000000001">
       <classes>
         <class name="bigdecimal.ts" filename="packages/oraidex-common/src/bigdecimal.ts" line-rate="0.6375" branch-rate="0.6153">
           <methods>
@@ -1030,56 +1030,51 @@
             <line number="1111" hits="2" branch="true" condition-coverage="100% (2/2)"/>
           </lines>
         </class>
-        <class name="pairs.ts" filename="packages/oraidex-common/src/pairs.ts" line-rate="0.9259000000000001" branch-rate="0.8887999999999999">
+        <class name="pairs.ts" filename="packages/oraidex-common/src/pairs.ts" line-rate="0.9285" branch-rate="0.909">
           <methods>
-            <method name="(anonymous_8)" hits="2" signature="()V">
+            <method name="(anonymous_9)" hits="2" signature="()V">
               <lines>
                 <line number="112" hits="2"/>
               </lines>
             </method>
-            <method name="(anonymous_9)" hits="3" signature="()V">
+            <method name="(anonymous_10)" hits="3" signature="()V">
               <lines>
                 <line number="133" hits="3"/>
               </lines>
             </method>
-            <method name="(anonymous_10)" hits="29" signature="()V">
+            <method name="(anonymous_11)" hits="29" signature="()V">
               <lines>
                 <line number="134" hits="29"/>
               </lines>
             </method>
-            <method name="(anonymous_11)" hits="58" signature="()V">
+            <method name="(anonymous_12)" hits="58" signature="()V">
               <lines>
                 <line number="135" hits="58"/>
               </lines>
             </method>
-            <method name="(anonymous_12)" hits="4" signature="()V">
+            <method name="(anonymous_13)" hits="4" signature="()V">
               <lines>
                 <line number="144" hits="4"/>
               </lines>
             </method>
-            <method name="(anonymous_13)" hits="20" signature="()V">
+            <method name="(anonymous_14)" hits="20" signature="()V">
               <lines>
                 <line number="146" hits="20"/>
               </lines>
             </method>
-            <method name="(anonymous_14)" hits="32" signature="()V">
+            <method name="(anonymous_15)" hits="32" signature="()V">
               <lines>
                 <line number="147" hits="32"/>
               </lines>
             </method>
-            <method name="(anonymous_15)" hits="34" signature="()V">
+            <method name="(anonymous_16)" hits="34" signature="()V">
               <lines>
                 <line number="148" hits="34"/>
               </lines>
             </method>
-            <method name="(anonymous_16)" hits="0" signature="()V">
-              <lines>
-                <line number="156" hits="0"/>
-              </lines>
-            </method>
             <method name="(anonymous_17)" hits="0" signature="()V">
               <lines>
-                <line number="157" hits="0"/>
+                <line number="156" hits="0"/>
               </lines>
             </method>
             <method name="(anonymous_18)" hits="0" signature="()V">
@@ -1087,14 +1082,24 @@
                 <line number="157" hits="0"/>
               </lines>
             </method>
-            <method name="(anonymous_19)" hits="34" signature="()V">
+            <method name="(anonymous_19)" hits="0" signature="()V">
+              <lines>
+                <line number="157" hits="0"/>
+              </lines>
+            </method>
+            <method name="(anonymous_20)" hits="34" signature="()V">
               <lines>
                 <line number="160" hits="34"/>
               </lines>
             </method>
-            <method name="(anonymous_20)" hits="68" signature="()V">
+            <method name="(anonymous_21)" hits="68" signature="()V">
               <lines>
                 <line number="161" hits="68"/>
+              </lines>
+            </method>
+            <method name="(anonymous_22)" hits="2" signature="()V">
+              <lines>
+                <line number="173" hits="2"/>
               </lines>
             </method>
           </methods>
@@ -1126,6 +1131,7 @@
             <line number="162" hits="68" branch="true" condition-coverage="100% (1/1)"/>
             <line number="163" hits="34" branch="false"/>
             <line number="166" hits="34" branch="false"/>
+            <line number="173" hits="2" branch="true" condition-coverage="100% (2/2)"/>
           </lines>
         </class>
         <class name="token.ts" filename="packages/oraidex-common/src/token.ts" line-rate="1" branch-rate="1">
