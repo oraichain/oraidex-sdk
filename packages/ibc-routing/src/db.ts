@@ -27,6 +27,7 @@ export const sqlCommands = {
       fromAmount varchar,
       oraiBridgeChannelId varchar,
       oraiReceiver varchar,
+      denom varchar,
       destinationDenom varchar,
       destinationChannelId varchar,
       destinationReceiver varchar,
