@@ -11,7 +11,6 @@ import {
   IBCInfo,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  IUniswapV2Router02__factory,
   NetworkChainId,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   TokenItemType,
@@ -291,7 +290,6 @@ export class UniversalSwapHandler {
     return result;
   }
 
-  // TODO: write test cases
   public async evmSwap(data: {
     fromToken: TokenItemType;
     toTokenContractAddr: string;
@@ -312,8 +310,8 @@ export class UniversalSwapHandler {
       tronAddress
     });
     const finalFromAmount = toAmount(fromAmount, fromToken.decimals).toString();
-    const gravityContractAddr = ethers.utils.getAddress(gravityContracts[fromToken.chainId]);
-    const checkSumAddress = ethers.utils.getAddress(finalTransferAddress);
+    const gravityContractAddr = this.getAddressWithEthers(gravityContracts[fromToken.chainId]);
+    const checkSumAddress = this.getAddressWithEthers(finalTransferAddress);
     const gravityContract = this.connectBridgeFactory(gravityContractAddr, signer);
     const routerV2Addr = await gravityContract.swapRouter();
     const minimumReceive = BigInt(calculateMinReceive(simulatePrice, finalFromAmount, slippage, fromToken.decimals));
@@ -332,14 +330,14 @@ export class UniversalSwapHandler {
     // Case 1: bridge from native bnb / eth case
     if (!fromToken.contractAddress) {
       result = await gravityContract.bridgeFromETH(
-        ethers.utils.getAddress(toTokenContractAddr),
+        this.getAddressWithEthers(toTokenContractAddr),
         minimumReceive, // use
         destination,
         { value: finalFromAmount }
       );
     } else if (!toTokenContractAddr) {
       // Case 2: swap to native eth / bnb. Get evm route so that we can swap from token -> native eth / bnb
-      const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
+      const routerV2 = UniversalSwapHelper.connectFactoryRouteUniswapV2(routerV2Addr, signer);
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
 
       result = await routerV2.swapExactTokensForETH(
@@ -352,8 +350,8 @@ export class UniversalSwapHandler {
     } else {
       // Case 3: swap erc20 token to another erc20 token with a given destination (possibly sent to Oraichain or other networks)
       result = await gravityContract.bridgeFromERC20(
-        ethers.utils.getAddress(fromToken.contractAddress),
-        ethers.utils.getAddress(toTokenContractAddr),
+        this.getAddressWithEthers(fromToken.contractAddress),
+        this.getAddressWithEthers(toTokenContractAddr),
         finalFromAmount,
         minimumReceive, // use
         destination
@@ -397,8 +395,12 @@ export class UniversalSwapHandler {
     }
   }
 
-  connectBridgeFactory = (gravityContractAddr, signer) => {
+  public connectBridgeFactory = (gravityContractAddr, signer) => {
     return Bridge__factory.connect(gravityContractAddr, signer);
+  };
+
+  public getAddressWithEthers = (addr) => {
+    return ethers.utils.getAddress(addr);
   };
 
   transferEvmToIBC = async (swapRoute: string): Promise<EvmResponse> => {

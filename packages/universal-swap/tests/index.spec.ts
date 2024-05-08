@@ -13,15 +13,24 @@ import {
   IBC_TRANSFER_TIMEOUT,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
+  NEUTARO_INFO,
   NetworkChainId,
   Networks,
+  ORAIXOCH_INFO,
+  ORAIX_INFO,
   ORAI_BRIDGE_EVM_DENOM_PREFIX,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
+  ORAI_INFO,
   OSMOSIS_ORAICHAIN_DENOM,
   ROUTER_V2_CONTRACT,
   TokenItemType,
   USDC_CONTRACT,
+  USDC_ETH_CONTRACT,
+  USDC_INFO,
+  USDT_BSC_CONTRACT,
   USDT_CONTRACT,
+  USDT_ETH_CONTRACT,
+  WRAP_BNB_CONTRACT,
   buildCosmWasmAbciQueryResponse,
   flattenTokens,
   matchCosmWasmQueryRequest,
@@ -43,7 +52,8 @@ import {
   OraiswapOracleClient,
   OraiswapRouterClient,
   OraiswapRouterQueryClient,
-  OraiswapTokenClient
+  OraiswapTokenClient,
+  SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
 import bech32 from "bech32";
 import { readFileSync } from "fs";
@@ -61,7 +71,7 @@ import {
   handleSimulateSwap,
   simulateSwap
 } from "../src/helper";
-import { UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
+import { SwapDirection, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
 import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 
 describe("test universal swap handler functions", () => {
@@ -434,6 +444,61 @@ describe("test universal swap handler functions", () => {
     }
   );
 
+  it.each<[TokenItemType, TokenItemType, boolean, number]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
+      false,
+      1
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "osmosis-1" && t.coinGeckoId === "osmosis")!,
+      false,
+      2
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "cosmoshub-4" && t.coinGeckoId === "cosmos")!,
+      false,
+      2
+    ]
+  ])("test-combineSwapMsgOraichain()-for-mock-%s", async (fromToken, toToken, willThrow, expectLength) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      originalFromToken: fromToken,
+      originalToToken: toToken,
+      sender: {
+        cosmos: "orai1234"
+      }
+    });
+
+    if (toToken.chainId === "Oraichain") {
+      jest.spyOn(dexCommonHelper, "checkValidateAddressWithNetwork").mockReturnValue({
+        isValid: true,
+        network: toToken.chainId
+      });
+      jest.spyOn(dexCommonHelper, "getEncodedExecuteContractMsgs").mockReturnValue([
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {}
+        }
+      ]);
+    }
+
+    jest
+      .spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr")
+      .mockReturnValue(new Promise((resolve) => resolve("orai1234" as any)));
+
+    try {
+      const res = await universalSwap.combineSwapMsgOraichain("0");
+      expect(res.length).toBe(expectLength);
+      expect(willThrow).toBe(false);
+    } catch (error) {
+      expect(willThrow).toBe(true);
+    }
+  });
+
   it.each<[string, string, string, boolean]>([
     ["oraichain-token", "Oraichain", "0", true],
     ["oraichain-token", "Oraichain", "1000000", false],
@@ -725,6 +790,133 @@ describe("test universal swap handler functions", () => {
       }
     }
   );
+
+  it.each<[TokenItemType, string, SwapDirection, number]>([
+    [flattenTokens.find((t) => t.coinGeckoId === "oraichain-token")!, "", SwapDirection.From, 36],
+    [flattenTokens.find((t) => t.coinGeckoId === "oraichain-token")!, "", SwapDirection.To, 33],
+    [flattenTokens.find((t) => t.coinGeckoId === "airight")!, "", SwapDirection.From, 35],
+    [flattenTokens.find((t) => t.coinGeckoId === "airight")!, "orai123", SwapDirection.From, 0],
+    [flattenTokens.find((t) => t.coinGeckoId === "airight")!, "orai", SwapDirection.From, 7],
+    [flattenTokens.find((t) => t.coinGeckoId === "airight")!, "", SwapDirection.To, 33]
+  ])(
+    "test-universal-swap-filterNonPoolEvmTokens",
+    async (token: TokenItemType, searchTokenName: string, direction: SwapDirection, expectedLength: number) => {
+      const res = UniversalSwapHelper.filterNonPoolEvmTokens(
+        token.chainId,
+        token.coinGeckoId,
+        token.denom,
+        searchTokenName,
+        direction
+      );
+      expect(res.length).toBe(expectedLength);
+    }
+  );
+
+  it.each<[TokenItemType, TokenItemType, SwapOperation[]]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraidex")!,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ]
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "neutaro")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraidex")!,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: NEUTARO_INFO,
+            ask_asset_info: USDC_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ]
+    ]
+  ])("test-buildSwapMsgsFromSmartRoute()-for-native-token-%s", async (fromToken, toToken, swapOps) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      originalFromToken: fromToken,
+      originalToToken: toToken
+    });
+    const routerContract = network.router;
+    const routes = [
+      {
+        swapAmount: "10000",
+        returnAmount: "10000",
+        swapOps
+      }
+    ];
+    const result = universalSwap.buildSwapMsgsFromSmartRoute(routes, fromToken, cosmosSenderAddress, routerContract);
+    expect(result).toHaveLength(1);
+    expect(result[0].contractAddress).toBe(routerContract);
+    expect(result[0].msg.execute_swap_operations.operations).toEqual(swapOps);
+    expect(result[0].msg.execute_swap_operations.to).toEqual(cosmosSenderAddress);
+  });
+
+  it.each<[TokenItemType, TokenItemType, SwapOperation[], string]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "usd-coin")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraidex")!,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: USDC_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ],
+      "10000"
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "och")!,
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraidex")!,
+      [
+        {
+          orai_swap: {
+            offer_asset_info: ORAIXOCH_INFO,
+            ask_asset_info: ORAI_INFO
+          }
+        },
+        {
+          orai_swap: {
+            offer_asset_info: ORAI_INFO,
+            ask_asset_info: ORAIX_INFO
+          }
+        }
+      ],
+      "10000"
+    ]
+  ])("test-buildSwapMsgsFromSmartRoute()-for-cw20-token-%s", async (fromToken, toToken, swapOps, swapAmount) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      originalFromToken: fromToken,
+      originalToToken: toToken
+    });
+    const routerContract = network.router;
+    const routes = [
+      {
+        swapAmount,
+        returnAmount: "9999",
+        swapOps
+      }
+    ];
+    const result = universalSwap.buildSwapMsgsFromSmartRoute(routes, fromToken, cosmosSenderAddress, routerContract);
+    expect(result).toHaveLength(1);
+    expect(result[0].contractAddress).toBe(fromToken.contractAddress);
+    expect(result[0].msg.send.contract).toBe(routerContract);
+    expect(result[0].msg.send.amount).toBe(swapAmount);
+  });
 
   it.each<[UniversalSwapType, string]>([
     ["oraichain-to-oraichain", "swap"],
@@ -1069,6 +1261,32 @@ describe("test universal swap handler functions", () => {
       expect(simulateData.returnAmount).toEqual(expectedSimulateData);
     }
   );
+
+  it.each<[TokenItemType, TokenItemType, string, number]>([
+    [
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "tether")!,
+      "1000000",
+      1
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "oraichain-token")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "tether")!,
+      "2000000",
+      2
+    ]
+  ])("test-simulateSwapEvm-with-mock", async (fromInfo, toInfo, amount, displayAmount) => {
+    //@ts-ignore
+    jest.spyOn(UniversalSwapHelper, "getJsonRpcProvider").mockReturnValue(true);
+
+    //@ts-ignore
+    jest.spyOn(UniversalSwapHelper, "connectFactoryRouteUniswapV2").mockReturnValue({
+      getAmountsOut: jest.fn().mockResolvedValue([[amount]])
+    });
+
+    const res = await UniversalSwapHelper.simulateSwapEvm({ fromInfo, toInfo, amount });
+    expect(res.displayAmount).toBe(displayAmount);
+  });
 
   it.each<[boolean, boolean, boolean, string]>([
     [false, false, false, "1"],
@@ -1607,6 +1825,117 @@ describe("test universal swap handler functions", () => {
     try {
       const res = await universalSwap.transferEvmToIBC(isTron ? tronAddress : evmAddress);
       expect(res.transactionHash).toBe("transactionHash");
+      expect(willThrow).toBe(false);
+    } catch (error) {
+      expect(willThrow).toBe(true);
+    }
+  });
+
+  it.each<[TokenItemType, TokenItemType, string, string[], boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "usd-coin")!,
+      "",
+      [USDC_ETH_CONTRACT, USDT_ETH_CONTRACT],
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "airight")!,
+      "",
+      [USDT_BSC_CONTRACT, WRAP_BNB_CONTRACT, AIRI_BSC_CONTRACT],
+      false
+    ]
+  ])("test-evmSwap()-for-%s", async (fromToken, toToken, toTokenContractAddr, evmSwapRoute, willThrow) => {
+    const finalEvmAddress = fromToken.chainId === "0x2b6653dc" ? tronAddress : evmAddress;
+    const evmWalletMock = {
+      checkOrIncreaseAllowance: jest.fn().mockReturnValue(true),
+      getFinalEvmAddress: jest.fn().mockReturnValue(finalEvmAddress),
+      getSigner: jest.fn().mockReturnValue("getSigner")
+    };
+
+    const sender = {
+      cosmos: "orai1234",
+      evm: evmAddress,
+      tron: tronAddress
+    };
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData,
+        originalFromToken: fromToken,
+        originalToToken: toToken,
+        sender
+      },
+      {
+        evmWallet: evmWalletMock as any
+      }
+    );
+
+    const spyGetAddressWithEthers = jest.spyOn(universalSwap, "getAddressWithEthers");
+    spyGetAddressWithEthers.mockReturnValue(evmAddress);
+
+    const spyConnectBridgeFactory = jest.spyOn(universalSwap, "connectBridgeFactory");
+
+    const mockResponse = {
+      hash: "mockHash",
+      blockNumber: 1,
+      blockHash: "mockBlockHash",
+      timestamp: 1,
+      confirmations: 1,
+      from: "mockFromAddress",
+      raw: "mockRawTransaction"
+    };
+    //@ts-ignore
+    spyConnectBridgeFactory.mockReturnValue({
+      sendToCosmos: jest.fn().mockResolvedValue({
+        ...mockResponse,
+        wait: jest.fn().mockResolvedValue("mockWaitSendToCosmos")
+      }),
+      swapRouter: jest.fn().mockResolvedValue("mockSwapRouter"),
+      bridgeFromETH: jest.fn().mockResolvedValue("mockBridgeFromETH"),
+      bridgeFromERC20: jest.fn().mockResolvedValue({
+        ...mockResponse,
+        wait: jest.fn().mockResolvedValue("mockWaitBridgeFromERC20")
+      })
+    });
+    jest.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
+    jest
+      .spyOn(universalSwap, "transferToGravity")
+      .mockReturnValue(new Promise((resolve) => resolve({ transactionHash: "transactionHash" })));
+
+    //@ts-ignore
+    jest.spyOn(UniversalSwapHelper, "connectFactoryRouteUniswapV2").mockReturnValue({
+      swapExactTokensForETH: jest.fn().mockResolvedValue({
+        ...mockResponse,
+        wait: jest.fn().mockResolvedValue("mockSwapExactTokensForETH")
+      })
+    });
+
+    //@ts-ignore
+    jest.spyOn(UniversalSwapHelper, "getEvmSwapRoute").mockResolvedValueOnce(evmSwapRoute);
+
+    try {
+      await universalSwap.evmSwap({
+        fromToken,
+        toTokenContractAddr,
+        fromAmount: 0,
+        address: {
+          metamaskAddress: evmAddress,
+          tronAddress: tronAddress
+        },
+        slippage: 1,
+        destination: "",
+        simulatePrice: "1000"
+      });
+
+      if (!fromToken.contractAddress) {
+        expect(spyConnectBridgeFactory).toHaveBeenCalled();
+      } else if (!toTokenContractAddr) {
+        expect(UniversalSwapHelper.getEvmSwapRoute).toHaveBeenCalled();
+        expect(UniversalSwapHelper.connectFactoryRouteUniswapV2).toHaveBeenCalled();
+      } else {
+        expect(spyConnectBridgeFactory).toHaveBeenCalled();
+      }
       expect(willThrow).toBe(false);
     } catch (error) {
       expect(willThrow).toBe(true);

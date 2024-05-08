@@ -5,6 +5,7 @@
   "scripts": {
     "postinstall": "patch-package",
     "test": "yarn build && jest",
+    "test-coverage": "yarn build && jest --coverage",
     "docs": "typedoc --entryPointStrategy expand --name 'Oraidex SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
     "clean": "lerna clean --yes && lerna exec -- rimraf build/ dist/ cache/",
     "build": "lerna run build --concurrency 1",
