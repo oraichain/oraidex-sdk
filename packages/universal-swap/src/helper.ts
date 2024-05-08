@@ -656,14 +656,16 @@ export class UniversalSwapHelper {
       );
     let amount;
     let routes = [];
+    let routeSwapOps;
     if (query.useSmartRoute) {
-      const { returnAmount, routesSwap }: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+      const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo,
         toInfo,
         amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
       });
-      routes = routesSwap;
-      amount = returnAmount;
+      routes = simulateRes?.routesSwap;
+      amount = simulateRes.returnAmount;
+      routeSwapOps = simulateRes?.routes;
     } else {
       amount = (
         await UniversalSwapHelper.simulateSwap({
@@ -677,7 +679,8 @@ export class UniversalSwapHelper {
     return {
       amount,
       displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals),
-      routes
+      routes,
+      routeSwapOps
     };
   };
 
