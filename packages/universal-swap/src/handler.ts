@@ -153,8 +153,8 @@ export class UniversalSwapHandler {
     const isNotMatchCoingeckoId = fromCoinGeckoId !== toCoinGeckoId;
     let getEncodedExecuteMsgs = [];
     if (isSpecialChain) {
-      // 1. = coingeckoId => convert + bridge
-      if (fromCoinGeckoId === toCoinGeckoId && isSpecialCoingecko) {
+      // convert token
+      if (isSpecialCoingecko) {
         const evmToken = tokenMap[toTokenInOrai.denom];
         const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
         const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
@@ -167,6 +167,7 @@ export class UniversalSwapHandler {
         getEncodedExecuteMsgs = getEncodedExecuteContractMsgs(sender, executeContractMsgs);
       }
 
+      // 1. = coingeckoId => convert + bridge
       // 2. != coingeckoId => swap + convert + bridge
       // if not same coingeckoId, swap first then transfer token that have same coingeckoid.
       if (isNotMatchCoingeckoId) {
