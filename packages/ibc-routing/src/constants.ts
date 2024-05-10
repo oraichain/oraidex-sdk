@@ -105,7 +105,10 @@ export interface EvmState {
   prevTxHash: string;
   nextState: string;
   destination: string;
-  fromAmount: string;
+  amount: string;
+  denom: string;
+  nextAmount: string;
+  nextDestinationDenom: string;
   oraiBridgeChannelId: string;
   oraiReceiver: string;
   destinationDenom: string;

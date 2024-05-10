@@ -43,6 +43,7 @@ export const handleOraiBridgeForEvmTimeout = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError("[COSMOS INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout");
   }
   const txEvent = convertIndexedTxToTxEvent(txs[0]);
@@ -80,6 +81,7 @@ export const handleOnRequestBatchTimeout = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError(evmChainPrefix + "- orai bridge data on onRequestBatchTimeout");
   }
 
@@ -106,6 +108,7 @@ export const handleOnBatchSendToETHClaimTimeout = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError("Can not find orai bridge data on onBatchSendToETHClaimTimeout");
   }
   return handleCheckOnBatchSendToEthClaim(ctx, {
@@ -127,6 +130,7 @@ export const handleOraiBridgeTimeOut = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAIBRIDGE_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError("there is no auto forward existed on orai bridge timeout");
   }
 
@@ -175,6 +179,7 @@ export const handleOraichainTimeout = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError("tx does not exist on oraichain");
   }
   return handleStoreOnRecvPacketOraichain(ctx, {
@@ -207,6 +212,7 @@ export const handleOraichainReverseTimeout = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError("tx does not exist on oraichain");
   }
   return handleStoreOnRecvPacketOraichainReverse(ctx, {
@@ -239,6 +245,7 @@ export const handleCosmosTimeout = async (ctx, event) => {
   const stargateClient = await StargateClient.connect(config.ORAICHAIN_RPC_URL);
   const txs = await stargateClient.searchTx(query);
   if (txs.length == 0) {
+    console.log("[DEBUG]", queryTags);
     throw generateError("[EVM INTEPRETER] Can not find orai bridge data on oraiBridgeForEvmTimeout");
   }
   const txEvent = convertIndexedTxToTxEvent(txs[0]);

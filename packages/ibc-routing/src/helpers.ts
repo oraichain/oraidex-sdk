@@ -1,5 +1,6 @@
 import { IndexedTx } from "@cosmjs/stargate";
 import { TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { EventAttribute } from "@cosmjs/tendermint-rpc/build/tendermint37/responses";
 import { EvmChainPrefix } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { encodeRpcEvents } from "./utils/events";
@@ -55,4 +56,29 @@ export const decodeMemoToTokenAddress = (denom: string): string => {
   const evmChainPrefix = Object.values(EvmChainPrefix).find((item) => denom.includes(item)) || "";
   const splittedLastDenom = denom.split(evmChainPrefix);
   return splittedLastDenom[splittedLastDenom.length - 1];
+};
+
+export const groupByContractAddress = (attributes: readonly EventAttribute[]): EventAttribute[][] => {
+  const groupedAttributes = [];
+  let group = [];
+
+  for (const attribute of attributes) {
+    const key = attribute.key;
+
+    if (key === "_contract_address") {
+      if (group.length > 0) {
+        groupedAttributes.push(group);
+        group = [];
+      }
+    }
+
+    group.push(attribute);
+  }
+
+  // Push the last group if not empty
+  if (group.length > 0) {
+    groupedAttributes.push(group);
+  }
+
+  return groupedAttributes;
 };
