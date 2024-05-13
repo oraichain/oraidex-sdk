@@ -61,8 +61,6 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
     destination: eventData[2],
     amount: BigNumber.from(eventData[3]).toString(),
     denom,
-    nextAmount: "0",
-    nextDestinationDenom: "",
     oraiBridgeChannelId: routeData.oraiBridgeChannel,
     oraiReceiver: routeData.oraiReceiver,
     destinationDenom: routeData.tokenIdentifier,
@@ -195,9 +193,7 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
   await ctx.db.update(
     DatabaseEnum.Evm,
     {
-      status: StateDBStatus.FINISHED,
-      nextAmount: packetData.amount,
-      nextDestinationDenom: decodeMemoToTokenAddress(packetData.denom)
+      status: StateDBStatus.FINISHED
     },
     { where: { txHash: prevEvmState[0].txHash } }
   );
@@ -521,8 +517,6 @@ export const handleStoreOnBatchSendToEthClaim = async (
     destination: "",
     amount: oraiBridgeData[0].amount,
     denom: decodeDenomToTokenAddress(oraiBridgeData[0].denom),
-    nextAmount: "0",
-    nextDestinationDenom: "",
     oraiBridgeChannelId: "",
     oraiReceiver: "",
     destinationDenom: decodeDenomToTokenAddress(oraiBridgeData[0].denom),

@@ -107,8 +107,6 @@ export interface EvmState {
   destination: string;
   amount: string;
   denom: string;
-  nextAmount: string;
-  nextDestinationDenom: string;
   oraiBridgeChannelId: string;
   oraiReceiver: string;
   destinationDenom: string;
