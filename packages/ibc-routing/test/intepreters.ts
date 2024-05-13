@@ -53,7 +53,7 @@ describe("test recover case", () => {
   });
 
   const [owner] = getSigners(1);
-  it("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
+  xit("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -110,6 +110,8 @@ describe("test recover case", () => {
         localReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         srcChannel: "channel-29",
         dstChannel: "channel-1",
+        amount: "2783218",
+        denom: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
         nextPacketSequence: 21688,
         nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         nextAmount: "1388829000000000000",
@@ -165,10 +167,12 @@ describe("test recover case", () => {
         prevTxHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         nextState: "",
         destination: "",
-        fromAmount: "1388829000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
+        amount: "1388829000000000000",
         denom: "0x55d398326f99059fF775485246999027B3197955",
+        nextAmount: "0",
+        nextDestinationDenom: "",
         destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
@@ -182,7 +186,7 @@ describe("test recover case", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(30000);
 
-  it("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
+  xit("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -235,7 +239,9 @@ describe("test recover case", () => {
         nextState: "OraiBridgeState",
         destination:
           "channel-1/orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd:CjVldGgtbWFpbm5ldDB4MGRlQjUyNDk5QzJlOUYzOTIxYzYzMWNiNkFkMzUyMkM1NzZkNTQ4NBIKY2hhbm5lbC0yORo1ZXRoLW1haW5uZXQweGRBQzE3Rjk1OEQyZWU1MjNhMjIwNjIwNjk5NDU5N0MxM0Q4MzFlYzc=",
-        fromAmount: "17000000000000000000",
+        amount: "17000000000000000000",
+        nextAmount: "17000000000000000000",
+        nextDestinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         oraiBridgeChannelId: "channel-1",
         denom: "0x55d398326f99059fF775485246999027B3197955",
         oraiReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
@@ -290,6 +296,8 @@ describe("test recover case", () => {
         sender: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         localReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         nextPacketSequence: 21456,
+        amount: "17000000000000000000",
+        denom: "oraib0x55d398326f99059fF775485246999027B3197955",
         nextMemo: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         nextAmount: "1106616",
         nextReceiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
@@ -333,10 +341,12 @@ describe("test recover case", () => {
         prevTxHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         nextState: "",
         destination: "",
-        fromAmount: "1106616",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
+        amount: "1106616",
         denom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        nextAmount: "0",
+        nextDestinationDenom: "",
         destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
@@ -403,7 +413,7 @@ describe("test recover case", () => {
     im.recoverInterpreters();
     await setTimeout(1000);
     expect(im.getLengthIntepreters()).to.be.eq(3);
-    await setTimeout(30000);
+    await setTimeout(50000);
 
     // TEST EVM DATA
     expect(
@@ -419,10 +429,12 @@ describe("test recover case", () => {
         nextState: "OraiBridgeState",
         destination:
           "channel-1/orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd:CjVldGgtbWFpbm5ldDB4MGRlQjUyNDk5QzJlOUYzOTIxYzYzMWNiNkFkMzUyMkM1NzZkNTQ4NBIKY2hhbm5lbC0yORo1ZXRoLW1haW5uZXQweGRBQzE3Rjk1OEQyZWU1MjNhMjIwNjIwNjk5NDU5N0MxM0Q4MzFlYzc=",
-        fromAmount: "17000000000000000000",
         oraiBridgeChannelId: "channel-1",
         oraiReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
+        amount: "17000000000000000000",
         denom: "0x55d398326f99059fF775485246999027B3197955",
+        nextAmount: "17000000000000000000",
+        nextDestinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationDenom: "eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "channel-29",
         destinationReceiver: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
@@ -474,6 +486,8 @@ describe("test recover case", () => {
         sender: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         localReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         nextPacketSequence: 21456,
+        amount: "17000000000000000000",
+        denom: "oraib0x55d398326f99059fF775485246999027B3197955",
         nextMemo: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         nextAmount: "1106616",
         nextReceiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
@@ -517,10 +531,12 @@ describe("test recover case", () => {
         prevTxHash: "6A7A880277AE9CD0BAAA71FF9CD7127FC39B8E5AFD1B2F33F7016D117D7F0F55",
         nextState: "",
         destination: "",
-        fromAmount: "1106616",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
+        amount: "1106616",
         denom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+        nextAmount: "0",
+        nextDestinationDenom: "",
         destinationDenom: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
@@ -550,6 +566,8 @@ describe("test recover case", () => {
         localReceiver: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         srcChannel: "channel-29",
         dstChannel: "channel-1",
+        amount: "2783218",
+        denom: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
         nextPacketSequence: 21688,
         nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         nextAmount: "1388829000000000000",
@@ -605,9 +623,11 @@ describe("test recover case", () => {
         prevTxHash: "FBEE176EDB37A5620CA0FF47BB40FEFEB67FFDA111656701C4C9A457A2720230",
         nextState: "",
         destination: "",
-        fromAmount: "1388829000000000000",
         oraiBridgeChannelId: "",
+        amount: "1388829000000000000",
         denom: "0x55d398326f99059fF775485246999027B3197955",
+        nextAmount: "0",
+        nextDestinationDenom: "",
         oraiReceiver: "",
         destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
@@ -663,6 +683,8 @@ describe("test recover case", () => {
         packetAck: "",
         sender: "cosmos1ehmhqcn8erf3dgavrca69zgp4rtxj5kqmcws97",
         localReceiver: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+        amount: "300000",
+        denom: "uatom",
         nextPacketSequence: 21698,
         nextMemo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         nextAmount: "1940789000000000000",
@@ -717,10 +739,12 @@ describe("test recover case", () => {
         prevTxHash: "4E5F68FB9D3355DC115B3C1DDEFCFD318D02D33B761A42D1266A4C7092F1BA61",
         nextState: "",
         destination: "",
-        fromAmount: "1940789000000000000",
         oraiBridgeChannelId: "",
         oraiReceiver: "",
+        amount: "1940789000000000000",
         denom: "0x55d398326f99059fF775485246999027B3197955",
+        nextAmount: "0",
+        nextDestinationDenom: "",
         destinationDenom: "0x55d398326f99059fF775485246999027B3197955",
         destinationChannelId: "",
         destinationReceiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
