@@ -443,10 +443,11 @@ export class UniversalSwapHelper {
     offerChainId: string,
     askInfo: AssetInfo,
     askChainId: string,
-    offerAmount: string
+    offerAmount: string,
+    urlRouter?: string
   ): Promise<SmartRouterResponseAPI> => {
-    const urlRouter = "https://router.oraidex.io";
-    const { axios } = await getAxios(urlRouter);
+    const urlSmartRouter = urlRouter ?? "https://osor.oraidex.io";
+    const { axios } = await getAxios(urlSmartRouter);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
       sourceChainId: offerChainId,
@@ -469,14 +470,16 @@ export class UniversalSwapHelper {
     offerChainId: string,
     askInfo: AssetInfo,
     askChainId: string,
-    offerAmount: string
+    offerAmount: string,
+    urlRouter?: string
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes: routesSwap } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
       offerChainId,
       askInfo,
       askChainId,
-      offerAmount
+      offerAmount,
+      urlRouter
     );
 
     const routes = routesSwap.map((route) => {
@@ -546,8 +549,9 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
+    urlRouter?: string;
   }): Promise<SmartRouterResponse> => {
-    const { amount, fromInfo, toInfo } = query;
+    const { amount, fromInfo, toInfo, urlRouter } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
     if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
@@ -567,7 +571,8 @@ export class UniversalSwapHelper {
         fromInfo.chainId,
         askInfo,
         toInfo.chainId,
-        amount
+        amount,
+        urlRouter
       );
     } catch (error) {
       throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
@@ -627,6 +632,7 @@ export class UniversalSwapHelper {
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
     useSmartRoute?: boolean;
+    urlRouter?: string;
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
@@ -661,7 +667,8 @@ export class UniversalSwapHelper {
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo,
         toInfo,
-        amount: toAmount(query.originalAmount, fromInfo.decimals).toString()
+        amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+        urlRouter: query.urlRouter
       });
       routes = simulateRes?.routesSwap;
       amount = simulateRes.returnAmount;
