@@ -704,7 +704,7 @@ export const handleStoreOnRecvPacketOraichain = async (
   const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
     nextPacketData.nextDestinationDenom.includes(prefix)
   );
-  nextState = existEvmPath ? "OraiBridgeState" : "";
+  nextState = existEvmPath ? "OraiBridgeState" : nextPacketData.nextReceiver == "" ? "" : "CosmosState";
 
   const oraiBridgeData = await ctx.db.select(DatabaseEnum.OraiBridge, {
     where: {
@@ -1125,7 +1125,7 @@ export const handleStoreOnTransferBackToRemoteChain = async (
   const existEvmPath = Object.values(EvmChainPrefix).find((prefix) =>
     nextPacketData.nextDestinationDenom.includes(prefix)
   );
-  nextState = existEvmPath ? "OraiBridgeState" : "";
+  nextState = existEvmPath ? "OraiBridgeState" : nextPacketData.nextReceiver == "" ? "" : "OraichainState";
 
   // we don't have previous packetSequence, so we save it as nextPacketSequence
   let transferBackToRemoteChainData = {
