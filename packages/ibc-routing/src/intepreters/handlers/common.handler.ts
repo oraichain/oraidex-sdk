@@ -27,6 +27,7 @@ import {
 import { isBase64, parseRpcEvents } from "../../utils/events";
 import { unmarshalOraiBridgeRoute } from "../../utils/marshal";
 import { decodeIbcMemo } from "../../utils/protobuf";
+import { retryFunc } from "../../utils/retry";
 
 // EVM
 export const handleQuerySendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEventObject) => {
@@ -75,7 +76,9 @@ export const handleSendToCosmosEvm = async (ctx: ContextIntepreter, event: AnyEv
   // this context data will be used for querying in the next state
   ctx.evmChainPrefixOnLeftTraverseOrder = evmChainPrefix;
   ctx.evmEventNonce = sendToCosmosData.eventNonce;
-  await ctx.db.insert(DatabaseEnum.Evm, sendToCosmosData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Evm, sendToCosmosData);
+  });
   return Promise.resolve();
 };
 
@@ -198,7 +201,9 @@ export const handleStoreAutoForward = async (ctx: ContextIntepreter, event: AnyE
     { where: { txHash: prevEvmState[0].txHash } }
   );
   console.log("storeAutoForward:", autoForwardData);
-  await ctx.db.insert(DatabaseEnum.OraiBridge, autoForwardData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.OraiBridge, autoForwardData);
+  });
   ctx.oraiBridgeSrcChannel = autoForwardData.srcChannel;
   ctx.oraiBridgeDstChannel = autoForwardData.dstChannel;
   ctx.oraiBridgeEventNonce = event.data.eventNonce;
@@ -358,7 +363,9 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketOnOraiBridge: ", oraiBridgeData);
-  await ctx.db.insert(DatabaseEnum.OraiBridge, oraiBridgeData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.OraiBridge, oraiBridgeData);
+  });
 };
 
 // TODO: add query logic here
@@ -527,7 +534,9 @@ export const handleStoreOnBatchSendToEthClaim = async (
     status: StateDBStatus.FINISHED
   };
   console.log("storeOnBatchSendToETHClaim: ", evmStateData);
-  await ctx.db.insert(DatabaseEnum.Evm, evmStateData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Evm, evmStateData);
+  });
 };
 
 // ORAICHAIN
@@ -745,7 +754,9 @@ export const handleStoreOnRecvPacketOraichain = async (
     status: nextPacketData.nextPacketSequence != 0 ? StateDBStatus.PENDING : StateDBStatus.FINISHED
   };
   console.log("storeOnRecvPacketOraichain:", onRecvPacketData);
-  await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
+  });
   // now we have verified everything, lets store the result into the db
   // TODO: if there's a next state, prepare to return a valid result here
   if (nextState || nextPacketData.nextPacketSequence != 0) {
@@ -896,7 +907,9 @@ export const handleStoreOnRecvPacketOraichainReverse = async (
     status: StateDBStatus.PENDING
   };
   console.log("onRecvPacketData", onRecvPacketData);
-  await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Oraichain, onRecvPacketData);
+  });
 
   // no next state, we move to final state of the machine
   return Promise.resolve("");
@@ -1065,7 +1078,9 @@ export const handleUpdateOnAcknowledgementOnCosmos = async (
   }
 
   console.log("Cosmos data:", cosmosData);
-  await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
+  });
 };
 
 export const handleStoreOnTransferBackToRemoteChain = async (
@@ -1146,7 +1161,9 @@ export const handleStoreOnTransferBackToRemoteChain = async (
     status: StateDBStatus.PENDING
   };
   console.log("storeOnTransferBackToRemoteChain", transferBackToRemoteChainData);
-  await ctx.db.insert(DatabaseEnum.Oraichain, transferBackToRemoteChainData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Oraichain, transferBackToRemoteChainData);
+  });
 
   // no next state, we move to final state of the machine
   return Promise.resolve("");
@@ -1186,7 +1203,9 @@ export const handleStoreOnIbcTransferFromRemote = async (ctx: ContextIntepreter,
     status: StateDBStatus.PENDING
   };
   console.log("Cosmos Data:", cosmosData);
-  await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
+  await retryFunc(async () => {
+    await ctx.db.insert(DatabaseEnum.Cosmos, cosmosData);
+  });
 
   ctx.cosmosPacketSequence = parseInt(packetSequence.value);
   ctx.cosmosSrcChannel = cosmosData.srcChannel;
