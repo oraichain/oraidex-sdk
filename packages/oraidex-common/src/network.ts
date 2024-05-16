@@ -53,6 +53,7 @@ import {
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT
 } from "./constant";
+import { listOsmosisToken } from "./alpha-network";
 
 export type NetworkName =
   | "Oraichain"
@@ -107,7 +108,8 @@ export type CoinGeckoId =
   | "injective-protocol"
   | "bitcoin"
   | "neutaro"
-  | "och";
+  | "och"
+  | "celestia";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -707,7 +709,8 @@ export const chainInfos: CustomChainInfo[] = [
       {
         ...OsmoToken,
         bridgeTo: ["Oraichain"]
-      }
+      },
+      ...listOsmosisToken
     ]
   },
   /// popular networks already included
