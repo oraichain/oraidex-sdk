@@ -116,7 +116,7 @@ export const createEvmIntepreter = (db: DuckDB) => {
               // rejected promise data is on event.data property
               actions: (ctx, event) => console.log("error on handling oraibridge timeout", event.data)
             },
-            onDone: "checkAutoForward"
+            onDone: "storeAutoForward"
           }
         },
         queryAutoForward: {
