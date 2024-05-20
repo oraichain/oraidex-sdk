@@ -444,9 +444,13 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    urlRouter?: string
+    urlRouter: {
+      url: string;
+      path?: string;
+    }
   ): Promise<SmartRouterResponseAPI> => {
-    const urlSmartRouter = urlRouter ?? "https://osor.oraidex.io";
+    const urlSmartRouter = urlRouter.url ?? "https://osor.oraidex.io";
+    const pathSmartRouter = urlRouter.path ?? "/smart-router";
     const { axios } = await getAxios(urlSmartRouter);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
@@ -457,7 +461,7 @@ export class UniversalSwapHelper {
     };
     const res: {
       data: SmartRouterResponseAPI;
-    } = await axios.post("/smart-router", data);
+    } = await axios.post(pathSmartRouter, data);
     return {
       swapAmount: res.data.swapAmount,
       returnAmount: res.data.returnAmount,
@@ -471,7 +475,10 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    urlRouter?: string
+    urlRouter: {
+      url: string;
+      path?: string;
+    }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes: routesSwap } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
@@ -549,7 +556,10 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
-    urlRouter?: string;
+    urlRouter?: {
+      url: string;
+      path?: string;
+    };
   }): Promise<SmartRouterResponse> => {
     const { amount, fromInfo, toInfo, urlRouter } = query;
 
@@ -632,7 +642,10 @@ export class UniversalSwapHelper {
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
     useSmartRoute?: boolean;
-    urlRouter?: string;
+    urlRouter?: {
+      url: string;
+      path?: string;
+    };
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
