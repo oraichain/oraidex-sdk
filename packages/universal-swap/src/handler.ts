@@ -1,59 +1,47 @@
-import { Coin, EncodeObject, coin } from "@cosmjs/proto-signing";
-import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ExecuteInstruction, ExecuteResult, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { EncodeObject, coin } from "@cosmjs/proto-signing";
+import { GasPrice } from "@cosmjs/stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
-  TokenItemType,
-  NetworkChainId,
-  IBCInfo,
-  calculateTimeoutTimestamp,
-  generateError,
-  getEncodedExecuteContractMsgs,
-  toAmount,
-  // buildMultipleExecuteMessages,
-  parseTokenInfo,
-  calculateMinReceive,
-  handleSentFunds,
-  tronToEthAddress,
-  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
-  oraichain2oraib,
-  CosmosChainId,
-  findToTokenOnOraiBridge,
-  getTokenOnSpecificChainId,
-  UNISWAP_ROUTER_DEADLINE,
-  gravityContracts,
+  BigDecimal,
   Bridge__factory,
-  IUniswapV2Router02__factory,
-  ethToTronAddress,
-  network,
-  EvmResponse,
-  getTokenOnOraichain,
-  getCosmosGasPrice,
   CoinGeckoId,
+  CosmosChainId,
+  EvmResponse,
+  IBCInfo,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  tokenMap,
-  AmountDetails,
+  NetworkChainId,
+  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
+  TokenItemType,
+  UNISWAP_ROUTER_DEADLINE,
   buildMultipleExecuteMessages,
-  ibcInfosOld,
+  calculateMinReceive,
+  calculateTimeoutTimestamp,
   checkValidateAddressWithNetwork,
-  BigDecimal
+  ethToTronAddress,
+  findToTokenOnOraiBridge,
+  generateError,
+  getCosmosGasPrice,
+  getEncodedExecuteContractMsgs,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
+  gravityContracts,
+  handleSentFunds,
+  ibcInfosOld,
+  network,
+  oraichain2oraib,
+  // buildMultipleExecuteMessages,
+  parseTokenInfo,
+  toAmount,
+  tokenMap,
+  tronToEthAddress
 } from "@oraichain/oraidex-common";
+import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
-import {
-  ConvertReverse,
-  ConvertType,
-  SmartRouteSwapOperations,
-  Type,
-  UniversalSwapConfig,
-  UniversalSwapData,
-  UniversalSwapType
-} from "./types";
-import { GasPrice } from "@cosmjs/stargate";
-import { Height } from "cosmjs-types/ibc/core/client/v1/client";
-import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
-import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { SmartRouteSwapOperations, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "./types";
 export class UniversalSwapHandler {
   constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
 
@@ -293,7 +281,6 @@ export class UniversalSwapHandler {
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
-  // TODO: write test cases
   async swap(): Promise<ExecuteResult> {
     const messages = this.generateMsgsSwap();
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
@@ -304,7 +291,6 @@ export class UniversalSwapHandler {
     return result;
   }
 
-  // TODO: write test cases
   public async evmSwap(data: {
     fromToken: TokenItemType;
     toTokenContractAddr: string;
@@ -325,9 +311,9 @@ export class UniversalSwapHandler {
       tronAddress
     });
     const finalFromAmount = toAmount(fromAmount, fromToken.decimals).toString();
-    const gravityContractAddr = ethers.utils.getAddress(gravityContracts[fromToken.chainId]);
-    const checkSumAddress = ethers.utils.getAddress(finalTransferAddress);
-    const gravityContract = Bridge__factory.connect(gravityContractAddr, signer);
+    const gravityContractAddr = this.getAddressWithEthers(gravityContracts[fromToken.chainId]);
+    const checkSumAddress = this.getAddressWithEthers(finalTransferAddress);
+    const gravityContract = this.connectBridgeFactory(gravityContractAddr, signer);
     const routerV2Addr = await gravityContract.swapRouter();
     const minimumReceive = BigInt(calculateMinReceive(simulatePrice, finalFromAmount, slippage, fromToken.decimals));
     let result: ethers.ContractTransaction;
@@ -345,14 +331,14 @@ export class UniversalSwapHandler {
     // Case 1: bridge from native bnb / eth case
     if (!fromToken.contractAddress) {
       result = await gravityContract.bridgeFromETH(
-        ethers.utils.getAddress(toTokenContractAddr),
+        this.getAddressWithEthers(toTokenContractAddr),
         minimumReceive, // use
         destination,
         { value: finalFromAmount }
       );
     } else if (!toTokenContractAddr) {
       // Case 2: swap to native eth / bnb. Get evm route so that we can swap from token -> native eth / bnb
-      const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
+      const routerV2 = UniversalSwapHelper.connectFactoryRouteUniswapV2(routerV2Addr, signer);
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
 
       result = await routerV2.swapExactTokensForETH(
@@ -365,8 +351,8 @@ export class UniversalSwapHandler {
     } else {
       // Case 3: swap erc20 token to another erc20 token with a given destination (possibly sent to Oraichain or other networks)
       result = await gravityContract.bridgeFromERC20(
-        ethers.utils.getAddress(fromToken.contractAddress),
-        ethers.utils.getAddress(toTokenContractAddr),
+        this.getAddressWithEthers(fromToken.contractAddress),
+        this.getAddressWithEthers(toTokenContractAddr),
         finalFromAmount,
         minimumReceive, // use
         destination
@@ -376,7 +362,6 @@ export class UniversalSwapHandler {
     return { transactionHash: result.hash };
   }
 
-  // TODO: write test cases
   public async transferToGravity(to: string): Promise<EvmResponse> {
     const token = this.swapData.originalFromToken;
     let from = this.swapData.sender.evm;
@@ -404,14 +389,21 @@ export class UniversalSwapHandler {
       // if you call this function on evm, you have to switch network before calling. Otherwise, unexpected errors may happen
       if (!gravityContractAddr || !from || !to)
         throw generateError("OraiBridge contract addr or from or to is not specified. Cannot transfer!");
-      const gravityContract = Bridge__factory.connect(gravityContractAddr, evmWallet.getSigner());
+      const gravityContract = this.connectBridgeFactory(gravityContractAddr, evmWallet.getSigner());
       const result = await gravityContract.sendToCosmos(token.contractAddress, to, amountVal, { from });
       const res = await result.wait();
       return { transactionHash: res.transactionHash };
     }
   }
 
-  // TODO: write test cases
+  public connectBridgeFactory = (gravityContractAddr, signer) => {
+    return Bridge__factory.connect(gravityContractAddr, signer);
+  };
+
+  public getAddressWithEthers = (addr) => {
+    return ethers.utils.getAddress(addr);
+  };
+
   transferEvmToIBC = async (swapRoute: string): Promise<EvmResponse> => {
     const from = this.swapData.originalFromToken;
     const fromAmount = this.swapData.fromAmount;
@@ -454,7 +446,6 @@ export class UniversalSwapHandler {
     );
   }
 
-  // TODO: write test cases
   async swapAndTransferToOtherNetworks(universalSwapType: UniversalSwapType) {
     let encodedObjects: EncodeObject[];
     const { originalToToken, originalFromToken, simulateAmount, sender } = this.swapData;
@@ -509,7 +500,6 @@ export class UniversalSwapHandler {
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
   }
 
-  // TODO: write test cases
   // transfer evm to ibc
   async transferAndSwap(swapRoute: string): Promise<EvmResponse> {
     const {
@@ -598,7 +588,6 @@ export class UniversalSwapHandler {
 
   // this method allows swapping from cosmos networks to arbitrary networks using ibc wasm hooks
   // Oraichain will be use as a proxy
-  // TODO: write test cases
   async swapCosmosToOtherNetwork(destinationReceiver: string) {
     const { originalFromToken, originalToToken, sender } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error

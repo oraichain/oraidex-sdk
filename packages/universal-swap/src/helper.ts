@@ -1,66 +1,53 @@
+import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { Coin } from "@cosmjs/proto-signing";
+import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
 import {
-  CoinGeckoId,
-  WRAP_BNB_CONTRACT,
-  USDT_BSC_CONTRACT,
-  USDT_TRON_CONTRACT,
-  ORAI_ETH_CONTRACT,
-  ORAI_BSC_CONTRACT,
   AIRI_BSC_CONTRACT,
-  WRAP_ETH_CONTRACT,
-  USDC_ETH_CONTRACT,
-  USDT_ETH_CONTRACT,
-  EvmChainId,
-  proxyContractInfo,
+  AmountDetails,
+  BigDecimal,
+  CoinGeckoId,
   CosmosChainId,
-  NetworkChainId,
+  EvmChainId,
   IBCInfo,
-  generateError,
-  ibcInfos,
-  oraib2oraichain,
+  IUniswapV2Router02__factory,
   KWT_BSC_CONTRACT,
   MILKY_BSC_CONTRACT,
-  TokenItemType,
-  parseTokenInfoRawDenom,
-  getTokenOnOraichain,
-  isEthAddress,
-  PAIRS,
+  NEUTARO_INFO,
+  NetworkChainId,
+  ORAI_BSC_CONTRACT,
+  ORAI_ETH_CONTRACT,
   ORAI_INFO,
+  PAIRS,
+  TokenItemType,
+  USDC_ETH_CONTRACT,
+  USDC_INFO,
+  USDT_BSC_CONTRACT,
+  USDT_ETH_CONTRACT,
+  USDT_TRON_CONTRACT,
+  WRAP_BNB_CONTRACT,
+  WRAP_ETH_CONTRACT,
+  cosmosTokens,
+  generateError,
+  getAxios,
+  getSubAmountDetails,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
+  handleSentFunds,
+  ibcInfos,
+  isEthAddress,
+  isInPairList,
+  network,
+  oraib2oraichain,
+  oraib2oraichainTest,
+  parseAssetInfo,
+  parseAssetInfoFromContractAddrOrDenom,
   parseTokenInfo,
+  parseTokenInfoRawDenom,
+  proxyContractInfo,
   toAmount,
   toDisplay,
-  getTokenOnSpecificChainId,
-  IUniswapV2Router02__factory,
-  cosmosTokens,
-  StargateMsg,
-  isInPairList,
-  BigDecimal,
-  NEUTARO_INFO,
-  USDC_INFO,
-  network,
-  ORAIX_ETH_CONTRACT,
-  AmountDetails,
-  handleSentFunds,
-  tokenMap,
-  oraib2oraichainTest,
-  getSubAmountDetails,
-  evmChains,
-  getAxios,
-  parseAssetInfoFromContractAddrOrDenom,
-  parseAssetInfo
+  tokenMap
 } from "@oraichain/oraidex-common";
-import {
-  ConvertReverse,
-  ConvertType,
-  OraiBridgeRouteData,
-  SimulateResponse,
-  SmartRouterResponse,
-  SmartRouterResponseAPI,
-  SmartRouteSwapOperations,
-  SwapDirection,
-  SwapRoute,
-  Type,
-  UniversalSwapConfig
-} from "./types";
 import {
   AssetInfo,
   OraiswapRouterQueryClient,
@@ -68,13 +55,21 @@ import {
   OraiswapTokenQueryClient,
   SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
-import { isEqual } from "lodash";
 import { ethers } from "ethers";
-import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
-import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { swapFromTokens, swapToTokens } from "./swap-filter";
+import { isEqual } from "lodash";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
-import { Coin } from "@cosmjs/proto-signing";
+import { swapFromTokens, swapToTokens } from "./swap-filter";
+import {
+  ConvertReverse,
+  ConvertType,
+  OraiBridgeRouteData,
+  SimulateResponse,
+  SmartRouterResponse,
+  SmartRouterResponseAPI,
+  SwapDirection,
+  SwapRoute,
+  Type
+} from "./types";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -579,6 +574,14 @@ export class UniversalSwapHelper {
     }
   };
 
+  static getJsonRpcProvider = (rpcProvider) => {
+    return new ethers.providers.JsonRpcProvider(rpcProvider);
+  };
+
+  static connectFactoryRouteUniswapV2 = (routerAddr, signer) => {
+    return IUniswapV2Router02__factory.connect(routerAddr, signer);
+  };
+
   static simulateSwapEvm = async (query: {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
@@ -601,12 +604,9 @@ export class UniversalSwapHelper {
     }
     try {
       // get proxy contract object so that we can query the corresponding router address
-      const provider = new ethers.providers.JsonRpcProvider(fromInfo.rpc);
+      const provider = this.getJsonRpcProvider(fromInfo.rpc);
       const toTokenInfoOnSameChainId = getTokenOnSpecificChainId(toInfo.coinGeckoId, fromInfo.chainId);
-      const swapRouterV2 = IUniswapV2Router02__factory.connect(
-        proxyContractInfo[fromInfo.chainId].routerAddr,
-        provider
-      );
+      const swapRouterV2 = this.connectFactoryRouteUniswapV2(proxyContractInfo[fromInfo.chainId].routerAddr, provider);
       const route = UniversalSwapHelper.getEvmSwapRoute(
         fromInfo.chainId,
         fromInfo.contractAddress,
@@ -1035,7 +1035,6 @@ export class UniversalSwapHelper {
     return msg;
   };
 }
-
 // evm swap helpers
 /**
  * @deprecated. Use UniversalSwapHelper.isSupportedNoPoolSwapEvm
