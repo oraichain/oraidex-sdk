@@ -318,7 +318,7 @@ export class UniversalSwapHandler {
     const swap_and_action: SwapAndAction = {
       user_swap: {},
       min_asset: {},
-      timeout_timestamp: calculateTimeoutTimestamp(3600),
+      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
       post_swap_action: {
         ibc_transfer: {
           ibc_info: {
@@ -361,12 +361,15 @@ export class UniversalSwapHandler {
             amount: minimumReceive
           }
         }
+        // slippage: 10
       });
     }
     return {
       wasm: {
         contract: this.getReceiverIBCHooks(path.chainId),
-        msg: swap_and_action
+        msg: {
+          swap_and_action
+        }
       }
     };
   };
@@ -428,7 +431,7 @@ export class UniversalSwapHandler {
                   token: coin(action.tokenInAmount, action.tokenIn),
                   sender: cosmos,
                   memo: "",
-                  timeoutTimestamp: calculateTimeoutTimestamp(3600)
+                  timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
                 };
 
                 pathMemo = "memo";
@@ -463,7 +466,7 @@ export class UniversalSwapHandler {
       this.stringifyMemos(originalData);
       const msgTransferEncodeObj: EncodeObject = {
         typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
-        value: MsgTransfer.fromPartial(originalData)
+        value: originalData
       };
       return msgTransferEncodeObj;
     });
@@ -478,7 +481,7 @@ export class UniversalSwapHandler {
         if (typeof obj[key] === "object" && obj[key] !== null) {
           this.stringifyMemos(obj[key]);
         }
-        if ((key === "memo" || key === "next") && typeof obj[key] === "object") {
+        if (key === "memo" && typeof obj[key] === "object") {
           obj[key] = JSON.stringify(obj[key]);
         }
       }
