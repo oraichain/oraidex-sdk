@@ -308,19 +308,21 @@ export class UniversalSwapHandler {
     return toBech32(prefix, data);
   };
 
-  createSwapAndAction = (route, fromChainId, receiver: string) => {
-    const prefixRecover = cosmosChains.find((cosmos) => cosmos.chainId === fromChainId).bech32Config
-      .bech32PrefixAccAddr;
-    const prefixReceiver = cosmosChains.find((cosmos) => cosmos.chainId === route.tokenOutChainId).bech32Config
-      .bech32PrefixAccAddr;
-    let swap_and_action: SwapAndAction = {
+  private createSwapAndAction = ({ action, path, route, receiver }) => {
+    const getPrefix = (chainId) => {
+      return cosmosChains.find((cosmos) => cosmos.chainId === chainId).bech32Config.bech32PrefixAccAddr;
+    };
+    const prefixRecover = getPrefix(path.chainId);
+    const prefixReceiver = getPrefix(path.tokenOutChainId);
+
+    const swap_and_action: SwapAndAction = {
       user_swap: {},
       min_asset: {},
       timeout_timestamp: calculateTimeoutTimestamp(3600),
       post_swap_action: {
         ibc_transfer: {
           ibc_info: {
-            source_channel: route.bridgeInfo.channel,
+            source_channel: action.bridgeInfo.channel,
             receiver: this.getAddress(prefixReceiver, receiver),
             memo: "",
             recover_address: this.getAddress(prefixRecover, receiver)
@@ -330,69 +332,60 @@ export class UniversalSwapHandler {
       affiliates: []
     };
 
-    if (route.chainId === "osmosis-1") {
-      const swapAction = route.actions.find((act) => act.type === "Swap");
-      if (swapAction) {
-        const operations = swapAction.reduce((acc, swap) => {
-          let prevTokenOut = swap.tokenIn;
-          swap.swapInfo.forEach((info) => {
-            acc.push({
-              pool: info.poolId,
-              denom_in: prevTokenOut,
-              denom_out: info.tokenOut
-            });
-            prevTokenOut = info.tokenOut;
-          });
-          return acc;
-        }, []);
-
-        const minimumReceive = Math.trunc(
-          new BigDecimal(swapAction.tokenOutAmount).mul((100 - this.swapData.userSlippage) / 100).toNumber()
-        ).toString();
-
-        swap_and_action = {
-          user_swap: {
-            swap_exact_asset_in: {
-              swap_venue_name: "osmosis-poolmanager",
-              operations
-            }
-          },
-          min_asset: {
-            native: {
-              denom: swapAction.tokenOut,
-              amount: minimumReceive
-            }
-          },
-          timeout_timestamp: swap_and_action.timeout_timestamp,
-          post_swap_action: swap_and_action.post_swap_action,
-          affiliates: swap_and_action.affiliates
+    const pathOsmosis = route.paths.find((r) => r.chainId === "osmosis-1");
+    const swapAction = pathOsmosis?.actions.find((act) => act.type === "Swap");
+    if (swapAction) {
+      const operations = swapAction.swapInfo.map((info, index) => {
+        const denom_in = index === 0 ? swapAction.tokenIn : swapAction.swapInfo[index - 1].tokenOut;
+        return {
+          pool: info.poolId,
+          denom_in,
+          denom_out: info.tokenOut
         };
-      }
-    }
-    return swap_and_action;
-  };
+      });
 
-  createForwardObject = (action, swap_and_action) => {
-    return {
-      forward: {
-        receiver: this.getReceiverIBCHooks(action.tokenOutChainId),
-        port: action.bridgeInfo.port,
-        channel: action.bridgeInfo.channel,
-        timeout: 0,
-        retries: 2,
-        next: {
-          wasm: {
-            contract: this.getReceiverIBCHooks(action.tokenOutChainId),
-            msg: {
-              swap_and_action
-            }
+      const minimumReceive = Math.trunc(
+        new BigDecimal(swapAction.tokenOutAmount).mul((100 - this.swapData.userSlippage) / 100).toNumber()
+      ).toString();
+
+      Object.assign(swap_and_action, {
+        user_swap: {
+          swap_exact_asset_in: {
+            swap_venue_name: "osmosis-poolmanager",
+            operations
+          }
+        },
+        min_asset: {
+          native: {
+            denom: swapAction.tokenOut,
+            amount: minimumReceive
           }
         }
+      });
+    }
+    return {
+      wasm: {
+        contract: this.getReceiverIBCHooks(path.chainId),
+        msg: swap_and_action
       }
     };
   };
 
-  updateNestedProperty = (obj, key, value) => {
+  private createForwardObject = ({ action, path, receiver }) => {
+    const prefixReceiver = cosmosChains.find((cosmos) => cosmos.chainId === path.tokenOutChainId).bech32Config
+      .bech32PrefixAccAddr;
+    return {
+      forward: {
+        receiver: this.getReceiverIBCHooks(path.tokenOutChainId, this.getAddress(prefixReceiver, receiver)),
+        port: action.bridgeInfo.port,
+        channel: action.bridgeInfo.channel,
+        timeout: 0,
+        retries: 2
+      }
+    };
+  };
+
+  private updateNestedProperty = (obj, key, value) => {
     const keys = key.split(".");
     keys.slice(0, -1).reduce((current, k) => {
       if (!(k in current)) current[k] = {};
@@ -440,11 +433,23 @@ export class UniversalSwapHandler {
 
                 pathMemo = "memo";
               } else {
-                const swap_and_action = this.createSwapAndAction(action, path.chainId, cosmos);
-                const forwardObject = this.createForwardObject(action, swap_and_action);
+                let forwardObject = {};
+                if (path.chainId === "osmosis-1" && path.actions.length > 1) {
+                  forwardObject = this.createSwapAndAction({ action, path, route, receiver: cosmos });
+                } else {
+                  forwardObject = this.createForwardObject({
+                    action,
+                    path,
+                    receiver: cosmos
+                  });
+                }
 
                 this.updateNestedProperty(msgTransfer, pathMemo, forwardObject);
-                pathMemo += ".forward.next.wasm.msg.swap_and_action.post_swap_action.ibc_transfer.ibc_info.memo";
+                if (path.chainId === "osmosis-1" && path.actions.length > 1) {
+                  pathMemo += ".wasm.msg.swap_and_action.post_swap_action.ibc_transfer.ibc_info.memo";
+                } else {
+                  pathMemo += ".forward.next";
+                }
               }
             }
           });
@@ -473,7 +478,7 @@ export class UniversalSwapHandler {
         if (typeof obj[key] === "object" && obj[key] !== null) {
           this.stringifyMemos(obj[key]);
         }
-        if (key === "memo" && typeof obj[key] === "object") {
+        if ((key === "memo" || key === "next") && typeof obj[key] === "object") {
           obj[key] = JSON.stringify(obj[key]);
         }
       }

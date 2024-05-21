@@ -176,7 +176,7 @@ export interface SwapAndAction {
   user_swap: UserSwap;
   min_asset: MinAsset;
   timeout_timestamp: number | string;
-  post_swap_action: PostSwapAction;
+  post_swap_action?: PostSwapAction;
   affiliates: any[];
 }
 
