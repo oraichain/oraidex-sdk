@@ -53,7 +53,7 @@ describe("test recover case", () => {
   });
 
   const [owner] = getSigners(1);
-  xit("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
+  it("[ORAICHAIN->EVM] try to test recover state of one intepreter after server down", async () => {
     const oraiBridgeEvent = new OraiBridgeEvent(oraibridgeHandler, "localhost:26657");
     oraiBridgeEvent.connectCosmosSocket([autoForwardTag, requestBatchTag, batchSendToEthClaimTag]);
     const oraiEvent = new OraichainEvent(oraichainHandler, "localhost:26657");
@@ -143,7 +143,7 @@ describe("test recover case", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -184,7 +184,7 @@ describe("test recover case", () => {
     expect(intepreterCount.status).eql(InterpreterStatus.Stopped);
   }).timeout(30000);
 
-  xit("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
+  it("[EVM->EVM] try to test recover state of one intepreter after server down", async () => {
     const ethEvent = new EthEvent(evmHandler);
     const gravity = ethEvent.listenToEthEvent(
       owner.provider,
@@ -320,7 +320,7 @@ describe("test recover case", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         memo: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -506,7 +506,7 @@ describe("test recover case", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         memo: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -589,7 +589,7 @@ describe("test recover case", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai1ehmhqcn8erf3dgavrca69zgp4rtxj5kqgtcnyd",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -706,7 +706,7 @@ describe("test recover case", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",

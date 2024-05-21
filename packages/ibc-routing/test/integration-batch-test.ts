@@ -986,7 +986,7 @@ describe("test-batch-integration", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         memo: "eth-mainnet0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
-        receiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        receiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -1018,7 +1018,7 @@ describe("test-batch-integration", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         memo: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -1337,7 +1337,7 @@ describe("test-batch-integration", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -1369,7 +1369,7 @@ describe("test-batch-integration", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
-        receiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        receiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -1606,7 +1606,7 @@ describe("test-batch-integration", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
         sender: "orai1zzdhs7cmfxrpx9mgxysncvpzn3h6tagy39cx0lq6ykz8s29007wq8sxd0t",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -1638,7 +1638,7 @@ describe("test-batch-integration", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
-        receiver: "oraib1hvr9d72r5um9lvt0rpkd4r75vrsqtw6ytnnvpf",
+        receiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
         sender: "orai1zzdhs7cmfxrpx9mgxysncvpzn3h6tagy39cx0lq6ykz8s29007wq8sxd0t",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -1712,7 +1712,7 @@ describe("test-batch-integration", () => {
   });
 });
 
-describe.skip("test-batch-integration-timeout", () => {
+describe("test-batch-integration-timeout", () => {
   let duckDb: DuckDbNode;
   let evmHandler: EvmEventHandler;
   let oraibridgeHandler: OraiBridgeHandler;
@@ -2035,7 +2035,7 @@ describe.skip("test-batch-integration-timeout", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
         sender: "orai1zzdhs7cmfxrpx9mgxysncvpzn3h6tagy39cx0lq6ykz8s29007wq8sxd0t",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -2067,7 +2067,7 @@ describe.skip("test-batch-integration-timeout", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
-        receiver: "oraib1hvr9d72r5um9lvt0rpkd4r75vrsqtw6ytnnvpf",
+        receiver: "0x8163B6142d701E671a7c39aD9C14eB2c0A51aa00",
         sender: "orai1zzdhs7cmfxrpx9mgxysncvpzn3h6tagy39cx0lq6ykz8s29007wq8sxd0t",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -2549,7 +2549,7 @@ describe.skip("test-batch-integration-timeout", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -2581,7 +2581,7 @@ describe.skip("test-batch-integration-timeout", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/oraib0x55d398326f99059fF775485246999027B3197955",
         memo: "oraib0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
-        receiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        receiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -2869,7 +2869,7 @@ describe.skip("test-batch-integration-timeout", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         memo: "eth-mainnet0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
-        receiver: "oraib1rchnkdpsxzhquu63y6r4j4t57pnc9w8eqvn4u9",
+        receiver: "0xb1ADE84566dB117B4B241fC446ceb1c46616e172",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",
@@ -2901,7 +2901,7 @@ describe.skip("test-batch-integration-timeout", () => {
         denom:
           "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm/channel-29/eth-mainnet0xdAC17F958D2ee523a2206206994597C13D831ec7",
         memo: "eth-mainnet0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
-        receiver: "oraib1ehmhqcn8erf3dgavrca69zgp4rtxj5kql2ul4w",
+        receiver: "0x0deB52499C2e9F3921c631cb6Ad3522C576d5484",
         sender: "orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
         srcPort: "transfer",
         srcChannel: "channel-1",

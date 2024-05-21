@@ -354,7 +354,7 @@ export const handleOnRecvPacketOnOraiBridge = async (ctx: ContextIntepreter, eve
     amount: packetData.amount,
     denom: packetData.denom,
     memo: packetData.memo,
-    receiver: packetData.receiver,
+    receiver: packetData.memo.split(evmChainPrefix)[1],
     sender: packetData.sender,
     srcPort,
     srcChannel,

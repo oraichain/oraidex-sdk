@@ -2,7 +2,7 @@ import { StargateClient } from "@cosmjs/stargate";
 import { QueryTag } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
 
-describe.skip("Testing searchTx using rpc", () => {
+describe("Testing searchTx using rpc", () => {
   it("Try testing stargate-client query", async () => {
     const queryTags: QueryTag[] = [
       {
@@ -21,7 +21,7 @@ describe.skip("Testing searchTx using rpc", () => {
     const query = buildQuery({
       tags: queryTags
     });
-    const stargateClient = await StargateClient.connect("https://rpc.orai.io");
+    const stargateClient = await StargateClient.connect("http://3.14.142.99:26657");
     const txs = await stargateClient.searchTx(query);
 
     console.log(txs);
