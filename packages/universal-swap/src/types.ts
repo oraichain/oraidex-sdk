@@ -52,6 +52,7 @@ export interface UniversalSwapData {
   readonly amounts?: AmountDetails;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly smartRoutes?: SmartRouteSwapOperations[];
+  readonly alphaSmartRoutes?: any;
 }
 
 /**
@@ -81,6 +82,7 @@ export interface OraiBridgeRouteData {
 export interface SwapOptions {
   ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
   isSourceReceiverTest?: boolean;
+  isAlphaSmartRouter?: boolean;
 }
 
 export enum Type {
@@ -110,7 +112,7 @@ export type ConvertReverse = {
 export type SmartRouteSwapOperations = {
   swapAmount: string;
   returnAmount: string;
-  swapOps: SwapOperation[];
+  swapOps: SwapOperation[] | any[];
 };
 
 export type SmartRouterResponse = {
@@ -136,3 +138,64 @@ export type SmartRouterResponseAPI = {
 };
 
 export type ConvertType = Convert | ConvertReverse;
+
+export interface SwapOperationSmartRoute {
+  pool: string;
+  denom_in: string;
+  denom_out: string;
+}
+
+export interface UserSwap {
+  swap_exact_asset_in?: {
+    swap_venue_name: string;
+    operations: SwapOperationSmartRoute[];
+  };
+}
+
+export interface MinAsset {
+  native?: {
+    denom: string;
+    amount: string;
+  };
+}
+
+export interface IbcInfo {
+  source_channel: string;
+  receiver: string;
+  memo: string;
+  recover_address: string;
+}
+
+export interface PostSwapAction {
+  ibc_transfer: {
+    ibc_info: IbcInfo;
+  };
+}
+
+export interface SwapAndAction {
+  user_swap: UserSwap;
+  min_asset: MinAsset;
+  timeout_timestamp: number | string;
+  post_swap_action?: PostSwapAction;
+  affiliates: any[];
+}
+
+export interface Wasm {
+  contract: string;
+  msg: {
+    swap_and_action: SwapAndAction;
+  };
+}
+
+export interface NextWasm {
+  wasm: Wasm;
+}
+
+export interface Forward {
+  receiver: string;
+  port: string;
+  channel: string;
+  timeout: number;
+  retries: number;
+  next: NextWasm;
+}
