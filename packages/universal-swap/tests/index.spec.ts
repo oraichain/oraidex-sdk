@@ -1024,7 +1024,9 @@ describe("test universal swap handler functions", () => {
         originalToInfo: oraichainTokens[1],
         originalAmount: 0,
         routerClient: new OraiswapRouterQueryClient(client, ""),
-        useSmartRoute
+        routerOption: {
+          useSmartRoute
+        }
       });
       expect(simulateData.amount).toEqual(expectedSimulateAmount);
     }

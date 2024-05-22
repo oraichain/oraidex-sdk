@@ -52,7 +52,7 @@ export interface UniversalSwapData {
   readonly amounts?: AmountDetails;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly smartRoutes?: SmartRouteSwapOperations[];
-  readonly alphaSmartRoutes?: any;
+  readonly alphaSmartRoutes?: Router;
 }
 
 /**
@@ -112,7 +112,7 @@ export type ConvertReverse = {
 export type SmartRouteSwapOperations = {
   swapAmount: string;
   returnAmount: string;
-  swapOps: SwapOperation[] | any[];
+  swapOps: SwapOperation[];
 };
 
 export type SmartRouterResponse = {
@@ -198,4 +198,46 @@ export interface Forward {
   timeout: number;
   retries: number;
   next: NextWasm;
+}
+
+interface Router {
+  swapAmount: string;
+  returnAmount: string;
+  routes: Route[];
+}
+
+interface Route {
+  swapAmount: string;
+  returnAmount: string;
+  paths: Path[];
+}
+
+interface Path {
+  chainId: string;
+  tokenIn: string;
+  tokenInAmount: string;
+  tokenOut: string;
+  tokenOutAmount: string;
+  tokenOutChainId: string;
+  actions: Action[];
+}
+
+interface Action {
+  type: string;
+  tokenIn: string;
+  tokenInAmount: string;
+  tokenOut: string;
+  tokenOutAmount: string;
+  swapInfo?: SwapInfo[];
+  bridgeInfo?: BridgeInfo;
+}
+
+interface SwapInfo {
+  poolId: string;
+  tokenOut: string;
+}
+
+interface BridgeInfo {
+  port: string;
+  channel: string;
 }
