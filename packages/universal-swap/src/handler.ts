@@ -475,7 +475,7 @@ export class UniversalSwapHandler {
     return client.signAndBroadcast(this.swapData.sender.cosmos, [...msgExecuteSwap, ...transferStringifyMemo], "auto");
   }
 
-  stringifyMemos = (obj) => {
+  private stringifyMemos = (obj) => {
     for (let key in obj) {
       if (obj.hasOwnProperty(key)) {
         if (typeof obj[key] === "object" && obj[key] !== null) {

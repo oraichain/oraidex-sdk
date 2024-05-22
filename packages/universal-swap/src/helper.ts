@@ -478,7 +478,8 @@ export class UniversalSwapHelper {
     urlRouter: {
       url: string;
       path?: string;
-    }
+    },
+    useAlphaSmartRoute?: boolean
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes: routesSwap } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
@@ -488,6 +489,15 @@ export class UniversalSwapHelper {
       offerAmount,
       urlRouter
     );
+
+    if (useAlphaSmartRoute) {
+      return {
+        swapAmount: offerAmount,
+        returnAmount,
+        routes: [],
+        routesSwap
+      };
+    }
 
     const routes = routesSwap.map((route) => {
       let ops = [];
@@ -560,8 +570,9 @@ export class UniversalSwapHelper {
       url: string;
       path?: string;
     };
+    useAlphaSmartRoute?: boolean;
   }): Promise<SmartRouterResponse> => {
-    const { amount, fromInfo, toInfo, urlRouter } = query;
+    const { amount, fromInfo, toInfo, urlRouter, useAlphaSmartRoute } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
     if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
@@ -582,7 +593,8 @@ export class UniversalSwapHelper {
         askInfo,
         toInfo.chainId,
         amount,
-        urlRouter
+        urlRouter,
+        useAlphaSmartRoute
       );
     } catch (error) {
       throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
@@ -641,7 +653,10 @@ export class UniversalSwapHelper {
     originalToInfo: TokenItemType;
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
-    useSmartRoute?: boolean;
+    routerOption?: {
+      useSmartRoute?: boolean;
+      useAlphaSmartRoute?: boolean;
+    };
     urlRouter?: {
       url: string;
       path?: string;
@@ -676,12 +691,13 @@ export class UniversalSwapHelper {
     let amount;
     let routes = [];
     let routeSwapOps;
-    if (query.useSmartRoute) {
+    if (query.routerOption.useSmartRoute || query.routerOption.useAlphaSmartRoute) {
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo,
         toInfo,
         amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
-        urlRouter: query.urlRouter
+        urlRouter: query.urlRouter,
+        useAlphaSmartRoute: query?.routerOption?.useAlphaSmartRoute
       });
       routes = simulateRes?.routesSwap;
       amount = simulateRes.returnAmount;
