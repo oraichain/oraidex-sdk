@@ -55,7 +55,7 @@ export const TiaOsmosisToken: BridgeAppCurrency = {
 export const InjOsmosisToken: BridgeAppCurrency = {
   coinDenom: "INJ",
   coinMinimalDenom: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
-  coinDecimals: 6,
+  coinDecimals: 18,
   coinGeckoId: "injective-protocol",
   coinImageUrl: "https://raw.githubusercontent.com/cosmos/chain-registry/master/injective/images/inj.png",
   gasPriceStep: {
