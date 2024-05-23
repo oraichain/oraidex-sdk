@@ -397,10 +397,15 @@ export class UniversalSwapHandler {
 
   async alphaSmartRouterSwap() {
     const { cosmos } = this.swapData.sender;
-    const { alphaSmartRoutes, userSlippage } = this.swapData;
+    const { alphaSmartRoutes, userSlippage, originalFromToken } = this.swapData;
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
-      { chainId: "Oraichain", rpc: network.rpc },
-      { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
+      {
+        chainId: originalFromToken.chainId as CosmosChainId,
+        rpc: originalFromToken.rpc
+      },
+      {
+        gasPrice: this.getGasPriceFromToken()
+      }
     );
 
     let messages = [];
