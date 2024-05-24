@@ -504,8 +504,7 @@ export class UniversalSwapHandler {
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       {
         chainId: originalFromToken.chainId as CosmosChainId,
-        // rpc: originalFromToken.rpc
-        rpc: "https://cosmos-rpc.publicnode.com:443"
+        rpc: originalFromToken.rpc
       },
       {
         gasPrice: this.getGasPriceFromToken()
