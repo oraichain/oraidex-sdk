@@ -247,7 +247,7 @@ interface BridgeInfo {
 interface RouteBase {
   path: number;
   chainId: string;
-  type: string;
+  type: "Bridge" | "Swap" | string;
   tokenIn: string;
   tokenInAmount: string;
   tokenOut: string;
@@ -255,7 +255,6 @@ interface RouteBase {
 }
 
 export interface Routes extends RouteBase {
-  type: "Bridge" | "Swap";
   tokenOutChainId?: string;
   bridgeInfo?: BridgeInfo;
   swapInfo?: SwapInfo[];

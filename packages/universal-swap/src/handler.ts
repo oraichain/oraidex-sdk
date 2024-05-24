@@ -301,9 +301,10 @@ export class UniversalSwapHandler {
   }
 
   // TODO: need check func getAddress
-  private getAddress = (prefix: string, address: string, coinType: number = 118) => {
+  private getAddress = (prefix: string, { address60, address118 }, coinType: number = 118) => {
     const approve = {
-      118: address
+      118: address118,
+      60: address60
     };
     const { data } = fromBech32(approve[coinType]);
     return toBech32(prefix, data);
@@ -314,14 +315,17 @@ export class UniversalSwapHandler {
     return receiver;
   };
 
-  private getSwapAndAction(route: Routes, isOnlySwap: boolean) {
-    const { prefixReceiver } = this.getPrefixCosmos(route);
+  private getSwapAndAction(route: Routes, { oraiAddress, injAddress }, isOnlySwap: boolean) {
+    const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     let post_swap_action = {};
     if (isOnlySwap) {
       post_swap_action = {
         transfer: {
-          // TODO: need check address
-          to_address: this.getAddress(prefixReceiver, this.swapData.sender.cosmos)
+          to_address: this.getAddress(
+            prefixReceiver,
+            { address60: injAddress, address118: oraiAddress },
+            chainInfoReceiver.bip44.coinType
+          )
         }
       };
     }
@@ -366,32 +370,42 @@ export class UniversalSwapHandler {
     return { msgActionSwap };
   }
 
-  private getIbcTransferInfo(route: Routes) {
-    const { prefixRecover, prefixReceiver } = this.getPrefixCosmos(route);
+  private getIbcTransferInfo(route: Routes, { oraiAddress, injAddress }) {
+    const { prefixRecover, prefixReceiver, chainInfoReceiver, chainInfoRecover } = this.getPrefixCosmos(route);
     const msgTransferInfo = {
       ibc_transfer: {
         ibc_info: {
           source_channel: route.bridgeInfo.channel,
-          // TODO: need check address
-          receiver: this.getAddress(prefixReceiver, this.swapData.sender.cosmos),
+          receiver: this.getAddress(
+            prefixReceiver,
+            { address60: injAddress, address118: oraiAddress },
+            chainInfoReceiver.bip44.coinType
+          ),
           memo: "",
-          // TODO: need check address
-          recover_address: this.getAddress(prefixRecover, this.swapData.sender.cosmos)
+          recover_address: this.getAddress(
+            prefixRecover,
+            { address60: injAddress, address118: oraiAddress },
+            chainInfoRecover.bip44.coinType
+          )
         }
       }
     };
     return { msgTransferInfo };
   }
 
-  private createForwardObject = (route: Routes) => {
-    const { prefixReceiver } = this.getPrefixCosmos(route);
+  private createForwardObject = (route: Routes, { oraiAddress, injAddress }) => {
+    const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     return {
       msgForwardObject: {
         forward: {
           // TODO: need check address
           receiver: this.getReceiverIBCHooks(
             route.tokenOutChainId,
-            this.getAddress(prefixReceiver, this.swapData.sender.cosmos)
+            this.getAddress(
+              prefixReceiver,
+              { address60: injAddress, address118: oraiAddress },
+              chainInfoReceiver.bip44.coinType
+            )
           ),
           port: route.bridgeInfo.port,
           channel: route.bridgeInfo.channel,
@@ -403,32 +417,83 @@ export class UniversalSwapHandler {
   };
 
   private getPrefixCosmos = (route: Routes) => {
-    const getPrefix = (chainId: string) =>
-      cosmosChains.find((cosmos) => cosmos.chainId === chainId).bech32Config.bech32PrefixAccAddr;
-    const prefixRecover = getPrefix(route.chainId);
-    const prefixReceiver = getPrefix(route.tokenOutChainId ?? route.chainId);
-    return { prefixRecover, prefixReceiver };
+    const getPrefix = (chainId: string) => {
+      const chainInfo = cosmosChains.find((cosmos) => cosmos.chainId === chainId);
+      return {
+        chainInfo,
+        prefix: chainInfo.bech32Config.bech32PrefixAccAddr
+      };
+    };
+    const { prefix: prefixRecover, chainInfo: chainInfoRecover } = getPrefix(route.chainId);
+    const { prefix: prefixReceiver, chainInfo: chainInfoReceiver } = getPrefix(route.tokenOutChainId ?? route.chainId);
+    return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  private getMsgTransfer = (route: Routes) => {
-    const { prefixReceiver, prefixRecover } = this.getPrefixCosmos(route);
+  private getMsgTransfer = (route: Routes, { oraiAddress, injAddress }) => {
+    const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
     return {
       sourcePort: route.bridgeInfo.port,
       sourceChannel: route.bridgeInfo.channel,
-      // TODO: need check address
       receiver: this.getReceiverIBCHooks(
         route.tokenOutChainId,
-        this.getAddress(prefixReceiver, this.swapData.sender.cosmos)
+        this.getAddress(
+          prefixReceiver,
+          { address60: injAddress, address118: oraiAddress },
+          chainInfoReceiver.bip44.coinType
+        )
       ),
       token: {
         amount: route.tokenInAmount,
         denom: route.tokenIn
       },
-      // TODO: need check address
-      sender: this.getAddress(prefixRecover, this.swapData.sender.cosmos),
+      sender: this.getAddress(
+        prefixRecover,
+        { address60: injAddress, address118: oraiAddress },
+        chainInfoRecover.bip44.coinType
+      ),
       memo: "",
       timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
     };
+  };
+
+  getMessagesAndMsgTransfers = (routeFlatten: Routes[], { oraiAddress, injAddress }) => {
+    let messages = [];
+    let msgTransfers = [];
+    let pathMemo = "";
+
+    routeFlatten.forEach((route: Routes, index: number, routes: Routes[]) => {
+      if (route.chainId === "Oraichain" && route.type === "Swap") {
+        // swap in oraichain
+        messages.push(...this.generateMsgsSmartRouterSwap(route));
+      } else {
+        if (!msgTransfers[route.path]) {
+          // initial msgTransfer
+          msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress });
+          pathMemo = "memo";
+        } else {
+          if (route.chainId === "osmosis-1") {
+            if (route.type === "Swap") {
+              const { msgActionSwap } = this.getSwapAndAction(
+                route,
+                { oraiAddress, injAddress },
+                index + 1 === routes.length
+              );
+              this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgActionSwap);
+              pathMemo += ".wasm.msg.swap_and_action.post_swap_action";
+            } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
+              const { msgTransferInfo } = this.getIbcTransferInfo(route, { oraiAddress, injAddress });
+              this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgTransferInfo);
+              pathMemo += ".ibc_transfer.ibc_info.memo";
+            }
+          } else {
+            const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress });
+            this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgForwardObject);
+            pathMemo += ".forward.next";
+          }
+        }
+      }
+    });
+    return { messages, msgTransfers };
   };
 
   // TODO: need refactor smart router osmosis
@@ -439,46 +504,30 @@ export class UniversalSwapHandler {
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       {
         chainId: originalFromToken.chainId as CosmosChainId,
-        rpc: originalFromToken.rpc
+        // rpc: originalFromToken.rpc
+        rpc: "https://cosmos-rpc.publicnode.com:443"
       },
       {
         gasPrice: this.getGasPriceFromToken()
       }
     );
 
-    let messages = [];
-    let msgTransfers = [];
-    let pathMemo = "";
-
     const { routesFlatten } = this.flattenSmartRouters(alphaSmartRoutes.routes);
 
-    routesFlatten.forEach((route: Routes, index: number, routes: Routes[]) => {
-      if (route.chainId === "Oraichain" && route.type === "Swap") {
-        // swap in oraichain
-        messages.push(...this.generateMsgsSmartRouterSwap(route));
-      } else {
-        if (!msgTransfers[route.path]) {
-          // initial msgTransfer
-          msgTransfers[route.path] = this.getMsgTransfer(route);
-          pathMemo = "memo";
-        } else {
-          if (route.chainId === "osmosis-1") {
-            if (route.type === "Swap") {
-              const { msgActionSwap } = this.getSwapAndAction(route, index + 1 === routes.length);
-              this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgActionSwap);
-              pathMemo += ".wasm.msg.swap_and_action.post_swap_action";
-            } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
-              const { msgTransferInfo } = this.getIbcTransferInfo(route);
-              this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgTransferInfo);
-              pathMemo += ".ibc_transfer.ibc_info.memo";
-            }
-          } else {
-            const { msgForwardObject } = this.createForwardObject(route);
-            this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgForwardObject);
-            pathMemo += ".forward.next";
-          }
-        }
-      }
+    const [oraiAddress, injAddress] = await Promise.all([
+      this.config.cosmosWallet.getKeplrAddr("Oraichain"),
+      this.config.cosmosWallet.getKeplrAddr("injective-1")
+    ]);
+
+    if (!oraiAddress || !injAddress) {
+      throw generateError(
+        `There is a mismatch address between ${oraiAddress} and ${injAddress}. Should not using smart router swap!`
+      );
+    }
+
+    const { messages, msgTransfers } = await this.getMessagesAndMsgTransfers(routesFlatten, {
+      oraiAddress,
+      injAddress
     });
 
     const transferStringifyMemo = msgTransfers.map((transfer) => {
