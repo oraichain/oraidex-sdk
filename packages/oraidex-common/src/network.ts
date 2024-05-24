@@ -748,8 +748,8 @@ export const chainInfos: CustomChainInfo[] = [
     beta: true
   },
   {
-    rpc: "https://rpc.cosmos.directory/cosmoshub",
-    rest: "https://rest.cosmos.directory/cosmoshub",
+    rpc: "https://cosmos-rpc.publicnode.com:443",
+    rest: "https://cosmos-rest.publicnode.com",
     chainId: "cosmoshub-4",
     chainName: "Cosmos Hub",
     networkType: "cosmos",

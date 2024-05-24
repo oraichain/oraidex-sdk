@@ -52,7 +52,7 @@ export interface UniversalSwapData {
   readonly amounts?: AmountDetails;
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly smartRoutes?: SmartRouteSwapOperations[];
-  readonly alphaSmartRoutes?: Router;
+  readonly alphaSmartRoutes?: RouterResponse;
 }
 
 /**
@@ -167,8 +167,11 @@ export interface IbcInfo {
 }
 
 export interface PostSwapAction {
-  ibc_transfer: {
+  ibc_transfer?: {
     ibc_info: IbcInfo;
+  };
+  transfer?: {
+    to_address: string;
   };
 }
 
@@ -176,7 +179,7 @@ export interface SwapAndAction {
   user_swap: UserSwap;
   min_asset: MinAsset;
   timeout_timestamp: number | string;
-  post_swap_action?: PostSwapAction;
+  post_swap_action: PostSwapAction;
   affiliates: any[];
 }
 
@@ -200,13 +203,13 @@ export interface Forward {
   next: NextWasm;
 }
 
-interface Router {
+export interface RouterResponse {
   swapAmount: string;
   returnAmount: string;
   routes: Route[];
 }
 
-interface Route {
+export interface Route {
   swapAmount: string;
   returnAmount: string;
   paths: Path[];
@@ -240,4 +243,19 @@ interface SwapInfo {
 interface BridgeInfo {
   port: string;
   channel: string;
+}
+interface RouteBase {
+  path: number;
+  chainId: string;
+  type: "Bridge" | "Swap" | string;
+  tokenIn: string;
+  tokenInAmount: string;
+  tokenOut: string;
+  tokenOutAmount: string;
+}
+
+export interface Routes extends RouteBase {
+  tokenOutChainId?: string;
+  bridgeInfo?: BridgeInfo;
+  swapInfo?: SwapInfo[];
 }
