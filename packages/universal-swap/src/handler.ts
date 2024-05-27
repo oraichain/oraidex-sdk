@@ -315,7 +315,12 @@ export class UniversalSwapHandler {
     return receiver;
   };
 
-  private getSwapAndAction(route: Routes, { oraiAddress, injAddress }, isOnlySwap: boolean) {
+  private getSwapAndActionInOsmosis(
+    route: Routes,
+    { oraiAddress, injAddress },
+    isOnlySwap: boolean,
+    isInitial?: boolean
+  ) {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     let post_swap_action = {};
     if (isOnlySwap) {
@@ -342,32 +347,53 @@ export class UniversalSwapHandler {
       new BigDecimal(route.tokenOutAmount).mul((100 - this.swapData.userSlippage) / 100).toNumber()
     ).toString();
 
-    const msgActionSwap = {
-      wasm: {
-        // TODO: need check address
-        contract: this.getReceiverIBCHooks(route.chainId),
-        msg: {
-          swap_and_action: {
-            user_swap: {
-              swap_exact_asset_in: {
-                swap_venue_name: "osmosis-poolmanager",
-                operations
-              }
-            },
-            min_asset: {
-              native: {
-                denom: route.tokenOut,
-                amount: minimumReceive
-              }
-            },
-            timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
-            post_swap_action,
-            affiliates: []
-          }
+    const msg = {
+      // TODO: need check address
+      contract: this.getReceiverIBCHooks(route.chainId),
+      msg: {
+        swap_and_action: {
+          user_swap: {
+            swap_exact_asset_in: {
+              swap_venue_name: "osmosis-poolmanager",
+              operations
+            }
+          },
+          min_asset: {
+            native: {
+              denom: route.tokenOut,
+              amount: minimumReceive
+            }
+          },
+          timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+          post_swap_action,
+          affiliates: []
         }
       }
     };
-    return { msgActionSwap };
+
+    if (isInitial) {
+      return {
+        msgActionSwap: {
+          // TODO: need check address
+          sender: this.swapData.sender.cosmos,
+          funds: [
+            {
+              denom: route.tokenIn,
+              amount: route.tokenInAmount
+            }
+          ],
+          ...msg
+        }
+      };
+    }
+
+    return {
+      msgActionSwap: {
+        wasm: {
+          ...msg
+        }
+      }
+    };
   }
 
   private getIbcTransferInfo(route: Routes, { oraiAddress, injAddress }) {
@@ -459,36 +485,48 @@ export class UniversalSwapHandler {
   getMessagesAndMsgTransfers = (routeFlatten: Routes[], { oraiAddress, injAddress }) => {
     let messages = [];
     let msgTransfers = [];
-    let pathMemo = "";
+    let pathProperty = "";
 
     routeFlatten.forEach((route: Routes, index: number, routes: Routes[]) => {
-      if (route.chainId === "Oraichain" && route.type === "Swap") {
+      const isLastRoute = index + 1 === routes.length;
+      const isOsmosisChain = route.chainId === "osmosis-1";
+      const isSwap = route.type === "Swap";
+
+      if (route.chainId === "Oraichain" && isSwap) {
         // swap in oraichain
         messages.push(...this.generateMsgsSmartRouterSwap(route));
       } else {
+        // initial msgTransfer
         if (!msgTransfers[route.path]) {
-          // initial msgTransfer
-          msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress });
-          pathMemo = "memo";
+          // swap in osmosis
+          if (isOsmosisChain && isSwap) {
+            const { msgActionSwap } = this.getSwapAndActionInOsmosis(
+              route,
+              { oraiAddress, injAddress },
+              isLastRoute,
+              true
+            );
+            msgTransfers[route.path] = msgActionSwap;
+            pathProperty = "msg.swap_and_action.post_swap_action";
+          } else {
+            msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress });
+            pathProperty = "memo";
+          }
         } else {
-          if (route.chainId === "osmosis-1") {
-            if (route.type === "Swap") {
-              const { msgActionSwap } = this.getSwapAndAction(
-                route,
-                { oraiAddress, injAddress },
-                index + 1 === routes.length
-              );
-              this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgActionSwap);
-              pathMemo += ".wasm.msg.swap_and_action.post_swap_action";
+          if (isOsmosisChain) {
+            if (isSwap) {
+              const { msgActionSwap } = this.getSwapAndActionInOsmosis(route, { oraiAddress, injAddress }, isLastRoute);
+              this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgActionSwap);
+              pathProperty += ".wasm.msg.swap_and_action.post_swap_action";
             } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
               const { msgTransferInfo } = this.getIbcTransferInfo(route, { oraiAddress, injAddress });
-              this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgTransferInfo);
-              pathMemo += ".ibc_transfer.ibc_info.memo";
+              this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgTransferInfo);
+              pathProperty += ".ibc_transfer.ibc_info.memo";
             }
           } else {
             const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress });
-            this.updateNestedProperty(msgTransfers[route.path], pathMemo, msgForwardObject);
-            pathMemo += ".forward.next";
+            this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgForwardObject);
+            pathProperty += ".forward.next";
           }
         }
       }
@@ -512,7 +550,6 @@ export class UniversalSwapHandler {
     );
 
     const { routesFlatten } = this.flattenSmartRouters(alphaSmartRoutes.routes);
-
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
       this.config.cosmosWallet.getKeplrAddr("injective-1")
@@ -532,7 +569,7 @@ export class UniversalSwapHandler {
     const transferStringifyMemo = msgTransfers.map((transfer) => {
       this.stringifyMemos(transfer);
       return {
-        typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
+        typeUrl: transfer.funds ? "/cosmwasm.wasm.v1.MsgExecuteContract" : "/ibc.applications.transfer.v1.MsgTransfer",
         value: transfer
       };
     });
@@ -989,6 +1026,7 @@ export class UniversalSwapHandler {
     // version alpha smart router oraiDEX pool + osmosis pool
     if (
       swapOptions?.isAlphaSmartRouter &&
+      this.swapData?.alphaSmartRoutes?.routes.length &&
       ["oraichain-to-oraichain", "oraichain-to-cosmos", "cosmos-to-others"].includes(universalSwapType)
     ) {
       return this.alphaSmartRouterSwap();
