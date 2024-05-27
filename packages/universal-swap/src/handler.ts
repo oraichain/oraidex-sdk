@@ -315,7 +315,12 @@ export class UniversalSwapHandler {
     return receiver;
   };
 
-  private getSwapAndAction(route: Routes, { oraiAddress, injAddress }, isOnlySwap: boolean, isInitial?: boolean) {
+  private getSwapAndActionInOsmosis(
+    route: Routes,
+    { oraiAddress, injAddress },
+    isOnlySwap: boolean,
+    isInitial?: boolean
+  ) {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     let post_swap_action = {};
     if (isOnlySwap) {
@@ -495,7 +500,12 @@ export class UniversalSwapHandler {
         if (!msgTransfers[route.path]) {
           // swap in osmosis
           if (isOsmosisChain && isSwap) {
-            const { msgActionSwap } = this.getSwapAndAction(route, { oraiAddress, injAddress }, isLastRoute, true);
+            const { msgActionSwap } = this.getSwapAndActionInOsmosis(
+              route,
+              { oraiAddress, injAddress },
+              isLastRoute,
+              true
+            );
             msgTransfers[route.path] = msgActionSwap;
             pathProperty = "msg.swap_and_action.post_swap_action";
           } else {
@@ -505,7 +515,7 @@ export class UniversalSwapHandler {
         } else {
           if (isOsmosisChain) {
             if (isSwap) {
-              const { msgActionSwap } = this.getSwapAndAction(route, { oraiAddress, injAddress }, isLastRoute);
+              const { msgActionSwap } = this.getSwapAndActionInOsmosis(route, { oraiAddress, injAddress }, isLastRoute);
               this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgActionSwap);
               pathProperty += ".wasm.msg.swap_and_action.post_swap_action";
             } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
