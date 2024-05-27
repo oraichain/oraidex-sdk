@@ -349,7 +349,6 @@ export class UniversalSwapHandler {
 
     const msg = {
       // TODO: need check address
-      contract: this.getReceiverIBCHooks(route.chainId),
       msg: {
         swap_and_action: {
           user_swap: {
@@ -376,6 +375,7 @@ export class UniversalSwapHandler {
         msgActionSwap: {
           // TODO: need check address
           sender: this.swapData.sender.cosmos,
+          contractAddress: this.getReceiverIBCHooks(route.chainId),
           funds: [
             {
               denom: route.tokenIn,
@@ -390,6 +390,7 @@ export class UniversalSwapHandler {
     return {
       msgActionSwap: {
         wasm: {
+          contract: this.getReceiverIBCHooks(route.chainId),
           ...msg
         }
       }
@@ -566,15 +567,22 @@ export class UniversalSwapHandler {
       injAddress
     });
 
-    const transferStringifyMemo = msgTransfers.map((transfer) => {
-      this.stringifyMemos(transfer);
-      return {
-        typeUrl: transfer.funds ? "/cosmwasm.wasm.v1.MsgExecuteContract" : "/ibc.applications.transfer.v1.MsgTransfer",
-        value: transfer
-      };
+    const messagesOsmosisStringifyMemo = [];
+    const transferStringifyMemo = [];
+
+    msgTransfers.forEach((msg) => {
+      this.stringifyMemos(msg);
+      if (msg?.funds) {
+        messagesOsmosisStringifyMemo.push(msg);
+      } else {
+        transferStringifyMemo.push({
+          typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
+          value: msg
+        });
+      }
     });
 
-    const msgExecuteSwap = getEncodedExecuteContractMsgs(cosmos, messages);
+    const msgExecuteSwap = getEncodedExecuteContractMsgs(cosmos, [...messages, ...messagesOsmosisStringifyMemo]);
     return client.signAndBroadcast(this.swapData.sender.cosmos, [...msgExecuteSwap, ...transferStringifyMemo], "auto");
   }
 
