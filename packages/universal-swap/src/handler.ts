@@ -369,6 +369,7 @@ export class UniversalSwapHandler {
     if (isInitial) {
       return {
         msgActionSwap: {
+          // TODO: need check address
           sender: this.swapData.sender.cosmos,
           funds: [
             {
