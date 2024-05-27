@@ -691,10 +691,12 @@ export class UniversalSwapHelper {
     let amount;
     let routes = [];
     let routeSwapOps;
-    if (query.routerOption.useSmartRoute || query.routerOption.useAlphaSmartRoute) {
+    if (query?.routerOption?.useSmartRoute || query?.routerOption?.useAlphaSmartRoute) {
+      const fromTokenInfo = query.routerOption.useAlphaSmartRoute ? query.originalFromInfo : fromInfo;
+      const toTokenInfo = query.routerOption.useAlphaSmartRoute ? query.originalToInfo : toInfo;
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-        fromInfo,
-        toInfo,
+        fromInfo: fromTokenInfo,
+        toInfo: toTokenInfo,
         amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
         urlRouter: query.urlRouter,
         useAlphaSmartRoute: query?.routerOption?.useAlphaSmartRoute
