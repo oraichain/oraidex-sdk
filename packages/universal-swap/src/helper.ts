@@ -682,22 +682,15 @@ export class UniversalSwapHelper {
       console.log("amount, display amount: ", { amount, displayAmount });
       return { amount, displayAmount };
     }
-    const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
-    const toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
-    if (!fromInfo || !toInfo)
-      throw new Error(
-        `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
-      );
+
     let amount;
     let routes = [];
     let routeSwapOps;
     if (query?.routerOption?.useSmartRoute || query?.routerOption?.useAlphaSmartRoute) {
-      const fromTokenInfo = query.routerOption.useAlphaSmartRoute ? query.originalFromInfo : fromInfo;
-      const toTokenInfo = query.routerOption.useAlphaSmartRoute ? query.originalToInfo : toInfo;
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-        fromInfo: fromTokenInfo,
-        toInfo: toTokenInfo,
-        amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+        fromInfo: query.originalFromInfo,
+        toInfo: query.originalToInfo,
+        amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
         urlRouter: query.urlRouter,
         useAlphaSmartRoute: query?.routerOption?.useAlphaSmartRoute
       });
@@ -705,6 +698,12 @@ export class UniversalSwapHelper {
       amount = simulateRes.returnAmount;
       routeSwapOps = simulateRes?.routes;
     } else {
+      const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
+      const toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
+      if (!fromInfo || !toInfo)
+        throw new Error(
+          `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
+        );
       amount = (
         await UniversalSwapHelper.simulateSwap({
           fromInfo,
@@ -716,7 +715,7 @@ export class UniversalSwapHelper {
     }
     return {
       amount,
-      displayAmount: toDisplay(amount, getTokenOnOraichain(toInfo.coinGeckoId)?.decimals),
+      displayAmount: toDisplay(amount, getTokenOnOraichain(query.originalToInfo.coinGeckoId)?.decimals),
       routes,
       routeSwapOps
     };
