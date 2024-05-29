@@ -1034,7 +1034,7 @@ export class UniversalSwapHandler {
     // version alpha smart router oraiDEX pool + osmosis pool
     if (
       swapOptions?.isAlphaSmartRouter &&
-      this.swapData?.alphaSmartRoutes?.routes.length &&
+      this.swapData?.alphaSmartRoutes?.routes?.length &&
       ["oraichain-to-oraichain", "oraichain-to-cosmos", "cosmos-to-others"].includes(universalSwapType)
     ) {
       return this.alphaSmartRouterSwap();

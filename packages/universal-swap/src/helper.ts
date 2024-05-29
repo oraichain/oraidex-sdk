@@ -579,6 +579,7 @@ export class UniversalSwapHelper {
       return {
         swapAmount: amount,
         returnAmount: amount,
+        routesSwap: [],
         routes: []
       };
     }
