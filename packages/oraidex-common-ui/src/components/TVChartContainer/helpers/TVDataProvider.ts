@@ -104,7 +104,6 @@ export class TVDataProvider {
         fetchDataChart
       });
 
-      console.log("bars.length", ticker, bars.length);
       return bars.sort((a, b) => a.time - b.time).map(formatTimeInBarToMs);
     } catch (e) {
       console.error("getBars", e);
