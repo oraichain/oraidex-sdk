@@ -68,7 +68,7 @@ export class TVDataProvider {
     const { from, to, countBack } = periodParams;
     const toWithOffset = to;
     const fromWithOffset = from;
-    const bars = barsInfo.data.filter((bar) => bar.time > fromWithOffset && bar.time <= toWithOffset);
+    const bars = barsInfo.data.filter((bar) => bar.volume && bar.time > fromWithOffset && bar.time <= toWithOffset);
 
     // if no bars returned, return empty array
     if (!bars.length) {
@@ -103,6 +103,8 @@ export class TVDataProvider {
         baseUrl,
         fetchDataChart
       });
+
+      console.log("bars.length", ticker, bars.length);
       return bars.sort((a, b) => a.time - b.time).map(formatTimeInBarToMs);
     } catch (e) {
       console.error("getBars", e);

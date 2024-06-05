@@ -173,7 +173,7 @@ export default function TVChartContainer({
 
       await checkChartReady();
 
-      tvWidgetRef.current.onChartReady(function () {
+      tvWidgetRef.current.onChartReady(async function () {
         setChartReady(true);
         tvWidgetRef.current!.applyOverrides({
           ...defaultChartProps.overrides,
@@ -190,8 +190,8 @@ export default function TVChartContainer({
           }
         });
 
-        // create indicator
-        activeChart.createStudy("Volume");
+        // create indicator // TODO: not used when datafeed.resolveSymbol has option: `has_no_volume: false,`
+        // await activeChart.createStudy("Volume");
       });
     };
 

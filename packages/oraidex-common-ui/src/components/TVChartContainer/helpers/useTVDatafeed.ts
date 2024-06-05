@@ -85,7 +85,8 @@ export default function useTVDatafeed({
             visible_plots_set: "ohlc",
             data_status: "streaming",
             exchange: EXCHANGE_NAME,
-            has_empty_bars: true
+            has_no_volume: false,
+            has_empty_bars: false // show - hide bar has empty volume,
           };
           setTimeout(() => onSymbolResolvedCallback(symbolInfo));
         },

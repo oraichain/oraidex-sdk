@@ -76,6 +76,22 @@ const chartOverrides = {
   "paneProperties.vertGridProperties.style": 2,
   "paneProperties.horzGridProperties.style": 2,
   "mainSeriesProperties.priceLineColor": "#3a3e5e",
+
+  "mainSeriesProperties.showCountdown": false,
+
+  "mainSeriesProperties.barStyle.dontDrawOpen": true,
+  "mainSeriesProperties.candleStyle.barColorsOnPrevClose": false,
+  "mainSeriesProperties.hollowCandleStyle.drawWick": false,
+  "mainSeriesProperties.haStyle.barColorsOnPrevClose": false,
+  // "paneProperties.legendProperties.showSeriesTitle": false,
+  "paneProperties.legendProperties.showSeriesOHLC": true,
+  "paneProperties.legendProperties.showStudyTitles": true,
+  // "paneProperties.legendProperties.showStudyValues": true,
+  "paneProperties.topMargin": 12,
+  "paneProperties.bottomMargin": 2,
+  "scalesProperties.fontSize": 12,
+  "scalesProperties.showSymbolLabels": false,
+  "scalesProperties.showStudyLastValue": false,
   ...chartStyleOverrides
 };
 
@@ -105,7 +121,8 @@ const enabledFeatures = [
   "hide_left_toolbar_by_default",
   "create_volume_indicator_by_default",
   "use_localstorage_for_settings",
-  "save_chart_properties_to_local_storage"
+  "save_chart_properties_to_local_storage",
+  "study_templates"
 ];
 
 export const defaultChartProps = {
@@ -122,6 +139,10 @@ export const defaultChartProps = {
   custom_css_url: "/custom.css",
   favorites: {
     intervals: FAVORITES_INTERVAL
+  },
+  drawings_access: {
+    type: "black" as "black" | "white",
+    tools: [{ name: "Regression Trend", grayed: true }]
   },
   custom_formatters: {
     timeFormatter: {
