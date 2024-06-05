@@ -169,6 +169,10 @@ export class BigDecimal {
     return this.clone().imul(other);
   }
 
+  mulByRatio(numerator: DecimalLike, denominator: DecimalLike) {
+    return this.mul(numerator).div(denominator);
+  }
+
   pow(other: bigint | boolean | number | string) {
     return this.clone().ipow(other);
   }
