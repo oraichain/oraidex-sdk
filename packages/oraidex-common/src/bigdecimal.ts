@@ -170,7 +170,7 @@ export class BigDecimal {
   }
 
   mulByRatio(numerator: DecimalLike, denominator: DecimalLike) {
-    return this.mul(numerator).div(denominator);
+    return this.clone().imul(numerator).idiv(denominator);
   }
 
   pow(other: bigint | boolean | number | string) {

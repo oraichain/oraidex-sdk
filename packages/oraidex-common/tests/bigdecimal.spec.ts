@@ -234,3 +234,25 @@ describe("multiply", function () {
     expect(new BigDecimal("-0.0000005", 8).mul("13").toString()).toBe("-0.0000065");
   });
 });
+
+describe("mulByRatio", function () {
+  it("should be defined", function () {
+    expect(BigDecimal.prototype.mulByRatio).toBeDefined();
+  });
+
+  it("should: 12 / 10 /10 = 12", function () {
+    expect(new BigDecimal("12").mulByRatio("10", "10").toString()).toBe("12");
+  });
+
+  it("should: 12 / 0.1 / 0.2 = 24", function () {
+    expect(new BigDecimal("12").mulByRatio("0.1", "0.2").toString()).toBe("6");
+  });
+
+  it("10.8 / 0.00001 / 100 = 108000000", function () {
+    expect(new BigDecimal("10.8", 9).mulByRatio("0.00001", "100").toString()).toBe("0.00000108");
+  });
+
+  it("123456789.123456 / (.0123456 / .1245) = 12242153.701225204", function () {
+    expect(new BigDecimal("123456789.123456", 9).mulByRatio(".0123456", ".1245").toString()).toBe("12242153.701225204");
+  });
+});
