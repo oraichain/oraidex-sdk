@@ -1,6 +1,6 @@
 import { TxEvent } from "@cosmjs/tendermint-rpc";
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
-import { chainInfos, EvmChainPrefix, Gravity__factory } from "@oraichain/oraidex-common";
+import { ChainIdEnum, chainInfos, EvmChainPrefix, Gravity__factory } from "@oraichain/oraidex-common";
 import axios from "axios";
 import { ethers } from "ethers";
 import { EvmRpcs, GravityAddress } from "../constants";
@@ -71,12 +71,20 @@ export const getSendToCosmosEvent = async (txHash: string, evmChainPrefix: EvmCh
 };
 
 export const getCosmosTxEvent = async (txHash: any, chainId: string): Promise<TxEvent> => {
+  console.log(txHash, chainId);
   let chainMetadata = chainInfos.find((item) => item.chainId === chainId);
 
-  if (chainId === "cosmoshub-4") {
+  if (chainId === ChainIdEnum.CosmosHub) {
     chainMetadata = {
       ...chainMetadata,
       rpc: "https://rpc-cosmoshub.keplr.app"
+    };
+  }
+
+  if (chainId === "injective-1") {
+    chainMetadata = {
+      ...chainMetadata,
+      rpc: "https://sentry.tm.injective.network"
     };
   }
 

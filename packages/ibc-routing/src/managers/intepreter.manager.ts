@@ -32,19 +32,11 @@ class IntepreterManager {
   public transitionInterpreters(type: string, payload: any): any {
     this.mutex
       .runExclusive(() => {
-        this.intepreters = [
-          ...this.intepreters.filter((intepreter) => {
-            if (intepreter._inner.status === InterpreterStatus.Stopped) {
-              console.log("Remove one of intepreters");
-              return false;
-            }
-
-            intepreter._inner.send({ type, payload });
-            return true;
-          })
-        ];
-
+        this.intepreters = [...this.intepreters.filter((item) => item._inner.status !== InterpreterStatus.Stopped)];
         this.saveIntepreters();
+        this.intepreters.forEach((item) => {
+          item._inner.send({ type, payload });
+        });
       })
       .then(() => {
         this.mutex.release();
