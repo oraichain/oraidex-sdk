@@ -492,10 +492,12 @@ export class UniversalSwapHandler {
       const isLastRoute = index + 1 === routes.length;
       const isOsmosisChain = route.chainId === "osmosis-1";
       const isSwap = route.type === "Swap";
+      const isConvert = route.type === "Convert";
 
-      if (route.chainId === "Oraichain" && isSwap) {
+      if (route.chainId === "Oraichain") {
         // swap in oraichain
-        messages.push(...this.generateMsgsSmartRouterSwap(route));
+        if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route));
+        if (isConvert) messages.push(this.generateMsgsConvertSmartRouterSwap(route));
       } else {
         // initial msgTransfer
         if (!msgTransfers[route.path]) {
@@ -1047,6 +1049,24 @@ export class UniversalSwapHandler {
     return this.transferAndSwap(swapRoute);
   }
 
+  generateMsgsConvertSmartRouterSwap(route: Routes) {
+    return {
+      contractAddress: route.tokenIn,
+      msg: {
+        send: {
+          contract: network.converter,
+          amount: route.tokenOutAmount,
+          msg: toBinary({
+            convert_reverse: {
+              from: { native_token: { denom: route.tokenOut } }
+            }
+          })
+        }
+      },
+      fund: undefined
+    };
+  }
+
   generateMsgsSmartRouterSwap(route: Routes) {
     let contractAddr: string = network.router;
     const { originalFromToken, fromAmount } = this.swapData;
@@ -1060,6 +1080,8 @@ export class UniversalSwapHandler {
     }
     const to = this.swapData.recipientAddress;
     const { info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
+    const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
+
     const routes = [route].map((route) => {
       let ops = [];
       let currTokenIn = offerInfo;
@@ -1080,7 +1102,7 @@ export class UniversalSwapHandler {
       };
     });
     const msgs: ExecuteInstruction[] = this.buildSwapMsgsFromSmartRoute(routes, fromTokenOnOrai, to, contractAddr);
-    return msgs;
+    return buildMultipleExecuteMessages(msgs, ...msgConvertsFrom);
   }
 
   generateMsgsSwap() {
