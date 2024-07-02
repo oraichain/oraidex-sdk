@@ -493,8 +493,9 @@ export class UniversalSwapHandler {
       const isOsmosisChain = route.chainId === "osmosis-1";
       const isSwap = route.type === "Swap";
       const isConvert = route.type === "Convert";
+      const isBridge = route.type === "Bridge";
 
-      if (route.chainId === "Oraichain") {
+      if (route.chainId === "Oraichain" && !isBridge) {
         // swap in oraichain
         if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route));
         if (isConvert) messages.push(this.generateMsgsConvertSmartRouterSwap(route));
