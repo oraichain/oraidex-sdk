@@ -499,7 +499,7 @@ export class UniversalSwapHandler {
 
       if (route.chainId === "Oraichain" && !isBridge) {
         // swap in oraichain
-        if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route));
+        if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route, isLastRoute));
         if (isConvert) messages.push(this.generateMsgsConvertSmartRouterSwap(route));
       } else {
         // initial msgTransfer
@@ -540,8 +540,8 @@ export class UniversalSwapHandler {
           } else {
             const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress });
             this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgForwardObject);
+            pathReceiver[route.path] = pathProperty[route.path] + ".forward.receiver";
             pathProperty[route.path] += ".forward.next";
-            pathReceiver[route.path] = pathProperty[route.path] + ".receiver";
           }
         }
       }
@@ -553,6 +553,7 @@ export class UniversalSwapHandler {
       );
     }
 
+    msgTransfers = msgTransfers.filter(Boolean);
     return { messages, msgTransfers };
   };
 
@@ -582,7 +583,6 @@ export class UniversalSwapHandler {
         `There is a mismatch address between ${oraiAddress} and ${injAddress}. Should not using smart router swap!`
       );
     }
-
     const { messages, msgTransfers } = await this.getMessagesAndMsgTransfers(routesFlatten, {
       oraiAddress,
       injAddress
@@ -1100,7 +1100,7 @@ export class UniversalSwapHandler {
     };
   }
 
-  generateMsgsSmartRouterSwap(route: Routes) {
+  generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.router;
     const { originalFromToken, fromAmount } = this.swapData;
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
@@ -1111,7 +1111,7 @@ export class UniversalSwapHandler {
         "Could not calculate the minimum receive value because there is no simulate price or user slippage"
       );
     }
-    const to = this.swapData.recipientAddress;
+    const to = isLastRoute && this.swapData.recipientAddress;
     const { info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
     const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
 
