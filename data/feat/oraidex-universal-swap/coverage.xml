@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="1420" lines-covered="969" line-rate="0.6823" branches-valid="521" branches-covered="297" branch-rate="0.57" timestamp="1719997274942" complexity="0" version="0.1">
+<coverage lines-valid="1421" lines-covered="969" line-rate="0.6819" branches-valid="523" branches-covered="297" branch-rate="0.5678" timestamp="1720004317998" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -1253,9 +1253,9 @@
         </class>
       </classes>
     </package>
-    <package name="universal-swap.src" line-rate="0.5813" branch-rate="0.517">
+    <package name="universal-swap.src" line-rate="0.5806" branch-rate="0.5141">
       <classes>
-        <class name="handler.ts" filename="packages/universal-swap/src/handler.ts" line-rate="0.3818" branch-rate="0.3081">
+        <class name="handler.ts" filename="packages/universal-swap/src/handler.ts" line-rate="0.3809" branch-rate="0.3045">
           <methods>
             <method name="(anonymous_1)" hits="33" signature="()V">
               <lines>
@@ -1394,7 +1394,7 @@
             </method>
             <method name="(anonymous_28)" hits="0" signature="()V">
               <lines>
-                <line number="560" hits="0"/>
+                <line number="561" hits="0"/>
               </lines>
             </method>
             <method name="(anonymous_29)" hits="0" signature="()V">
@@ -1685,13 +1685,14 @@
             <line number="551" hits="0" branch="false"/>
             <line number="552" hits="0" branch="false"/>
             <line number="556" hits="0" branch="false"/>
-            <line number="561" hits="0" branch="false"/>
+            <line number="557" hits="0" branch="false"/>
             <line number="562" hits="0" branch="false"/>
-            <line number="564" hits="0" branch="false"/>
-            <line number="574" hits="0" branch="false"/>
+            <line number="563" hits="0" branch="false"/>
+            <line number="565" hits="0" branch="false"/>
             <line number="575" hits="0" branch="false"/>
-            <line number="580" hits="0" branch="true" condition-coverage="0% (0/3)"/>
-            <line number="581" hits="0" branch="false"/>
+            <line number="576" hits="0" branch="false"/>
+            <line number="581" hits="0" branch="true" condition-coverage="0% (0/3)"/>
+            <line number="582" hits="0" branch="false"/>
             <line number="586" hits="0" branch="false"/>
             <line number="591" hits="0" branch="false"/>
             <line number="592" hits="0" branch="false"/>
@@ -1873,7 +1874,7 @@
             <line number="1108" hits="0" branch="true" condition-coverage="0% (0/2)"/>
             <line number="1109" hits="0" branch="true" condition-coverage="0% (0/3)"/>
             <line number="1110" hits="0" branch="false"/>
-            <line number="1114" hits="0" branch="false"/>
+            <line number="1114" hits="0" branch="true" condition-coverage="0% (0/2)"/>
             <line number="1115" hits="0" branch="false"/>
             <line number="1116" hits="0" branch="false"/>
             <line number="1118" hits="0" branch="false"/>
