@@ -252,6 +252,7 @@ interface RouteBase {
   tokenInAmount: string;
   tokenOut: string;
   tokenOutAmount: string;
+  isLastPath: boolean;
 }
 
 export interface Routes extends RouteBase {

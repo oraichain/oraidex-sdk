@@ -315,7 +315,7 @@ export class UniversalSwapHandler {
     return receiver;
   };
 
-  private getSwapAndActionInOsmosis(
+  public getSwapAndActionInOsmosis(
     route: Routes,
     { oraiAddress, injAddress },
     isOnlySwap: boolean,
@@ -420,7 +420,7 @@ export class UniversalSwapHandler {
     return { msgTransferInfo };
   }
 
-  private createForwardObject = (route: Routes, { oraiAddress, injAddress }) => {
+  public createForwardObject = (route: Routes, { oraiAddress, injAddress }) => {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     return {
       msgForwardObject: {
@@ -456,7 +456,7 @@ export class UniversalSwapHandler {
     return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  private getMsgTransfer = (route: Routes, { oraiAddress, injAddress }) => {
+  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }) => {
     const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
     return {
       sourcePort: route.bridgeInfo.port,
@@ -486,10 +486,12 @@ export class UniversalSwapHandler {
   getMessagesAndMsgTransfers = (routeFlatten: Routes[], { oraiAddress, injAddress }) => {
     let messages = [];
     let msgTransfers = [];
-    let pathProperty = "";
+    let pathProperty = [];
+    let pathReceiver = [];
 
     routeFlatten.forEach((route: Routes, index: number, routes: Routes[]) => {
-      const isLastRoute = index + 1 === routes.length;
+      const isLastRoute = route.isLastPath;
+
       const isOsmosisChain = route.chainId === "osmosis-1";
       const isSwap = route.type === "Swap";
       const isConvert = route.type === "Convert";
@@ -497,7 +499,7 @@ export class UniversalSwapHandler {
 
       if (route.chainId === "Oraichain" && !isBridge) {
         // swap in oraichain
-        if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route));
+        if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route, isLastRoute));
         if (isConvert) messages.push(this.generateMsgsConvertSmartRouterSwap(route));
       } else {
         // initial msgTransfer
@@ -511,30 +513,47 @@ export class UniversalSwapHandler {
               true
             );
             msgTransfers[route.path] = msgActionSwap;
-            pathProperty = "msg.swap_and_action.post_swap_action";
+            pathProperty[route.path] = "msg.swap_and_action.post_swap_action";
+            pathReceiver[route.path] = isLastRoute
+              ? pathProperty[route.path] + ".transfer.to_address"
+              : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
           } else {
             msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress });
-            pathProperty = "memo";
+            pathProperty[route.path] = "memo";
+            pathReceiver[route.path] = "receiver";
           }
         } else {
           if (isOsmosisChain) {
             if (isSwap) {
               const { msgActionSwap } = this.getSwapAndActionInOsmosis(route, { oraiAddress, injAddress }, isLastRoute);
-              this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgActionSwap);
-              pathProperty += ".wasm.msg.swap_and_action.post_swap_action";
+              this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgActionSwap);
+              pathProperty[route.path] += ".wasm.msg.swap_and_action.post_swap_action";
+              pathReceiver[route.path] = isLastRoute
+                ? pathProperty[route.path] + ".transfer.to_address"
+                : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
             } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
               const { msgTransferInfo } = this.getIbcTransferInfo(route, { oraiAddress, injAddress });
-              this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgTransferInfo);
-              pathProperty += ".ibc_transfer.ibc_info.memo";
+              this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgTransferInfo);
+              pathReceiver[route.path] = pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
+              pathProperty[route.path] += ".ibc_transfer.ibc_info.memo";
             }
           } else {
             const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress });
-            this.updateNestedProperty(msgTransfers[route.path], pathProperty, msgForwardObject);
-            pathProperty += ".forward.next";
+            this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgForwardObject);
+            pathReceiver[route.path] = pathProperty[route.path] + ".forward.receiver";
+            pathProperty[route.path] += ".forward.next";
           }
         }
       }
     });
+
+    if (this.swapData?.recipientAddress && msgTransfers?.length) {
+      msgTransfers.forEach((msg, i) =>
+        this.updateNestedReceiveProperty(msg, pathReceiver[i], this.swapData.recipientAddress)
+      );
+    }
+
+    msgTransfers = msgTransfers.filter(Boolean);
     return { messages, msgTransfers };
   };
 
@@ -553,7 +572,7 @@ export class UniversalSwapHandler {
       }
     );
 
-    const { routesFlatten } = this.flattenSmartRouters(alphaSmartRoutes.routes);
+    const routesFlatten = this.flattenSmartRouters(alphaSmartRoutes.routes);
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
       this.config.cosmosWallet.getKeplrAddr("injective-1")
@@ -564,7 +583,6 @@ export class UniversalSwapHandler {
         `There is a mismatch address between ${oraiAddress} and ${injAddress}. Should not using smart router swap!`
       );
     }
-
     const { messages, msgTransfers } = await this.getMessagesAndMsgTransfers(routesFlatten, {
       oraiAddress,
       injAddress
@@ -589,17 +607,18 @@ export class UniversalSwapHandler {
     return client.signAndBroadcast(this.swapData.sender.cosmos, [...msgExecuteSwap, ...transferStringifyMemo], "auto");
   }
 
-  private flattenSmartRouters(routers: Route[]) {
+  flattenSmartRouters(routers: Route[]): Routes[] {
     const routesFlatten = routers.flatMap((router, i) =>
-      router.paths.flatMap((path) =>
-        path.actions.map((action) => ({
+      router.paths.flatMap((path, ind, arrPath) =>
+        path.actions.map((action, index, arrAction) => ({
           ...action,
           path: i,
-          chainId: path.chainId
+          chainId: path.chainId,
+          isLastPath: arrPath.length === ind + 1 && !arrAction[index + 1]
         }))
       )
     );
-    return { routesFlatten };
+    return routesFlatten;
   }
 
   private updateNestedProperty = (obj, key, value) => {
@@ -608,6 +627,19 @@ export class UniversalSwapHandler {
       if (!(k in current)) current[k] = {};
       return current[k];
     }, obj)[keys[keys.length - 1]] = value;
+  };
+
+  private updateNestedReceiveProperty = (obj, path: string, value: any) => {
+    const keys = path.split(".");
+    let current = obj;
+    for (let i = 0; i < keys.length - 1; i++) {
+      if (!current[keys[i]]) {
+        throw new Error(`Invalid path: ${keys.slice(0, i + 1).join(".")}`);
+      }
+      current = current[keys[i]];
+    }
+    current[keys[keys.length - 1]] = value;
+    return obj;
   };
 
   private stringifyMemos = (obj) => {
@@ -1056,7 +1088,7 @@ export class UniversalSwapHandler {
       msg: {
         send: {
           contract: network.converter,
-          amount: route.tokenOutAmount,
+          amount: route.tokenInAmount,
           msg: toBinary({
             convert_reverse: {
               from: { native_token: { denom: route.tokenOut } }
@@ -1064,11 +1096,11 @@ export class UniversalSwapHandler {
           })
         }
       },
-      fund: undefined
+      funds: []
     };
   }
 
-  generateMsgsSmartRouterSwap(route: Routes) {
+  generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.router;
     const { originalFromToken, fromAmount } = this.swapData;
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
@@ -1079,7 +1111,7 @@ export class UniversalSwapHandler {
         "Could not calculate the minimum receive value because there is no simulate price or user slippage"
       );
     }
-    const to = this.swapData.recipientAddress;
+    const to = isLastRoute && this.swapData.recipientAddress;
     const { info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
     const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
 
