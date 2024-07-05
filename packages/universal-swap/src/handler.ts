@@ -1111,7 +1111,7 @@ export class UniversalSwapHandler {
         "Could not calculate the minimum receive value because there is no simulate price or user slippage"
       );
     }
-    const to = isLastRoute && this.swapData.recipientAddress;
+    const to = isLastRoute ? this.swapData.recipientAddress : undefined;
     const { info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
     const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
 
