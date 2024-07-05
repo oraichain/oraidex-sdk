@@ -118,7 +118,7 @@ export type SmartRouteSwapOperations = {
 export type SmartRouterResponse = {
   swapAmount: string;
   returnAmount: string;
-  routes: SmartRouterResponseAPI;
+  routes: SmartRouteSwapAPIOperations[];
 };
 
 export type SmartRouteSwapAPIOperations = {
