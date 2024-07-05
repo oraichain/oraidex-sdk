@@ -480,20 +480,19 @@ export class UniversalSwapHelper {
       path?: string;
     }
   ): Promise<SmartRouterResponse> => {
-    const {
-      returnAmount,
-      swapAmount,
-      routes: routesSwap
-    } = await UniversalSwapHelper.querySmartRoute(offerInfo, offerChainId, askInfo, askChainId, offerAmount, urlRouter);
+    const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
+      offerInfo,
+      offerChainId,
+      askInfo,
+      askChainId,
+      offerAmount,
+      urlRouter
+    );
 
     return {
       swapAmount: offerAmount,
       returnAmount,
-      routes: {
-        returnAmount,
-        swapAmount,
-        routes: routesSwap
-      }
+      routes
     };
   };
 
