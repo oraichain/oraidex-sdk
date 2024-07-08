@@ -568,7 +568,13 @@ export class UniversalSwapHelper {
         urlRouter
       );
     } catch (error) {
-      throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+      console.log(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+      // throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+      return {
+        swapAmount: "0",
+        returnAmount: "0",
+        routes: []
+      };
     }
   };
 
