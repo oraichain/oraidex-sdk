@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-universal-swap",
-  "version": "1.0.89-beta.8",
+  "version": "1.0.89-beta.9",
   "main": "build/index.js",
   "files": [
     "build/"
