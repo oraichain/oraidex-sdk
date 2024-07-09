@@ -456,19 +456,17 @@ export class UniversalSwapHandler {
     return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }) => {
+  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute: boolean) => {
     const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
+    const addressReceiver = this.getAddress(
+      prefixReceiver,
+      { address60: injAddress, address118: oraiAddress },
+      chainInfoReceiver.bip44.coinType
+    );
     return {
       sourcePort: route.bridgeInfo.port,
       sourceChannel: route.bridgeInfo.channel,
-      receiver: this.getReceiverIBCHooks(
-        route.tokenOutChainId,
-        this.getAddress(
-          prefixReceiver,
-          { address60: injAddress, address118: oraiAddress },
-          chainInfoReceiver.bip44.coinType
-        )
-      ),
+      receiver: isLastRoute ? addressReceiver : this.getReceiverIBCHooks(route.tokenOutChainId, addressReceiver),
       token: {
         amount: route.tokenInAmount,
         denom: route.tokenIn
@@ -518,7 +516,7 @@ export class UniversalSwapHandler {
               ? pathProperty[route.path] + ".transfer.to_address"
               : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
           } else {
-            msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress });
+            msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress }, isLastRoute);
             pathProperty[route.path] = "memo";
             pathReceiver[route.path] = "receiver";
           }
