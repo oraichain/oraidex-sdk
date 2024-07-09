@@ -456,19 +456,17 @@ export class UniversalSwapHandler {
     return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }) => {
+  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute: boolean) => {
     const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
+    const addressReceiver = this.getAddress(
+      prefixReceiver,
+      { address60: injAddress, address118: oraiAddress },
+      chainInfoReceiver.bip44.coinType
+    );
     return {
       sourcePort: route.bridgeInfo.port,
       sourceChannel: route.bridgeInfo.channel,
-      receiver: this.getReceiverIBCHooks(
-        route.tokenOutChainId,
-        this.getAddress(
-          prefixReceiver,
-          { address60: injAddress, address118: oraiAddress },
-          chainInfoReceiver.bip44.coinType
-        )
-      ),
+      receiver: isLastRoute ? addressReceiver : this.getReceiverIBCHooks(route.tokenOutChainId, addressReceiver),
       token: {
         amount: route.tokenInAmount,
         denom: route.tokenIn
@@ -518,7 +516,7 @@ export class UniversalSwapHandler {
               ? pathProperty[route.path] + ".transfer.to_address"
               : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
           } else {
-            msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress });
+            msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress }, isLastRoute);
             pathProperty[route.path] = "memo";
             pathReceiver[route.path] = "receiver";
           }
@@ -547,10 +545,19 @@ export class UniversalSwapHandler {
       }
     });
 
-    if (this.swapData?.recipientAddress && msgTransfers?.length) {
-      msgTransfers.forEach((msg, i) =>
-        this.updateNestedReceiveProperty(msg, pathReceiver[i], this.swapData.recipientAddress)
-      );
+    const { recipientAddress, originalToToken } = this.swapData;
+    if (recipientAddress && msgTransfers?.length) {
+      for (let i = 0; i < msgTransfers.length; i++) {
+        const msg = msgTransfers[i];
+        const receiver = pathReceiver[i];
+
+        if (!receiver) continue;
+
+        const isValidRecipient = checkValidateAddressWithNetwork(recipientAddress, originalToToken.chainId);
+        if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+
+        this.updateNestedReceiveProperty(msg, receiver, recipientAddress);
+      }
     }
 
     msgTransfers = msgTransfers.filter(Boolean);
@@ -575,7 +582,8 @@ export class UniversalSwapHandler {
     const routesFlatten = this.flattenSmartRouters(alphaSmartRoutes.routes);
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
-      this.config.cosmosWallet.getKeplrAddr("injective-1")
+      // this.config.cosmosWallet.getKeplrAddr("injective-1")
+      "inj1sk53kt047ezf3kjhm4lzqdl4gngw7yg4yulgru"
     ]);
 
     if (!oraiAddress || !injAddress) {
