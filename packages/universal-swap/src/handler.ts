@@ -547,10 +547,19 @@ export class UniversalSwapHandler {
       }
     });
 
-    if (this.swapData?.recipientAddress && msgTransfers?.length) {
-      msgTransfers.forEach((msg, i) =>
-        this.updateNestedReceiveProperty(msg, pathReceiver[i], this.swapData.recipientAddress)
-      );
+    const { recipientAddress, originalToToken } = this.swapData;
+    if (recipientAddress && msgTransfers?.length) {
+      for (let i = 0; i < msgTransfers.length; i++) {
+        const msg = msgTransfers[i];
+        const receiver = pathReceiver[i];
+
+        if (!receiver) continue;
+
+        const isValidRecipient = checkValidateAddressWithNetwork(recipientAddress, originalToToken.chainId);
+        if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+
+        this.updateNestedReceiveProperty(msg, receiver, recipientAddress);
+      }
     }
 
     msgTransfers = msgTransfers.filter(Boolean);
@@ -575,7 +584,8 @@ export class UniversalSwapHandler {
     const routesFlatten = this.flattenSmartRouters(alphaSmartRoutes.routes);
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
-      this.config.cosmosWallet.getKeplrAddr("injective-1")
+      // this.config.cosmosWallet.getKeplrAddr("injective-1")
+      "inj1sk53kt047ezf3kjhm4lzqdl4gngw7yg4yulgru"
     ]);
 
     if (!oraiAddress || !injAddress) {
