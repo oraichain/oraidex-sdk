@@ -62,6 +62,20 @@ import {
 } from "../src/helper";
 import {
   alphaSmartRoute,
+  alphaSmartRouteWithOneRoutes0_0_0,
+  alphaSmartRouteWithOneRoutes0_0_1,
+  alphaSmartRouteWithThreeRoutes0_0_0,
+  alphaSmartRouteWithThreeRoutes0_0_1,
+  alphaSmartRouteWithThreeRoutes0_1_0,
+  alphaSmartRouteWithThreeRoutes0_2_0,
+  alphaSmartRouteWithThreeRoutes1_0_0,
+  alphaSmartRouteWithThreeRoutes1_0_1,
+  alphaSmartRouteWithThreeRoutes1_1_0,
+  alphaSmartRouteWithThreeRoutes1_2_0,
+  alphaSmartRouteWithTwoRoutes0_0_0,
+  alphaSmartRouteWithTwoRoutes0_0_1,
+  alphaSmartRouteWithTwoRoutes0_1_0,
+  alphaSmartRouteWithTwoRoutes0_2_0,
   alphaSmartRoutes,
   flattenAlphaSmartRouters,
   objBridgeInSmartRoute,
@@ -86,6 +100,9 @@ describe("test universal swap handler functions", () => {
   const smartRoutesOraiAddr = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
   const smartRoutesInjAddr = "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3";
   const smartRoutesOsmoAddr = "osmo12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fh4twhr";
+  const smartRoutesCosmosAddr = "cosmos12zyu8w93h0q2lcnt50g3fn0w3yqnhy4flwc7p3";
+  const smartRoutesNobleAddr = "noble12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fhddkel";
+
   const osmosisContractRouter = OSMOSIS_ROUTER_CONTRACT;
 
   let ics20Contract: CwIcs20LatestClient;
@@ -1397,8 +1414,9 @@ describe("test universal swap handler functions", () => {
     expect(msgSwapAndAction).toEqual(expectResult);
   });
 
-  it.each<[string, any, any, any]>([
+  it.each<[string, string, any, any, any]>([
     [
+      "one-route-from-oraichain-to-osmosis",
       smartRoutesOraiAddr,
       alphaSmartRoute[0],
       [
@@ -1410,24 +1428,24 @@ describe("test universal swap handler functions", () => {
                 {
                   orai_swap: {
                     offer_asset_info: {
-                      native_token: { denom: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenIn }
+                      native_token: { denom: alphaSmartRouteWithOneRoutes0_0_0.tokenIn }
                     },
                     ask_asset_info: {
                       native_token: {
-                        denom: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenOut
+                        denom: alphaSmartRouteWithOneRoutes0_0_0.tokenOut
                       }
                     }
                   }
                 }
               ],
-              minimum_receive: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenOutAmount,
+              minimum_receive: alphaSmartRouteWithOneRoutes0_0_0.tokenOutAmount,
               to: undefined
             }
           },
           funds: [
             {
-              denom: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenIn,
-              amount: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenInAmount
+              denom: alphaSmartRouteWithOneRoutes0_0_0.tokenIn,
+              amount: alphaSmartRouteWithOneRoutes0_0_0.tokenInAmount
             }
           ]
         }
@@ -1437,18 +1455,284 @@ describe("test universal swap handler functions", () => {
           memo: "",
           receiver: smartRoutesOsmoAddr,
           sender: smartRoutesOraiAddr,
-          sourceChannel: alphaSmartRoute[0].routes[0].paths[0].actions[1].bridgeInfo?.channel,
-          sourcePort: alphaSmartRoute[0].routes[0].paths[0].actions[1].bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithOneRoutes0_0_1.bridgeInfo?.channel,
+          sourcePort: alphaSmartRouteWithOneRoutes0_0_1.bridgeInfo?.port,
           token: {
-            amount: alphaSmartRoute[0].routes[0].paths[0].actions[1].tokenInAmount,
-            denom: alphaSmartRoute[0].routes[0].paths[0].actions[1].tokenIn
+            amount: alphaSmartRouteWithOneRoutes0_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithOneRoutes0_0_1.tokenIn
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        }
+      ]
+    ],
+    [
+      "two-routes-from-oraichain-to-osmosis",
+      smartRoutesOraiAddr,
+      alphaSmartRoute[1],
+      [
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      native_token: {
+                        denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithTwoRoutes0_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenIn,
+              amount: alphaSmartRouteWithTwoRoutes0_0_0.tokenInAmount
+            }
+          ]
+        }
+      ],
+      [
+        {
+          sourcePort: alphaSmartRouteWithTwoRoutes0_0_1.bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithTwoRoutes0_0_1.bridgeInfo?.channel,
+          receiver: smartRoutesCosmosAddr,
+          token: {
+            amount: alphaSmartRouteWithTwoRoutes0_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithTwoRoutes0_0_1.tokenIn
+          },
+          sender: smartRoutesOraiAddr,
+          memo: {
+            forward: {
+              receiver: osmosisContractRouter,
+              port: alphaSmartRouteWithTwoRoutes0_1_0.bridgeInfo?.port,
+              channel: alphaSmartRouteWithTwoRoutes0_1_0.bridgeInfo?.channel,
+              timeout: 0,
+              retries: 2,
+              next: {
+                wasm: {
+                  contract: osmosisContractRouter,
+                  msg: {
+                    swap_and_action: {
+                      user_swap: {
+                        swap_exact_asset_in: {
+                          swap_venue_name: "osmosis-poolmanager",
+                          operations: [
+                            {
+                              pool: alphaSmartRouteWithTwoRoutes0_2_0.swapInfo?.[0].poolId,
+                              denom_in: alphaSmartRouteWithTwoRoutes0_2_0.tokenIn,
+                              denom_out: alphaSmartRouteWithTwoRoutes0_2_0.tokenOut
+                            }
+                          ]
+                        }
+                      },
+                      min_asset: {
+                        native: {
+                          denom: alphaSmartRouteWithTwoRoutes0_2_0.tokenOut,
+                          amount: alphaSmartRouteWithTwoRoutes0_2_0.tokenOutAmount
+                        }
+                      },
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                      post_swap_action: {
+                        transfer: {
+                          to_address: smartRoutesOsmoAddr
+                        }
+                      },
+                      affiliates: []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        }
+      ]
+    ],
+    [
+      "three-routes-from-oraichain-to-osmosis",
+      smartRoutesOraiAddr,
+      alphaSmartRoute[2],
+      [
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      native_token: {
+                        denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithThreeRoutes0_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenIn,
+              amount: alphaSmartRouteWithThreeRoutes0_0_0.tokenInAmount
+            }
+          ]
+        },
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithThreeRoutes1_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      token: {
+                        contract_addr: alphaSmartRouteWithThreeRoutes1_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithThreeRoutes1_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithThreeRoutes1_0_0.tokenIn,
+              amount: alphaSmartRouteWithThreeRoutes1_0_0.tokenInAmount
+            }
+          ]
+        }
+      ],
+      [
+        {
+          sourcePort: alphaSmartRouteWithThreeRoutes0_0_1.bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithThreeRoutes0_0_1.bridgeInfo?.channel,
+          receiver: smartRoutesCosmosAddr,
+          token: {
+            amount: alphaSmartRouteWithThreeRoutes0_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithThreeRoutes0_0_1.tokenIn
+          },
+          sender: smartRoutesOraiAddr,
+          memo: {
+            forward: {
+              receiver: osmosisContractRouter,
+              port: alphaSmartRouteWithThreeRoutes0_1_0.bridgeInfo?.port,
+              channel: alphaSmartRouteWithThreeRoutes0_1_0.bridgeInfo?.channel,
+              timeout: 0,
+              retries: 2,
+              next: {
+                wasm: {
+                  contract: osmosisContractRouter,
+                  msg: {
+                    swap_and_action: {
+                      user_swap: {
+                        swap_exact_asset_in: {
+                          swap_venue_name: "osmosis-poolmanager",
+                          operations: [
+                            {
+                              pool: alphaSmartRouteWithThreeRoutes0_2_0.swapInfo?.[0].poolId,
+                              denom_in: alphaSmartRouteWithThreeRoutes0_2_0.tokenIn,
+                              denom_out: alphaSmartRouteWithThreeRoutes0_2_0.tokenOut
+                            }
+                          ]
+                        }
+                      },
+                      min_asset: {
+                        native: {
+                          denom: alphaSmartRouteWithThreeRoutes0_2_0.tokenOut,
+                          amount: alphaSmartRouteWithThreeRoutes0_2_0.tokenOutAmount
+                        }
+                      },
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                      post_swap_action: {
+                        transfer: {
+                          to_address: smartRoutesOsmoAddr
+                        }
+                      },
+                      affiliates: []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        },
+        {
+          sourcePort: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.channel,
+          receiver: smartRoutesNobleAddr,
+          token: {
+            amount: alphaSmartRouteWithThreeRoutes1_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithThreeRoutes1_0_1.tokenIn
+          },
+          sender: smartRoutesOraiAddr,
+          memo: {
+            forward: {
+              receiver: osmosisContractRouter,
+              port: alphaSmartRouteWithThreeRoutes1_1_0.bridgeInfo?.port,
+              channel: alphaSmartRouteWithThreeRoutes1_1_0.bridgeInfo?.channel,
+              timeout: 0,
+              retries: 2,
+              next: {
+                wasm: {
+                  contract: osmosisContractRouter,
+                  msg: {
+                    swap_and_action: {
+                      user_swap: {
+                        swap_exact_asset_in: {
+                          swap_venue_name: "osmosis-poolmanager",
+                          operations: [
+                            {
+                              pool: alphaSmartRouteWithThreeRoutes1_2_0.swapInfo?.[0].poolId,
+                              denom_in: alphaSmartRouteWithThreeRoutes1_2_0.tokenIn,
+                              denom_out: alphaSmartRouteWithThreeRoutes1_2_0.tokenOut
+                            }
+                          ]
+                        }
+                      },
+                      min_asset: {
+                        native: {
+                          denom: alphaSmartRouteWithThreeRoutes1_2_0.tokenOut,
+                          amount: alphaSmartRouteWithThreeRoutes1_2_0.tokenOutAmount
+                        }
+                      },
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                      post_swap_action: {
+                        transfer: {
+                          to_address: smartRoutesOsmoAddr
+                        }
+                      },
+                      affiliates: []
+                    }
+                  }
+                }
+              }
+            }
           },
           timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
         }
       ]
     ]
-    // [smartRoutesOraiAddr, alphaSmartRoute[1], [], []]
-  ])("test-get-msg-and-object-msg-transfers", (sender, route, expectResultMessages, expectResultMsgTransfer) => {
+  ])("test-get-msg-and-object-msg-transfers", (_, sender, route, expectResultMessages, expectResultMsgTransfer) => {
     const universalSwap = new FakeUniversalSwapHandler({
       ...universalSwapData,
       userSlippage: 0,

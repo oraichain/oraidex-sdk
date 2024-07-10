@@ -302,6 +302,276 @@ export const alphaSmartRoute = [
             ]
           }
         ]
+      }
+    ]
+  },
+  {
+    swapAmount: "1000000000",
+    returnAmount: "16375767570",
+    routes: [
+      {
+        swapAmount: "600000000",
+        returnAmount: "9825302858",
+        paths: [
+          {
+            chainId: "Oraichain",
+            tokenIn: "orai",
+            tokenInAmount: "600000000",
+            tokenOut: "uatom",
+            tokenOutAmount: "781732133",
+            tokenOutChainId: "cosmoshub-4",
+            actions: [
+              {
+                type: "Swap",
+                tokenIn: "orai",
+                tokenInAmount: "600000000",
+                tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+                tokenOutAmount: "781732133",
+                swapInfo: [
+                  {
+                    poolId: "orai1jf74ry4m0jcy9emsaudkhe7vte9l8qy8enakvs",
+                    tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
+                  }
+                ]
+              },
+              {
+                type: "Bridge",
+                tokenIn: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+                tokenInAmount: "781732133",
+                tokenOut: "uatom",
+                tokenOutAmount: "781732133",
+                tokenOutChainId: "cosmoshub-4",
+                bridgeInfo: {
+                  port: "transfer",
+                  channel: "channel-15"
+                }
+              }
+            ]
+          },
+          {
+            chainId: "cosmoshub-4",
+            tokenIn: "uatom",
+            tokenInAmount: "781732133",
+            tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+            tokenOutAmount: "781732133",
+            tokenOutChainId: "osmosis-1",
+            actions: [
+              {
+                type: "Bridge",
+                tokenIn: "uatom",
+                tokenInAmount: "781732133",
+                tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+                tokenOutAmount: "781732133",
+                tokenOutChainId: "osmosis-1",
+                bridgeInfo: {
+                  port: "transfer",
+                  channel: "channel-141"
+                }
+              }
+            ]
+          },
+          {
+            chainId: "osmosis-1",
+            tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+            tokenInAmount: "781732133",
+            tokenOut: "uosmo",
+            tokenOutAmount: "9825302858",
+            tokenOutChainId: "osmosis-1",
+            actions: [
+              {
+                type: "Swap",
+                tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+                tokenInAmount: "781732133",
+                tokenOut: "uosmo",
+                tokenOutAmount: "9825302858",
+                swapInfo: [
+                  {
+                    poolId: "1135",
+                    tokenOut: "uosmo"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        swapAmount: "200000000",
+        returnAmount: "3276268429",
+        paths: [
+          {
+            chainId: "Oraichain",
+            tokenIn: "orai",
+            tokenInAmount: "200000000",
+            tokenOut: "uusdc",
+            tokenOutAmount: "1733503520",
+            tokenOutChainId: "noble-1",
+            actions: [
+              {
+                type: "Swap",
+                tokenIn: "orai",
+                tokenInAmount: "200000000",
+                tokenOut: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+                tokenOutAmount: "1737861370",
+                swapInfo: [
+                  {
+                    poolId: "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg",
+                    tokenOut: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
+                  }
+                ]
+              },
+              {
+                type: "Bridge",
+                tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+                tokenInAmount: "1737861370",
+                tokenOut: "uusdc",
+                tokenOutAmount: "1733503520",
+                tokenOutChainId: "noble-1",
+                bridgeInfo: {
+                  port: "transfer",
+                  channel: "channel-147"
+                }
+              }
+            ]
+          },
+          {
+            chainId: "noble-1",
+            tokenIn: "uusdc",
+            tokenInAmount: "1733503520",
+            tokenOut: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
+            tokenOutAmount: "1731770016",
+            tokenOutChainId: "osmosis-1",
+            actions: [
+              {
+                type: "Bridge",
+                tokenIn: "uusdc",
+                tokenInAmount: "1733503520",
+                tokenOut: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
+                tokenOutAmount: "1731770016",
+                tokenOutChainId: "osmosis-1",
+                bridgeInfo: {
+                  port: "transfer",
+                  channel: "channel-1"
+                }
+              }
+            ]
+          },
+          {
+            chainId: "osmosis-1",
+            tokenIn: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
+            tokenInAmount: "1731770016",
+            tokenOut: "uosmo",
+            tokenOutAmount: "3276268429",
+            tokenOutChainId: "osmosis-1",
+            actions: [
+              {
+                type: "Swap",
+                tokenIn: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
+                tokenInAmount: "1731770016",
+                tokenOut: "uosmo",
+                tokenOutAmount: "3276268429",
+                swapInfo: [
+                  {
+                    poolId: "1464",
+                    tokenOut: "uosmo"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  {
+    swapAmount: "1000000000",
+    returnAmount: "16375767570",
+    routes: [
+      {
+        swapAmount: "600000000",
+        returnAmount: "9825302858",
+        paths: [
+          {
+            chainId: "Oraichain",
+            tokenIn: "orai",
+            tokenInAmount: "600000000",
+            tokenOut: "uatom",
+            tokenOutAmount: "781732133",
+            tokenOutChainId: "cosmoshub-4",
+            actions: [
+              {
+                type: "Swap",
+                tokenIn: "orai",
+                tokenInAmount: "600000000",
+                tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+                tokenOutAmount: "781732133",
+                swapInfo: [
+                  {
+                    poolId: "orai1jf74ry4m0jcy9emsaudkhe7vte9l8qy8enakvs",
+                    tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
+                  }
+                ]
+              },
+              {
+                type: "Bridge",
+                tokenIn: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+                tokenInAmount: "781732133",
+                tokenOut: "uatom",
+                tokenOutAmount: "781732133",
+                tokenOutChainId: "cosmoshub-4",
+                bridgeInfo: {
+                  port: "transfer",
+                  channel: "channel-15"
+                }
+              }
+            ]
+          },
+          {
+            chainId: "cosmoshub-4",
+            tokenIn: "uatom",
+            tokenInAmount: "781732133",
+            tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+            tokenOutAmount: "781732133",
+            tokenOutChainId: "osmosis-1",
+            actions: [
+              {
+                type: "Bridge",
+                tokenIn: "uatom",
+                tokenInAmount: "781732133",
+                tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+                tokenOutAmount: "781732133",
+                tokenOutChainId: "osmosis-1",
+                bridgeInfo: {
+                  port: "transfer",
+                  channel: "channel-141"
+                }
+              }
+            ]
+          },
+          {
+            chainId: "osmosis-1",
+            tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+            tokenInAmount: "781732133",
+            tokenOut: "uosmo",
+            tokenOutAmount: "9825302858",
+            tokenOutChainId: "osmosis-1",
+            actions: [
+              {
+                type: "Swap",
+                tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
+                tokenInAmount: "781732133",
+                tokenOut: "uosmo",
+                tokenOutAmount: "9825302858",
+                swapInfo: [
+                  {
+                    poolId: "1135",
+                    tokenOut: "uosmo"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       },
       {
         swapAmount: "200000000",
@@ -523,3 +793,20 @@ export const alphaSmartRoute = [
     ]
   }
 ];
+
+export const alphaSmartRouteWithOneRoutes0_0_0 = alphaSmartRoute[0].routes[0].paths[0].actions[0];
+export const alphaSmartRouteWithOneRoutes0_0_1 = alphaSmartRoute[0].routes[0].paths[0].actions[1];
+
+export const alphaSmartRouteWithTwoRoutes0_0_0 = alphaSmartRoute[1].routes[0].paths[0].actions[0];
+export const alphaSmartRouteWithTwoRoutes0_0_1 = alphaSmartRoute[1].routes[0].paths[0].actions[1];
+export const alphaSmartRouteWithTwoRoutes0_1_0 = alphaSmartRoute[1].routes[0].paths[1].actions[0];
+export const alphaSmartRouteWithTwoRoutes0_2_0 = alphaSmartRoute[1].routes[0].paths[2].actions[0];
+
+export const alphaSmartRouteWithThreeRoutes0_0_0 = alphaSmartRoute[2].routes[0].paths[0].actions[0];
+export const alphaSmartRouteWithThreeRoutes0_0_1 = alphaSmartRoute[2].routes[0].paths[0].actions[1];
+export const alphaSmartRouteWithThreeRoutes1_0_0 = alphaSmartRoute[2].routes[1].paths[0].actions[0];
+export const alphaSmartRouteWithThreeRoutes1_0_1 = alphaSmartRoute[2].routes[1].paths[0].actions[1];
+export const alphaSmartRouteWithThreeRoutes0_1_0 = alphaSmartRoute[2].routes[0].paths[1].actions[0];
+export const alphaSmartRouteWithThreeRoutes1_1_0 = alphaSmartRoute[2].routes[1].paths[1].actions[0];
+export const alphaSmartRouteWithThreeRoutes0_2_0 = alphaSmartRoute[2].routes[0].paths[2].actions[0];
+export const alphaSmartRouteWithThreeRoutes1_2_0 = alphaSmartRoute[2].routes[1].paths[2].actions[0];
