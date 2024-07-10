@@ -9,6 +9,8 @@ import { calculateLiquidityForPair, calculateLiquidityForRanges, parse } from ".
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { PositionLiquidInfo, VirtualRange } from "./types";
 
+// TODO!: add docs
+
 export class OraiswapV3Handler {
   private _client: OraiswapV3QueryClient;
 

@@ -5,6 +5,8 @@ import { DENOMINATOR, LIQUIDITY_DENOMINATOR, MAINNET_TOKENS, PRICE_DENOMINATOR }
 import { PoolWithPoolKey } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 import { BigDecimal } from "@oraichain/oraidex-common";
 
+// TODO!: add docs
+
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
   const feeDenominator = (BigInt(protocolFee) * BigInt(pool.pool_key.fee_tier.fee)) / DENOMINATOR;
   const volumeX = (BigInt(pool.pool.fee_protocol_token_x) * DENOMINATOR) / feeDenominator;
