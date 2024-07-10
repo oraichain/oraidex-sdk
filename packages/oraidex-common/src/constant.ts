@@ -142,7 +142,7 @@ export const MULTICALL_CONTRACT = "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxa
 export const BASE_API_URL = "https://api.oraidex.io";
 
 // alpha smart router
-export const OSMOSIS_ROUTER_CONTRACT = "osmo1qxydza7ctzh9fn7sq5gcf0run8c78wh0jj47f4t5dwc5302r2dnqsp4hu6";
+export const OSMOSIS_ROUTER_CONTRACT = "osmo1h3jkejkcpthl45xrrm5geed3eq75p5rgfce9taufkwfr89k63muqweu2y7";
 
 // websocket consts
 export const WEBSOCKET_RECONNECT_ATTEMPTS = 5;
