@@ -22,7 +22,8 @@ import {
   IBC_WASM_CONTRACT_TEST,
   USDC_CONTRACT,
   calculateTimeoutTimestamp,
-  BigDecimal
+  BigDecimal,
+  OSMOSIS_ROUTER_CONTRACT
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable jest.spyOn & avoid redefine property error
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
@@ -60,6 +61,7 @@ import {
   simulateSwap
 } from "../src/helper";
 import {
+  alphaSmartRoute,
   alphaSmartRoutes,
   flattenAlphaSmartRouters,
   objBridgeInSmartRoute,
@@ -84,7 +86,7 @@ describe("test universal swap handler functions", () => {
   const smartRoutesOraiAddr = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
   const smartRoutesInjAddr = "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3";
   const smartRoutesOsmoAddr = "osmo12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fh4twhr";
-  const osmosisContractRouter = "osmo1qxydza7ctzh9fn7sq5gcf0run8c78wh0jj47f4t5dwc5302r2dnqsp4hu6";
+  const osmosisContractRouter = OSMOSIS_ROUTER_CONTRACT;
 
   let ics20Contract: CwIcs20LatestClient;
   let factoryContract: OraiswapFactoryClient;
@@ -1296,6 +1298,38 @@ describe("test universal swap handler functions", () => {
         memo: "",
         timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
       }
+    ],
+    [
+      smartRoutesOraiAddr,
+      objBridgeInSmartRoute[2],
+      {
+        sourcePort: objBridgeInSmartRoute[2].bridgeInfo.port,
+        sourceChannel: objBridgeInSmartRoute[2].bridgeInfo.channel,
+        receiver: smartRoutesOsmoAddr,
+        token: {
+          amount: objBridgeInSmartRoute[2].tokenInAmount,
+          denom: objBridgeInSmartRoute[2].tokenIn
+        },
+        sender: smartRoutesOraiAddr,
+        memo: "",
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+      }
+    ],
+    [
+      smartRoutesOraiAddr,
+      objBridgeInSmartRoute[3],
+      {
+        sourcePort: objBridgeInSmartRoute[3].bridgeInfo.port,
+        sourceChannel: objBridgeInSmartRoute[3].bridgeInfo.channel,
+        receiver: osmosisContractRouter,
+        token: {
+          amount: objBridgeInSmartRoute[3].tokenInAmount,
+          denom: objBridgeInSmartRoute[3].tokenIn
+        },
+        sender: smartRoutesOraiAddr,
+        memo: "",
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+      }
     ]
   ])("test-get-msg-transfer-with-smart-route", (sender, route, expectResult) => {
     const universalSwap = new FakeUniversalSwapHandler({
@@ -1305,10 +1339,15 @@ describe("test universal swap handler functions", () => {
       }
     });
 
-    const msgSwapAndAction = universalSwap.getMsgTransfer(route, {
-      oraiAddress: smartRoutesOraiAddr,
-      injAddress: smartRoutesInjAddr
-    });
+    const msgSwapAndAction = universalSwap.getMsgTransfer(
+      route,
+      {
+        oraiAddress: smartRoutesOraiAddr,
+        injAddress: smartRoutesInjAddr
+      },
+      route.isLastPath
+    );
+
     expect(msgSwapAndAction).toEqual(expectResult);
   });
 
@@ -1355,14 +1394,75 @@ describe("test universal swap handler functions", () => {
       oraiAddress: smartRoutesOraiAddr,
       injAddress: smartRoutesInjAddr
     });
-
-    console.dir(
-      {
-        msgSwapAndAction
-      },
-      { depth: null }
-    );
-
     expect(msgSwapAndAction).toEqual(expectResult);
+  });
+
+  it.each<[string, any, any, any]>([
+    [
+      smartRoutesOraiAddr,
+      alphaSmartRoute[0],
+      [
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenIn }
+                    },
+                    ask_asset_info: {
+                      native_token: {
+                        denom: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenIn,
+              amount: alphaSmartRoute[0].routes[0].paths[0].actions[0].tokenInAmount
+            }
+          ]
+        }
+      ],
+      [
+        {
+          memo: "",
+          receiver: smartRoutesOsmoAddr,
+          sender: smartRoutesOraiAddr,
+          sourceChannel: alphaSmartRoute[0].routes[0].paths[0].actions[1].bridgeInfo?.channel,
+          sourcePort: alphaSmartRoute[0].routes[0].paths[0].actions[1].bridgeInfo?.port,
+          token: {
+            amount: alphaSmartRoute[0].routes[0].paths[0].actions[1].tokenInAmount,
+            denom: alphaSmartRoute[0].routes[0].paths[0].actions[1].tokenIn
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        }
+      ]
+    ]
+    // [smartRoutesOraiAddr, alphaSmartRoute[1], [], []]
+  ])("test-get-msg-and-object-msg-transfers", (sender, route, expectResultMessages, expectResultMsgTransfer) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      userSlippage: 0,
+      sender: {
+        cosmos: sender
+      }
+    });
+    const routesFlatten = universalSwap.flattenSmartRouters(route.routes);
+    const { messages, msgTransfers } = universalSwap.getMessagesAndMsgTransfers(routesFlatten, {
+      oraiAddress: smartRoutesOraiAddr,
+      injAddress: smartRoutesInjAddr
+    });
+
+    expect(messages).toEqual(expectResultMessages);
+    expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
 });

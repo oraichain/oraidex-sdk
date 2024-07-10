@@ -456,7 +456,7 @@ export class UniversalSwapHandler {
     return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute: boolean) => {
+  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute?: boolean) => {
     const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
     const addressReceiver = this.getAddress(
       prefixReceiver,
