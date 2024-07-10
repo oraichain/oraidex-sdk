@@ -48,8 +48,7 @@ const oraichainToOraichain = async (chainId: "Oraichain") => {
       simulatePrice: "1",
       fromAmount,
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
-      userSlippage: 0.01,
-      smartRoutes: smartRoutes.routes
+      userSlippage: 0.01
     },
     { cosmosWallet: wallet, swapOptions: {} }
   );

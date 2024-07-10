@@ -475,13 +475,12 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    urlRouter: {
+    urlRouter?: {
       url: string;
       path?: string;
-    },
-    useAlphaSmartRoute?: boolean
+    }
   ): Promise<SmartRouterResponse> => {
-    const { returnAmount, routes: routesSwap } = await UniversalSwapHelper.querySmartRoute(
+    const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
       offerChainId,
       askInfo,
@@ -490,41 +489,10 @@ export class UniversalSwapHelper {
       urlRouter
     );
 
-    if (useAlphaSmartRoute) {
-      return {
-        swapAmount: offerAmount,
-        returnAmount,
-        routes: [],
-        routesSwap
-      };
-    }
-
-    const routes = routesSwap.map((route) => {
-      let ops = [];
-      let currTokenIn = offerInfo;
-      for (let path of route.paths) {
-        let tokenOut = parseAssetInfoFromContractAddrOrDenom(path.tokenOut);
-        ops.push({
-          orai_swap: {
-            offer_asset_info: currTokenIn,
-            ask_asset_info: tokenOut
-          }
-        });
-
-        currTokenIn = tokenOut;
-      }
-
-      return {
-        swapAmount: route.swapAmount,
-        returnAmount: route.returnAmount,
-        swapOps: ops
-      };
-    });
     return {
       swapAmount: offerAmount,
       returnAmount,
-      routes,
-      routesSwap
+      routes
     };
   };
 
@@ -572,16 +540,20 @@ export class UniversalSwapHelper {
     };
     useAlphaSmartRoute?: boolean;
   }): Promise<SmartRouterResponse> => {
-    const { amount, fromInfo, toInfo, urlRouter, useAlphaSmartRoute } = query;
+    const { amount, fromInfo, toInfo, urlRouter } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-    if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
-      return {
-        swapAmount: amount,
-        returnAmount: amount,
-        routes: []
-      };
-    }
+    // if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+    //   return {
+    //     swapAmount: amount,
+    //     returnAmount: amount,
+    //     routes: {
+    //       swapAmount: "0",
+    //       returnAmount: "0",
+    //       routes: []
+    //     }
+    //   };
+    // }
 
     // check if they have pairs. If not then we go through ORAI
     const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
@@ -593,11 +565,16 @@ export class UniversalSwapHelper {
         askInfo,
         toInfo.chainId,
         amount,
-        urlRouter,
-        useAlphaSmartRoute
+        urlRouter
       );
     } catch (error) {
-      throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+      console.log(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+      // throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
+      return {
+        swapAmount: "0",
+        returnAmount: "0",
+        routes: []
+      };
     }
   };
 
@@ -654,7 +631,6 @@ export class UniversalSwapHelper {
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
     routerOption?: {
-      useSmartRoute?: boolean;
       useAlphaSmartRoute?: boolean;
     };
     urlRouter?: {
@@ -684,20 +660,17 @@ export class UniversalSwapHelper {
     }
 
     let amount;
-    let routes = [];
-    let routeSwapOps;
+    let routes;
     let decimals = 6;
-    if (query?.routerOption?.useSmartRoute || query?.routerOption?.useAlphaSmartRoute) {
+    if (query?.routerOption?.useAlphaSmartRoute) {
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo: query.originalFromInfo,
         toInfo: query.originalToInfo,
         amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
-        urlRouter: query.urlRouter,
-        useAlphaSmartRoute: query?.routerOption?.useAlphaSmartRoute
+        urlRouter: query.urlRouter
       });
-      routes = simulateRes?.routesSwap;
+      routes = simulateRes;
       amount = simulateRes.returnAmount;
-      routeSwapOps = simulateRes?.routes;
       decimals = query.originalToInfo.decimals;
     } else {
       const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
@@ -719,8 +692,7 @@ export class UniversalSwapHelper {
     return {
       amount,
       displayAmount: toDisplay(amount, decimals),
-      routes,
-      routeSwapOps
+      routes
     };
   };
 

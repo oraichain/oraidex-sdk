@@ -118,8 +118,7 @@ export type SmartRouteSwapOperations = {
 export type SmartRouterResponse = {
   swapAmount: string;
   returnAmount: string;
-  routes: SmartRouteSwapOperations[];
-  routesSwap?: SmartRouteSwapAPIOperations[];
+  routes: SmartRouteSwapAPIOperations[];
 };
 
 export type SmartRouteSwapAPIOperations = {
@@ -252,6 +251,7 @@ interface RouteBase {
   tokenInAmount: string;
   tokenOut: string;
   tokenOutAmount: string;
+  isLastPath: boolean;
 }
 
 export interface Routes extends RouteBase {

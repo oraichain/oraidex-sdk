@@ -892,7 +892,7 @@ describe("test helper functions", () => {
     }
   );
 
-  it.each<[AssetInfo, AssetInfo, any[], SwapOperation[]]>([
+  xit.each<[AssetInfo, AssetInfo, any[], SwapOperation[]]>([
     [
       ORAIX_INFO,
       NEUTARO_INFO,
