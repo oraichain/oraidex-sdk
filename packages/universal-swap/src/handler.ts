@@ -582,8 +582,7 @@ export class UniversalSwapHandler {
     const routesFlatten = this.flattenSmartRouters(alphaSmartRoutes.routes);
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
-      // this.config.cosmosWallet.getKeplrAddr("injective-1")
-      "inj1sk53kt047ezf3kjhm4lzqdl4gngw7yg4yulgru"
+      this.config.cosmosWallet.getKeplrAddr("injective-1")
     ]);
 
     if (!oraiAddress || !injAddress) {
