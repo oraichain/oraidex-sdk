@@ -300,7 +300,6 @@ export class UniversalSwapHandler {
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
-  // TODO: need check func getAddress
   private getAddress = (prefix: string, { address60, address118 }, coinType: number = 118) => {
     const approve = {
       118: address118,
@@ -348,7 +347,6 @@ export class UniversalSwapHandler {
     ).toString();
 
     const msg = {
-      // TODO: need check address
       msg: {
         swap_and_action: {
           user_swap: {
@@ -373,7 +371,6 @@ export class UniversalSwapHandler {
     if (isInitial) {
       return {
         msgActionSwap: {
-          // TODO: need check address
           sender: this.swapData.sender.cosmos,
           contractAddress: this.getReceiverIBCHooks(route.chainId),
           funds: [
@@ -425,7 +422,6 @@ export class UniversalSwapHandler {
     return {
       msgForwardObject: {
         forward: {
-          // TODO: need check address
           receiver: this.getReceiverIBCHooks(
             route.tokenOutChainId,
             this.getAddress(
@@ -564,7 +560,6 @@ export class UniversalSwapHandler {
     return { messages, msgTransfers };
   };
 
-  // TODO: need refactor smart router osmosis
   async alphaSmartRouterSwap() {
     const { cosmos } = this.swapData.sender;
     const { alphaSmartRoutes, originalFromToken } = this.swapData;
