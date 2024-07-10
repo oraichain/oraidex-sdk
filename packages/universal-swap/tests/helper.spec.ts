@@ -962,7 +962,8 @@ describe("test helper functions", () => {
       "Oraichain",
       askAsset,
       "Oraichain",
-      "1"
+      "1",
+      { url: "test" }
     );
     let getSwapOperationMsgsRoute = res.routes[0].swapOps;
     expect(getSwapOperationMsgsRoute).toEqual(expect.arrayContaining(expectSwapRoute));

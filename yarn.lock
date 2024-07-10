@@ -3522,6 +3522,11 @@
     ethers "^5.0.15"
     tronweb "5.3.0"
 
+"@oraichain/oraiswap-v3-wasm@^0.1.0":
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/@oraichain/oraiswap-v3-wasm/-/oraiswap-v3-wasm-0.1.0.tgz#aff12c614635ad2c4343ef62d8497e41d52408f4"
+  integrity sha512-87YMqhBVgVJoX5BM+AeGc13I0dTR/hIHg6sIh+j9M/T0OecaCZR4O3h+CiaBKrK9Eej0gccv9zI02FwjAggAfw==
+
 "@oraichain/wasm-json-toolkit@^1.0.24":
   version "1.0.24"
   resolved "https://registry.yarnpkg.com/@oraichain/wasm-json-toolkit/-/wasm-json-toolkit-1.0.24.tgz#e9a431560e8e946fbb7ec257e5f13d9320ffd23a"
