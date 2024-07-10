@@ -56,6 +56,7 @@ jobs:
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish Universal-swap
         id: publish-universal-swap
         continue-on-error: true
@@ -63,6 +64,7 @@ jobs:
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish Oraidex contracts-sdk
         id: publish-oraidex-contracts-sdk
         continue-on-error: true
@@ -75,6 +77,14 @@ jobs:
         id: publish-oraidex-contracts-build
         continue-on-error: true
         run: yarn deploy packages/contracts-build
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish Oraidex oraiswap-v3
+        id: publish-oraiswap-v3
+        continue-on-error: true
+        run: yarn deploy packages/oraiswap-v3
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
