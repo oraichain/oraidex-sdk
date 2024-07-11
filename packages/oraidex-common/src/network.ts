@@ -716,7 +716,7 @@ export const chainInfos: CustomChainInfo[] = [
   /// popular networks already included
   {
     rpc: "https://injective.rpc.orai.io/",
-    rest: "https://rest.cosmos.directory/injective",
+    rest: "https://injective.lcd.orai.io/",
     chainId: "injective-1",
     chainName: "Injective",
     networkType: "cosmos",
