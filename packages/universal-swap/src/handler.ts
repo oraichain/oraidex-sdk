@@ -691,6 +691,7 @@ export class UniversalSwapHandler {
   }): Promise<EvmResponse> {
     const { fromToken, toTokenContractAddr, address, fromAmount, simulatePrice, slippage, destination } = data;
     const { metamaskAddress, tronAddress } = address;
+    const { recipientAddress } = this.swapData;
     const signer = this.config.evmWallet.getSigner();
     const finalTransferAddress = this.config.evmWallet.getFinalEvmAddress(fromToken.chainId, {
       metamaskAddress,
@@ -699,6 +700,9 @@ export class UniversalSwapHandler {
     const finalFromAmount = toAmount(fromAmount, fromToken.decimals).toString();
     const gravityContractAddr = ethers.utils.getAddress(gravityContracts[fromToken.chainId]);
     const checkSumAddress = ethers.utils.getAddress(finalTransferAddress);
+
+    const finalRecipientAddress = recipientAddress ? ethers.utils.getAddress(recipientAddress) : checkSumAddress;
+
     const gravityContract = Bridge__factory.connect(gravityContractAddr, signer);
     const routerV2Addr = await gravityContract.swapRouter();
     const minimumReceive = BigInt(calculateMinReceive(simulatePrice, finalFromAmount, slippage, fromToken.decimals));
@@ -731,7 +735,7 @@ export class UniversalSwapHandler {
         finalFromAmount,
         minimumReceive,
         evmRoute,
-        checkSumAddress,
+        finalRecipientAddress,
         new Date().getTime() + UNISWAP_ROUTER_DEADLINE
       );
     } else {
