@@ -679,7 +679,7 @@ export class UniversalSwapHandler {
   // TODO: write test cases
   public async evmSwap(data: {
     fromToken: TokenItemType;
-    toTokenContractAddr: string;
+    toToken: TokenItemType;
     fromAmount: number;
     address: {
       metamaskAddress?: string;
@@ -689,7 +689,8 @@ export class UniversalSwapHandler {
     destination: string;
     simulatePrice: string;
   }): Promise<EvmResponse> {
-    const { fromToken, toTokenContractAddr, address, fromAmount, simulatePrice, slippage, destination } = data;
+    const { fromToken, toToken, address, fromAmount, simulatePrice, slippage, destination } = data;
+    const toTokenContractAddr = toToken.contractAddress;
     const { metamaskAddress, tronAddress } = address;
     const { recipientAddress } = this.swapData;
     const signer = this.config.evmWallet.getSigner();
@@ -726,7 +727,7 @@ export class UniversalSwapHandler {
         destination,
         { value: finalFromAmount }
       );
-    } else if (!toTokenContractAddr) {
+    } else if (!toTokenContractAddr || fromToken.chainId === toToken.chainId) {
       // Case 2: swap to native eth / bnb. Get evm route so that we can swap from token -> native eth / bnb
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
@@ -919,6 +920,7 @@ export class UniversalSwapHandler {
     };
     const evmSwapData = {
       fromToken: originalFromToken,
+      toToken: originalToToken,
       toTokenContractAddr: originalToToken.contractAddress,
       address: { metamaskAddress, tronAddress },
       fromAmount: fromAmount,
@@ -927,8 +929,8 @@ export class UniversalSwapHandler {
       simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
-      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
+    if (!this.config.evmWallet?.isTron(originalFromToken.chainId))
+      await this.config.evmWallet?.switchNetwork(originalFromToken.chainId);
     if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
