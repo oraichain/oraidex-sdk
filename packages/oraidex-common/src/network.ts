@@ -83,7 +83,6 @@ export type EvmChainId =
   | "0x38" // bsc
   | "0x01" // ethereum
   | "0x1ae6" // kawaii
-  | "0x5afe" // oasis
   | "0x2b6653dc"; // tron
 
 export type NetworkChainId = CosmosChainId | EvmChainId;
