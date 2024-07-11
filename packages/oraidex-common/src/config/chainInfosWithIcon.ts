@@ -189,11 +189,6 @@ export const chainIcons: ChainIcon[] = [
     chainId: "noble-1",
     Icon: NobleIcon,
     IconLight: NobleIcon
-  },
-  {
-    chainId: "0x5afe",
-    Icon: OasisIcon,
-    IconLight: OasisIcon
   }
 ];
 export const mapListWithIcon = (list: any[], listIcon: ChainIcon[] | TokenIcon[], key: "chainId" | "coinGeckoId") => {
