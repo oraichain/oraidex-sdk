@@ -727,12 +727,23 @@ export class UniversalSwapHandler {
         destination,
         { value: finalFromAmount }
       );
-    } else if (!toTokenContractAddr || fromToken.chainId === toToken.chainId) {
+    } else if (!toTokenContractAddr) {
       // Case 2: swap to native eth / bnb. Get evm route so that we can swap from token -> native eth / bnb
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
 
       result = await routerV2.swapExactTokensForETH(
+        finalFromAmount,
+        minimumReceive,
+        evmRoute,
+        finalRecipientAddress,
+        new Date().getTime() + UNISWAP_ROUTER_DEADLINE
+      );
+    } else if (fromToken.chainId === toToken.chainId) {
+      const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
+      const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
+
+      result = await routerV2.swapExactTokensForTokens(
         finalFromAmount,
         minimumReceive,
         evmRoute,
