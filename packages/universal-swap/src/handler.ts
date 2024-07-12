@@ -739,7 +739,7 @@ export class UniversalSwapHandler {
         finalRecipientAddress,
         new Date().getTime() + UNISWAP_ROUTER_DEADLINE
       );
-    } else if (fromToken.chainId === toToken.chainId) {
+    } else if (toTokenContractAddr) {
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(
         fromToken.chainId,
