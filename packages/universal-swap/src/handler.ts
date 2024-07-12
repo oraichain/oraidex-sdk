@@ -739,7 +739,7 @@ export class UniversalSwapHandler {
         finalRecipientAddress,
         new Date().getTime() + UNISWAP_ROUTER_DEADLINE
       );
-    } else {
+    } else if (destination === "") {
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(
         fromToken.chainId,
@@ -754,18 +754,16 @@ export class UniversalSwapHandler {
         finalRecipientAddress,
         new Date().getTime() + UNISWAP_ROUTER_DEADLINE
       );
+    } else {
+      // Case 3: swap erc20 token to another erc20 token with a given destination (possibly sent to Oraichain or other networks)
+      result = await gravityContract.bridgeFromERC20(
+        ethers.utils.getAddress(fromToken.contractAddress),
+        ethers.utils.getAddress(toTokenContractAddr),
+        finalFromAmount,
+        minimumReceive, // use
+        destination
+      );
     }
-
-    // else {
-    //   // Case 3: swap erc20 token to another erc20 token with a given destination (possibly sent to Oraichain or other networks)
-    //   result = await gravityContract.bridgeFromERC20(
-    //     ethers.utils.getAddress(fromToken.contractAddress),
-    //     ethers.utils.getAddress(toTokenContractAddr),
-    //     finalFromAmount,
-    //     minimumReceive, // use
-    //     destination
-    //   );
-    // }
     await result.wait();
     return { transactionHash: result.hash };
   }
