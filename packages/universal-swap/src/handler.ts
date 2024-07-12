@@ -741,7 +741,11 @@ export class UniversalSwapHandler {
       );
     } else if (fromToken.chainId === toToken.chainId) {
       const routerV2 = IUniswapV2Router02__factory.connect(routerV2Addr, signer);
-      const evmRoute = UniversalSwapHelper.getEvmSwapRoute(fromToken.chainId, fromToken.contractAddress);
+      const evmRoute = UniversalSwapHelper.getEvmSwapRoute(
+        fromToken.chainId,
+        fromToken.contractAddress,
+        toToken.contractAddress
+      );
 
       result = await routerV2.swapExactTokensForTokens(
         finalFromAmount,
