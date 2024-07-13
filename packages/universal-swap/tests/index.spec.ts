@@ -111,7 +111,7 @@ describe("test universal swap handler functions", () => {
   let routerContract: OraiswapRouterClient;
   let oracleContract: OraiswapOracleClient;
   let airiToken: OraiswapTokenClient;
-  const now = Date.now();
+  const now = 1000;
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -322,7 +322,8 @@ describe("test universal swap handler functions", () => {
           userSlippage: 1,
           fromAmount: 1
         },
-        config ?? { cosmosWallet, evmWallet }
+        config ?? { cosmosWallet, evmWallet },
+        now
       );
     }
   }
@@ -527,7 +528,7 @@ describe("test universal swap handler functions", () => {
     expect(result).toEqual("0x993d06fc97f45f16e4805883b98a6c20bab54964");
     const mockTronWeb: _TronWeb = new TronWeb("foo", "foo");
     mockTronWeb.defaultAddress.base58 = "TNJksEkvvdmae8uXYkNE9XKHbTDiSQrpbf";
-    vi.spyOn(evmWallet, "tronWeb", 'get').mockImplementation(() => mockTronWeb);
+    vi.spyOn(evmWallet, "tronWeb", "get").mockImplementation(() => mockTronWeb);
     result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
       metamaskAddress: undefined,
       tronAddress: undefined

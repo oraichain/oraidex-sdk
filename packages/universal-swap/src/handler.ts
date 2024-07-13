@@ -62,7 +62,11 @@ import { Height } from "cosmjs-types/ibc/core/client/v1/client";
 import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 export class UniversalSwapHandler {
-  constructor(public swapData: UniversalSwapData, public config: UniversalSwapConfig) {}
+  constructor(
+    public swapData: UniversalSwapData,
+    public config: UniversalSwapConfig,
+    private readonly currentTimestamp = Date.now()
+  ) {}
 
   private getTokenOnOraichain(coinGeckoId: CoinGeckoId): TokenItemType {
     const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
@@ -288,7 +292,7 @@ export class UniversalSwapHandler {
           sender: this.swapData.sender.cosmos,
           receiver: toAddress,
           memo: ibcMemo,
-          timeoutTimestamp: calculateTimeoutTimestamp(ibcInfos.timeout)
+          timeoutTimestamp: calculateTimeoutTimestamp(ibcInfos.timeout, this.currentTimestamp)
         })
       };
       return [...msgExecuteSwap, ...getEncodedExecuteMsgs, msgTransfer];
@@ -319,7 +323,7 @@ export class UniversalSwapHandler {
     route: Routes,
     { oraiAddress, injAddress },
     isOnlySwap: boolean,
-    isInitial?: boolean
+    isInitial: boolean
   ) {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     let post_swap_action = {};
@@ -363,7 +367,7 @@ export class UniversalSwapHandler {
               amount: minimumReceive
             }
           },
-          timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+          timeout_timestamp: Number(calculateTimeoutTimestamp(3600, this.currentTimestamp)),
           post_swap_action,
           affiliates: []
         }
@@ -456,7 +460,7 @@ export class UniversalSwapHandler {
     return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute?: boolean) => {
+  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute: boolean) => {
     const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
     const addressReceiver = this.getAddress(
       prefixReceiver,
@@ -477,7 +481,7 @@ export class UniversalSwapHandler {
         chainInfoRecover.bip44.coinType
       ),
       memo: "",
-      timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+      timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, this.currentTimestamp))
     };
   };
 
@@ -523,7 +527,12 @@ export class UniversalSwapHandler {
         } else {
           if (isOsmosisChain) {
             if (isSwap) {
-              const { msgActionSwap } = this.getSwapAndActionInOsmosis(route, { oraiAddress, injAddress }, isLastRoute);
+              const { msgActionSwap } = this.getSwapAndActionInOsmosis(
+                route,
+                { oraiAddress, injAddress },
+                isLastRoute,
+                false
+              );
               this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgActionSwap);
               pathProperty[route.path] += ".wasm.msg.swap_and_action.post_swap_action";
               pathReceiver[route.path] = isLastRoute

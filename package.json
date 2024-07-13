@@ -2,6 +2,7 @@
   "name": "root",
   "private": "true",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "postinstall": "patch-package",
     "test": "vitest run --silent=false --coverage --no-file-parallelism --no-isolate --pool=threads",
