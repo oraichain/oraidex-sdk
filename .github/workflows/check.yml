@@ -46,15 +46,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-yarn-
 
+      - name: Run nx reset workspace
+        run: |
+          yarn nx reset
+
       - name: Install Dependencies
         if: steps.yarn-cache.outputs.cache-hit != 'true'
         run: |
           npm install -g yarn
           yarn
-
-      - name: Run nx reset workspace
-        run: |
-          yarn nx reset
 
       - name: Run test
         run: |
