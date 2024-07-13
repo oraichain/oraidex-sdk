@@ -1,6 +1,9 @@
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { readFileSync } from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export type ContractName =
   | "oraiswap-token"
@@ -14,7 +17,7 @@ export type ContractName =
   | "oraiswap-staking"
   | "oraidex-listing-contract";
 
-const contractDir = path.join(path.dirname(module.filename), "..", "data");
+const contractDir = path.join(__dirname, "..", "data");
 
 export const getContractDir = (name: ContractName = "oraiswap-orderbook") => {
   return path.join(contractDir, name + ".wasm");

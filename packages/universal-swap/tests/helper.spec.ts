@@ -66,6 +66,7 @@ import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "../src/proto/proto-gen";
 import { Coin, coin } from "@cosmjs/proto-signing";
+import { expect, afterAll, beforeAll, describe, it, vi } from "vitest";
 
 describe("test helper functions", () => {
   it("test-buildSwapRouterKey", () => {
@@ -385,7 +386,7 @@ describe("test helper functions", () => {
   ])(
     "test-getRoute-given %s coingecko id, chain id %s, send-to %s, chain id %s with receiver %s should have swapRoute %s",
     (fromCoingeckoId, fromChainId, toCoingeckoId, toChainId, receiver, swapRoute, willThrow) => {
-      jest
+      vi
         .spyOn(dexCommonHelper, "isEthAddress")
         .mockImplementation((address) => (address.includes("0x") ? true : false));
       const fromToken = flattenTokens.find(
@@ -575,7 +576,7 @@ describe("test helper functions", () => {
       swapRoute,
       willThrow
     ) => {
-      jest
+      vi
         .spyOn(dexCommonHelper, "isEthAddress")
         .mockImplementation((address) => (address.includes("0x") ? true : false));
 
@@ -892,7 +893,7 @@ describe("test helper functions", () => {
     }
   );
 
-  xit.each<[AssetInfo, AssetInfo, any[], SwapOperation[]]>([
+  it.skip.each<[AssetInfo, AssetInfo, any[], SwapOperation[]]>([
     [
       ORAIX_INFO,
       NEUTARO_INFO,
@@ -952,7 +953,7 @@ describe("test helper functions", () => {
       ]
     ]
   ])("test-generateSmartRouteForSwap", async (offerAsset, askAsset, paths, expectSwapRoute) => {
-    jest.spyOn(UniversalSwapHelper, "querySmartRoute").mockResolvedValue({
+    vi.spyOn(UniversalSwapHelper, "querySmartRoute").mockResolvedValue({
       swapAmount: "1",
       returnAmount: "1",
       routes: [{ swapAmount: "1", returnAmount: "1", paths: paths }]
@@ -965,7 +966,7 @@ describe("test helper functions", () => {
       "1",
       { url: "test" }
     );
-    let getSwapOperationMsgsRoute = res.routes[0].swapOps;
+    let getSwapOperationMsgsRoute = res.routes[0].paths;
     expect(getSwapOperationMsgsRoute).toEqual(expect.arrayContaining(expectSwapRoute));
     getSwapOperationMsgsRoute.forEach((swap) => {
       expect(swap).toMatchObject({

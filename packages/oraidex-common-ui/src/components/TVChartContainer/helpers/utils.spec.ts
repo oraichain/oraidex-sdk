@@ -7,6 +7,7 @@ import {
   // parseChannelFromPair,
   parseFullSymbol
 } from "./utils";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describe.only("test-utils-func", () => {
   it.each([
