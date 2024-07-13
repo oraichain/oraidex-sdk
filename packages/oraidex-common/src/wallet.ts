@@ -7,7 +7,7 @@ import { TokenItemType } from "./token";
 import { ethers } from "ethers";
 import { IERC20Upgradeable__factory } from "./typechain-types";
 import { JsonRpcSigner } from "@ethersproject/providers";
-import { TronWeb } from "./tronweb";
+import { TronWeb, TransactionBuilder, Trx } from "tronweb";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
 import { Stargate } from "@injectivelabs/sdk-ts";
@@ -128,6 +128,8 @@ export abstract class EvmWallet {
     if (!this.tronWeb) {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
+    const transactionBuilder = new TransactionBuilder(this.tronWeb);
+    const trx = new Trx(this.tronWeb);
     try {
       const uint256Index = parameters.findIndex((param) => param.type === "uint256");
 
@@ -143,7 +145,7 @@ export abstract class EvmWallet {
       }
 
       console.log("before building tx: ", issuerAddress);
-      const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
+      const transaction = await transactionBuilder.triggerSmartContract(
         address,
         functionSelector,
         options,
@@ -158,10 +160,10 @@ export abstract class EvmWallet {
       console.log("before signing");
 
       // sign from inject tronWeb
-      const singedTransaction = await this.tronWeb.trx.sign(transaction.transaction);
+      const singedTransaction = await trx.sign(transaction.transaction);
       console.log("signed tx: ", singedTransaction);
-      const result = await this.tronWeb.trx.sendRawTransaction(singedTransaction);
-      return { transactionHash: result.txid };
+      const result = await trx.sendRawTransaction(singedTransaction);
+      return { transactionHash: result.transaction.txID };
     } catch (error) {
       throw new Error(error);
     }

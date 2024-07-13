@@ -58,9 +58,8 @@ import {
   UniversalSwapType
 } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
-import { Height } from "cosmjs-types/ibc/core/client/v1/client";
-import { CwIcs20LatestQueryClient } from "@oraichain/common-contracts-sdk";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+
 export class UniversalSwapHandler {
   constructor(
     public swapData: UniversalSwapData,

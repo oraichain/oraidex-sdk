@@ -28,9 +28,9 @@ import {
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable vi.spyOn & avoid redefine property error
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
 import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
-import TronWeb from "tronweb";
+// workaround for the error: TronWeb is not a constructor when using tronweb v6 beta
+import TronWeb from "tronweb/dist/TronWeb.node";
 import Long from "long";
-import { TronWeb as _TronWeb } from "@oraichain/oraidex-common/build/tronweb";
 import { fromUtf8, toUtf8 } from "@cosmjs/encoding";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
@@ -275,7 +275,6 @@ describe("test universal swap handler functions", () => {
     constructor(rpc: string) {
       super();
       this.provider = new JsonRpcProvider(rpc);
-      this.tronWeb = new TronWeb("foo", "foo");
     }
 
     switchNetwork(chainId: string | number): Promise<void> {
@@ -526,9 +525,9 @@ describe("test universal swap handler functions", () => {
       metamaskAddress: "0x993d06fc97f45f16e4805883b98a6c20bab54964"
     });
     expect(result).toEqual("0x993d06fc97f45f16e4805883b98a6c20bab54964");
-    const mockTronWeb: _TronWeb = new TronWeb("foo", "foo");
+    const mockTronWeb = new TronWeb("foo", "foo");
     mockTronWeb.defaultAddress.base58 = "TNJksEkvvdmae8uXYkNE9XKHbTDiSQrpbf";
-    vi.spyOn(evmWallet, "tronWeb", "get").mockImplementation(() => mockTronWeb);
+    vi.spyOn(evmWallet, "tronWeb", "get").mockReturnValue(mockTronWeb);
     result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
       metamaskAddress: undefined,
       tronAddress: undefined
