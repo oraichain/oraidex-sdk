@@ -42,9 +42,9 @@ import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTok
 import fs from "fs";
 import path from "path";
 import { expect, afterAll, beforeAll, describe, it } from "vitest";
-import { fileURLToPath } from 'url';
+import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
-console.log("__filename: ", __filename)
+console.log("__filename: ", __filename);
 const __dirname = path.dirname(__filename);
 
 describe("should helper functions in helper run exactly", () => {
@@ -549,7 +549,7 @@ describe("should helper functions in helper run exactly", () => {
       [{ _contract_address: "addr1", key2: "value2" }, { _contract_address: "addr2" }]
     ]
   ])("test-parseWasmEvents-with-case: %p", (_case, input, expectedOutput) => {
-    expect(parseWasmEvents(input).filter(event => event)).toEqual(expectedOutput);
+    expect(parseWasmEvents(input).filter((event) => event)).toEqual(expectedOutput);
   });
 
   it.each<[string, NetworkChainId, { isValid: boolean; network?: string; error?: string }]>([

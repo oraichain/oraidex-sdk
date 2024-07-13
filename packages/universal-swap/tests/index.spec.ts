@@ -111,6 +111,7 @@ describe("test universal swap handler functions", () => {
   let routerContract: OraiswapRouterClient;
   let oracleContract: OraiswapOracleClient;
   let airiToken: OraiswapTokenClient;
+  const now = Date.now();
 
   beforeEach(() => {
     vi.restoreAllMocks();
@@ -1148,7 +1149,7 @@ describe("test universal swap handler functions", () => {
                   ).toString()
                 }
               },
-              timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
               post_swap_action: {
                 transfer: {
                   to_address: smartRoutesOsmoAddr
@@ -1207,7 +1208,7 @@ describe("test universal swap handler functions", () => {
                   ).toString()
                 }
               },
-              timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
               post_swap_action: {},
               affiliates: []
             }
@@ -1256,7 +1257,7 @@ describe("test universal swap handler functions", () => {
                     ).toString()
                   }
                 },
-                timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
                 post_swap_action: {},
                 affiliates: []
               }
@@ -1300,7 +1301,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOsmoAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
       }
     ],
     [
@@ -1316,7 +1317,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
       }
     ],
     [
@@ -1332,7 +1333,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
       }
     ],
     [
@@ -1348,7 +1349,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
       }
     ]
   ])("test-get-msg-transfer-with-smart-route", (sender, route, expectResult) => {
@@ -1464,7 +1465,7 @@ describe("test universal swap handler functions", () => {
             amount: alphaSmartRouteWithOneRoutes0_0_1.tokenInAmount,
             denom: alphaSmartRouteWithOneRoutes0_0_1.tokenIn
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
         }
       ]
     ],
@@ -1543,7 +1544,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithTwoRoutes0_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1556,7 +1557,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
         }
       ]
     ],
@@ -1664,7 +1665,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithThreeRoutes0_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1677,7 +1678,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
         },
         {
           sourcePort: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.port,
@@ -1718,7 +1719,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithThreeRoutes1_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1731,7 +1732,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
         }
       ]
     ]
