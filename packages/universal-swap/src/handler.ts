@@ -523,7 +523,7 @@ export class UniversalSwapHandler {
               pathReceiver[route.path] = isLastRoute
                 ? pathProperty[route.path] + ".transfer.to_address"
                 : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
-            } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
+            } else if (index && routes[index - 1].chainId === route.chainId) {
               const { msgTransferInfo } = this.getIbcTransferInfo(route, { oraiAddress, injAddress });
               this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgTransferInfo);
               pathReceiver[route.path] = pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
@@ -588,8 +588,6 @@ export class UniversalSwapHandler {
       injAddress
     });
 
-    console.dir({ msgTransfers }, { depth: null });
-    return;
     const messagesOsmosisStringifyMemo = [];
     const transferStringifyMemo = [];
 
@@ -623,7 +621,7 @@ export class UniversalSwapHandler {
     return routesFlatten;
   }
 
-  private updateNestedProperty = (obj, key, value) => {
+  private updateNestedProperty = (obj, key: string, value: any) => {
     const keys = key.split(".");
     keys.slice(0, -1).reduce((current, k) => {
       if (!(k in current)) current[k] = {};
@@ -631,7 +629,7 @@ export class UniversalSwapHandler {
     }, obj)[keys[keys.length - 1]] = value;
   };
 
-  private updateNestedReceiveProperty = (obj, path: string, value: any) => {
+  private updateNestedReceiveProperty = (obj, path: string, value: string) => {
     const keys = path.split(".");
     let current = obj;
     for (let i = 0; i < keys.length - 1; i++) {
