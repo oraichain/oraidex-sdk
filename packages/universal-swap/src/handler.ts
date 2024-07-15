@@ -417,19 +417,17 @@ export class UniversalSwapHandler {
     return { msgTransferInfo };
   }
 
-  public createForwardObject = (route: Routes, { oraiAddress, injAddress }) => {
+  public createForwardObject = (route: Routes, { oraiAddress, injAddress }, isLastRoute?: boolean) => {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
+    const addressReceiver = this.getAddress(
+      prefixReceiver,
+      { address60: injAddress, address118: oraiAddress },
+      chainInfoReceiver.bip44.coinType
+    );
     return {
       msgForwardObject: {
         forward: {
-          receiver: this.getReceiverIBCHooks(
-            route.tokenOutChainId,
-            this.getAddress(
-              prefixReceiver,
-              { address60: injAddress, address118: oraiAddress },
-              chainInfoReceiver.bip44.coinType
-            )
-          ),
+          receiver: isLastRoute ? addressReceiver : this.getReceiverIBCHooks(route.tokenOutChainId, addressReceiver),
           port: route.bridgeInfo.port,
           channel: route.bridgeInfo.channel,
           timeout: 0,
@@ -532,7 +530,7 @@ export class UniversalSwapHandler {
               pathProperty[route.path] += ".ibc_transfer.ibc_info.memo";
             }
           } else {
-            const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress });
+            const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress }, isLastRoute);
             this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgForwardObject);
             pathReceiver[route.path] = pathProperty[route.path] + ".forward.receiver";
             pathProperty[route.path] += ".forward.next";
@@ -590,6 +588,8 @@ export class UniversalSwapHandler {
       injAddress
     });
 
+    console.dir({ msgTransfers }, { depth: null });
+    return;
     const messagesOsmosisStringifyMemo = [];
     const transferStringifyMemo = [];
 
