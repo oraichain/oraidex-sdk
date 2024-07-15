@@ -300,7 +300,6 @@ export class UniversalSwapHandler {
     return [...msgExecuteSwap, ...msgExecuteTransfer];
   }
 
-  // TODO: need check func getAddress
   private getAddress = (prefix: string, { address60, address118 }, coinType: number = 118) => {
     const approve = {
       118: address118,
@@ -348,7 +347,6 @@ export class UniversalSwapHandler {
     ).toString();
 
     const msg = {
-      // TODO: need check address
       msg: {
         swap_and_action: {
           user_swap: {
@@ -373,7 +371,6 @@ export class UniversalSwapHandler {
     if (isInitial) {
       return {
         msgActionSwap: {
-          // TODO: need check address
           sender: this.swapData.sender.cosmos,
           contractAddress: this.getReceiverIBCHooks(route.chainId),
           funds: [
@@ -420,20 +417,17 @@ export class UniversalSwapHandler {
     return { msgTransferInfo };
   }
 
-  public createForwardObject = (route: Routes, { oraiAddress, injAddress }) => {
+  public createForwardObject = (route: Routes, { oraiAddress, injAddress }, isLastRoute?: boolean) => {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
+    const addressReceiver = this.getAddress(
+      prefixReceiver,
+      { address60: injAddress, address118: oraiAddress },
+      chainInfoReceiver.bip44.coinType
+    );
     return {
       msgForwardObject: {
         forward: {
-          // TODO: need check address
-          receiver: this.getReceiverIBCHooks(
-            route.tokenOutChainId,
-            this.getAddress(
-              prefixReceiver,
-              { address60: injAddress, address118: oraiAddress },
-              chainInfoReceiver.bip44.coinType
-            )
-          ),
+          receiver: isLastRoute ? addressReceiver : this.getReceiverIBCHooks(route.tokenOutChainId, addressReceiver),
           port: route.bridgeInfo.port,
           channel: route.bridgeInfo.channel,
           timeout: 0,
@@ -529,14 +523,14 @@ export class UniversalSwapHandler {
               pathReceiver[route.path] = isLastRoute
                 ? pathProperty[route.path] + ".transfer.to_address"
                 : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
-            } else if (index > 0 && routes[index - 1].chainId === route.chainId) {
+            } else if (index && routes[index - 1].chainId === route.chainId) {
               const { msgTransferInfo } = this.getIbcTransferInfo(route, { oraiAddress, injAddress });
               this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgTransferInfo);
               pathReceiver[route.path] = pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
               pathProperty[route.path] += ".ibc_transfer.ibc_info.memo";
             }
           } else {
-            const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress });
+            const { msgForwardObject } = this.createForwardObject(route, { oraiAddress, injAddress }, isLastRoute);
             this.updateNestedProperty(msgTransfers[route.path], pathProperty[route.path], msgForwardObject);
             pathReceiver[route.path] = pathProperty[route.path] + ".forward.receiver";
             pathProperty[route.path] += ".forward.next";
@@ -564,7 +558,6 @@ export class UniversalSwapHandler {
     return { messages, msgTransfers };
   };
 
-  // TODO: need refactor smart router osmosis
   async alphaSmartRouterSwap() {
     const { cosmos } = this.swapData.sender;
     const { alphaSmartRoutes, originalFromToken } = this.swapData;
@@ -628,7 +621,7 @@ export class UniversalSwapHandler {
     return routesFlatten;
   }
 
-  private updateNestedProperty = (obj, key, value) => {
+  private updateNestedProperty = (obj, key: string, value: any) => {
     const keys = key.split(".");
     keys.slice(0, -1).reduce((current, k) => {
       if (!(k in current)) current[k] = {};
@@ -636,7 +629,7 @@ export class UniversalSwapHandler {
     }, obj)[keys[keys.length - 1]] = value;
   };
 
-  private updateNestedReceiveProperty = (obj, path: string, value: any) => {
+  private updateNestedReceiveProperty = (obj, path: string, value: string) => {
     const keys = path.split(".");
     let current = obj;
     for (let i = 0; i < keys.length - 1; i++) {
