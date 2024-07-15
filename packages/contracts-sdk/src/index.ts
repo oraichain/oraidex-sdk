@@ -26,4 +26,6 @@ export * as OraiswapTokenTypes from './OraiswapToken.types';
 export * from './OraiswapToken.client';
 export * as ProxySnapshotTypes from './ProxySnapshot.types';
 export * from './ProxySnapshot.client';
+export * as OraiswapV3Types from './OraiswapV3.types';
+export * from './OraiswapV3.client';
 export * from "./types";
