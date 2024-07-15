@@ -1,0 +1,82 @@
+{
+  "rpc": "https://rpc.orai.io",
+  "rest": "https://lcd.orai.io",
+  "chainId": "Oraichain",
+  "chainName": "Oraichain",
+  "networkType": "cosmos",
+  "stakeCurrency": {
+    "coinDenom": "ORAI",
+    "coinMinimalDenom": "orai",
+    "coinDecimals": 6,
+    "coinGeckoId": "oraichain-token",
+    "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7533.png"
+  },
+  "bip44": {
+    "coinType": 118
+  },
+  "bech32Config": {
+    "bech32PrefixAccAddr": "orai",
+    "bech32PrefixAccPub": "oraipub",
+    "bech32PrefixValAddr": "oraivaloper",
+    "bech32PrefixValPub": "oraivaloperpub",
+    "bech32PrefixConsAddr": "oraivalcons",
+    "bech32PrefixConsPub": "oraivalconspub"
+  },
+  "currencies": [
+    {
+      "coinDenom": "ORAI",
+      "coinMinimalDenom": "orai",
+      "coinDecimals": 6,
+      "coinGeckoId": "oraichain-token",
+      "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7533.png"
+    },
+    {
+      "type": "cw20",
+      "coinDenom": "AIRI",
+      "coinMinimalDenom": "cw20:orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg:aiRight Token",
+      "contractAddress": "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg",
+      "coinDecimals": 6,
+      "coinGeckoId": "airight",
+      "coinImageUrl": "https://i.ibb.co/m8mCyMr/airi.png"
+    },
+    {
+      "type": "cw20",
+      "coinDenom": "ORAIX",
+      "coinMinimalDenom": "cw20:orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge:OraiDex Token",
+      "contractAddress": "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
+      "coinDecimals": 6,
+      "coinImageUrl": "https://i.ibb.co/VmMJtf7/oraix.png"
+    },
+    {
+      "type": "cw20",
+      "coinDenom": "USDT",
+      "coinMinimalDenom": "cw20:orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh:Tether",
+      "contractAddress": "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+      "coinDecimals": 6,
+      "coinGeckoId": "tether",
+      "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+    }
+  ],
+  "feeCurrencies": [
+    {
+      "coinDenom": "ORAI",
+      "coinMinimalDenom": "orai",
+      "coinDecimals": 6,
+      "coinGeckoId": "oraichain-token",
+      "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7533.png"
+    }
+  ],
+  "gasPriceStep": {
+    "low": 0,
+    "average": 0.000025,
+    "high": 0.00004
+  },
+  "features": ["stargate", "ibc-transfer", "cosmwasm"],
+  "chainSymbolImageUrl": "https://orai.io/images/logos/logomark-dark.png",
+  "txExplorer": {
+    "name": "Oraiscan",
+    "txUrl": "https://scan.orai.io/txs/{txHash}",
+    "accountUrl": "https://scan.orai.io/account/{address}"
+  },
+  "beta": true
+}

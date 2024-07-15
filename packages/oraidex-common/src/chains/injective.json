@@ -1,0 +1,61 @@
+{
+  "rpc": "https://injective.rpc.orai.io",
+  "rest": "https://injective.lcd.orai.io",
+  "chainId": "injective-1",
+  "chainName": "Injective",
+  "networkType": "cosmos",
+  "stakeCurrency": {
+    "coinDenom": "INJ",
+    "coinMinimalDenom": "inj",
+    "coinDecimals": 18,
+    "coinGeckoId": "injective-protocol",
+    "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png",
+    "gasPriceStep": {
+      "low": 5000000000,
+      "average": 25000000000,
+      "high": 50000000000
+    }
+  },
+  "bip44": {
+    "coinType": 60
+  },
+  "gasPriceStep": {
+    "low": 5000000000,
+    "average": 25000000000,
+    "high": 50000000000
+  },
+  "coinType": 60,
+  "bech32Config": {
+    "bech32PrefixAccAddr": "orai",
+    "bech32PrefixAccPub": "oraipub",
+    "bech32PrefixValAddr": "oraivaloper",
+    "bech32PrefixValPub": "oraivaloperpub",
+    "bech32PrefixConsAddr": "oraivalcons",
+    "bech32PrefixConsPub": "oraivalconspub"
+  },
+  "currencies": [
+    {
+      "coinDenom": "INJ",
+      "coinMinimalDenom": "inj",
+      "coinDecimals": 18,
+      "coinGeckoId": "injective-protocol",
+      "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png"
+    }
+  ],
+  "feeCurrencies": [
+    {
+      "coinDenom": "INJ",
+      "coinMinimalDenom": "inj",
+      "coinDecimals": 18,
+      "coinGeckoId": "injective-protocol",
+      "coinImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png"
+    }
+  ],
+  "features": ["no-legacy-stdTx", "ibc-transfer", "ibc-go", "eth-key-sign"],
+  "chainSymbolImageUrl": "https://s2.coinmarketcap.com/static/img/coins/64x64/7226.png",
+  "txExplorer": {
+    "name": "Injective",
+    "txUrl": "https://explorer.injective.network/transaction/{txHash}"
+  },
+  "beta": true
+}
