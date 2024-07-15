@@ -169,6 +169,13 @@ export class BigDecimal {
     return this.clone().imul(other);
   }
 
+  mulByRatio(numerator: DecimalLike, denominator: DecimalLike) {
+    if (denominator === "0" || denominator === 0 || denominator === BigInt(0)) {
+      throw new Error("Denominator cannot be zero");
+    }
+    return this.clone().imul(numerator).idiv(denominator);
+  }
+
   pow(other: bigint | boolean | number | string) {
     return this.clone().ipow(other);
   }
