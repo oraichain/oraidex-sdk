@@ -449,9 +449,7 @@ export class UniversalSwapHelper {
       path?: string;
     }
   ): Promise<SmartRouterResponseAPI> => {
-    const urlSmartRouter = urlRouter.url ?? "https://osor.oraidex.io";
-    const pathSmartRouter = urlRouter.path ?? "/smart-router";
-    const { axios } = await getAxios(urlSmartRouter);
+    const { axios } = await getAxios(urlRouter.url);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
       sourceChainId: offerChainId,
@@ -461,7 +459,7 @@ export class UniversalSwapHelper {
     };
     const res: {
       data: SmartRouterResponseAPI;
-    } = await axios.post(pathSmartRouter, data);
+    } = await axios.post(urlRouter.path, data);
     return {
       swapAmount: res.data.swapAmount,
       returnAmount: res.data.returnAmount,
@@ -475,10 +473,7 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    urlRouter?: {
-      url: string;
-      path?: string;
-    }
+    urlRouter: { url: string; path?: string } = { url: "https://osor.oraidex.io", path: "/smart-router" }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
