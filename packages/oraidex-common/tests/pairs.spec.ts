@@ -1,5 +1,6 @@
 import { MILKY_CONTRACT, OSMOSIS_ORAICHAIN_DENOM, USDC_CONTRACT, USDT_CONTRACT } from "../src/constant";
 import { isFactoryV1, isInPairList } from "../src/pairs";
+import { expect, afterAll, beforeAll, describe, it } from "vitest";
 
 describe("test pairs functions should behave correctly", () => {
   it("test-isFactoryV1", () => {

@@ -18,6 +18,7 @@ import {
   sliceSnaps
 } from "../src";
 import { LiquidityTick, PoolKey } from "@oraichain/oraiswap-v3-wasm";
+import { expect, afterAll, beforeAll, describe, it } from "vitest";
 
 describe("test oraiswap-v3 helper functions", () => {
   it.each<[PoolWithPoolKey, number]>([
@@ -211,7 +212,9 @@ describe("test oraiswap-v3 helper functions", () => {
     ]
   ])("poolKeyToString", (poolKey) => {
     const res = poolKeyToString(poolKey);
-    expect(res).toEqual(`${poolKey.token_x}-${poolKey.token_y}-${poolKey.fee_tier.fee}-${poolKey.fee_tier.tick_spacing}`);
+    expect(res).toEqual(
+      `${poolKey.token_x}-${poolKey.token_y}-${poolKey.fee_tier.fee}-${poolKey.fee_tier.tick_spacing}`
+    );
   });
 
   it.each<[Record<string, PoolStatsData>]>([

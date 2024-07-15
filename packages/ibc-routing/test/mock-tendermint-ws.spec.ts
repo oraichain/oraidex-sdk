@@ -1,6 +1,7 @@
 import { Tendermint37Client, WebsocketClient } from "@cosmjs/tendermint-rpc";
 import { TxData, TxEvent } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { buildQuery } from "@cosmjs/tendermint-rpc/build/tendermint37/requests";
+import { expect, afterAll, beforeAll, describe, it } from "vitest";
 
 const connectCosmosSocket = async () => {
   const websocketClient = new WebsocketClient("localhost:1234", (err) => {
