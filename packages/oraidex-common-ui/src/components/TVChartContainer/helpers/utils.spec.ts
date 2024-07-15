@@ -7,8 +7,9 @@ import {
   // parseChannelFromPair,
   parseFullSymbol
 } from "./utils";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-describe.only("test-utils-func", () => {
+describe("test-utils-func", () => {
   it.each([
     ["bar", { foo: "bar" }, "foo"],
     ["bar_not_found", { foo: "bar" }, undefined]

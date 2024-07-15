@@ -1,4 +1,5 @@
 import { BigDecimal } from "../src/bigdecimal";
+import { expect, afterAll, beforeAll, describe, it } from "vitest";
 
 describe("add", function () {
   it("should be defined", function () {
@@ -254,5 +255,9 @@ describe("mulByRatio", function () {
 
   it("123456789.123456 / (.0123456 / .1245) = 12242153.701225204", function () {
     expect(new BigDecimal("123456789.123456", 9).mulByRatio(".0123456", ".1245").toString()).toBe("12242153.701225204");
+  });
+
+  it("should throw an error when the denominator is zero", function () {
+    expect(() => new BigDecimal("12").mulByRatio("10", "0")).toThrow("Denominator cannot be zero");
   });
 });
