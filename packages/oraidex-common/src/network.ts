@@ -148,6 +148,7 @@ export type CoinType = 118 | 60 | 195;
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
  * some chain is already in wallet so we override some attributes as optional
+ * @deprecated please use CustomChainInfo from ./chain-infos/chain-info-type.ts instead. This interface will be removed in the future
  */
 export interface CustomChainInfo
   extends Omit<ChainInfo, "feeCurrencies" | "stakeCurrency" | "currencies" | "rest" | "bech32Config"> {
@@ -290,6 +291,9 @@ export const OsmoToken: BridgeAppCurrency = {
   }
 };
 
+/**
+ * @deprecated Use OraidexCommon class instead
+ */
 export const oraichainNetwork: CustomChainInfo = {
   rpc: "https://rpc.orai.io",
   rest: "https://lcd.orai.io",
@@ -493,6 +497,9 @@ export const oraichainNetwork: CustomChainInfo = {
   ]
 };
 
+/**
+ * @deprecated Use OraidexCommon class instead
+ */
 export const chainInfos: CustomChainInfo[] = [
   // networks to add on keplr
   oraichainNetwork,
@@ -1087,6 +1094,9 @@ export const chainInfos: CustomChainInfo[] = [
   }
 ];
 
+/**
+ * @deprecated Use OraidexCommon class instead
+ */
 export const network: CustomChainInfo & NetworkConfig = {
   ...oraichainNetwork,
   prefix: oraichainNetwork.bech32Config.bech32PrefixAccAddr,
@@ -1107,7 +1117,13 @@ export const network: CustomChainInfo & NetworkConfig = {
 };
 
 // exclude kawaiverse subnet and other special evm that has different cointype
+/**
+ * @deprecated Use OraidexCommon class instead
+ */
 export const evmChains = chainInfos.filter((c) => c.networkType === "evm");
+/**
+ * @deprecated Use OraidexCommon class instead
+ */
 export const cosmosChains = chainInfos.filter((c) => c.networkType === "cosmos");
 
 // evm network

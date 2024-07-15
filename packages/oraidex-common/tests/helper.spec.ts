@@ -44,7 +44,6 @@ import path from "path";
 import { expect, afterAll, beforeAll, describe, it } from "vitest";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
-console.log("__filename: ", __filename);
 const __dirname = path.dirname(__filename);
 
 describe("should helper functions in helper run exactly", () => {
