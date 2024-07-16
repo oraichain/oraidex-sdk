@@ -8,14 +8,15 @@ on:
       - "feat/ODEX-974"
 
 jobs:
-  scan-repository:
-    name: scan repository with SonarQube
+  sonarcloud:
+    name: SonarCloud
     runs-on: ubuntu-latest
     steps:
-      - name: Repository Dispatch
-        uses: peter-evans/repository-dispatch@v3
+      - uses: actions/checkout@v3
         with:
-          token: ${{ secrets.GIT_PAT }}
-          repository: oraichain/infra
-          event-type: sonarcloud
-          client-payload: '{"ref": "${{ github.ref }}", "repo": "${{ github.repository }}", "sonar_token": "${{ secrets.SONAR_TOKEN }}"}'
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needed to get PR information, if any
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
