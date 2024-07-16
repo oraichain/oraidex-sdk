@@ -1,8 +1,11 @@
 name: Reuseable Sonaqube
 
 on:
-  workflow_call:
+  workflow_dispatch:
   pull_request:
+  push:
+    branches:
+      - "feat/ODEX-974"
 
 jobs:
   scan-repository:
