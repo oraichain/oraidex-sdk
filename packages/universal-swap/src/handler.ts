@@ -1,64 +1,59 @@
-import { Coin, EncodeObject, coin } from "@cosmjs/proto-signing";
-import { fromBech32, toBech32 } from "@cosmjs/encoding";
-import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ExecuteInstruction, ExecuteResult, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { fromBech32, toBech32 } from "@cosmjs/encoding";
+import { EncodeObject, coin } from "@cosmjs/proto-signing";
+import { GasPrice } from "@cosmjs/stargate";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
-  TokenItemType,
-  NetworkChainId,
-  IBCInfo,
-  calculateTimeoutTimestamp,
-  generateError,
-  getEncodedExecuteContractMsgs,
-  toAmount,
-  // buildMultipleExecuteMessages,
-  parseTokenInfo,
-  calculateMinReceive,
-  handleSentFunds,
-  tronToEthAddress,
-  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
-  oraichain2oraib,
-  CosmosChainId,
-  findToTokenOnOraiBridge,
-  getTokenOnSpecificChainId,
-  UNISWAP_ROUTER_DEADLINE,
-  gravityContracts,
+  BigDecimal,
   Bridge__factory,
-  IUniswapV2Router02__factory,
-  ethToTronAddress,
-  network,
-  EvmResponse,
-  getTokenOnOraichain,
-  getCosmosGasPrice,
   CoinGeckoId,
+  CosmosChainId,
+  EvmResponse,
+  IBCInfo,
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
-  tokenMap,
-  AmountDetails,
-  buildMultipleExecuteMessages,
-  ibcInfosOld,
-  checkValidateAddressWithNetwork,
-  BigDecimal,
+  IUniswapV2Router02__factory,
+  NetworkChainId,
+  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   OSMOSIS_ROUTER_CONTRACT,
+  TokenItemType,
+  UNISWAP_ROUTER_DEADLINE,
+  buildMultipleExecuteMessages,
+  calculateMinReceive,
+  calculateTimeoutTimestamp,
+  checkValidateAddressWithNetwork,
   cosmosChains,
-  parseAssetInfoFromContractAddrOrDenom
+  ethToTronAddress,
+  findToTokenOnOraiBridge,
+  generateError,
+  getCosmosGasPrice,
+  getEncodedExecuteContractMsgs,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
+  gravityContracts,
+  handleSentFunds,
+  ibcInfosOld,
+  network,
+  oraichain2oraib,
+  parseAssetInfoFromContractAddrOrDenom,
+  // buildMultipleExecuteMessages,
+  parseTokenInfo,
+  toAmount,
+  tokenMap,
+  tronToEthAddress
 } from "@oraichain/oraidex-common";
+import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { MsgTransfer } from "cosmjs-types/ibc/applications/transfer/v1/tx";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
 import {
-  ConvertReverse,
-  ConvertType,
   Route,
   Routes,
   SmartRouteSwapOperations,
-  SwapAndAction,
-  Type,
   UniversalSwapConfig,
   UniversalSwapData,
   UniversalSwapType
 } from "./types";
-import { GasPrice } from "@cosmjs/stargate";
-import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 
 export class UniversalSwapHandler {
   constructor(
@@ -591,7 +586,7 @@ export class UniversalSwapHandler {
         `There is a mismatch address between ${oraiAddress} and ${injAddress}. Should not using smart router swap!`
       );
     }
-    const { messages, msgTransfers } = await this.getMessagesAndMsgTransfers(routesFlatten, {
+    const { messages, msgTransfers } = this.getMessagesAndMsgTransfers(routesFlatten, {
       oraiAddress,
       injAddress
     });
