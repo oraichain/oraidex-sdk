@@ -1,39 +1,39 @@
 import { ExecuteInstruction, JsonObject, fromBinary, toBinary, wasmTypes } from "@cosmjs/cosmwasm-stargate";
 import { fromAscii, toUtf8 } from "@cosmjs/encoding";
 import { Coin, EncodeObject, Registry, decodeTxRaw } from "@cosmjs/proto-signing";
-import { Event, Attribute } from "@cosmjs/tendermint-rpc/build/tendermint37";
+import { defaultRegistryTypes as defaultStargateTypes, logs } from "@cosmjs/stargate";
+import { Attribute, Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { AssetInfo, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { TokenInfoResponse } from "@oraichain/oraidex-contracts-sdk/build/OraiswapToken.types";
 import bech32 from "bech32";
+import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
 import { Tx as CosmosTx } from "cosmjs-types/cosmos/tx/v1beta1/tx";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { ethers } from "ethers";
 import Long from "long";
+import { BigDecimal } from "./bigdecimal";
 import {
   AVERAGE_COSMOS_GAS_PRICE,
+  CW20_DECIMALS,
+  GAS_ESTIMATION_BRIDGE_DEFAULT,
+  MULTIPLIER,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
   atomic,
-  truncDecimals,
-  GAS_ESTIMATION_BRIDGE_DEFAULT,
-  MULTIPLIER,
-  CW20_DECIMALS
+  truncDecimals
 } from "./constant";
 import { CoinGeckoId, NetworkChainId, cosmosChains } from "./network";
 import {
   AmountDetails,
+  CoinGeckoPrices,
   TokenInfo,
   TokenItemType,
   cosmosTokens,
   flattenTokens,
   oraichainTokens,
-  CoinGeckoPrices,
   tokenMap
 } from "./token";
 import { StargateMsg, Tx } from "./tx";
-import { BigDecimal } from "./bigdecimal";
-import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
-import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -160,7 +160,7 @@ export const buildMultipleExecuteMessages = (
   ...preMessages: ExecuteInstruction[]
 ): ExecuteInstruction[] => {
   try {
-    var messages: ExecuteInstruction[] = mainMsg ? mainMsg : [];
+    const messages: ExecuteInstruction[] = mainMsg ? mainMsg : [];
     messages.unshift(...preMessages.flat(1));
     return messages;
   } catch (error) {
@@ -287,11 +287,11 @@ export const parseTxToMsgExecuteContractMsgs = (tx: Tx): MsgExecuteContract[] =>
   const cosmosTx = CosmosTx.decode(tx.tx);
   if (!cosmosTx.body) return [];
   const msgs: MsgExecuteContract[] = [];
-  for (let i = 0; i < cosmosTx.body.messages.length; i++) {
-    const msg = cosmosTx.body.messages[i];
+
+  for (const msg of cosmosTx.body.messages) {
     if (msg.typeUrl === "/cosmwasm.wasm.v1.MsgExecuteContract") {
       const msgExecuteContract = MsgExecuteContract.decode(msg.value);
-      // TODO: this is an assumption that the log order is the same as the message order.
+      // this is an assumption that the log order is the same as the message order.
       msgs.push({ ...msgExecuteContract });
     }
   }
@@ -448,7 +448,7 @@ export function parseAssetInfoOnlyDenom(info: AssetInfo): string {
 }
 
 export const decodeProto = (value: JsonObject) => {
-  if (!value) throw "value is not defined";
+  if (!value) throw new Error("value is not defined");
 
   const typeUrl = value.type_url || value.typeUrl;
   if (typeUrl) {
