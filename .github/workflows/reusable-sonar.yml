@@ -1,4 +1,4 @@
-name: Reuseable Sonaqube
+name: Reusable SonarQube
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   scan-repository:
-    name: scan repository with Sonaqube
+    name: scan repository with SonarQube
     runs-on: ubuntu-latest
     steps:
       - name: Repository Dispatch
