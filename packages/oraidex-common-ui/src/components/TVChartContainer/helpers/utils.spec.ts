@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { Bar } from "./types";
 import {
   fillBarGaps,
@@ -7,7 +8,6 @@ import {
   // parseChannelFromPair,
   parseFullSymbol
 } from "./utils";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 describe("test-utils-func", () => {
   it.each([
@@ -110,15 +110,4 @@ describe("test-utils-func", () => {
     const result = parseFullSymbol(fullSymbol);
     expect(result).toEqual(expectedResult);
   });
-
-  // it.each([
-  //   ["invalid-pair", undefined],
-  //   ["orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh", "ORAI/USDT"]
-  // ])(
-  //   "test-parseChannelFromPair-with-%s-should-return-correctly-channel-name",
-  //   (pair: string, expectedResult: string) => {
-  //     const result = parseChannelFromPair(pair);
-  //     expect(result).toBe(expectedResult);
-  //   }
-  // );
 });

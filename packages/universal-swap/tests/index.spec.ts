@@ -1,39 +1,39 @@
+import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
+import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 import {
+  AIRI_BSC_CONTRACT,
+  AIRI_CONTRACT,
+  BigDecimal,
+  CoinGeckoId,
   CosmosWallet,
   EvmWallet,
+  IBC_TRANSFER_TIMEOUT,
+  IBC_WASM_CONTRACT,
+  IBC_WASM_CONTRACT_TEST,
   NetworkChainId,
+  ORAI_BRIDGE_EVM_DENOM_PREFIX,
+  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
   OSMOSIS_ORAICHAIN_DENOM,
+  OSMOSIS_ROUTER_CONTRACT,
+  ROUTER_V2_CONTRACT,
+  TokenItemType,
+  USDC_CONTRACT,
+  USDT_CONTRACT,
+  calculateTimeoutTimestamp,
   flattenTokens,
   oraichain2osmosis,
   oraichainTokens,
-  USDT_CONTRACT,
-  ROUTER_V2_CONTRACT,
   toDisplay,
-  ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
-  TokenItemType,
-  CosmosChainId,
-  CoinGeckoId,
-  AIRI_CONTRACT,
-  IBC_WASM_CONTRACT,
-  ORAI_BRIDGE_EVM_DENOM_PREFIX,
-  AIRI_BSC_CONTRACT,
-  IBC_TRANSFER_TIMEOUT,
-  toTokenInfo,
-  IBC_WASM_CONTRACT_TEST,
-  USDC_CONTRACT,
-  calculateTimeoutTimestamp,
-  BigDecimal,
-  OSMOSIS_ROUTER_CONTRACT
+  toTokenInfo
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable vi.spyOn & avoid redefine property error
-import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
-import { JsonRpcProvider, JsonRpcSigner } from "@ethersproject/providers";
 // workaround for the error: TronWeb is not a constructor when using tronweb v6 beta
-import TronWeb from "tronweb/dist/TronWeb.node";
-import Long from "long";
-import { fromUtf8, toUtf8 } from "@cosmjs/encoding";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
+import { fromUtf8, toUtf8 } from "@cosmjs/encoding";
+import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
+import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
 import { ibcInfos, oraichain2oraib } from "@oraichain/oraidex-common/build/ibc-info";
+import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import {
   OraiswapFactoryClient,
   OraiswapOracleClient,
@@ -41,13 +41,10 @@ import {
   OraiswapRouterQueryClient,
   OraiswapTokenClient
 } from "@oraichain/oraidex-contracts-sdk";
-import { CWSimulateApp, GenericError, IbcOrder, IbcPacket, SimulateCosmWasmClient } from "@oraichain/cw-simulate";
-import { CwIcs20LatestClient } from "@oraichain/common-contracts-sdk";
-import bech32 from "bech32";
-import { Route, Routes, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
-import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
-import * as oraidexArtifacts from "@oraichain/oraidex-contracts-build";
 import { readFileSync } from "fs";
+import Long from "long";
+import TronWeb from "tronweb/dist/TronWeb.node";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { UniversalSwapHandler } from "../src/handler";
 import {
   UniversalSwapHelper,
@@ -60,6 +57,7 @@ import {
   handleSimulateSwap,
   simulateSwap
 } from "../src/helper";
+import { Routes, UniversalSwapConfig, UniversalSwapData, UniversalSwapType } from "../src/types";
 import {
   alphaSmartRoute,
   alphaSmartRouteWithOneRoutes0_0_0,
@@ -81,7 +79,7 @@ import {
   objBridgeInSmartRoute,
   objSwapInOsmosis
 } from "./smart-router-common";
-import { expect, afterAll, beforeAll, beforeEach, describe, it, vi } from "vitest";
+import { deployIcs20Token, deployToken, testSenderAddress } from "./test-common";
 
 describe("test universal swap handler functions", () => {
   const client = new SimulateCosmWasmClient({
@@ -91,12 +89,9 @@ describe("test universal swap handler functions", () => {
   let oraiPort: string;
   let lpId: number;
   const channel = "channel-29";
-  const ibcTransferAmount = "100000000";
   const initialBalanceAmount = "10000000000000";
   const airiIbcDenom: string = "oraib0x7e2A35C746F2f7C240B664F1Da4DD100141AE71F";
-  const bobAddress = "orai1ur2vsjrjarygawpdwtqteaazfchvw4fg6uql76";
   const oraiAddress = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
-  const cosmosSenderAddress = bech32.encode("cosmos", bech32.decode(oraiAddress).words);
 
   const smartRoutesOraiAddr = "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz";
   const smartRoutesInjAddr = "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3";
@@ -671,7 +666,7 @@ describe("test universal swap handler functions", () => {
     async (from: TokenItemType, to: TokenItemType, fromAmount: number, toAmount: string, willThrow: boolean) => {
       try {
         vi.spyOn(UniversalSwapHelper, "getBalanceIBCOraichain").mockReturnValue(
-          new Promise((resolve) => resolve({ balance: +toAmount }))
+          Promise.resolve({ balance: +toAmount })
         );
         checkBalanceIBCOraichain(
           from,
@@ -986,9 +981,7 @@ describe("test universal swap handler functions", () => {
     const universalSwap = new FakeUniversalSwapHandler({
       ...universalSwapData
     });
-    vi.spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr").mockReturnValue(
-      new Promise((resolve) => resolve(undefined as any))
-    );
+    vi.spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr").mockReturnValue(Promise.resolve(undefined as any));
     vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge").mockReturnValue(oraichainTokens[0]);
     try {
       await universalSwap.combineMsgEvm("0x1234", "T1234");
@@ -1006,7 +999,7 @@ describe("test universal swap handler functions", () => {
       const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
       const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
       const routerClient = new OraiswapRouterClient(client, testSenderAddress, "foo");
-      vi.spyOn(routerClient, "simulateSwapOperations").mockReturnValue(new Promise((resolve) => resolve({ amount })));
+      vi.spyOn(routerClient, "simulateSwapOperations").mockReturnValue(Promise.resolve({ amount }));
       const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
       const query = { fromInfo, toInfo, amount, routerClient };
       const simulateData = await simulateSwap(query);
