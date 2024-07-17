@@ -225,6 +225,24 @@ export class UniversalSwapHelper {
     return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
   }
 
+  static getRouteFromOtherToOrai(fromToken, toToken, destReceiver, toDenom): SwapRoute {
+    // if from token is 0x38 & to token chain id is Oraichain & from token is kawaii or milky
+    if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
+      return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
+    // if to token chain id is Oraichain, then we dont need to care about ibc msg case
+    // first case, two tokens are the same, only different in network => simple swap
+    if (fromToken.coinGeckoId === toToken.coinGeckoId)
+      return {
+        swapRoute: parseToIbcWasmMemo(destReceiver, "", ""),
+        universalSwapType: "other-networks-to-oraichain"
+      };
+    // if they are not the same then we set dest denom
+    return {
+      swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
+      universalSwapType: "other-networks-to-oraichain"
+    };
+  }
+
   /**
    * This function receives fromToken and toToken as parameters to generate the destination memo for the receiver address
    * @param from - from token
@@ -274,27 +292,13 @@ export class UniversalSwapHelper {
       return { swapRoute, universalSwapType: "cosmos-to-others" };
     }
 
-    if (toToken.chainId === "Oraichain") {
-      // if from token is 0x38 & to token chain id is Oraichain & from token is kawaii or milky
-      if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
-        return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
-      // if to token chain id is Oraichain, then we dont need to care about ibc msg case
-      // first case, two tokens are the same, only different in network => simple swap
-      if (fromToken.coinGeckoId === toToken.coinGeckoId)
-        return {
-          swapRoute: parseToIbcWasmMemo(destReceiver, "", ""),
-          universalSwapType: "other-networks-to-oraichain"
-        };
-      // if they are not the same then we set dest denom
-      return {
-        swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
-        universalSwapType: "other-networks-to-oraichain"
-      };
-    }
+    if (toToken.chainId === "Oraichain")
+      return UniversalSwapHelper.getRouteFromOtherToOrai(fromToken, toToken, destReceiver, toDenom);
+
     // the remaining cases where we have to process ibc msg
 
     // getTokenOnOraichain is called to get the ibc denom / cw20 denom on Oraichain so that we can create an ibc msg using it
-    // TODO: no need to use to token on Oraichain. Can simply use the swapRoute token directly. Fix this requires fixing the logic on ibc wasm as well
+    // no need to use to token on Oraichain. Can simply use the swapRoute token directly. Fix this requires fixing the logic on ibc wasm as well
     const toTokenOnOraichain = getTokenOnOraichain(toToken.coinGeckoId);
     if (!toTokenOnOraichain)
       return {

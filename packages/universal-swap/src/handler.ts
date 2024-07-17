@@ -96,6 +96,20 @@ export class UniversalSwapHandler {
     return this.config.cosmosWallet.getKeplrAddr(toChainId);
   }
 
+  async getIbcReceiveAddr(toChainId: NetworkChainId): Promise<string> {
+    let ibcReceiveAddr = "";
+    if (this.swapData.recipientAddress) {
+      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toChainId);
+
+      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+      ibcReceiveAddr = this.swapData.recipientAddress;
+    } else {
+      ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
+    }
+    if (!ibcReceiveAddr) throw generateError("Please login cosmos wallet!");
+    return ibcReceiveAddr;
+  }
+
   /**
    * Combine messages for universal swap token from Oraichain to Cosmos networks.
    * @returns combined messages
@@ -111,18 +125,7 @@ export class UniversalSwapHandler {
     }
     const ibcInfo: IBCInfo = this.getIbcInfo("Oraichain", toChainId);
 
-    let ibcReceiveAddr = "";
-
-    if (this.swapData.recipientAddress) {
-      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toChainId);
-
-      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
-      ibcReceiveAddr = this.swapData.recipientAddress;
-    } else {
-      ibcReceiveAddr = await this.config.cosmosWallet.getKeplrAddr(toChainId as CosmosChainId);
-    }
-
-    if (!ibcReceiveAddr) throw generateError("Please login cosmos wallet!");
+    const ibcReceiveAddr = await this.getIbcReceiveAddr(toChainId);
 
     let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
