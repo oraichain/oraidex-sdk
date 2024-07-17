@@ -113,29 +113,32 @@ export default function TVChartContainer({
     };
     if (isMobile) widgetOptions.disabled_features.push(...disabledFeaturesOnMobile);
 
+    function handleChartReady() {
+      setChartReady(true);
+      tvWidgetRef.current!.applyOverrides({
+        "paneProperties.background": theme === "dark" ? DARK_BACKGROUND_CHART : LIGHT_BACKGROUND_CHART,
+        "paneProperties.backgroundType": "solid"
+      });
+
+      const activeChart = tvWidgetRef.current!.activeChart();
+
+      activeChart.onIntervalChanged().subscribe(null, (interval) => {
+        if (SUPPORTED_RESOLUTIONS[interval]) {
+          const period = SUPPORTED_RESOLUTIONS[interval];
+          setPeriod(period);
+        }
+      });
+
+      // create indicator
+      activeChart.createStudy("Volume");
+    }
+
     const script = document.createElement("script");
     script.async = true;
     script.src = libraryUrl;
     script.onload = () => {
       tvWidgetRef.current = new window.TradingView.widget(widgetOptions as any as ChartingLibraryWidgetOptions);
-      tvWidgetRef.current.onChartReady(function () {
-        setChartReady(true);
-        tvWidgetRef.current!.applyOverrides({
-          "paneProperties.background": theme === "dark" ? DARK_BACKGROUND_CHART : LIGHT_BACKGROUND_CHART,
-          "paneProperties.backgroundType": "solid"
-        });
-
-        const activeChart = tvWidgetRef.current!.activeChart();
-        activeChart.onIntervalChanged().subscribe(null, (interval) => {
-          if (SUPPORTED_RESOLUTIONS[interval]) {
-            const period = SUPPORTED_RESOLUTIONS[interval];
-            setPeriod(period);
-          }
-        });
-
-        // create indicator
-        activeChart.createStudy("Volume");
-      });
+      tvWidgetRef.current.onChartReady(handleChartReady);
     };
 
     document.body.appendChild(script);

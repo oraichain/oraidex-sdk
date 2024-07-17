@@ -160,7 +160,7 @@ export const buildMultipleExecuteMessages = (
   ...preMessages: ExecuteInstruction[]
 ): ExecuteInstruction[] => {
   try {
-    const messages: ExecuteInstruction[] = mainMsg ? mainMsg : [];
+    const messages: ExecuteInstruction[] = mainMsg ?? [];
     messages.unshift(...preMessages.flat(1));
     return messages;
   } catch (error) {
