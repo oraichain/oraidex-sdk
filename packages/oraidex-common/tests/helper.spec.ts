@@ -1,8 +1,11 @@
 import { Coin } from "@cosmjs/amino";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
-import { StargateClient } from "@cosmjs/stargate";
 import { Event } from "@cosmjs/tendermint-rpc/build/tendermint37";
 import { AssetInfo } from "@oraichain/oraidex-contracts-sdk";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { describe, expect, it } from "vitest";
 import { AIRI_CONTRACT, AVERAGE_COSMOS_GAS_PRICE, BTC_CONTRACT, MILKYBSC_ORAICHAIN_DENOM, ORAI } from "../src/constant";
 import {
   calculateMinReceive,
@@ -20,6 +23,7 @@ import {
   isEthAddress,
   marshalEncodeObjsToStargateMsgs,
   parseAssetInfo,
+  parseAssetInfoFromContractAddrOrDenom,
   parseTokenInfo,
   parseTokenInfoRawDenom,
   parseTxToMsgsAndEvents,
@@ -33,16 +37,11 @@ import {
   validateAndIdentifyCosmosAddress,
   validateEvmAddress,
   validateNumber,
-  validateTronAddress,
-  parseAssetInfoFromContractAddrOrDenom
+  validateTronAddress
 } from "../src/helper";
 import { CoinGeckoId, NetworkChainId } from "../src/network";
 import { isFactoryV1 } from "../src/pairs";
 import { AmountDetails, TokenItemType, cosmosTokens, flattenTokens, oraichainTokens } from "../src/token";
-import fs from "fs";
-import path from "path";
-import { expect, afterAll, beforeAll, describe, it } from "vitest";
-import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 console.log("__filename: ", __filename);
 const __dirname = path.dirname(__filename);
@@ -393,7 +392,6 @@ describe("should helper functions in helper run exactly", () => {
     expect(getCosmosGasPrice()).toEqual(AVERAGE_COSMOS_GAS_PRICE);
   });
 
-  // TODO: add more tests for this func
   it("test-parseTxToMsgsAndEvents", async () => {
     // case 1: undefined input
     const reuslt = parseTxToMsgsAndEvents(undefined as any);
