@@ -175,6 +175,7 @@ export abstract class EvmWallet {
       const singedTransaction = await this.tronWeb.trx.sign(transaction.transaction);
       console.log("signed tx: ", singedTransaction);
       const result = await this.tronWeb.trx.sendRawTransaction(singedTransaction);
+      // @ts-ignore
       return { transactionHash: result.txid };
 
       // sign from inject tronWeb
