@@ -121,10 +121,12 @@ export abstract class EvmWallet {
   public async submitTronSmartContract(
     address: string,
     functionSelector: string,
-    options: { feeLimit?: number } = { feeLimit: 40 * 1e6 }, // submitToCosmos costs about 40 TRX
+    options: { feeLimit?: number },
     parameters = [],
     issuerAddress: string
   ): Promise<EvmResponse> {
+    if (!options) throw new Error("option is not define");
+
     if (!this.tronWeb) {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
@@ -144,11 +146,13 @@ export abstract class EvmWallet {
         };
       }
 
-      console.log("before building tx: ", issuerAddress);
+      console.log("before building tx: ", issuerAddress, "options:", options);
       const transaction = await transactionBuilder.triggerSmartContract(
         address,
         functionSelector,
-        options,
+        !options?.feeLimit
+          ? { ...options, feeLimit: 40 * 1e6 } // submitToCosmos costs about 40 TRX
+          : options,
         parameters,
         ethToTronAddress(issuerAddress)
       );
