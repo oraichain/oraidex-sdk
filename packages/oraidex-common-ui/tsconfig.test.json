@@ -5,6 +5,7 @@
     "outDir": "build",
     "declaration": true,
     "rootDir": "src",
+    "jsx": "react-jsx",
     "module": "ES2020"
   },
   "include": ["src/**/*.ts"],

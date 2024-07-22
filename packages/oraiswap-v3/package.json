@@ -6,11 +6,12 @@
     "build/"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build": "tsc -p tsconfig.json",
+    "build:test": "tsc --project tsconfig.json"
   },
   "license": "MIT",
   "dependencies": {
-    "@cosmjs/cosmwasm-stargate": "^0.31.0", 
+    "@cosmjs/cosmwasm-stargate": "^0.31.0",
     "@oraichain/oraidex-contracts-sdk": "^1.0.43",
     "@oraichain/oraiswap-v3-wasm": "^0.1.0",
     "@oraichain/oraidex-common": "latest"
