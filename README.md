@@ -23,3 +23,9 @@ git checkout packages/contracts-sdk
 ```bash
 NODE_ENV=test yarn --cwd packages/market-maker start
 ```
+
+## Protogen for the universal swap memo format
+
+```bash
+protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. packages/universal-swap/src/proto/universal-swap-memo.proto
+```
