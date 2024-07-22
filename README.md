@@ -27,5 +27,8 @@ NODE_ENV=test yarn --cwd packages/market-maker start
 ## Protogen for the universal swap memo format
 
 ```bash
-protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out=. packages/universal-swap/src/proto/universal-swap-memo.proto
+# gen for ts
+protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out packages/universal-swap/src --proto_path ../ibc-bridge-wasm ../ibc-bridge-wasm/proto/universal-swap-memo.proto
+
+# gen for rust
 ```

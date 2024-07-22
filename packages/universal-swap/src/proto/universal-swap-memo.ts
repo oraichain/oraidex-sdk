@@ -2,7 +2,7 @@
 // versions:
 //   protoc-gen-ts_proto  v1.181.1
 //   protoc               v4.25.3
-// source: packages/universal-swap/src/proto/universal-swap-memo.proto
+// source: proto/universal-swap-memo.proto
 
 /* eslint-disable */
 import * as _m0 from "protobufjs/minimal";
