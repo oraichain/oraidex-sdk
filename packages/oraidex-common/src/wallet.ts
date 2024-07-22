@@ -121,15 +121,17 @@ export abstract class EvmWallet {
   public async submitTronSmartContract(
     address: string,
     functionSelector: string,
-    options: { feeLimit?: number } = { feeLimit: 40 * 1e6 }, // submitToCosmos costs about 40 TRX
+    options: { feeLimit?: number },
     parameters = [],
     issuerAddress: string
   ): Promise<EvmResponse> {
+    if (!options) throw new Error("options is not defined");
+
     if (!this.tronWeb) {
       throw new Error("You need to initialize tron web before calling submitTronSmartContract.");
     }
-    const transactionBuilder = new TransactionBuilder(this.tronWeb);
-    const trx = new Trx(this.tronWeb);
+    // const transactionBuilder = new TransactionBuilder(this.tronWeb);
+    // const trx = new Trx(this.tronWeb);
     try {
       const uint256Index = parameters.findIndex((param) => param.type === "uint256");
 
@@ -144,11 +146,20 @@ export abstract class EvmWallet {
         };
       }
 
-      console.log("before building tx: ", issuerAddress);
-      const transaction = await transactionBuilder.triggerSmartContract(
+      console.log("before building tx: ", issuerAddress, "options:", options);
+      // const transaction = await transactionBuilder.triggerSmartContract(
+      //   address,
+      //   functionSelector,
+      //   !options?.feeLimit
+      //     ? { ...options, feeLimit: 40 * 1e6 } // submitToCosmos costs about 40 TRX
+      //     : options,
+      //   parameters,
+      //   ethToTronAddress(issuerAddress)
+      // );
+      const transaction = await this.tronWeb.transactionBuilder.triggerSmartContract(
         address,
         functionSelector,
-        options,
+        { ...options, feeLimit: options.feeLimit ?? 40 * 1e6 },
         parameters,
         ethToTronAddress(issuerAddress)
       );
@@ -159,11 +170,17 @@ export abstract class EvmWallet {
       }
       console.log("before signing");
 
-      // sign from inject tronWeb
-      const singedTransaction = await trx.sign(transaction.transaction);
+      const singedTransaction = await this.tronWeb.trx.sign(transaction.transaction);
       console.log("signed tx: ", singedTransaction);
-      const result = await trx.sendRawTransaction(singedTransaction);
-      return { transactionHash: result.transaction.txID };
+      const result = await this.tronWeb.trx.sendRawTransaction(singedTransaction);
+      // @ts-ignore
+      return { transactionHash: result.txid };
+
+      // sign from inject tronWeb
+      // const singedTransaction = await trx.sign(transaction.transaction);
+      // console.log("signed tx: ", singedTransaction);
+      // const result = await trx.sendRawTransaction(singedTransaction);
+      // return { transactionHash: result.transaction.txID };
     } catch (error) {
       throw new Error(error);
     }
