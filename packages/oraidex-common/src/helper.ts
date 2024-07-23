@@ -34,7 +34,6 @@ import { StargateMsg, Tx } from "./tx";
 import { BigDecimal } from "./bigdecimal";
 import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
 import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
-import TronWeb from "tronweb";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");
@@ -573,26 +572,6 @@ export const validateTronAddress = (address: string, network: string) => {
       isValid: true,
       network
     };
-
-    // const tronWeb = new TronWeb({
-    //   fullHost: "https://api.trongrid.io"
-    // });
-
-    // tronWeb.trx.getAccount(address).then((isValid) => {
-    //   if (isValid) {
-    //     return {
-    //       isValid: true,
-    //       network: "0x2b6653dc" //"tron"
-    //     };
-    //   } else {
-    //     console.error("Invalid address");
-
-    //     return {
-    //       isValid: false,
-    //       network: "0x2b6653dc" //"tron"
-    //     };
-    //   }
-    // });
   } catch (error) {
     return {
       isValid: false
