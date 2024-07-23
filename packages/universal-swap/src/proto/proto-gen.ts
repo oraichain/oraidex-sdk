@@ -77,7 +77,7 @@ export const parseToIbcHookMemo = (
 };
 
 export const parseNewProtoMemoDemo = (offerAmount: string, minimumReceive: string) => {
-  return Memo.fromPartial({
+  const memo = Memo.fromPartial({
     userSwap: {
       swapExactAssetIn: {
         offerAmount,
@@ -93,4 +93,6 @@ export const parseNewProtoMemoDemo = (offerAmount: string, minimumReceive: strin
     },
     minimumReceive
   });
+  const encodedMemo = Memo.encode(memo).finish();
+  return Buffer.from(encodedMemo).toString("base64");
 };
