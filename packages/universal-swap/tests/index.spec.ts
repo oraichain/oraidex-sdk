@@ -509,1253 +509,1253 @@ describe("test universal swap handler functions", () => {
     }
   );
 
-  // it("test-getUniversalSwapToAddress", async () => {
-  //   const universalSwap = new FakeUniversalSwapHandler();
-  //   let result = await universalSwap.getUniversalSwapToAddress("0x01", {
-  //     metamaskAddress: undefined,
-  //     tronAddress: undefined
-  //   });
-  //   expect(result).toEqual("0x1234");
-  //   result = await universalSwap.getUniversalSwapToAddress("cosmoshub-4", {
-  //     metamaskAddress: undefined,
-  //     tronAddress: undefined
-  //   });
-  //   expect(result).toEqual("orai1234");
-  //   result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
-  //     tronAddress: "TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc"
-  //   });
-  //   expect(result).toEqual("0x993d06fc97f45f16e4805883b98a6c20bab54964");
-  //   result = await universalSwap.getUniversalSwapToAddress("0x01", {
-  //     metamaskAddress: "0x993d06fc97f45f16e4805883b98a6c20bab54964"
-  //   });
-  //   expect(result).toEqual("0x993d06fc97f45f16e4805883b98a6c20bab54964");
-  //   const mockTronWeb = new TronWeb("foo", "foo");
-  //   mockTronWeb.defaultAddress.base58 = "TNJksEkvvdmae8uXYkNE9XKHbTDiSQrpbf";
-  //   vi.spyOn(evmWallet, "tronWeb", "get").mockReturnValue(mockTronWeb);
-  //   result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
-  //     metamaskAddress: undefined,
-  //     tronAddress: undefined
-  //   });
-  //   expect(result).toEqual("0x8754032ac7966a909e2e753308df56bb08dabd69");
-  // });
+  it("test-getUniversalSwapToAddress", async () => {
+    const universalSwap = new FakeUniversalSwapHandler();
+    let result = await universalSwap.getUniversalSwapToAddress("0x01", {
+      metamaskAddress: undefined,
+      tronAddress: undefined
+    });
+    expect(result).toEqual("0x1234");
+    result = await universalSwap.getUniversalSwapToAddress("cosmoshub-4", {
+      metamaskAddress: undefined,
+      tronAddress: undefined
+    });
+    expect(result).toEqual("orai1234");
+    result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
+      tronAddress: "TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc"
+    });
+    expect(result).toEqual("0x993d06fc97f45f16e4805883b98a6c20bab54964");
+    result = await universalSwap.getUniversalSwapToAddress("0x01", {
+      metamaskAddress: "0x993d06fc97f45f16e4805883b98a6c20bab54964"
+    });
+    expect(result).toEqual("0x993d06fc97f45f16e4805883b98a6c20bab54964");
+    const mockTronWeb = new TronWeb("foo", "foo");
+    mockTronWeb.defaultAddress.base58 = "TNJksEkvvdmae8uXYkNE9XKHbTDiSQrpbf";
+    vi.spyOn(evmWallet, "tronWeb", "get").mockReturnValue(mockTronWeb);
+    result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
+      metamaskAddress: undefined,
+      tronAddress: undefined
+    });
+    expect(result).toEqual("0x8754032ac7966a909e2e753308df56bb08dabd69");
+  });
 
-  // it.each([
-  //   ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0xae1ae6"],
-  //   ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0x1234"],
-  //   ["", "", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "this-case-throw-error"]
-  // ])(
-  //   "test getTranferAddress should return transferAddress correctly & throw error correctly",
-  //   (metamaskAddress: string, tronAddress: string, toToken: TokenItemType, expectedTransferAddr: string) => {
-  //     const universalSwap = new FakeUniversalSwapHandler({
-  //       ...universalSwapData,
-  //       originalToToken: toToken
-  //     });
-  //     const ibcInfo = ibcInfos["Oraichain"]["oraibridge-subnet-2"]!.channel;
-  //     vi.spyOn(dexCommonHelper, "getTokenOnOraichain").mockReturnValue(
-  //       oraichainTokens.find((t) => t.coinGeckoId === "airight")!
-  //     );
-  //     try {
-  //       const transferAddress = universalSwap.getTranferAddress(metamaskAddress, tronAddress, ibcInfo);
-  //       expect(transferAddress).toEqual(expectedTransferAddr);
-  //     } catch (error) {
-  //       expect(error?.ex?.message).toEqual("Please login metamask / tronlink!");
-  //     }
-  //   }
-  // );
+  it.each([
+    ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0xae1ae6"],
+    ["0x1234", "T123456789", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "0x1234"],
+    ["", "", flattenTokens.find((t) => t.prefix !== ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX)!, "this-case-throw-error"]
+  ])(
+    "test getTranferAddress should return transferAddress correctly & throw error correctly",
+    (metamaskAddress: string, tronAddress: string, toToken: TokenItemType, expectedTransferAddr: string) => {
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        originalToToken: toToken
+      });
+      const ibcInfo = ibcInfos["Oraichain"]["oraibridge-subnet-2"]!.channel;
+      vi.spyOn(dexCommonHelper, "getTokenOnOraichain").mockReturnValue(
+        oraichainTokens.find((t) => t.coinGeckoId === "airight")!
+      );
+      try {
+        const transferAddress = universalSwap.getTranferAddress(metamaskAddress, tronAddress, ibcInfo);
+        expect(transferAddress).toEqual(expectedTransferAddr);
+      } catch (error) {
+        expect(error?.ex?.message).toEqual("Please login metamask / tronlink!");
+      }
+    }
+  );
 
-  // it.each([
-  //   ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, "0x38", "", ""],
-  //   ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "0x12345", "oraib0x12345"],
-  //   ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "", "oraib0x1234"]
-  // ])(
-  //   "test getIbcMemo should return ibc memo correctly",
-  //   (
-  //     transferAddress: string,
-  //     toToken: TokenItemType,
-  //     originalChainId: string,
-  //     recipientAddress: string,
-  //     expectedIbcMemo: string
-  //   ) => {
-  //     const universalSwap = new FakeUniversalSwapHandler({
-  //       ...universalSwapData,
-  //       originalToToken: toToken
-  //     });
-  //     vi.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
-  //     vi.spyOn(dexCommonHelper, "checkValidateAddressWithNetwork").mockReturnValue({
-  //       isValid: true,
-  //       network: originalChainId
-  //     });
+  it.each([
+    ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, "0x38", "", ""],
+    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "0x12345", "oraib0x12345"],
+    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "", "oraib0x1234"]
+  ])(
+    "test getIbcMemo should return ibc memo correctly",
+    (
+      transferAddress: string,
+      toToken: TokenItemType,
+      originalChainId: string,
+      recipientAddress: string,
+      expectedIbcMemo: string
+    ) => {
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        originalToToken: toToken
+      });
+      vi.spyOn(universalSwap, "getTranferAddress").mockReturnValue(transferAddress);
+      vi.spyOn(dexCommonHelper, "checkValidateAddressWithNetwork").mockReturnValue({
+        isValid: true,
+        network: originalChainId
+      });
 
-  //     const ibcMemo = universalSwap.getIbcMemo(
-  //       "john doe",
-  //       "john doe",
-  //       "john doe",
-  //       {
-  //         chainId: toToken.chainId,
-  //         prefix: toToken.prefix!,
-  //         originalChainId: originalChainId as NetworkChainId
-  //       },
-  //       recipientAddress
-  //     );
-  //     expect(ibcMemo).toEqual(expectedIbcMemo);
-  //   }
-  // );
+      const ibcMemo = universalSwap.getIbcMemo(
+        "john doe",
+        "john doe",
+        "john doe",
+        {
+          chainId: toToken.chainId,
+          prefix: toToken.prefix!,
+          originalChainId: originalChainId as NetworkChainId
+        },
+        recipientAddress
+      );
+      expect(ibcMemo).toEqual(expectedIbcMemo);
+    }
+  );
 
-  // it.each<[TokenItemType, TokenItemType, string, string, boolean]>([
-  //   [
-  //     flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
-  //     flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "oraichain-token")!,
-  //     simulateAmount,
-  //     channel,
-  //     true
-  //   ],
-  //   [
-  //     flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
-  //     flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token")!,
-  //     simulateAmount,
-  //     channel,
-  //     false
-  //   ]
-  // ])("test-universal-swap-checkBalanceChannelIbc-%", async (fromToken, toToken, amount, channel, willThrow) => {
-  //   try {
-  //     await checkBalanceChannelIbc(
-  //       {
-  //         source: oraiPort,
-  //         channel: channel,
-  //         timeout: 3600
-  //       },
-  //       fromToken,
-  //       toToken,
-  //       amount,
-  //       client,
-  //       IBC_WASM_CONTRACT_TEST
-  //     );
-  //     expect(willThrow).toEqual(false);
-  //   } catch (error) {
-  //     expect(willThrow).toEqual(true);
-  //   }
-  // });
+  it.each<[TokenItemType, TokenItemType, string, string, boolean]>([
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether")!,
+      flattenTokens.find((t) => t.chainId === "0x01" && t.coinGeckoId === "oraichain-token")!,
+      simulateAmount,
+      channel,
+      true
+    ],
+    [
+      flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token")!,
+      flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token")!,
+      simulateAmount,
+      channel,
+      false
+    ]
+  ])("test-universal-swap-checkBalanceChannelIbc-%", async (fromToken, toToken, amount, channel, willThrow) => {
+    try {
+      await checkBalanceChannelIbc(
+        {
+          source: oraiPort,
+          channel: channel,
+          timeout: 3600
+        },
+        fromToken,
+        toToken,
+        amount,
+        client,
+        IBC_WASM_CONTRACT_TEST
+      );
+      expect(willThrow).toEqual(false);
+    } catch (error) {
+      expect(willThrow).toEqual(true);
+    }
+  });
 
-  // it.each([
-  //   [oraichainTokens.find((t) => t.coinGeckoId === "airight")!, 10000000],
-  //   [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, 0]
-  // ])("test-universal-swap-getBalanceIBCOraichain-ibc-%", async (token: TokenItemType, expectedBalance: number) => {
-  //   const mockToken = { ...token };
-  //   if (mockToken.contractAddress) {
-  //     if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
-  //   }
-  //   const { balance } = await getBalanceIBCOraichain(mockToken, ics20Contract.client, ics20Contract.contractAddress);
-  //   expect(balance).toEqual(expectedBalance);
-  // });
+  it.each([
+    [oraichainTokens.find((t) => t.coinGeckoId === "airight")!, 10000000],
+    [oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, 0]
+  ])("test-universal-swap-getBalanceIBCOraichain-ibc-%", async (token: TokenItemType, expectedBalance: number) => {
+    const mockToken = { ...token };
+    if (mockToken.contractAddress) {
+      if (mockToken.coinGeckoId === "airight") mockToken.contractAddress = airiToken.contractAddress;
+    }
+    const { balance } = await getBalanceIBCOraichain(mockToken, ics20Contract.client, ics20Contract.contractAddress);
+    expect(balance).toEqual(expectedBalance);
+  });
 
-  // it.each<[TokenItemType, TokenItemType, number, string, boolean]>([
-  //   [
-  //     oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, // ORAI (ORAICHAIN)
-  //     oraichainTokens.find((t) => t.coinGeckoId === "airight")!, // AIRIGHT (ORAICHAIN)
-  //     0,
-  //     "0",
-  //     false
-  //   ],
-  //   [
-  //     flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
-  //     flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38")!, // ORAI (BSC)
-  //     10000000,
-  //     "10000000",
-  //     true
-  //   ],
-  //   [
-  //     flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
-  //     flattenTokens.find((t) => t.coinGeckoId === "airight" && t.chainId === "0x38")!, // AIRIGHT (BSC)
-  //     10000000,
-  //     "10000000",
-  //     false
-  //   ]
-  // ])(
-  //   "test-universal-swap-checkBalanceIBCOraichain",
-  //   async (from: TokenItemType, to: TokenItemType, fromAmount: number, toAmount: string, willThrow: boolean) => {
-  //     try {
-  //       vi.spyOn(UniversalSwapHelper, "getBalanceIBCOraichain").mockReturnValue(
-  //         new Promise((resolve) => resolve({ balance: +toAmount }))
-  //       );
-  //       checkBalanceIBCOraichain(
-  //         from,
-  //         to,
-  //         fromAmount,
-  //         simulateAmount,
-  //         ics20Contract.client,
-  //         ics20Contract.contractAddress
-  //       );
-  //       expect(willThrow).toEqual(false);
-  //     } catch (error) {
-  //       expect(willThrow).toEqual(true);
-  //     }
-  //   }
-  // );
+  it.each<[TokenItemType, TokenItemType, number, string, boolean]>([
+    [
+      oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, // ORAI (ORAICHAIN)
+      oraichainTokens.find((t) => t.coinGeckoId === "airight")!, // AIRIGHT (ORAICHAIN)
+      0,
+      "0",
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38")!, // ORAI (BSC)
+      10000000,
+      "10000000",
+      true
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
+      flattenTokens.find((t) => t.coinGeckoId === "airight" && t.chainId === "0x38")!, // AIRIGHT (BSC)
+      10000000,
+      "10000000",
+      false
+    ]
+  ])(
+    "test-universal-swap-checkBalanceIBCOraichain",
+    async (from: TokenItemType, to: TokenItemType, fromAmount: number, toAmount: string, willThrow: boolean) => {
+      try {
+        vi.spyOn(UniversalSwapHelper, "getBalanceIBCOraichain").mockReturnValue(
+          new Promise((resolve) => resolve({ balance: +toAmount }))
+        );
+        checkBalanceIBCOraichain(
+          from,
+          to,
+          fromAmount,
+          simulateAmount,
+          ics20Contract.client,
+          ics20Contract.contractAddress
+        );
+        expect(willThrow).toEqual(false);
+      } catch (error) {
+        expect(willThrow).toEqual(true);
+      }
+    }
+  );
 
-  // it.each<[UniversalSwapType, string]>([
-  //   ["oraichain-to-oraichain", "swap"],
-  //   ["oraichain-to-evm", "swapAndTransferToOtherNetworks"],
-  //   ["oraichain-to-cosmos", "swapAndTransferToOtherNetworks"],
-  //   ["cosmos-to-others", "swapCosmosToOtherNetwork"]
-  // ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
-  //   const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
-  //   const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
-  //   const spy = vi.spyOn(UniversalSwapHelper, "addOraiBridgeRoute");
-  //   spy.mockReturnValue({ swapRoute: "", universalSwapType });
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData,
-  //     originalFromToken: fromToken,
-  //     originalToToken: toToken
-  //   });
-  //   vi.spyOn(universalSwap, "swap").mockResolvedValue("swap" as any);
-  //   vi.spyOn(universalSwap, "swapAndTransferToOtherNetworks").mockResolvedValue(
-  //     "swapAndTransferToOtherNetworks" as any
-  //   );
-  //   vi.spyOn(universalSwap, "swapCosmosToOtherNetwork").mockResolvedValue("swapCosmosToOtherNetwork" as any);
-  //   vi.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
-  //   const result = await universalSwap.processUniversalSwap();
-  //   expect(spy).toHaveBeenCalled();
-  //   expect(result).toEqual(expectedFunction);
-  // });
+  it.each<[UniversalSwapType, string]>([
+    ["oraichain-to-oraichain", "swap"],
+    ["oraichain-to-evm", "swapAndTransferToOtherNetworks"],
+    ["oraichain-to-cosmos", "swapAndTransferToOtherNetworks"],
+    ["cosmos-to-others", "swapCosmosToOtherNetwork"]
+  ])("test-processUniversalSwap", async (universalSwapType, expectedFunction) => {
+    const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
+    const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
+    const spy = vi.spyOn(UniversalSwapHelper, "addOraiBridgeRoute");
+    spy.mockReturnValue({ swapRoute: "", universalSwapType });
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      originalFromToken: fromToken,
+      originalToToken: toToken
+    });
+    vi.spyOn(universalSwap, "swap").mockResolvedValue("swap" as any);
+    vi.spyOn(universalSwap, "swapAndTransferToOtherNetworks").mockResolvedValue(
+      "swapAndTransferToOtherNetworks" as any
+    );
+    vi.spyOn(universalSwap, "swapCosmosToOtherNetwork").mockResolvedValue("swapCosmosToOtherNetwork" as any);
+    vi.spyOn(universalSwap, "transferAndSwap").mockResolvedValue("transferAndSwap" as any);
+    const result = await universalSwap.processUniversalSwap();
+    expect(spy).toHaveBeenCalled();
+    expect(result).toEqual(expectedFunction);
+  });
 
-  // it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any]>([
-  //   [
-  //     "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token",
-  //     "oraichain-token",
-  //     "airight",
-  //     "Oraichain",
-  //     {
-  //       execute_swap_operations: {
-  //         operations: [
-  //           {
-  //             orai_swap: {
-  //               offer_asset_info: { native_token: { denom: "orai" } },
-  //               ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
-  //             }
-  //           }
-  //         ],
-  //         minimum_receive: minimumReceive
-  //       }
-  //     },
-  //     ROUTER_V2_CONTRACT,
-  //     { funds: [{ amount: fromAmount, denom: "orai" }] }
-  //   ],
-  //   [
-  //     "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token",
-  //     "tether",
-  //     "airight",
-  //     "Oraichain",
-  //     {
-  //       send: {
-  //         contract: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
-  //         amount: fromAmount,
-  //         msg: toBinary({
-  //           execute_swap_operations: {
-  //             operations: [
-  //               {
-  //                 orai_swap: {
-  //                   offer_asset_info: { token: { contract_addr: USDT_CONTRACT } },
-  //                   ask_asset_info: { native_token: { denom: "orai" } }
-  //                 }
-  //               },
-  //               {
-  //                 orai_swap: {
-  //                   offer_asset_info: { native_token: { denom: "orai" } },
-  //                   ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
-  //                 }
-  //               }
-  //             ],
-  //             minimum_receive: minimumReceive
-  //           }
-  //         })
-  //       }
-  //     },
-  //     USDT_CONTRACT,
-  //     { funds: null }
-  //   ]
-  // ])(
-  //   "test-generateMsgsSwap-for-%s",
-  //   (_name, fromCoinGeckoId, toCoinGeckoId, toChainId, expectedSwapMsg, expectedSwapContractAddr, expectedFunds) => {
-  //     // setup
-  //     const universalSwap = new FakeUniversalSwapHandler({
-  //       ...universalSwapData,
-  //       originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
-  //       originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
-  //     });
-  //     vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
+  it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any]>([
+    [
+      "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token",
+      "oraichain-token",
+      "airight",
+      "Oraichain",
+      {
+        execute_swap_operations: {
+          operations: [
+            {
+              orai_swap: {
+                offer_asset_info: { native_token: { denom: "orai" } },
+                ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+              }
+            }
+          ],
+          minimum_receive: minimumReceive
+        }
+      },
+      ROUTER_V2_CONTRACT,
+      { funds: [{ amount: fromAmount, denom: "orai" }] }
+    ],
+    [
+      "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token",
+      "tether",
+      "airight",
+      "Oraichain",
+      {
+        send: {
+          contract: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          amount: fromAmount,
+          msg: toBinary({
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: { token: { contract_addr: USDT_CONTRACT } },
+                    ask_asset_info: { native_token: { denom: "orai" } }
+                  }
+                },
+                {
+                  orai_swap: {
+                    offer_asset_info: { native_token: { denom: "orai" } },
+                    ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+                  }
+                }
+              ],
+              minimum_receive: minimumReceive
+            }
+          })
+        }
+      },
+      USDT_CONTRACT,
+      { funds: null }
+    ]
+  ])(
+    "test-generateMsgsSwap-for-%s",
+    (_name, fromCoinGeckoId, toCoinGeckoId, toChainId, expectedSwapMsg, expectedSwapContractAddr, expectedFunds) => {
+      // setup
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
+        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
+      });
+      vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
-  //     // act
-  //     const swapMsg = universalSwap.generateMsgsSwap();
+      // act
+      const swapMsg = universalSwap.generateMsgsSwap();
 
-  //     // assertion
-  //     expect(swapMsg[0].contractAddress).toEqual(expectedSwapContractAddr);
-  //     expect(swapMsg[0].msg).toEqual(expectedSwapMsg);
-  //     expect(swapMsg[0].funds).toEqual(expectedFunds.funds);
-  //   }
-  // );
+      // assertion
+      expect(swapMsg[0].contractAddress).toEqual(expectedSwapContractAddr);
+      expect(swapMsg[0].msg).toEqual(expectedSwapMsg);
+      expect(swapMsg[0].funds).toEqual(expectedFunds.funds);
+    }
+  );
 
-  // it.each([
-  //   [
-  //     "from-&-to-both-oraichain-token",
-  //     "oraichain-token",
-  //     {
-  //       transfer_to_remote: {
-  //         local_channel_id: oraichain2oraib,
-  //         remote_address: "foobar",
-  //         remote_denom: "john doe",
-  //         timeout: 3600,
-  //         memo: ""
-  //       }
-  //     },
-  //     IBC_WASM_CONTRACT,
-  //     { funds: [{ amount: simulateAmount, denom: "orai" }] }
-  //   ],
-  //   [
-  //     "from-and-to-is-cw20-token-and-have-same-coingecko-id",
-  //     "airight",
-  //     {
-  //       send: {
-  //         contract: IBC_WASM_CONTRACT,
-  //         amount: simulateAmount,
-  //         msg: toBinary({
-  //           local_channel_id: oraichain2oraib,
-  //           remote_address: "foobar",
-  //           remote_denom: "john doe",
-  //           timeout: 3600,
-  //           memo: ""
-  //         })
-  //       }
-  //     },
-  //     AIRI_CONTRACT, // contract of cw20 token to invoke send method.
-  //     { funds: [] }
-  //   ],
-  //   [
-  //     "from-token-in-orai-is-native-token",
-  //     "oraichain-token",
-  //     {
-  //       transfer_to_remote: {
-  //         local_channel_id: oraichain2oraib,
-  //         remote_address: "foobar",
-  //         remote_denom: "john doe",
-  //         timeout: 3600,
-  //         memo: ""
-  //       }
-  //     },
-  //     IBC_WASM_CONTRACT,
-  //     { funds: [{ amount: simulateAmount, denom: "orai" }] }
-  //   ],
-  //   [
-  //     "from-is-cw20-token",
-  //     "tether",
-  //     {
-  //       send: {
-  //         contract: IBC_WASM_CONTRACT,
-  //         amount: simulateAmount,
-  //         msg: toBinary({
-  //           local_channel_id: oraichain2oraib,
-  //           remote_address: "foobar",
-  //           remote_denom: "john doe",
-  //           timeout: 3600,
-  //           memo: ""
-  //         })
-  //       }
-  //     },
-  //     USDT_CONTRACT,
-  //     { funds: [] }
-  //   ]
-  // ])(
-  //   "test-generateMsgsIbcWasm-with-%s",
-  //   (_name: string, toCoingeckoId, expectedTransferMsg, expectedContractAddr, expectedFunds) => {
-  //     const universalSwap = new FakeUniversalSwapHandler({
-  //       ...universalSwapData,
-  //       originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId)!
-  //     });
-  //     const ibcInfo = getIbcInfo("Oraichain", "oraibridge-subnet-2");
-  //     const toAddress = "foobar";
-  //     const ibcMemo = "";
-  //     const msg = universalSwap.generateMsgsIbcWasm(ibcInfo, toAddress, "john doe", ibcMemo)!;
-  //     expect(msg[0].contractAddress.toString()).toEqual(expectedContractAddr);
-  //     expect(msg[0].msg).toEqual(expectedTransferMsg);
-  //     expect(msg[0].funds).toEqual(expectedFunds.funds);
-  //   }
-  // );
+  it.each([
+    [
+      "from-&-to-both-oraichain-token",
+      "oraichain-token",
+      {
+        transfer_to_remote: {
+          local_channel_id: oraichain2oraib,
+          remote_address: "foobar",
+          remote_denom: "john doe",
+          timeout: 3600,
+          memo: ""
+        }
+      },
+      IBC_WASM_CONTRACT,
+      { funds: [{ amount: simulateAmount, denom: "orai" }] }
+    ],
+    [
+      "from-and-to-is-cw20-token-and-have-same-coingecko-id",
+      "airight",
+      {
+        send: {
+          contract: IBC_WASM_CONTRACT,
+          amount: simulateAmount,
+          msg: toBinary({
+            local_channel_id: oraichain2oraib,
+            remote_address: "foobar",
+            remote_denom: "john doe",
+            timeout: 3600,
+            memo: ""
+          })
+        }
+      },
+      AIRI_CONTRACT, // contract of cw20 token to invoke send method.
+      { funds: [] }
+    ],
+    [
+      "from-token-in-orai-is-native-token",
+      "oraichain-token",
+      {
+        transfer_to_remote: {
+          local_channel_id: oraichain2oraib,
+          remote_address: "foobar",
+          remote_denom: "john doe",
+          timeout: 3600,
+          memo: ""
+        }
+      },
+      IBC_WASM_CONTRACT,
+      { funds: [{ amount: simulateAmount, denom: "orai" }] }
+    ],
+    [
+      "from-is-cw20-token",
+      "tether",
+      {
+        send: {
+          contract: IBC_WASM_CONTRACT,
+          amount: simulateAmount,
+          msg: toBinary({
+            local_channel_id: oraichain2oraib,
+            remote_address: "foobar",
+            remote_denom: "john doe",
+            timeout: 3600,
+            memo: ""
+          })
+        }
+      },
+      USDT_CONTRACT,
+      { funds: [] }
+    ]
+  ])(
+    "test-generateMsgsIbcWasm-with-%s",
+    (_name: string, toCoingeckoId, expectedTransferMsg, expectedContractAddr, expectedFunds) => {
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId)!
+      });
+      const ibcInfo = getIbcInfo("Oraichain", "oraibridge-subnet-2");
+      const toAddress = "foobar";
+      const ibcMemo = "";
+      const msg = universalSwap.generateMsgsIbcWasm(ibcInfo, toAddress, "john doe", ibcMemo)!;
+      expect(msg[0].contractAddress.toString()).toEqual(expectedContractAddr);
+      expect(msg[0].msg).toEqual(expectedTransferMsg);
+      expect(msg[0].funds).toEqual(expectedFunds.funds);
+    }
+  );
 
-  // it.each<[string, CoinGeckoId, CoinGeckoId, string, any]>([
-  //   [
-  //     "from-and-to-is-have-same-coingecko-id-should-return-one-msg-to-ibc",
-  //     "airight",
-  //     "airight",
-  //     "0x38",
-  //     [
-  //       {
-  //         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-  //         value: {
-  //           sender: testSenderAddress,
-  //           contract: AIRI_CONTRACT,
-  //           msg: toUtf8(
-  //             JSON.stringify({
-  //               send: {
-  //                 contract: IBC_WASM_CONTRACT,
-  //                 amount: simulateAmount,
-  //                 msg: toBinary({
-  //                   local_channel_id: oraichain2oraib,
-  //                   remote_address: "orai1234",
-  //                   remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-  //                   timeout: IBC_TRANSFER_TIMEOUT,
-  //                   memo: "oraib0x1234"
-  //                 })
-  //               }
-  //             })
-  //           ),
-  //           funds: []
-  //         }
-  //       }
-  //     ]
-  //   ],
-  //   [
-  //     "from-and-to-dont-have-same-coingecko-id-should-return-msg-swap-combined-with-msg-transfer-to-remote",
-  //     "oraichain-token",
-  //     "airight",
-  //     "0x38",
-  //     [
-  //       {
-  //         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-  //         value: {
-  //           sender: testSenderAddress,
-  //           contract: ROUTER_V2_CONTRACT,
-  //           msg: toUtf8(
-  //             JSON.stringify({
-  //               execute_swap_operations: {
-  //                 operations: [
-  //                   {
-  //                     orai_swap: {
-  //                       offer_asset_info: { native_token: { denom: "orai" } },
-  //                       ask_asset_info: {
-  //                         token: { contract_addr: AIRI_CONTRACT }
-  //                       }
-  //                     }
-  //                   }
-  //                 ],
-  //                 minimum_receive: minimumReceive
-  //               }
-  //             })
-  //           ),
-  //           funds: [
-  //             {
-  //               amount: fromAmount,
-  //               denom: "orai"
-  //             }
-  //           ]
-  //         }
-  //       },
-  //       {
-  //         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-  //         value: {
-  //           sender: testSenderAddress,
-  //           contract: AIRI_CONTRACT,
-  //           msg: toUtf8(
-  //             JSON.stringify({
-  //               send: {
-  //                 contract: IBC_WASM_CONTRACT,
-  //                 amount: simulateAmount,
-  //                 msg: toBinary({
-  //                   local_channel_id: oraichain2oraib,
-  //                   remote_address: "orai1234",
-  //                   remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-  //                   timeout: IBC_TRANSFER_TIMEOUT,
-  //                   memo: "oraib0x1234"
-  //                 })
-  //               }
-  //             })
-  //           ),
-  //           funds: []
-  //         }
-  //       }
-  //     ]
-  //   ]
-  // ])("test-combineMsgEvm-with-%s", async (_name, fromCoingeckoId, toCoingeckoId, toChainId, expectedTransferMsg) => {
-  //   //  setup mock
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData,
-  //     originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId)!,
-  //     originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
-  //   });
-  //   vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
+  it.each<[string, CoinGeckoId, CoinGeckoId, string, any]>([
+    [
+      "from-and-to-is-have-same-coingecko-id-should-return-one-msg-to-ibc",
+      "airight",
+      "airight",
+      "0x38",
+      [
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: testSenderAddress,
+            contract: AIRI_CONTRACT,
+            msg: toUtf8(
+              JSON.stringify({
+                send: {
+                  contract: IBC_WASM_CONTRACT,
+                  amount: simulateAmount,
+                  msg: toBinary({
+                    local_channel_id: oraichain2oraib,
+                    remote_address: "orai1234",
+                    remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
+                    timeout: IBC_TRANSFER_TIMEOUT,
+                    memo: "oraib0x1234"
+                  })
+                }
+              })
+            ),
+            funds: []
+          }
+        }
+      ]
+    ],
+    [
+      "from-and-to-dont-have-same-coingecko-id-should-return-msg-swap-combined-with-msg-transfer-to-remote",
+      "oraichain-token",
+      "airight",
+      "0x38",
+      [
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: testSenderAddress,
+            contract: ROUTER_V2_CONTRACT,
+            msg: toUtf8(
+              JSON.stringify({
+                execute_swap_operations: {
+                  operations: [
+                    {
+                      orai_swap: {
+                        offer_asset_info: { native_token: { denom: "orai" } },
+                        ask_asset_info: {
+                          token: { contract_addr: AIRI_CONTRACT }
+                        }
+                      }
+                    }
+                  ],
+                  minimum_receive: minimumReceive
+                }
+              })
+            ),
+            funds: [
+              {
+                amount: fromAmount,
+                denom: "orai"
+              }
+            ]
+          }
+        },
+        {
+          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+          value: {
+            sender: testSenderAddress,
+            contract: AIRI_CONTRACT,
+            msg: toUtf8(
+              JSON.stringify({
+                send: {
+                  contract: IBC_WASM_CONTRACT,
+                  amount: simulateAmount,
+                  msg: toBinary({
+                    local_channel_id: oraichain2oraib,
+                    remote_address: "orai1234",
+                    remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
+                    timeout: IBC_TRANSFER_TIMEOUT,
+                    memo: "oraib0x1234"
+                  })
+                }
+              })
+            ),
+            funds: []
+          }
+        }
+      ]
+    ]
+  ])("test-combineMsgEvm-with-%s", async (_name, fromCoingeckoId, toCoingeckoId, toChainId, expectedTransferMsg) => {
+    //  setup mock
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId)!,
+      originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoingeckoId && t.chainId === toChainId)!
+    });
+    vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
-  //   const msg = await universalSwap.combineMsgEvm("0x1234", "T1234");
-  //   expect(msg).toEqual(expectedTransferMsg);
-  // });
+    const msg = await universalSwap.combineMsgEvm("0x1234", "T1234");
+    expect(msg).toEqual(expectedTransferMsg);
+  });
 
-  // it("test-combineMsgEvm-should-throw-error", async () => {
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData
-  //   });
-  //   vi.spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr").mockReturnValue(
-  //     new Promise((resolve) => resolve(undefined as any))
-  //   );
-  //   const spy = vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge");
-  //   spy.mockReturnValue(oraichainTokens[0]);
-  //   try {
-  //     await universalSwap.combineMsgEvm("0x1234", "T1234");
-  //   } catch (error) {
-  //     expect(error?.ex?.message).toEqual("Please login cosmos wallet!");
-  //   }
-  // });
+  it("test-combineMsgEvm-should-throw-error", async () => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData
+    });
+    vi.spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr").mockReturnValue(
+      new Promise((resolve) => resolve(undefined as any))
+    );
+    const spy = vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge");
+    spy.mockReturnValue(oraichainTokens[0]);
+    try {
+      await universalSwap.combineMsgEvm("0x1234", "T1234");
+    } catch (error) {
+      expect(error?.ex?.message).toEqual("Please login cosmos wallet!");
+    }
+  });
 
-  // it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
-  //   ["oraichain-token", "oraichain-token", "1000000", "1000000"],
-  //   ["tron", "airight", "100000", "100000"]
-  // ])(
-  //   "test simulateSwap-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
-  //   async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {
-  //     const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
-  //     const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
-  //     const routerClient = new OraiswapRouterClient(client, testSenderAddress, "foo");
-  //     vi.spyOn(routerClient, "simulateSwapOperations").mockReturnValue(new Promise((resolve) => resolve({ amount })));
-  //     const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
-  //     const query = { fromInfo, toInfo, amount, routerClient };
-  //     const simulateData = await simulateSwap(query);
-  //     expect(simulateData.amount).toEqual(expectedSimulateData);
-  //   }
-  // );
+  it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
+    ["oraichain-token", "oraichain-token", "1000000", "1000000"],
+    ["tron", "airight", "100000", "100000"]
+  ])(
+    "test simulateSwap-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
+    async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {
+      const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
+      const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
+      const routerClient = new OraiswapRouterClient(client, testSenderAddress, "foo");
+      vi.spyOn(routerClient, "simulateSwapOperations").mockReturnValue(new Promise((resolve) => resolve({ amount })));
+      const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
+      const query = { fromInfo, toInfo, amount, routerClient };
+      const simulateData = await simulateSwap(query);
+      expect(simulateData.amount).toEqual(expectedSimulateData);
+    }
+  );
 
-  // it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
-  //   ["oraichain-token", "oraichain-token", "1000000", "1000000"],
-  //   ["tron", "airight", "100000", "100000"]
-  // ])(
-  //   "test simulateSwapUsingSmartRoute-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
-  //   async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {
-  //     const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
-  //     const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
-  //     vi.spyOn(UniversalSwapHelper, "querySmartRoute").mockResolvedValue({
-  //       swapAmount: amount,
-  //       returnAmount: amount,
-  //       routes: []
-  //     });
-  //     const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
-  //     const query = { fromInfo, toInfo, amount };
-  //     const simulateData = await UniversalSwapHelper.simulateSwapUsingSmartRoute(query);
-  //     expect(simulateData.returnAmount).toEqual(expectedSimulateData);
-  //   }
-  // );
+  it.each<[CoinGeckoId, CoinGeckoId, string, string]>([
+    ["oraichain-token", "oraichain-token", "1000000", "1000000"],
+    ["tron", "airight", "100000", "100000"]
+  ])(
+    "test simulateSwapUsingSmartRoute-given-fromid-%s-toid-%s-input-amount-%d-returns-%d",
+    async (fromCoingeckoId, toCoingeckoId, amount, expectedSimulateData) => {
+      const fromToken = oraichainTokens.find((t) => t.coinGeckoId === fromCoingeckoId);
+      const toToken = oraichainTokens.find((t) => t.coinGeckoId === toCoingeckoId);
+      vi.spyOn(UniversalSwapHelper, "querySmartRoute").mockResolvedValue({
+        swapAmount: amount,
+        returnAmount: amount,
+        routes: []
+      });
+      const [fromInfo, toInfo] = [toTokenInfo(fromToken!), toTokenInfo(toToken!)];
+      const query = { fromInfo, toInfo, amount };
+      const simulateData = await UniversalSwapHelper.simulateSwapUsingSmartRoute(query);
+      expect(simulateData.returnAmount).toEqual(expectedSimulateData);
+    }
+  );
 
-  // it.skip.each<[boolean, boolean, boolean, string]>([
-  //   [false, false, false, "1"],
-  //   [false, true, false, "2"],
-  //   [true, false, false, "2"],
-  //   [true, true, false, "2"],
-  //   [false, false, true, "3"]
-  // ])(
-  //   "test handleSimulateSwap",
-  //   async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, useSmartRoute, expectedSimulateAmount) => {
-  //     const simulateSwapSpy = vi.spyOn(UniversalSwapHelper, "simulateSwap");
-  //     const simulateSwapEvmSpy = vi.spyOn(UniversalSwapHelper, "simulateSwapEvm");
-  //     const simulateSwapUseSmartRoute = vi.spyOn(UniversalSwapHelper, "querySmartRoute");
+  it.skip.each<[boolean, boolean, boolean, string]>([
+    [false, false, false, "1"],
+    [false, true, false, "2"],
+    [true, false, false, "2"],
+    [true, true, false, "2"],
+    [false, false, true, "3"]
+  ])(
+    "test handleSimulateSwap",
+    async (isSupportedNoPoolSwapEvmRes, isEvmSwappableRes, useSmartRoute, expectedSimulateAmount) => {
+      const simulateSwapSpy = vi.spyOn(UniversalSwapHelper, "simulateSwap");
+      const simulateSwapEvmSpy = vi.spyOn(UniversalSwapHelper, "simulateSwapEvm");
+      const simulateSwapUseSmartRoute = vi.spyOn(UniversalSwapHelper, "querySmartRoute");
 
-  //     simulateSwapSpy.mockResolvedValue({ amount: "1" });
-  //     simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
-  //     simulateSwapUseSmartRoute.mockResolvedValue({ returnAmount: "3", swapAmount: "3", routes: [] });
+      simulateSwapSpy.mockResolvedValue({ amount: "1" });
+      simulateSwapEvmSpy.mockResolvedValue({ amount: "2", displayAmount: 2 });
+      simulateSwapUseSmartRoute.mockResolvedValue({ returnAmount: "3", swapAmount: "3", routes: [] });
 
-  //     const isSupportedNoPoolSwapEvmSpy = vi.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm");
-  //     const isEvmSwappableSpy = vi.spyOn(UniversalSwapHelper, "isEvmSwappable");
-  //     isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
-  //     isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
-  //     const simulateData = await handleSimulateSwap({
-  //       originalFromInfo: oraichainTokens[0],
-  //       originalToInfo: oraichainTokens[1],
-  //       originalAmount: 0,
-  //       routerClient: new OraiswapRouterQueryClient(client, "")
-  //     });
-  //     expect(simulateData.amount).toEqual(expectedSimulateAmount);
-  //   }
-  // );
+      const isSupportedNoPoolSwapEvmSpy = vi.spyOn(UniversalSwapHelper, "isSupportedNoPoolSwapEvm");
+      const isEvmSwappableSpy = vi.spyOn(UniversalSwapHelper, "isEvmSwappable");
+      isSupportedNoPoolSwapEvmSpy.mockReturnValue(isSupportedNoPoolSwapEvmRes);
+      isEvmSwappableSpy.mockReturnValue(isEvmSwappableRes);
+      const simulateData = await handleSimulateSwap({
+        originalFromInfo: oraichainTokens[0],
+        originalToInfo: oraichainTokens[1],
+        originalAmount: 0,
+        routerClient: new OraiswapRouterQueryClient(client, "")
+      });
+      expect(simulateData.amount).toEqual(expectedSimulateAmount);
+    }
+  );
 
-  // it.each<[boolean, string]>([
-  //   [true, IBC_WASM_CONTRACT_TEST],
-  //   [false, IBC_WASM_CONTRACT]
-  // ])("test-getIbcInfo", (testMode, ibcWasmContract) => {
-  //   const universalSwap = new FakeUniversalSwapHandler(
-  //     {
-  //       ...universalSwapData
-  //     },
-  //     { swapOptions: { ibcInfoTestMode: testMode } }
-  //   );
-  //   const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
-  //   expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
-  // });
+  it.each<[boolean, string]>([
+    [true, IBC_WASM_CONTRACT_TEST],
+    [false, IBC_WASM_CONTRACT]
+  ])("test-getIbcInfo", (testMode, ibcWasmContract) => {
+    const universalSwap = new FakeUniversalSwapHandler(
+      {
+        ...universalSwapData
+      },
+      { swapOptions: { ibcInfoTestMode: testMode } }
+    );
+    const ibcInfo = universalSwap.getIbcInfo("Oraichain", "oraibridge-subnet-2");
+    expect(ibcInfo.source).toEqual(`wasm.${ibcWasmContract}`);
+  });
 
-  // // it("test-swap()", async () => {
-  // //   const universalSwap = new FakeUniversalSwapHandler({
-  // //     ...universalSwapData
-  // //   });
-  // //   // mock
-  // //   jest.replaceProperty(dexCommonNetwork.network, "router", routerContract.contractAddress);
-  // //   const result = universalSwap.swap();
-
-  // //   console.log("result: ", result);
-  // // });
-
-  // it("test-flattenSmartRouters()", async () => {
+  // it("test-swap()", async () => {
   //   const universalSwap = new FakeUniversalSwapHandler({
   //     ...universalSwapData
   //   });
+  //   // mock
+  //   jest.replaceProperty(dexCommonNetwork.network, "router", routerContract.contractAddress);
+  //   const result = universalSwap.swap();
 
-  //   const routesFlatten = universalSwap.flattenSmartRouters(alphaSmartRoutes.routes);
-  //   expect(routesFlatten).toEqual(expect.any(Array));
-  //   expect(routesFlatten).toHaveLength(2);
-  //   expect(routesFlatten).toEqual(flattenAlphaSmartRouters);
+  //   console.log("result: ", result);
   // });
 
-  // it.each<[string, Routes, boolean, boolean, any]>([
-  //   [
-  //     smartRoutesOsmoAddr,
-  //     objSwapInOsmosis,
-  //     true,
-  //     true,
-  //     {
-  //       msgActionSwap: {
-  //         sender: smartRoutesOsmoAddr,
-  //         contractAddress: osmosisContractRouter,
-  //         funds: [
-  //           {
-  //             denom: objSwapInOsmosis.tokenIn,
-  //             amount: objSwapInOsmosis.tokenInAmount
-  //           }
-  //         ],
-  //         msg: {
-  //           swap_and_action: {
-  //             user_swap: {
-  //               swap_exact_asset_in: {
-  //                 swap_venue_name: "osmosis-poolmanager",
-  //                 operations: [
-  //                   {
-  //                     denom_in: objSwapInOsmosis.tokenIn,
-  //                     denom_out: objSwapInOsmosis.swapInfo[0].tokenOut,
-  //                     pool: objSwapInOsmosis.swapInfo[0].poolId
-  //                   },
-  //                   {
-  //                     denom_in: objSwapInOsmosis.swapInfo[0].tokenOut,
-  //                     denom_out: objSwapInOsmosis.swapInfo[1].tokenOut,
-  //                     pool: objSwapInOsmosis.swapInfo[1].poolId
-  //                   },
-  //                   {
-  //                     denom_in: objSwapInOsmosis.swapInfo[1].tokenOut,
-  //                     denom_out: objSwapInOsmosis.swapInfo[2].tokenOut,
-  //                     pool: objSwapInOsmosis.swapInfo[2].poolId
-  //                   }
-  //                 ]
-  //               }
-  //             },
-  //             min_asset: {
-  //               native: {
-  //                 denom: objSwapInOsmosis.tokenOut,
-  //                 amount: Math.trunc(
-  //                   new BigDecimal(objSwapInOsmosis.tokenInAmount).mul((100 - userSlippage) / 100).toNumber()
-  //                 ).toString()
-  //               }
-  //             },
-  //             timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
-  //             post_swap_action: {
-  //               transfer: {
-  //                 to_address: smartRoutesOsmoAddr
-  //               }
-  //             },
-  //             affiliates: []
-  //           }
-  //         }
-  //       }
-  //     }
-  //   ],
-  //   [
-  //     smartRoutesOsmoAddr,
-  //     objSwapInOsmosis,
-  //     false,
-  //     true,
-  //     {
-  //       msgActionSwap: {
-  //         sender: smartRoutesOsmoAddr,
-  //         contractAddress: osmosisContractRouter,
-  //         funds: [
-  //           {
-  //             denom: objSwapInOsmosis.tokenIn,
-  //             amount: objSwapInOsmosis.tokenInAmount
-  //           }
-  //         ],
-  //         msg: {
-  //           swap_and_action: {
-  //             user_swap: {
-  //               swap_exact_asset_in: {
-  //                 swap_venue_name: "osmosis-poolmanager",
-  //                 operations: [
-  //                   {
-  //                     denom_in: objSwapInOsmosis.tokenIn,
-  //                     denom_out: objSwapInOsmosis.swapInfo[0].tokenOut,
-  //                     pool: objSwapInOsmosis.swapInfo[0].poolId
-  //                   },
-  //                   {
-  //                     denom_in: objSwapInOsmosis.swapInfo[0].tokenOut,
-  //                     denom_out: objSwapInOsmosis.swapInfo[1].tokenOut,
-  //                     pool: objSwapInOsmosis.swapInfo[1].poolId
-  //                   },
-  //                   {
-  //                     denom_in: objSwapInOsmosis.swapInfo[1].tokenOut,
-  //                     denom_out: objSwapInOsmosis.swapInfo[2].tokenOut,
-  //                     pool: objSwapInOsmosis.swapInfo[2].poolId
-  //                   }
-  //                 ]
-  //               }
-  //             },
-  //             min_asset: {
-  //               native: {
-  //                 denom: objSwapInOsmosis.tokenOut,
-  //                 amount: Math.trunc(
-  //                   new BigDecimal(objSwapInOsmosis.tokenInAmount).mul((100 - userSlippage) / 100).toNumber()
-  //                 ).toString()
-  //               }
-  //             },
-  //             timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
-  //             post_swap_action: {},
-  //             affiliates: []
-  //           }
-  //         }
-  //       }
-  //     }
-  //   ],
-  //   [
-  //     smartRoutesOsmoAddr,
-  //     objSwapInOsmosis,
-  //     false,
-  //     false,
-  //     {
-  //       msgActionSwap: {
-  //         wasm: {
-  //           contract: osmosisContractRouter,
-  //           msg: {
-  //             swap_and_action: {
-  //               user_swap: {
-  //                 swap_exact_asset_in: {
-  //                   swap_venue_name: "osmosis-poolmanager",
-  //                   operations: [
-  //                     {
-  //                       denom_in: objSwapInOsmosis.tokenIn,
-  //                       denom_out: objSwapInOsmosis.swapInfo[0].tokenOut,
-  //                       pool: objSwapInOsmosis.swapInfo[0].poolId
-  //                     },
-  //                     {
-  //                       denom_in: objSwapInOsmosis.swapInfo[0].tokenOut,
-  //                       denom_out: objSwapInOsmosis.swapInfo[1].tokenOut,
-  //                       pool: objSwapInOsmosis.swapInfo[1].poolId
-  //                     },
-  //                     {
-  //                       denom_in: objSwapInOsmosis.swapInfo[1].tokenOut,
-  //                       denom_out: objSwapInOsmosis.swapInfo[2].tokenOut,
-  //                       pool: objSwapInOsmosis.swapInfo[2].poolId
-  //                     }
-  //                   ]
-  //                 }
-  //               },
-  //               min_asset: {
-  //                 native: {
-  //                   denom: objSwapInOsmosis.tokenOut,
-  //                   amount: Math.trunc(
-  //                     new BigDecimal(objSwapInOsmosis.tokenInAmount).mul((100 - userSlippage) / 100).toNumber()
-  //                   ).toString()
-  //                 }
-  //               },
-  //               timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
-  //               post_swap_action: {},
-  //               affiliates: []
-  //             }
-  //           }
-  //         }
-  //       }
-  //     }
-  //   ]
-  // ])("test-get-swap-and-ation-in-osmosis", (senderCosmos, route, isOnlySwap, isInitial, expectResult) => {
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData,
-  //     sender: {
-  //       ...universalSwapData.sender,
-  //       cosmos: senderCosmos
-  //     }
-  //   });
+  it("test-flattenSmartRouters()", async () => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData
+    });
 
-  //   const msgSwapAndAction = universalSwap.getSwapAndActionInOsmosis(
-  //     route,
-  //     {
-  //       oraiAddress: smartRoutesOraiAddr,
-  //       injAddress: smartRoutesInjAddr
-  //     },
-  //     isOnlySwap,
-  //     isInitial
-  //   );
-  //   expect(msgSwapAndAction).toEqual(expectResult);
-  // });
+    const routesFlatten = universalSwap.flattenSmartRouters(alphaSmartRoutes.routes);
+    expect(routesFlatten).toEqual(expect.any(Array));
+    expect(routesFlatten).toHaveLength(2);
+    expect(routesFlatten).toEqual(flattenAlphaSmartRouters);
+  });
 
-  // it.each<[string, any, any]>([
-  //   [
-  //     smartRoutesOsmoAddr,
-  //     objBridgeInSmartRoute[0],
-  //     {
-  //       sourcePort: objBridgeInSmartRoute[0].bridgeInfo.port,
-  //       sourceChannel: objBridgeInSmartRoute[0].bridgeInfo.channel,
-  //       receiver: smartRoutesInjAddr,
-  //       token: {
-  //         amount: objBridgeInSmartRoute[0].tokenInAmount,
-  //         denom: objBridgeInSmartRoute[0].tokenIn
-  //       },
-  //       sender: smartRoutesOsmoAddr,
-  //       memo: "",
-  //       timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //     }
-  //   ],
-  //   [
-  //     smartRoutesOraiAddr,
-  //     objBridgeInSmartRoute[1],
-  //     {
-  //       sourcePort: objBridgeInSmartRoute[1].bridgeInfo.port,
-  //       sourceChannel: objBridgeInSmartRoute[1].bridgeInfo.channel,
-  //       receiver: smartRoutesInjAddr,
-  //       token: {
-  //         amount: objBridgeInSmartRoute[1].tokenInAmount,
-  //         denom: objBridgeInSmartRoute[1].tokenIn
-  //       },
-  //       sender: smartRoutesOraiAddr,
-  //       memo: "",
-  //       timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //     }
-  //   ],
-  //   [
-  //     smartRoutesOraiAddr,
-  //     objBridgeInSmartRoute[2],
-  //     {
-  //       sourcePort: objBridgeInSmartRoute[2].bridgeInfo.port,
-  //       sourceChannel: objBridgeInSmartRoute[2].bridgeInfo.channel,
-  //       receiver: smartRoutesOsmoAddr,
-  //       token: {
-  //         amount: objBridgeInSmartRoute[2].tokenInAmount,
-  //         denom: objBridgeInSmartRoute[2].tokenIn
-  //       },
-  //       sender: smartRoutesOraiAddr,
-  //       memo: "",
-  //       timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //     }
-  //   ],
-  //   [
-  //     smartRoutesOraiAddr,
-  //     objBridgeInSmartRoute[3],
-  //     {
-  //       sourcePort: objBridgeInSmartRoute[3].bridgeInfo.port,
-  //       sourceChannel: objBridgeInSmartRoute[3].bridgeInfo.channel,
-  //       receiver: osmosisContractRouter,
-  //       token: {
-  //         amount: objBridgeInSmartRoute[3].tokenInAmount,
-  //         denom: objBridgeInSmartRoute[3].tokenIn
-  //       },
-  //       sender: smartRoutesOraiAddr,
-  //       memo: "",
-  //       timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //     }
-  //   ]
-  // ])("test-get-msg-transfer-with-smart-route", (sender, route, expectResult) => {
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData,
-  //     sender: {
-  //       cosmos: sender
-  //     }
-  //   });
+  it.each<[string, Routes, boolean, boolean, any]>([
+    [
+      smartRoutesOsmoAddr,
+      objSwapInOsmosis,
+      true,
+      true,
+      {
+        msgActionSwap: {
+          sender: smartRoutesOsmoAddr,
+          contractAddress: osmosisContractRouter,
+          funds: [
+            {
+              denom: objSwapInOsmosis.tokenIn,
+              amount: objSwapInOsmosis.tokenInAmount
+            }
+          ],
+          msg: {
+            swap_and_action: {
+              user_swap: {
+                swap_exact_asset_in: {
+                  swap_venue_name: "osmosis-poolmanager",
+                  operations: [
+                    {
+                      denom_in: objSwapInOsmosis.tokenIn,
+                      denom_out: objSwapInOsmosis.swapInfo[0].tokenOut,
+                      pool: objSwapInOsmosis.swapInfo[0].poolId
+                    },
+                    {
+                      denom_in: objSwapInOsmosis.swapInfo[0].tokenOut,
+                      denom_out: objSwapInOsmosis.swapInfo[1].tokenOut,
+                      pool: objSwapInOsmosis.swapInfo[1].poolId
+                    },
+                    {
+                      denom_in: objSwapInOsmosis.swapInfo[1].tokenOut,
+                      denom_out: objSwapInOsmosis.swapInfo[2].tokenOut,
+                      pool: objSwapInOsmosis.swapInfo[2].poolId
+                    }
+                  ]
+                }
+              },
+              min_asset: {
+                native: {
+                  denom: objSwapInOsmosis.tokenOut,
+                  amount: Math.trunc(
+                    new BigDecimal(objSwapInOsmosis.tokenInAmount).mul((100 - userSlippage) / 100).toNumber()
+                  ).toString()
+                }
+              },
+              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+              post_swap_action: {
+                transfer: {
+                  to_address: smartRoutesOsmoAddr
+                }
+              },
+              affiliates: []
+            }
+          }
+        }
+      }
+    ],
+    [
+      smartRoutesOsmoAddr,
+      objSwapInOsmosis,
+      false,
+      true,
+      {
+        msgActionSwap: {
+          sender: smartRoutesOsmoAddr,
+          contractAddress: osmosisContractRouter,
+          funds: [
+            {
+              denom: objSwapInOsmosis.tokenIn,
+              amount: objSwapInOsmosis.tokenInAmount
+            }
+          ],
+          msg: {
+            swap_and_action: {
+              user_swap: {
+                swap_exact_asset_in: {
+                  swap_venue_name: "osmosis-poolmanager",
+                  operations: [
+                    {
+                      denom_in: objSwapInOsmosis.tokenIn,
+                      denom_out: objSwapInOsmosis.swapInfo[0].tokenOut,
+                      pool: objSwapInOsmosis.swapInfo[0].poolId
+                    },
+                    {
+                      denom_in: objSwapInOsmosis.swapInfo[0].tokenOut,
+                      denom_out: objSwapInOsmosis.swapInfo[1].tokenOut,
+                      pool: objSwapInOsmosis.swapInfo[1].poolId
+                    },
+                    {
+                      denom_in: objSwapInOsmosis.swapInfo[1].tokenOut,
+                      denom_out: objSwapInOsmosis.swapInfo[2].tokenOut,
+                      pool: objSwapInOsmosis.swapInfo[2].poolId
+                    }
+                  ]
+                }
+              },
+              min_asset: {
+                native: {
+                  denom: objSwapInOsmosis.tokenOut,
+                  amount: Math.trunc(
+                    new BigDecimal(objSwapInOsmosis.tokenInAmount).mul((100 - userSlippage) / 100).toNumber()
+                  ).toString()
+                }
+              },
+              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+              post_swap_action: {},
+              affiliates: []
+            }
+          }
+        }
+      }
+    ],
+    [
+      smartRoutesOsmoAddr,
+      objSwapInOsmosis,
+      false,
+      false,
+      {
+        msgActionSwap: {
+          wasm: {
+            contract: osmosisContractRouter,
+            msg: {
+              swap_and_action: {
+                user_swap: {
+                  swap_exact_asset_in: {
+                    swap_venue_name: "osmosis-poolmanager",
+                    operations: [
+                      {
+                        denom_in: objSwapInOsmosis.tokenIn,
+                        denom_out: objSwapInOsmosis.swapInfo[0].tokenOut,
+                        pool: objSwapInOsmosis.swapInfo[0].poolId
+                      },
+                      {
+                        denom_in: objSwapInOsmosis.swapInfo[0].tokenOut,
+                        denom_out: objSwapInOsmosis.swapInfo[1].tokenOut,
+                        pool: objSwapInOsmosis.swapInfo[1].poolId
+                      },
+                      {
+                        denom_in: objSwapInOsmosis.swapInfo[1].tokenOut,
+                        denom_out: objSwapInOsmosis.swapInfo[2].tokenOut,
+                        pool: objSwapInOsmosis.swapInfo[2].poolId
+                      }
+                    ]
+                  }
+                },
+                min_asset: {
+                  native: {
+                    denom: objSwapInOsmosis.tokenOut,
+                    amount: Math.trunc(
+                      new BigDecimal(objSwapInOsmosis.tokenInAmount).mul((100 - userSlippage) / 100).toNumber()
+                    ).toString()
+                  }
+                },
+                timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                post_swap_action: {},
+                affiliates: []
+              }
+            }
+          }
+        }
+      }
+    ]
+  ])("test-get-swap-and-ation-in-osmosis", (senderCosmos, route, isOnlySwap, isInitial, expectResult) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      sender: {
+        ...universalSwapData.sender,
+        cosmos: senderCosmos
+      }
+    });
 
-  //   const msgSwapAndAction = universalSwap.getMsgTransfer(
-  //     route,
-  //     {
-  //       oraiAddress: smartRoutesOraiAddr,
-  //       injAddress: smartRoutesInjAddr
-  //     },
-  //     route.isLastPath
-  //   );
+    const msgSwapAndAction = universalSwap.getSwapAndActionInOsmosis(
+      route,
+      {
+        oraiAddress: smartRoutesOraiAddr,
+        injAddress: smartRoutesInjAddr
+      },
+      isOnlySwap,
+      isInitial
+    );
+    expect(msgSwapAndAction).toEqual(expectResult);
+  });
 
-  //   expect(msgSwapAndAction).toEqual(expectResult);
-  // });
+  it.each<[string, any, any]>([
+    [
+      smartRoutesOsmoAddr,
+      objBridgeInSmartRoute[0],
+      {
+        sourcePort: objBridgeInSmartRoute[0].bridgeInfo.port,
+        sourceChannel: objBridgeInSmartRoute[0].bridgeInfo.channel,
+        receiver: smartRoutesInjAddr,
+        token: {
+          amount: objBridgeInSmartRoute[0].tokenInAmount,
+          denom: objBridgeInSmartRoute[0].tokenIn
+        },
+        sender: smartRoutesOsmoAddr,
+        memo: "",
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+      }
+    ],
+    [
+      smartRoutesOraiAddr,
+      objBridgeInSmartRoute[1],
+      {
+        sourcePort: objBridgeInSmartRoute[1].bridgeInfo.port,
+        sourceChannel: objBridgeInSmartRoute[1].bridgeInfo.channel,
+        receiver: smartRoutesInjAddr,
+        token: {
+          amount: objBridgeInSmartRoute[1].tokenInAmount,
+          denom: objBridgeInSmartRoute[1].tokenIn
+        },
+        sender: smartRoutesOraiAddr,
+        memo: "",
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+      }
+    ],
+    [
+      smartRoutesOraiAddr,
+      objBridgeInSmartRoute[2],
+      {
+        sourcePort: objBridgeInSmartRoute[2].bridgeInfo.port,
+        sourceChannel: objBridgeInSmartRoute[2].bridgeInfo.channel,
+        receiver: smartRoutesOsmoAddr,
+        token: {
+          amount: objBridgeInSmartRoute[2].tokenInAmount,
+          denom: objBridgeInSmartRoute[2].tokenIn
+        },
+        sender: smartRoutesOraiAddr,
+        memo: "",
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+      }
+    ],
+    [
+      smartRoutesOraiAddr,
+      objBridgeInSmartRoute[3],
+      {
+        sourcePort: objBridgeInSmartRoute[3].bridgeInfo.port,
+        sourceChannel: objBridgeInSmartRoute[3].bridgeInfo.channel,
+        receiver: osmosisContractRouter,
+        token: {
+          amount: objBridgeInSmartRoute[3].tokenInAmount,
+          denom: objBridgeInSmartRoute[3].tokenIn
+        },
+        sender: smartRoutesOraiAddr,
+        memo: "",
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+      }
+    ]
+  ])("test-get-msg-transfer-with-smart-route", (sender, route, expectResult) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      sender: {
+        cosmos: sender
+      }
+    });
 
-  // it.each<[string, any, any]>([
-  //   [
-  //     smartRoutesOsmoAddr,
-  //     objBridgeInSmartRoute[0],
-  //     {
-  //       msgForwardObject: {
-  //         forward: {
-  //           receiver: smartRoutesInjAddr,
-  //           port: objBridgeInSmartRoute[0].bridgeInfo.port,
-  //           channel: objBridgeInSmartRoute[0].bridgeInfo.channel,
-  //           timeout: 0,
-  //           retries: 2
-  //         }
-  //       }
-  //     }
-  //   ],
-  //   [
-  //     smartRoutesOraiAddr,
-  //     objBridgeInSmartRoute[1],
-  //     {
-  //       msgForwardObject: {
-  //         forward: {
-  //           receiver: smartRoutesInjAddr,
-  //           port: objBridgeInSmartRoute[1].bridgeInfo.port,
-  //           channel: objBridgeInSmartRoute[1].bridgeInfo.channel,
-  //           timeout: 0,
-  //           retries: 2
-  //         }
-  //       }
-  //     }
-  //   ]
-  // ])("test-create-msg-forward-object-smart-route", (sender, route, expectResult) => {
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData,
-  //     sender: {
-  //       cosmos: sender
-  //     }
-  //   });
+    const msgSwapAndAction = universalSwap.getMsgTransfer(
+      route,
+      {
+        oraiAddress: smartRoutesOraiAddr,
+        injAddress: smartRoutesInjAddr
+      },
+      route.isLastPath
+    );
 
-  //   const msgSwapAndAction = universalSwap.createForwardObject(route, {
-  //     oraiAddress: smartRoutesOraiAddr,
-  //     injAddress: smartRoutesInjAddr
-  //   });
-  //   expect(msgSwapAndAction).toEqual(expectResult);
-  // });
+    expect(msgSwapAndAction).toEqual(expectResult);
+  });
 
-  // it.each<[string, string, any, any, any]>([
-  //   [
-  //     "one-route-from-oraichain-to-osmosis",
-  //     smartRoutesOraiAddr,
-  //     alphaSmartRoute[0],
-  //     [
-  //       {
-  //         contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
-  //         msg: {
-  //           execute_swap_operations: {
-  //             operations: [
-  //               {
-  //                 orai_swap: {
-  //                   offer_asset_info: {
-  //                     native_token: { denom: alphaSmartRouteWithOneRoutes0_0_0.tokenIn }
-  //                   },
-  //                   ask_asset_info: {
-  //                     native_token: {
-  //                       denom: alphaSmartRouteWithOneRoutes0_0_0.tokenOut
-  //                     }
-  //                   }
-  //                 }
-  //               }
-  //             ],
-  //             minimum_receive: alphaSmartRouteWithOneRoutes0_0_0.tokenOutAmount,
-  //             to: undefined
-  //           }
-  //         },
-  //         funds: [
-  //           {
-  //             denom: alphaSmartRouteWithOneRoutes0_0_0.tokenIn,
-  //             amount: alphaSmartRouteWithOneRoutes0_0_0.tokenInAmount
-  //           }
-  //         ]
-  //       }
-  //     ],
-  //     [
-  //       {
-  //         memo: "",
-  //         receiver: smartRoutesOsmoAddr,
-  //         sender: smartRoutesOraiAddr,
-  //         sourceChannel: alphaSmartRouteWithOneRoutes0_0_1.bridgeInfo?.channel,
-  //         sourcePort: alphaSmartRouteWithOneRoutes0_0_1.bridgeInfo?.port,
-  //         token: {
-  //           amount: alphaSmartRouteWithOneRoutes0_0_1.tokenInAmount,
-  //           denom: alphaSmartRouteWithOneRoutes0_0_1.tokenIn
-  //         },
-  //         timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //       }
-  //     ]
-  //   ],
-  //   [
-  //     "two-routes-from-oraichain-to-osmosis",
-  //     smartRoutesOraiAddr,
-  //     alphaSmartRoute[1],
-  //     [
-  //       {
-  //         contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
-  //         msg: {
-  //           execute_swap_operations: {
-  //             operations: [
-  //               {
-  //                 orai_swap: {
-  //                   offer_asset_info: {
-  //                     native_token: { denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenIn }
-  //                   },
-  //                   ask_asset_info: {
-  //                     native_token: {
-  //                       denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenOut
-  //                     }
-  //                   }
-  //                 }
-  //               }
-  //             ],
-  //             minimum_receive: alphaSmartRouteWithTwoRoutes0_0_0.tokenOutAmount,
-  //             to: undefined
-  //           }
-  //         },
-  //         funds: [
-  //           {
-  //             denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenIn,
-  //             amount: alphaSmartRouteWithTwoRoutes0_0_0.tokenInAmount
-  //           }
-  //         ]
-  //       }
-  //     ],
-  //     [
-  //       {
-  //         sourcePort: alphaSmartRouteWithTwoRoutes0_0_1.bridgeInfo?.port,
-  //         sourceChannel: alphaSmartRouteWithTwoRoutes0_0_1.bridgeInfo?.channel,
-  //         receiver: smartRoutesCosmosAddr,
-  //         token: {
-  //           amount: alphaSmartRouteWithTwoRoutes0_0_1.tokenInAmount,
-  //           denom: alphaSmartRouteWithTwoRoutes0_0_1.tokenIn
-  //         },
-  //         sender: smartRoutesOraiAddr,
-  //         memo: {
-  //           forward: {
-  //             receiver: osmosisContractRouter,
-  //             port: alphaSmartRouteWithTwoRoutes0_1_0.bridgeInfo?.port,
-  //             channel: alphaSmartRouteWithTwoRoutes0_1_0.bridgeInfo?.channel,
-  //             timeout: 0,
-  //             retries: 2,
-  //             next: {
-  //               wasm: {
-  //                 contract: osmosisContractRouter,
-  //                 msg: {
-  //                   swap_and_action: {
-  //                     user_swap: {
-  //                       swap_exact_asset_in: {
-  //                         swap_venue_name: "osmosis-poolmanager",
-  //                         operations: [
-  //                           {
-  //                             pool: alphaSmartRouteWithTwoRoutes0_2_0.swapInfo?.[0].poolId,
-  //                             denom_in: alphaSmartRouteWithTwoRoutes0_2_0.tokenIn,
-  //                             denom_out: alphaSmartRouteWithTwoRoutes0_2_0.tokenOut
-  //                           }
-  //                         ]
-  //                       }
-  //                     },
-  //                     min_asset: {
-  //                       native: {
-  //                         denom: alphaSmartRouteWithTwoRoutes0_2_0.tokenOut,
-  //                         amount: alphaSmartRouteWithTwoRoutes0_2_0.tokenOutAmount
-  //                       }
-  //                     },
-  //                     timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
-  //                     post_swap_action: {
-  //                       transfer: {
-  //                         to_address: smartRoutesOsmoAddr
-  //                       }
-  //                     },
-  //                     affiliates: []
-  //                   }
-  //                 }
-  //               }
-  //             }
-  //           }
-  //         },
-  //         timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //       }
-  //     ]
-  //   ],
-  //   [
-  //     "three-routes-from-oraichain-to-osmosis",
-  //     smartRoutesOraiAddr,
-  //     alphaSmartRoute[2],
-  //     [
-  //       {
-  //         contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
-  //         msg: {
-  //           execute_swap_operations: {
-  //             operations: [
-  //               {
-  //                 orai_swap: {
-  //                   offer_asset_info: {
-  //                     native_token: { denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenIn }
-  //                   },
-  //                   ask_asset_info: {
-  //                     native_token: {
-  //                       denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenOut
-  //                     }
-  //                   }
-  //                 }
-  //               }
-  //             ],
-  //             minimum_receive: alphaSmartRouteWithThreeRoutes0_0_0.tokenOutAmount,
-  //             to: undefined
-  //           }
-  //         },
-  //         funds: [
-  //           {
-  //             denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenIn,
-  //             amount: alphaSmartRouteWithThreeRoutes0_0_0.tokenInAmount
-  //           }
-  //         ]
-  //       },
-  //       {
-  //         contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
-  //         msg: {
-  //           execute_swap_operations: {
-  //             operations: [
-  //               {
-  //                 orai_swap: {
-  //                   offer_asset_info: {
-  //                     native_token: { denom: alphaSmartRouteWithThreeRoutes1_0_0.tokenIn }
-  //                   },
-  //                   ask_asset_info: {
-  //                     token: {
-  //                       contract_addr: alphaSmartRouteWithThreeRoutes1_0_0.tokenOut
-  //                     }
-  //                   }
-  //                 }
-  //               }
-  //             ],
-  //             minimum_receive: alphaSmartRouteWithThreeRoutes1_0_0.tokenOutAmount,
-  //             to: undefined
-  //           }
-  //         },
-  //         funds: [
-  //           {
-  //             denom: alphaSmartRouteWithThreeRoutes1_0_0.tokenIn,
-  //             amount: alphaSmartRouteWithThreeRoutes1_0_0.tokenInAmount
-  //           }
-  //         ]
-  //       }
-  //     ],
-  //     [
-  //       {
-  //         sourcePort: alphaSmartRouteWithThreeRoutes0_0_1.bridgeInfo?.port,
-  //         sourceChannel: alphaSmartRouteWithThreeRoutes0_0_1.bridgeInfo?.channel,
-  //         receiver: smartRoutesCosmosAddr,
-  //         token: {
-  //           amount: alphaSmartRouteWithThreeRoutes0_0_1.tokenInAmount,
-  //           denom: alphaSmartRouteWithThreeRoutes0_0_1.tokenIn
-  //         },
-  //         sender: smartRoutesOraiAddr,
-  //         memo: {
-  //           forward: {
-  //             receiver: osmosisContractRouter,
-  //             port: alphaSmartRouteWithThreeRoutes0_1_0.bridgeInfo?.port,
-  //             channel: alphaSmartRouteWithThreeRoutes0_1_0.bridgeInfo?.channel,
-  //             timeout: 0,
-  //             retries: 2,
-  //             next: {
-  //               wasm: {
-  //                 contract: osmosisContractRouter,
-  //                 msg: {
-  //                   swap_and_action: {
-  //                     user_swap: {
-  //                       swap_exact_asset_in: {
-  //                         swap_venue_name: "osmosis-poolmanager",
-  //                         operations: [
-  //                           {
-  //                             pool: alphaSmartRouteWithThreeRoutes0_2_0.swapInfo?.[0].poolId,
-  //                             denom_in: alphaSmartRouteWithThreeRoutes0_2_0.tokenIn,
-  //                             denom_out: alphaSmartRouteWithThreeRoutes0_2_0.tokenOut
-  //                           }
-  //                         ]
-  //                       }
-  //                     },
-  //                     min_asset: {
-  //                       native: {
-  //                         denom: alphaSmartRouteWithThreeRoutes0_2_0.tokenOut,
-  //                         amount: alphaSmartRouteWithThreeRoutes0_2_0.tokenOutAmount
-  //                       }
-  //                     },
-  //                     timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
-  //                     post_swap_action: {
-  //                       transfer: {
-  //                         to_address: smartRoutesOsmoAddr
-  //                       }
-  //                     },
-  //                     affiliates: []
-  //                   }
-  //                 }
-  //               }
-  //             }
-  //           }
-  //         },
-  //         timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //       },
-  //       {
-  //         sourcePort: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.port,
-  //         sourceChannel: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.channel,
-  //         receiver: smartRoutesNobleAddr,
-  //         token: {
-  //           amount: alphaSmartRouteWithThreeRoutes1_0_1.tokenInAmount,
-  //           denom: alphaSmartRouteWithThreeRoutes1_0_1.tokenIn
-  //         },
-  //         sender: smartRoutesOraiAddr,
-  //         memo: {
-  //           forward: {
-  //             receiver: osmosisContractRouter,
-  //             port: alphaSmartRouteWithThreeRoutes1_1_0.bridgeInfo?.port,
-  //             channel: alphaSmartRouteWithThreeRoutes1_1_0.bridgeInfo?.channel,
-  //             timeout: 0,
-  //             retries: 2,
-  //             next: {
-  //               wasm: {
-  //                 contract: osmosisContractRouter,
-  //                 msg: {
-  //                   swap_and_action: {
-  //                     user_swap: {
-  //                       swap_exact_asset_in: {
-  //                         swap_venue_name: "osmosis-poolmanager",
-  //                         operations: [
-  //                           {
-  //                             pool: alphaSmartRouteWithThreeRoutes1_2_0.swapInfo?.[0].poolId,
-  //                             denom_in: alphaSmartRouteWithThreeRoutes1_2_0.tokenIn,
-  //                             denom_out: alphaSmartRouteWithThreeRoutes1_2_0.tokenOut
-  //                           }
-  //                         ]
-  //                       }
-  //                     },
-  //                     min_asset: {
-  //                       native: {
-  //                         denom: alphaSmartRouteWithThreeRoutes1_2_0.tokenOut,
-  //                         amount: alphaSmartRouteWithThreeRoutes1_2_0.tokenOutAmount
-  //                       }
-  //                     },
-  //                     timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
-  //                     post_swap_action: {
-  //                       transfer: {
-  //                         to_address: smartRoutesOsmoAddr
-  //                       }
-  //                     },
-  //                     affiliates: []
-  //                   }
-  //                 }
-  //               }
-  //             }
-  //           }
-  //         },
-  //         timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
-  //       }
-  //     ]
-  //   ]
-  // ])("test-get-msg-and-object-msg-transfers", (_, sender, route, expectResultMessages, expectResultMsgTransfer) => {
-  //   const universalSwap = new FakeUniversalSwapHandler({
-  //     ...universalSwapData,
-  //     userSlippage: 0,
-  //     sender: {
-  //       cosmos: sender
-  //     }
-  //   });
-  //   const routesFlatten = universalSwap.flattenSmartRouters(route.routes);
-  //   const { messages, msgTransfers } = universalSwap.getMessagesAndMsgTransfers(routesFlatten, {
-  //     oraiAddress: smartRoutesOraiAddr,
-  //     injAddress: smartRoutesInjAddr
-  //   });
+  it.each<[string, any, any]>([
+    [
+      smartRoutesOsmoAddr,
+      objBridgeInSmartRoute[0],
+      {
+        msgForwardObject: {
+          forward: {
+            receiver: smartRoutesInjAddr,
+            port: objBridgeInSmartRoute[0].bridgeInfo.port,
+            channel: objBridgeInSmartRoute[0].bridgeInfo.channel,
+            timeout: 0,
+            retries: 2
+          }
+        }
+      }
+    ],
+    [
+      smartRoutesOraiAddr,
+      objBridgeInSmartRoute[1],
+      {
+        msgForwardObject: {
+          forward: {
+            receiver: smartRoutesInjAddr,
+            port: objBridgeInSmartRoute[1].bridgeInfo.port,
+            channel: objBridgeInSmartRoute[1].bridgeInfo.channel,
+            timeout: 0,
+            retries: 2
+          }
+        }
+      }
+    ]
+  ])("test-create-msg-forward-object-smart-route", (sender, route, expectResult) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      sender: {
+        cosmos: sender
+      }
+    });
 
-  //   expect(messages).toEqual(expectResultMessages);
-  //   expect(msgTransfers).toEqual(expectResultMsgTransfer);
-  // });
+    const msgSwapAndAction = universalSwap.createForwardObject(route, {
+      oraiAddress: smartRoutesOraiAddr,
+      injAddress: smartRoutesInjAddr
+    });
+    expect(msgSwapAndAction).toEqual(expectResult);
+  });
+
+  it.each<[string, string, any, any, any]>([
+    [
+      "one-route-from-oraichain-to-osmosis",
+      smartRoutesOraiAddr,
+      alphaSmartRoute[0],
+      [
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithOneRoutes0_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      native_token: {
+                        denom: alphaSmartRouteWithOneRoutes0_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithOneRoutes0_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithOneRoutes0_0_0.tokenIn,
+              amount: alphaSmartRouteWithOneRoutes0_0_0.tokenInAmount
+            }
+          ]
+        }
+      ],
+      [
+        {
+          memo: "",
+          receiver: smartRoutesOsmoAddr,
+          sender: smartRoutesOraiAddr,
+          sourceChannel: alphaSmartRouteWithOneRoutes0_0_1.bridgeInfo?.channel,
+          sourcePort: alphaSmartRouteWithOneRoutes0_0_1.bridgeInfo?.port,
+          token: {
+            amount: alphaSmartRouteWithOneRoutes0_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithOneRoutes0_0_1.tokenIn
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        }
+      ]
+    ],
+    [
+      "two-routes-from-oraichain-to-osmosis",
+      smartRoutesOraiAddr,
+      alphaSmartRoute[1],
+      [
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      native_token: {
+                        denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithTwoRoutes0_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithTwoRoutes0_0_0.tokenIn,
+              amount: alphaSmartRouteWithTwoRoutes0_0_0.tokenInAmount
+            }
+          ]
+        }
+      ],
+      [
+        {
+          sourcePort: alphaSmartRouteWithTwoRoutes0_0_1.bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithTwoRoutes0_0_1.bridgeInfo?.channel,
+          receiver: smartRoutesCosmosAddr,
+          token: {
+            amount: alphaSmartRouteWithTwoRoutes0_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithTwoRoutes0_0_1.tokenIn
+          },
+          sender: smartRoutesOraiAddr,
+          memo: {
+            forward: {
+              receiver: osmosisContractRouter,
+              port: alphaSmartRouteWithTwoRoutes0_1_0.bridgeInfo?.port,
+              channel: alphaSmartRouteWithTwoRoutes0_1_0.bridgeInfo?.channel,
+              timeout: 0,
+              retries: 2,
+              next: {
+                wasm: {
+                  contract: osmosisContractRouter,
+                  msg: {
+                    swap_and_action: {
+                      user_swap: {
+                        swap_exact_asset_in: {
+                          swap_venue_name: "osmosis-poolmanager",
+                          operations: [
+                            {
+                              pool: alphaSmartRouteWithTwoRoutes0_2_0.swapInfo?.[0].poolId,
+                              denom_in: alphaSmartRouteWithTwoRoutes0_2_0.tokenIn,
+                              denom_out: alphaSmartRouteWithTwoRoutes0_2_0.tokenOut
+                            }
+                          ]
+                        }
+                      },
+                      min_asset: {
+                        native: {
+                          denom: alphaSmartRouteWithTwoRoutes0_2_0.tokenOut,
+                          amount: alphaSmartRouteWithTwoRoutes0_2_0.tokenOutAmount
+                        }
+                      },
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      post_swap_action: {
+                        transfer: {
+                          to_address: smartRoutesOsmoAddr
+                        }
+                      },
+                      affiliates: []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        }
+      ]
+    ],
+    [
+      "three-routes-from-oraichain-to-osmosis",
+      smartRoutesOraiAddr,
+      alphaSmartRoute[2],
+      [
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      native_token: {
+                        denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithThreeRoutes0_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithThreeRoutes0_0_0.tokenIn,
+              amount: alphaSmartRouteWithThreeRoutes0_0_0.tokenInAmount
+            }
+          ]
+        },
+        {
+          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          msg: {
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: {
+                      native_token: { denom: alphaSmartRouteWithThreeRoutes1_0_0.tokenIn }
+                    },
+                    ask_asset_info: {
+                      token: {
+                        contract_addr: alphaSmartRouteWithThreeRoutes1_0_0.tokenOut
+                      }
+                    }
+                  }
+                }
+              ],
+              minimum_receive: alphaSmartRouteWithThreeRoutes1_0_0.tokenOutAmount,
+              to: undefined
+            }
+          },
+          funds: [
+            {
+              denom: alphaSmartRouteWithThreeRoutes1_0_0.tokenIn,
+              amount: alphaSmartRouteWithThreeRoutes1_0_0.tokenInAmount
+            }
+          ]
+        }
+      ],
+      [
+        {
+          sourcePort: alphaSmartRouteWithThreeRoutes0_0_1.bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithThreeRoutes0_0_1.bridgeInfo?.channel,
+          receiver: smartRoutesCosmosAddr,
+          token: {
+            amount: alphaSmartRouteWithThreeRoutes0_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithThreeRoutes0_0_1.tokenIn
+          },
+          sender: smartRoutesOraiAddr,
+          memo: {
+            forward: {
+              receiver: osmosisContractRouter,
+              port: alphaSmartRouteWithThreeRoutes0_1_0.bridgeInfo?.port,
+              channel: alphaSmartRouteWithThreeRoutes0_1_0.bridgeInfo?.channel,
+              timeout: 0,
+              retries: 2,
+              next: {
+                wasm: {
+                  contract: osmosisContractRouter,
+                  msg: {
+                    swap_and_action: {
+                      user_swap: {
+                        swap_exact_asset_in: {
+                          swap_venue_name: "osmosis-poolmanager",
+                          operations: [
+                            {
+                              pool: alphaSmartRouteWithThreeRoutes0_2_0.swapInfo?.[0].poolId,
+                              denom_in: alphaSmartRouteWithThreeRoutes0_2_0.tokenIn,
+                              denom_out: alphaSmartRouteWithThreeRoutes0_2_0.tokenOut
+                            }
+                          ]
+                        }
+                      },
+                      min_asset: {
+                        native: {
+                          denom: alphaSmartRouteWithThreeRoutes0_2_0.tokenOut,
+                          amount: alphaSmartRouteWithThreeRoutes0_2_0.tokenOutAmount
+                        }
+                      },
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      post_swap_action: {
+                        transfer: {
+                          to_address: smartRoutesOsmoAddr
+                        }
+                      },
+                      affiliates: []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        },
+        {
+          sourcePort: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.port,
+          sourceChannel: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.channel,
+          receiver: smartRoutesNobleAddr,
+          token: {
+            amount: alphaSmartRouteWithThreeRoutes1_0_1.tokenInAmount,
+            denom: alphaSmartRouteWithThreeRoutes1_0_1.tokenIn
+          },
+          sender: smartRoutesOraiAddr,
+          memo: {
+            forward: {
+              receiver: osmosisContractRouter,
+              port: alphaSmartRouteWithThreeRoutes1_1_0.bridgeInfo?.port,
+              channel: alphaSmartRouteWithThreeRoutes1_1_0.bridgeInfo?.channel,
+              timeout: 0,
+              retries: 2,
+              next: {
+                wasm: {
+                  contract: osmosisContractRouter,
+                  msg: {
+                    swap_and_action: {
+                      user_swap: {
+                        swap_exact_asset_in: {
+                          swap_venue_name: "osmosis-poolmanager",
+                          operations: [
+                            {
+                              pool: alphaSmartRouteWithThreeRoutes1_2_0.swapInfo?.[0].poolId,
+                              denom_in: alphaSmartRouteWithThreeRoutes1_2_0.tokenIn,
+                              denom_out: alphaSmartRouteWithThreeRoutes1_2_0.tokenOut
+                            }
+                          ]
+                        }
+                      },
+                      min_asset: {
+                        native: {
+                          denom: alphaSmartRouteWithThreeRoutes1_2_0.tokenOut,
+                          amount: alphaSmartRouteWithThreeRoutes1_2_0.tokenOutAmount
+                        }
+                      },
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      post_swap_action: {
+                        transfer: {
+                          to_address: smartRoutesOsmoAddr
+                        }
+                      },
+                      affiliates: []
+                    }
+                  }
+                }
+              }
+            }
+          },
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        }
+      ]
+    ]
+  ])("test-get-msg-and-object-msg-transfers", (_, sender, route, expectResultMessages, expectResultMsgTransfer) => {
+    const universalSwap = new FakeUniversalSwapHandler({
+      ...universalSwapData,
+      userSlippage: 0,
+      sender: {
+        cosmos: sender
+      }
+    });
+    const routesFlatten = universalSwap.flattenSmartRouters(route.routes);
+    const { messages, msgTransfers } = universalSwap.getMessagesAndMsgTransfers(routesFlatten, {
+      oraiAddress: smartRoutesOraiAddr,
+      injAddress: smartRoutesInjAddr
+    });
+
+    expect(messages).toEqual(expectResultMessages);
+    expect(msgTransfers).toEqual(expectResultMsgTransfer);
+  });
 });

@@ -4,7 +4,7 @@ name: publish_package_universal_common
 on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
-    branches: [rollback-common]
+    branches: [feat/oraidex-universal-swap]
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -60,3 +60,11 @@ jobs:
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: send result via discord
+        uses: appleboy/discord-action@master
+        with:
+          webhook_id: ${{ secrets.WEBHOOK_ID }}
+          webhook_token: ${{ secrets.WEBHOOK_TOKEN }}
+          username: "GitBot"
+          message: "Repo oraidex-sdk has just published. Oraidex common: ${{ steps.publish-common.outcome }}. Universal swap: ${{ steps.publish-universal-swap.outcome }}"
