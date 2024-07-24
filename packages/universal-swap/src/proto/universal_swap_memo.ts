@@ -2,7 +2,7 @@
 // versions:
 //   protoc-gen-ts_proto  v1.181.1
 //   protoc               v5.27.1
-// source: proto/universal-swap-memo.proto
+// source: packages/oraiswap/src/universal_swap_memo.proto
 
 /* eslint-disable */
 import * as _m0 from "protobufjs/minimal";
@@ -21,8 +21,11 @@ export interface Memo {
   recoveryAddr: string;
 }
 
+/**
+ * we dont need swap amount since it will be sent via cw20 or native, and we
+ * use that
+ */
 export interface Memo_SwapExactAssetIn {
-  offerAmount: string;
   operations: Memo_SwapOperation[];
 }
 
@@ -36,35 +39,9 @@ export interface Memo_Route {
 }
 
 export interface Memo_SwapOperation {
-  poolId: Memo_PoolId | undefined;
-}
-
-export interface Memo_FeeTier {
-  fee: number;
-  tickSpacing: number;
-}
-
-export interface Memo_PoolKey {
-  tokenX: Memo_AssetInfo | undefined;
-  tokenY:
-    | Memo_AssetInfo
-    | undefined;
-  /** if it's v2 -> no fee tier */
-  feeTier?: Memo_FeeTier | undefined;
-}
-
-export interface Memo_AssetInfo {
-  denom: string;
-  /** This would help us parse between native and contract addr */
-  isNative: boolean;
-}
-
-export interface Memo_PoolId {
-  poolKey:
-    | Memo_PoolKey
-    | undefined;
-  /** we can use this to create v2 swap operation as well */
-  xToY: boolean;
+  poolId: string;
+  denomIn: string;
+  denomOut: string;
 }
 
 /**
@@ -72,6 +49,11 @@ export interface Memo_PoolId {
  * error
  */
 export interface Memo_UserSwap {
+  /**
+   * or adapter name so that the smart router can redirect to the right swap
+   * router.
+   */
+  swapVenueName: string;
   swapExactAssetIn?: Memo_SwapExactAssetIn | undefined;
   smartSwapExactAssetIn?: Memo_SmartSwapExactAssetIn | undefined;
 }
@@ -82,6 +64,7 @@ export interface Memo_UserSwap {
  */
 export interface Memo_PostAction {
   ibcTransferMsg?: Memo_IbcTransfer | undefined;
+  ibcWasmTransferMsg?: Memo_IbcWasmTransfer | undefined;
   contractCall?: Memo_ContractCall | undefined;
 }
 
@@ -91,6 +74,27 @@ export interface Memo_IbcTransfer {
   receiver: string;
   memo: string;
   recoverAddress: string;
+}
+
+export interface Memo_IbcWasmTransfer {
+  /** / the local ibc endpoint you want to send tokens back on */
+  localChannelId: string;
+  /** can be 0x or bech32 */
+  remoteAddress: string;
+  /**
+   * / remote denom so that we know what denom to filter when we query based on
+   * / the asset info. Most likely be: oraib0x... or eth0x...
+   */
+  remoteDenom: string;
+  /**
+   * / How long the packet lives in seconds. If not specified, use
+   * / default_timeout
+   */
+  timeout?:
+    | number
+    | undefined;
+  /** / metadata of the transfer to suit the new fungible token transfer */
+  memo?: string | undefined;
 }
 
 export interface Memo_ContractCall {
@@ -222,16 +226,13 @@ export const Memo = {
 };
 
 function createBaseMemo_SwapExactAssetIn(): Memo_SwapExactAssetIn {
-  return { offerAmount: "", operations: [] };
+  return { operations: [] };
 }
 
 export const Memo_SwapExactAssetIn = {
   encode(message: Memo_SwapExactAssetIn, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.offerAmount !== "") {
-      writer.uint32(10).string(message.offerAmount);
-    }
     for (const v of message.operations) {
-      Memo_SwapOperation.encode(v!, writer.uint32(18).fork()).ldelim();
+      Memo_SwapOperation.encode(v!, writer.uint32(10).fork()).ldelim();
     }
     return writer;
   },
@@ -248,13 +249,6 @@ export const Memo_SwapExactAssetIn = {
             break;
           }
 
-          message.offerAmount = reader.string();
-          continue;
-        case 2:
-          if (tag !== 18) {
-            break;
-          }
-
           message.operations.push(Memo_SwapOperation.decode(reader, reader.uint32()));
           continue;
       }
@@ -268,7 +262,6 @@ export const Memo_SwapExactAssetIn = {
 
   fromJSON(object: any): Memo_SwapExactAssetIn {
     return {
-      offerAmount: isSet(object.offerAmount) ? globalThis.String(object.offerAmount) : "",
       operations: globalThis.Array.isArray(object?.operations)
         ? object.operations.map((e: any) => Memo_SwapOperation.fromJSON(e))
         : [],
@@ -277,9 +270,6 @@ export const Memo_SwapExactAssetIn = {
 
   toJSON(message: Memo_SwapExactAssetIn): unknown {
     const obj: any = {};
-    if (message.offerAmount !== "") {
-      obj.offerAmount = message.offerAmount;
-    }
     if (message.operations?.length) {
       obj.operations = message.operations.map((e) => Memo_SwapOperation.toJSON(e));
     }
@@ -291,7 +281,6 @@ export const Memo_SwapExactAssetIn = {
   },
   fromPartial<I extends Exact<DeepPartial<Memo_SwapExactAssetIn>, I>>(object: I): Memo_SwapExactAssetIn {
     const message = createBaseMemo_SwapExactAssetIn();
-    message.offerAmount = object.offerAmount ?? "";
     message.operations = object.operations?.map((e) => Memo_SwapOperation.fromPartial(e)) || [];
     return message;
   },
@@ -433,13 +422,19 @@ export const Memo_Route = {
 };
 
 function createBaseMemo_SwapOperation(): Memo_SwapOperation {
-  return { poolId: undefined };
+  return { poolId: "", denomIn: "", denomOut: "" };
 }
 
 export const Memo_SwapOperation = {
   encode(message: Memo_SwapOperation, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.poolId !== undefined) {
-      Memo_PoolId.encode(message.poolId, writer.uint32(10).fork()).ldelim();
+    if (message.poolId !== "") {
+      writer.uint32(10).string(message.poolId);
+    }
+    if (message.denomIn !== "") {
+      writer.uint32(18).string(message.denomIn);
+    }
+    if (message.denomOut !== "") {
+      writer.uint32(26).string(message.denomOut);
     }
     return writer;
   },
@@ -456,7 +451,21 @@ export const Memo_SwapOperation = {
             break;
           }
 
-          message.poolId = Memo_PoolId.decode(reader, reader.uint32());
+          message.poolId = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.denomIn = reader.string();
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.denomOut = reader.string();
           continue;
       }
       if ((tag & 7) === 4 || tag === 0) {
@@ -468,13 +477,23 @@ export const Memo_SwapOperation = {
   },
 
   fromJSON(object: any): Memo_SwapOperation {
-    return { poolId: isSet(object.poolId) ? Memo_PoolId.fromJSON(object.poolId) : undefined };
+    return {
+      poolId: isSet(object.poolId) ? globalThis.String(object.poolId) : "",
+      denomIn: isSet(object.denomIn) ? globalThis.String(object.denomIn) : "",
+      denomOut: isSet(object.denomOut) ? globalThis.String(object.denomOut) : "",
+    };
   },
 
   toJSON(message: Memo_SwapOperation): unknown {
     const obj: any = {};
-    if (message.poolId !== undefined) {
-      obj.poolId = Memo_PoolId.toJSON(message.poolId);
+    if (message.poolId !== "") {
+      obj.poolId = message.poolId;
+    }
+    if (message.denomIn !== "") {
+      obj.denomIn = message.denomIn;
+    }
+    if (message.denomOut !== "") {
+      obj.denomOut = message.denomOut;
     }
     return obj;
   },
@@ -484,343 +503,27 @@ export const Memo_SwapOperation = {
   },
   fromPartial<I extends Exact<DeepPartial<Memo_SwapOperation>, I>>(object: I): Memo_SwapOperation {
     const message = createBaseMemo_SwapOperation();
-    message.poolId = (object.poolId !== undefined && object.poolId !== null)
-      ? Memo_PoolId.fromPartial(object.poolId)
-      : undefined;
-    return message;
-  },
-};
-
-function createBaseMemo_FeeTier(): Memo_FeeTier {
-  return { fee: 0, tickSpacing: 0 };
-}
-
-export const Memo_FeeTier = {
-  encode(message: Memo_FeeTier, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.fee !== 0) {
-      writer.uint32(8).uint64(message.fee);
-    }
-    if (message.tickSpacing !== 0) {
-      writer.uint32(16).uint32(message.tickSpacing);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): Memo_FeeTier {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMemo_FeeTier();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 8) {
-            break;
-          }
-
-          message.fee = longToNumber(reader.uint64() as Long);
-          continue;
-        case 2:
-          if (tag !== 16) {
-            break;
-          }
-
-          message.tickSpacing = reader.uint32();
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): Memo_FeeTier {
-    return {
-      fee: isSet(object.fee) ? globalThis.Number(object.fee) : 0,
-      tickSpacing: isSet(object.tickSpacing) ? globalThis.Number(object.tickSpacing) : 0,
-    };
-  },
-
-  toJSON(message: Memo_FeeTier): unknown {
-    const obj: any = {};
-    if (message.fee !== 0) {
-      obj.fee = Math.round(message.fee);
-    }
-    if (message.tickSpacing !== 0) {
-      obj.tickSpacing = Math.round(message.tickSpacing);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<Memo_FeeTier>, I>>(base?: I): Memo_FeeTier {
-    return Memo_FeeTier.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Memo_FeeTier>, I>>(object: I): Memo_FeeTier {
-    const message = createBaseMemo_FeeTier();
-    message.fee = object.fee ?? 0;
-    message.tickSpacing = object.tickSpacing ?? 0;
-    return message;
-  },
-};
-
-function createBaseMemo_PoolKey(): Memo_PoolKey {
-  return { tokenX: undefined, tokenY: undefined, feeTier: undefined };
-}
-
-export const Memo_PoolKey = {
-  encode(message: Memo_PoolKey, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.tokenX !== undefined) {
-      Memo_AssetInfo.encode(message.tokenX, writer.uint32(10).fork()).ldelim();
-    }
-    if (message.tokenY !== undefined) {
-      Memo_AssetInfo.encode(message.tokenY, writer.uint32(18).fork()).ldelim();
-    }
-    if (message.feeTier !== undefined) {
-      Memo_FeeTier.encode(message.feeTier, writer.uint32(26).fork()).ldelim();
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): Memo_PoolKey {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMemo_PoolKey();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.tokenX = Memo_AssetInfo.decode(reader, reader.uint32());
-          continue;
-        case 2:
-          if (tag !== 18) {
-            break;
-          }
-
-          message.tokenY = Memo_AssetInfo.decode(reader, reader.uint32());
-          continue;
-        case 3:
-          if (tag !== 26) {
-            break;
-          }
-
-          message.feeTier = Memo_FeeTier.decode(reader, reader.uint32());
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): Memo_PoolKey {
-    return {
-      tokenX: isSet(object.tokenX) ? Memo_AssetInfo.fromJSON(object.tokenX) : undefined,
-      tokenY: isSet(object.tokenY) ? Memo_AssetInfo.fromJSON(object.tokenY) : undefined,
-      feeTier: isSet(object.feeTier) ? Memo_FeeTier.fromJSON(object.feeTier) : undefined,
-    };
-  },
-
-  toJSON(message: Memo_PoolKey): unknown {
-    const obj: any = {};
-    if (message.tokenX !== undefined) {
-      obj.tokenX = Memo_AssetInfo.toJSON(message.tokenX);
-    }
-    if (message.tokenY !== undefined) {
-      obj.tokenY = Memo_AssetInfo.toJSON(message.tokenY);
-    }
-    if (message.feeTier !== undefined) {
-      obj.feeTier = Memo_FeeTier.toJSON(message.feeTier);
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<Memo_PoolKey>, I>>(base?: I): Memo_PoolKey {
-    return Memo_PoolKey.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Memo_PoolKey>, I>>(object: I): Memo_PoolKey {
-    const message = createBaseMemo_PoolKey();
-    message.tokenX = (object.tokenX !== undefined && object.tokenX !== null)
-      ? Memo_AssetInfo.fromPartial(object.tokenX)
-      : undefined;
-    message.tokenY = (object.tokenY !== undefined && object.tokenY !== null)
-      ? Memo_AssetInfo.fromPartial(object.tokenY)
-      : undefined;
-    message.feeTier = (object.feeTier !== undefined && object.feeTier !== null)
-      ? Memo_FeeTier.fromPartial(object.feeTier)
-      : undefined;
-    return message;
-  },
-};
-
-function createBaseMemo_AssetInfo(): Memo_AssetInfo {
-  return { denom: "", isNative: false };
-}
-
-export const Memo_AssetInfo = {
-  encode(message: Memo_AssetInfo, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.denom !== "") {
-      writer.uint32(10).string(message.denom);
-    }
-    if (message.isNative !== false) {
-      writer.uint32(16).bool(message.isNative);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): Memo_AssetInfo {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMemo_AssetInfo();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.denom = reader.string();
-          continue;
-        case 2:
-          if (tag !== 16) {
-            break;
-          }
-
-          message.isNative = reader.bool();
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): Memo_AssetInfo {
-    return {
-      denom: isSet(object.denom) ? globalThis.String(object.denom) : "",
-      isNative: isSet(object.isNative) ? globalThis.Boolean(object.isNative) : false,
-    };
-  },
-
-  toJSON(message: Memo_AssetInfo): unknown {
-    const obj: any = {};
-    if (message.denom !== "") {
-      obj.denom = message.denom;
-    }
-    if (message.isNative !== false) {
-      obj.isNative = message.isNative;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<Memo_AssetInfo>, I>>(base?: I): Memo_AssetInfo {
-    return Memo_AssetInfo.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Memo_AssetInfo>, I>>(object: I): Memo_AssetInfo {
-    const message = createBaseMemo_AssetInfo();
-    message.denom = object.denom ?? "";
-    message.isNative = object.isNative ?? false;
-    return message;
-  },
-};
-
-function createBaseMemo_PoolId(): Memo_PoolId {
-  return { poolKey: undefined, xToY: false };
-}
-
-export const Memo_PoolId = {
-  encode(message: Memo_PoolId, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
-    if (message.poolKey !== undefined) {
-      Memo_PoolKey.encode(message.poolKey, writer.uint32(10).fork()).ldelim();
-    }
-    if (message.xToY !== false) {
-      writer.uint32(16).bool(message.xToY);
-    }
-    return writer;
-  },
-
-  decode(input: _m0.Reader | Uint8Array, length?: number): Memo_PoolId {
-    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
-    let end = length === undefined ? reader.len : reader.pos + length;
-    const message = createBaseMemo_PoolId();
-    while (reader.pos < end) {
-      const tag = reader.uint32();
-      switch (tag >>> 3) {
-        case 1:
-          if (tag !== 10) {
-            break;
-          }
-
-          message.poolKey = Memo_PoolKey.decode(reader, reader.uint32());
-          continue;
-        case 2:
-          if (tag !== 16) {
-            break;
-          }
-
-          message.xToY = reader.bool();
-          continue;
-      }
-      if ((tag & 7) === 4 || tag === 0) {
-        break;
-      }
-      reader.skipType(tag & 7);
-    }
-    return message;
-  },
-
-  fromJSON(object: any): Memo_PoolId {
-    return {
-      poolKey: isSet(object.poolKey) ? Memo_PoolKey.fromJSON(object.poolKey) : undefined,
-      xToY: isSet(object.xToY) ? globalThis.Boolean(object.xToY) : false,
-    };
-  },
-
-  toJSON(message: Memo_PoolId): unknown {
-    const obj: any = {};
-    if (message.poolKey !== undefined) {
-      obj.poolKey = Memo_PoolKey.toJSON(message.poolKey);
-    }
-    if (message.xToY !== false) {
-      obj.xToY = message.xToY;
-    }
-    return obj;
-  },
-
-  create<I extends Exact<DeepPartial<Memo_PoolId>, I>>(base?: I): Memo_PoolId {
-    return Memo_PoolId.fromPartial(base ?? ({} as any));
-  },
-  fromPartial<I extends Exact<DeepPartial<Memo_PoolId>, I>>(object: I): Memo_PoolId {
-    const message = createBaseMemo_PoolId();
-    message.poolKey = (object.poolKey !== undefined && object.poolKey !== null)
-      ? Memo_PoolKey.fromPartial(object.poolKey)
-      : undefined;
-    message.xToY = object.xToY ?? false;
+    message.poolId = object.poolId ?? "";
+    message.denomIn = object.denomIn ?? "";
+    message.denomOut = object.denomOut ?? "";
     return message;
   },
 };
 
 function createBaseMemo_UserSwap(): Memo_UserSwap {
-  return { swapExactAssetIn: undefined, smartSwapExactAssetIn: undefined };
+  return { swapVenueName: "", swapExactAssetIn: undefined, smartSwapExactAssetIn: undefined };
 }
 
 export const Memo_UserSwap = {
   encode(message: Memo_UserSwap, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.swapVenueName !== "") {
+      writer.uint32(10).string(message.swapVenueName);
+    }
     if (message.swapExactAssetIn !== undefined) {
-      Memo_SwapExactAssetIn.encode(message.swapExactAssetIn, writer.uint32(10).fork()).ldelim();
+      Memo_SwapExactAssetIn.encode(message.swapExactAssetIn, writer.uint32(18).fork()).ldelim();
     }
     if (message.smartSwapExactAssetIn !== undefined) {
-      Memo_SmartSwapExactAssetIn.encode(message.smartSwapExactAssetIn, writer.uint32(18).fork()).ldelim();
+      Memo_SmartSwapExactAssetIn.encode(message.smartSwapExactAssetIn, writer.uint32(26).fork()).ldelim();
     }
     return writer;
   },
@@ -837,10 +540,17 @@ export const Memo_UserSwap = {
             break;
           }
 
-          message.swapExactAssetIn = Memo_SwapExactAssetIn.decode(reader, reader.uint32());
+          message.swapVenueName = reader.string();
           continue;
         case 2:
           if (tag !== 18) {
+            break;
+          }
+
+          message.swapExactAssetIn = Memo_SwapExactAssetIn.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag !== 26) {
             break;
           }
 
@@ -857,6 +567,7 @@ export const Memo_UserSwap = {
 
   fromJSON(object: any): Memo_UserSwap {
     return {
+      swapVenueName: isSet(object.swapVenueName) ? globalThis.String(object.swapVenueName) : "",
       swapExactAssetIn: isSet(object.swapExactAssetIn)
         ? Memo_SwapExactAssetIn.fromJSON(object.swapExactAssetIn)
         : undefined,
@@ -868,6 +579,9 @@ export const Memo_UserSwap = {
 
   toJSON(message: Memo_UserSwap): unknown {
     const obj: any = {};
+    if (message.swapVenueName !== "") {
+      obj.swapVenueName = message.swapVenueName;
+    }
     if (message.swapExactAssetIn !== undefined) {
       obj.swapExactAssetIn = Memo_SwapExactAssetIn.toJSON(message.swapExactAssetIn);
     }
@@ -882,6 +596,7 @@ export const Memo_UserSwap = {
   },
   fromPartial<I extends Exact<DeepPartial<Memo_UserSwap>, I>>(object: I): Memo_UserSwap {
     const message = createBaseMemo_UserSwap();
+    message.swapVenueName = object.swapVenueName ?? "";
     message.swapExactAssetIn = (object.swapExactAssetIn !== undefined && object.swapExactAssetIn !== null)
       ? Memo_SwapExactAssetIn.fromPartial(object.swapExactAssetIn)
       : undefined;
@@ -894,7 +609,7 @@ export const Memo_UserSwap = {
 };
 
 function createBaseMemo_PostAction(): Memo_PostAction {
-  return { ibcTransferMsg: undefined, contractCall: undefined };
+  return { ibcTransferMsg: undefined, ibcWasmTransferMsg: undefined, contractCall: undefined };
 }
 
 export const Memo_PostAction = {
@@ -902,8 +617,11 @@ export const Memo_PostAction = {
     if (message.ibcTransferMsg !== undefined) {
       Memo_IbcTransfer.encode(message.ibcTransferMsg, writer.uint32(10).fork()).ldelim();
     }
+    if (message.ibcWasmTransferMsg !== undefined) {
+      Memo_IbcWasmTransfer.encode(message.ibcWasmTransferMsg, writer.uint32(18).fork()).ldelim();
+    }
     if (message.contractCall !== undefined) {
-      Memo_ContractCall.encode(message.contractCall, writer.uint32(18).fork()).ldelim();
+      Memo_ContractCall.encode(message.contractCall, writer.uint32(26).fork()).ldelim();
     }
     return writer;
   },
@@ -927,6 +645,13 @@ export const Memo_PostAction = {
             break;
           }
 
+          message.ibcWasmTransferMsg = Memo_IbcWasmTransfer.decode(reader, reader.uint32());
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
           message.contractCall = Memo_ContractCall.decode(reader, reader.uint32());
           continue;
       }
@@ -941,6 +666,9 @@ export const Memo_PostAction = {
   fromJSON(object: any): Memo_PostAction {
     return {
       ibcTransferMsg: isSet(object.ibcTransferMsg) ? Memo_IbcTransfer.fromJSON(object.ibcTransferMsg) : undefined,
+      ibcWasmTransferMsg: isSet(object.ibcWasmTransferMsg)
+        ? Memo_IbcWasmTransfer.fromJSON(object.ibcWasmTransferMsg)
+        : undefined,
       contractCall: isSet(object.contractCall) ? Memo_ContractCall.fromJSON(object.contractCall) : undefined,
     };
   },
@@ -949,6 +677,9 @@ export const Memo_PostAction = {
     const obj: any = {};
     if (message.ibcTransferMsg !== undefined) {
       obj.ibcTransferMsg = Memo_IbcTransfer.toJSON(message.ibcTransferMsg);
+    }
+    if (message.ibcWasmTransferMsg !== undefined) {
+      obj.ibcWasmTransferMsg = Memo_IbcWasmTransfer.toJSON(message.ibcWasmTransferMsg);
     }
     if (message.contractCall !== undefined) {
       obj.contractCall = Memo_ContractCall.toJSON(message.contractCall);
@@ -963,6 +694,9 @@ export const Memo_PostAction = {
     const message = createBaseMemo_PostAction();
     message.ibcTransferMsg = (object.ibcTransferMsg !== undefined && object.ibcTransferMsg !== null)
       ? Memo_IbcTransfer.fromPartial(object.ibcTransferMsg)
+      : undefined;
+    message.ibcWasmTransferMsg = (object.ibcWasmTransferMsg !== undefined && object.ibcWasmTransferMsg !== null)
+      ? Memo_IbcWasmTransfer.fromPartial(object.ibcWasmTransferMsg)
       : undefined;
     message.contractCall = (object.contractCall !== undefined && object.contractCall !== null)
       ? Memo_ContractCall.fromPartial(object.contractCall)
@@ -1086,6 +820,125 @@ export const Memo_IbcTransfer = {
     message.receiver = object.receiver ?? "";
     message.memo = object.memo ?? "";
     message.recoverAddress = object.recoverAddress ?? "";
+    return message;
+  },
+};
+
+function createBaseMemo_IbcWasmTransfer(): Memo_IbcWasmTransfer {
+  return { localChannelId: "", remoteAddress: "", remoteDenom: "", timeout: undefined, memo: undefined };
+}
+
+export const Memo_IbcWasmTransfer = {
+  encode(message: Memo_IbcWasmTransfer, writer: _m0.Writer = _m0.Writer.create()): _m0.Writer {
+    if (message.localChannelId !== "") {
+      writer.uint32(10).string(message.localChannelId);
+    }
+    if (message.remoteAddress !== "") {
+      writer.uint32(18).string(message.remoteAddress);
+    }
+    if (message.remoteDenom !== "") {
+      writer.uint32(26).string(message.remoteDenom);
+    }
+    if (message.timeout !== undefined) {
+      writer.uint32(32).uint64(message.timeout);
+    }
+    if (message.memo !== undefined) {
+      writer.uint32(42).string(message.memo);
+    }
+    return writer;
+  },
+
+  decode(input: _m0.Reader | Uint8Array, length?: number): Memo_IbcWasmTransfer {
+    const reader = input instanceof _m0.Reader ? input : _m0.Reader.create(input);
+    let end = length === undefined ? reader.len : reader.pos + length;
+    const message = createBaseMemo_IbcWasmTransfer();
+    while (reader.pos < end) {
+      const tag = reader.uint32();
+      switch (tag >>> 3) {
+        case 1:
+          if (tag !== 10) {
+            break;
+          }
+
+          message.localChannelId = reader.string();
+          continue;
+        case 2:
+          if (tag !== 18) {
+            break;
+          }
+
+          message.remoteAddress = reader.string();
+          continue;
+        case 3:
+          if (tag !== 26) {
+            break;
+          }
+
+          message.remoteDenom = reader.string();
+          continue;
+        case 4:
+          if (tag !== 32) {
+            break;
+          }
+
+          message.timeout = longToNumber(reader.uint64() as Long);
+          continue;
+        case 5:
+          if (tag !== 42) {
+            break;
+          }
+
+          message.memo = reader.string();
+          continue;
+      }
+      if ((tag & 7) === 4 || tag === 0) {
+        break;
+      }
+      reader.skipType(tag & 7);
+    }
+    return message;
+  },
+
+  fromJSON(object: any): Memo_IbcWasmTransfer {
+    return {
+      localChannelId: isSet(object.localChannelId) ? globalThis.String(object.localChannelId) : "",
+      remoteAddress: isSet(object.remoteAddress) ? globalThis.String(object.remoteAddress) : "",
+      remoteDenom: isSet(object.remoteDenom) ? globalThis.String(object.remoteDenom) : "",
+      timeout: isSet(object.timeout) ? globalThis.Number(object.timeout) : undefined,
+      memo: isSet(object.memo) ? globalThis.String(object.memo) : undefined,
+    };
+  },
+
+  toJSON(message: Memo_IbcWasmTransfer): unknown {
+    const obj: any = {};
+    if (message.localChannelId !== "") {
+      obj.localChannelId = message.localChannelId;
+    }
+    if (message.remoteAddress !== "") {
+      obj.remoteAddress = message.remoteAddress;
+    }
+    if (message.remoteDenom !== "") {
+      obj.remoteDenom = message.remoteDenom;
+    }
+    if (message.timeout !== undefined) {
+      obj.timeout = Math.round(message.timeout);
+    }
+    if (message.memo !== undefined) {
+      obj.memo = message.memo;
+    }
+    return obj;
+  },
+
+  create<I extends Exact<DeepPartial<Memo_IbcWasmTransfer>, I>>(base?: I): Memo_IbcWasmTransfer {
+    return Memo_IbcWasmTransfer.fromPartial(base ?? ({} as any));
+  },
+  fromPartial<I extends Exact<DeepPartial<Memo_IbcWasmTransfer>, I>>(object: I): Memo_IbcWasmTransfer {
+    const message = createBaseMemo_IbcWasmTransfer();
+    message.localChannelId = object.localChannelId ?? "";
+    message.remoteAddress = object.remoteAddress ?? "";
+    message.remoteDenom = object.remoteDenom ?? "";
+    message.timeout = object.timeout ?? undefined;
+    message.memo = object.memo ?? undefined;
     return message;
   },
 };

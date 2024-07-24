@@ -1,6 +1,6 @@
 import { decode, fromWords } from "bech32";
 import protobuf from "protobufjs";
-import { Memo, Memo_UserSwap } from "./universal-swap-memo";
+import { Memo, Memo_UserSwap } from "./universal_swap_memo";
 import { ORAI, USDT_CONTRACT } from "@oraichain/oraidex-common";
 
 export const parseToIbcWasmMemo = (
@@ -76,17 +76,15 @@ export const parseToIbcHookMemo = (
   return Buffer.from(msg.encode(message).finish()).toString("base64");
 };
 
-export const parseNewProtoMemoDemo = (offerAmount: string, minimumReceive: string) => {
+export const parseNewProtoMemoDemo = (minimumReceive: string) => {
   const memo = Memo.fromPartial({
     userSwap: {
       swapExactAssetIn: {
-        offerAmount,
         operations: [
           {
-            poolId: {
-              xToY: true,
-              poolKey: { tokenX: { denom: ORAI, isNative: true }, tokenY: { denom: USDT_CONTRACT, isNative: false } }
-            }
+            poolId: "",
+            denomIn: ORAI,
+            denomOut: USDT_CONTRACT
           }
         ]
       }

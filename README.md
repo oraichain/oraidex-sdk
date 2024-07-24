@@ -28,7 +28,7 @@ NODE_ENV=test yarn --cwd packages/market-maker start
 
 ```bash
 # gen for ts
-protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out packages/universal-swap/src --proto_path ../ibc-bridge-wasm ../ibc-bridge-wasm/proto/universal-swap-memo.proto
+protoc --plugin=./node_modules/.bin/protoc-gen-ts_proto --ts_proto_out . --proto_path ../oraiswap ../oraiswap/packages/oraiswap/src/universal_swap_memo.proto && mv packages/oraiswap/src/universal_swap_memo.ts packages/universal-swap/src/proto/
 
 # gen for rust
 ```
