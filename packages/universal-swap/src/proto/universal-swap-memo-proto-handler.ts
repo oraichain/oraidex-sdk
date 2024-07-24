@@ -7,6 +7,7 @@ import { UniversalSwapHelper } from "../helper";
 // FIXME: either pass this as an argument or put this hard-coded value else where
 export const SWAP_VENUE_NAME = "universal-swap";
 
+// TODO: write test cases
 const convertApiOpsToMemoRoute = (sourceAsset: string, route: SmartRouteSwapAPIOperations) => {
   let returnOps: Memo_SwapOperation[] = [];
   for (let i = 0; i < route.paths.length; i++) {
@@ -20,6 +21,7 @@ const convertApiOpsToMemoRoute = (sourceAsset: string, route: SmartRouteSwapAPIO
   return returnRoute;
 };
 
+// TODO: write test cases
 export const buildUniversalSwapMemo = async (
   basic: {
     minimumReceive: string;
