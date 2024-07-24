@@ -700,7 +700,7 @@ describe("test universal swap handler functions", () => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
     const spy = vi.spyOn(UniversalSwapHelper, "addOraiBridgeRoute");
-    spy.mockReturnValue({ swapRoute: "", universalSwapType });
+    spy.mockResolvedValue({ swapRoute: "", universalSwapType, isSmartRouter: false });
     const universalSwap = new FakeUniversalSwapHandler({
       ...universalSwapData,
       originalFromToken: fromToken,

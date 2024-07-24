@@ -591,7 +591,7 @@ export class UniversalSwapHandler {
         `There is a mismatch address between ${oraiAddress} and ${injAddress}. Should not using smart router swap!`
       );
     }
-    const { messages, msgTransfers } = await this.getMessagesAndMsgTransfers(routesFlatten, {
+    const { messages, msgTransfers } = this.getMessagesAndMsgTransfers(routesFlatten, {
       oraiAddress,
       injAddress
     });
@@ -994,7 +994,7 @@ export class UniversalSwapHandler {
   // Oraichain will be use as a proxy
   // TODO: write test cases
   async swapCosmosToOtherNetwork(destinationReceiver: string) {
-    const { originalFromToken, originalToToken, sender } = this.swapData;
+    const { originalFromToken, originalToToken, sender, fromAmount, simulateAmount } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
 
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
@@ -1017,12 +1017,17 @@ export class UniversalSwapHandler {
     // get swapRoute
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
 
-    const { swapRoute } = UniversalSwapHelper.getRoute(
-      this.swapData.originalFromToken,
-      this.swapData.originalToToken,
+    const { swapRoute: completeSwapRoute } = await UniversalSwapHelper.addOraiBridgeRoute(
+      oraiAddress,
+      originalFromToken,
+      originalToToken,
+      fromAmount,
+      simulateAmount,
       destinationReceiver,
-      oraiAddress
+      this.config.swapOptions?.isSourceReceiverTest
     );
+    const swapRouteSplit = completeSwapRoute.split(":");
+    const swapRoute = swapRouteSplit.length === 0 ? swapRouteSplit[0] : swapRouteSplit[1];
 
     let msgTransfer = MsgTransfer.fromPartial({
       sourcePort: ibcInfo.source,
@@ -1068,7 +1073,8 @@ export class UniversalSwapHandler {
   }
 
   async processUniversalSwap() {
-    const { cosmos, evm, tron } = this.swapData.sender;
+    const { evm, tron } = this.swapData.sender;
+    const { originalFromToken, originalToToken, fromAmount, simulateAmount } = this.swapData;
     const { swapOptions } = this.config;
     let toAddress = "";
     const currentToNetwork = this.swapData.originalToToken.chainId;
@@ -1087,10 +1093,13 @@ export class UniversalSwapHandler {
       });
     }
 
-    const { swapRoute, universalSwapType } = UniversalSwapHelper.addOraiBridgeRoute(
-      cosmos,
-      this.swapData.originalFromToken,
-      this.swapData.originalToToken,
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
+      oraiAddress,
+      originalFromToken,
+      originalToToken,
+      fromAmount,
+      simulateAmount,
       toAddress,
       this.config.swapOptions?.isSourceReceiverTest
     );

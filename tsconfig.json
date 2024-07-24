@@ -12,6 +12,6 @@
     "outDir": "dist",
     "typeRoots": ["node_modules/@types"],
     "allowJs": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
   }
 }

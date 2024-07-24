@@ -1,4 +1,4 @@
-import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
+import { AmountDetails, CosmosWallet, EvmWallet, NetworkChainId, TokenItemType } from "@oraichain/oraidex-common";
 import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
@@ -6,7 +6,8 @@ export type UniversalSwapType =
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
-  | "cosmos-to-others";
+  | "cosmos-to-others"
+  | "smart-router";
 
 export enum SwapDirection {
   From,
@@ -45,7 +46,7 @@ export interface UniversalSwapData {
   readonly originalFromToken: TokenItemType;
   readonly originalToToken: TokenItemType;
   readonly fromAmount: number;
-  readonly simulateAmount: string; // toAmount given fromAmount. TODO: auto simulate if not passed
+  readonly simulateAmount: string; // toAmount given fromAmount. This is the minimum receive of originalToToken
   readonly userSlippage?: number;
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
@@ -69,6 +70,7 @@ export interface UniversalSwapConfig {
 export interface SwapRoute {
   swapRoute: string;
   universalSwapType: UniversalSwapType;
+  isSmartRouter: boolean;
 }
 
 export interface OraiBridgeRouteData {
@@ -258,4 +260,12 @@ export interface Routes extends RouteBase {
   tokenOutChainId?: string;
   bridgeInfo?: BridgeInfo;
   swapInfo?: SwapInfo[];
+}
+
+export interface QuerySmartRouteArgs {
+  sourceAsset: string;
+  sourceChainId: NetworkChainId;
+  destAsset: string;
+  destChainId: NetworkChainId;
+  offerAmount: string;
 }
