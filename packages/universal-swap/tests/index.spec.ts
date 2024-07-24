@@ -473,7 +473,6 @@ describe("test universal swap handler functions", () => {
       const originalFromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
-      console.log({ relayerFeeAmount });
 
       // TODO: run tests without mocking to simulate actual swap logic
       vi.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
@@ -993,8 +992,8 @@ describe("test universal swap handler functions", () => {
     vi.spyOn(universalSwap.config.cosmosWallet!, "getKeplrAddr").mockReturnValue(
       new Promise((resolve) => resolve(undefined as any))
     );
-    const spy = vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge");
-    spy.mockReturnValue(oraichainTokens[0]);
+    vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge").mockReturnValue(oraichainTokens[0]);
+
     try {
       await universalSwap.combineMsgEvm("0x1234", "T1234");
     } catch (error) {
