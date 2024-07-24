@@ -115,6 +115,7 @@ describe("test universal swap handler functions", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.useFakeTimers();
   });
 
   beforeAll(async () => {
@@ -253,6 +254,7 @@ describe("test universal swap handler functions", () => {
       localChannelId: channel
     });
   });
+
   class StubCosmosWallet extends CosmosWallet {
     getKeplrAddr(chainId?: NetworkChainId | undefined): Promise<string> {
       let addr: string = "orai1234";
@@ -471,6 +473,7 @@ describe("test universal swap handler functions", () => {
       const originalFromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
+
       // TODO: run tests without mocking to simulate actual swap logic
       vi.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
       const result = await checkFeeRelayer({
@@ -990,6 +993,7 @@ describe("test universal swap handler functions", () => {
       new Promise((resolve) => resolve(undefined as any))
     );
     vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge").mockReturnValue(oraichainTokens[0]);
+
     try {
       await universalSwap.combineMsgEvm("0x1234", "T1234");
     } catch (error) {
