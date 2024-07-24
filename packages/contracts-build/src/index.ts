@@ -15,7 +15,8 @@ export type ContractName =
   | "oraiswap_rewarder"
   | "oraiswap-router"
   | "oraiswap-staking"
-  | "oraidex-listing-contract";
+  | "oraidex-listing-contract"
+  | "oraiswap-v3";
 
 const contractDir = path.join(__dirname, "..", "data");
 

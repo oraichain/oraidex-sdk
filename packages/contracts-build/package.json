@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-contracts-build",
-  "version": "1.0.33",
+  "version": "1.0.34",
   "main": "build/index.js",
   "license": "MIT",
   "scripts": {

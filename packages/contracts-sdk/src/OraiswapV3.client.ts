@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Percentage, InstantiateMsg, ExecuteMsg, Addr, Liquidity, SqrtPrice, TokenAmount, Binary, Expiration, Timestamp, Uint64, PoolKey, FeeTier, SwapHop, NftExtensionMsg, QueryMsg, MigrateMsg, FeeGrowth, AllNftInfoResponse, OwnerOfResponse, Approval, NftInfoResponse, Position, TokensResponse, ApprovedForAllResponse, Boolean, ArrayOfFeeTier, ArrayOfLiquidityTick, LiquidityTick, Uint32, NumTokensResponse, Pool, ArrayOfPoolWithPoolKey, PoolWithPoolKey, ArrayOfPositionTick, PositionTick, ArrayOfPosition, QuoteResult, Tick, ArrayOfTupleOfUint16AndUint64} from "./OraiswapV3.types";
+import {Percentage, InstantiateMsg, ExecuteMsg, Addr, Liquidity, SqrtPrice, TokenAmount, Binary, Expiration, Timestamp, Uint64, AssetInfo, PoolKey, FeeTier, SwapHop, NftExtensionMsg, QueryMsg, MigrateMsg, FeeGrowth, AllNftInfoResponse, OwnerOfResponse, Approval, NftInfoResponse, Position, PositionIncentives, TokensResponse, ApprovedForAllResponse, Boolean, ArrayOfFeeTier, ArrayOfLiquidityTick, LiquidityTick, Uint32, NumTokensResponse, Pool, IncentiveRecord, ArrayOfPoolWithPoolKey, PoolWithPoolKey, Uint128, ArrayOfAsset, Asset, ArrayOfPositionTick, PositionTick, ArrayOfPosition, QuoteResult, Tick, TickIncentive, ArrayOfTupleOfUint16AndUint64} from "./OraiswapV3.types";
 export interface OraiswapV3ReadOnlyInterface {
   contractAddress: string;
   admin: () => Promise<Addr>;
@@ -176,6 +176,13 @@ export interface OraiswapV3ReadOnlyInterface {
     limit?: number;
     startAfter?: number;
   }) => Promise<TokensResponse>;
+  positionIncentives: ({
+    index,
+    ownerId
+  }: {
+    index: number;
+    ownerId: Addr;
+  }) => Promise<ArrayOfAsset>;
 }
 export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
   client: CosmWasmClient;
@@ -209,6 +216,7 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
     this.allNftInfo = this.allNftInfo.bind(this);
     this.tokens = this.tokens.bind(this);
     this.allTokens = this.allTokens.bind(this);
+    this.positionIncentives = this.positionIncentives.bind(this);
   }
 
   admin = async (): Promise<Addr> => {
@@ -549,6 +557,20 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
       }
     });
   };
+  positionIncentives = async ({
+    index,
+    ownerId
+  }: {
+    index: number;
+    ownerId: Addr;
+  }): Promise<ArrayOfAsset> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      position_incentives: {
+        index,
+        owner_id: ownerId
+      }
+    });
+  };
 }
 export interface OraiswapV3Interface extends OraiswapV3ReadOnlyInterface {
   contractAddress: string;
@@ -708,6 +730,37 @@ export interface OraiswapV3Interface extends OraiswapV3ReadOnlyInterface {
   }: {
     operator: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  createIncentive: ({
+    poolKey,
+    rewardPerSec,
+    rewardToken,
+    startTimestamp,
+    totalReward
+  }: {
+    poolKey: PoolKey;
+    rewardPerSec: TokenAmount;
+    rewardToken: AssetInfo;
+    startTimestamp?: number;
+    totalReward?: TokenAmount;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  updateIncentive: ({
+    incentiveId,
+    poolKey,
+    remainingReward,
+    rewardPerSec,
+    startTimestamp
+  }: {
+    incentiveId: number;
+    poolKey: PoolKey;
+    remainingReward?: TokenAmount;
+    rewardPerSec?: TokenAmount;
+    startTimestamp?: number;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  claimIncentive: ({
+    index
+  }: {
+    index: number;
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class OraiswapV3Client extends OraiswapV3QueryClient implements OraiswapV3Interface {
   client: SigningCosmWasmClient;
@@ -740,6 +793,9 @@ export class OraiswapV3Client extends OraiswapV3QueryClient implements OraiswapV
     this.revoke = this.revoke.bind(this);
     this.approveAll = this.approveAll.bind(this);
     this.revokeAll = this.revokeAll.bind(this);
+    this.createIncentive = this.createIncentive.bind(this);
+    this.updateIncentive = this.updateIncentive.bind(this);
+    this.claimIncentive = this.claimIncentive.bind(this);
   }
 
   changeAdmin = async ({
@@ -1045,6 +1101,63 @@ export class OraiswapV3Client extends OraiswapV3QueryClient implements OraiswapV
     return await this.client.execute(this.sender, this.contractAddress, {
       revoke_all: {
         operator
+      }
+    }, _fee, _memo, _funds);
+  };
+  createIncentive = async ({
+    poolKey,
+    rewardPerSec,
+    rewardToken,
+    startTimestamp,
+    totalReward
+  }: {
+    poolKey: PoolKey;
+    rewardPerSec: TokenAmount;
+    rewardToken: AssetInfo;
+    startTimestamp?: number;
+    totalReward?: TokenAmount;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      create_incentive: {
+        pool_key: poolKey,
+        reward_per_sec: rewardPerSec,
+        reward_token: rewardToken,
+        start_timestamp: startTimestamp,
+        total_reward: totalReward
+      }
+    }, _fee, _memo, _funds);
+  };
+  updateIncentive = async ({
+    incentiveId,
+    poolKey,
+    remainingReward,
+    rewardPerSec,
+    startTimestamp
+  }: {
+    incentiveId: number;
+    poolKey: PoolKey;
+    remainingReward?: TokenAmount;
+    rewardPerSec?: TokenAmount;
+    startTimestamp?: number;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      update_incentive: {
+        incentive_id: incentiveId,
+        pool_key: poolKey,
+        remaining_reward: remainingReward,
+        reward_per_sec: rewardPerSec,
+        start_timestamp: startTimestamp
+      }
+    }, _fee, _memo, _funds);
+  };
+  claimIncentive = async ({
+    index
+  }: {
+    index: number;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      claim_incentive: {
+        index
       }
     }, _fee, _memo, _funds);
   };
