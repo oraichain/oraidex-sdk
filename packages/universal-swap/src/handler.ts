@@ -1021,7 +1021,6 @@ export class UniversalSwapHandler {
       oraiAddress,
       originalFromToken,
       originalToToken,
-      fromAmount,
       simulateAmount,
       destinationReceiver,
       this.config.swapOptions?.isSourceReceiverTest
@@ -1098,7 +1097,6 @@ export class UniversalSwapHandler {
       oraiAddress,
       originalFromToken,
       originalToToken,
-      fromAmount,
       simulateAmount,
       toAddress,
       this.config.swapOptions?.isSourceReceiverTest,

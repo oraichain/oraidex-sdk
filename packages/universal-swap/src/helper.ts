@@ -297,7 +297,6 @@ export class UniversalSwapHelper {
     sourceReceiver: string,
     fromToken: TokenItemType,
     toToken: TokenItemType,
-    fromAmount: number,
     minimumReceive: string,
     destReceiver?: string,
     isSourceReceiverTest?: boolean,
