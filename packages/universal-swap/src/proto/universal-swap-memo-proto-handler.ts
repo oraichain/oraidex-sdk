@@ -1,6 +1,6 @@
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { QuerySmartRouteArgs, SmartRouteSwapAPIOperations } from "../types";
-import { Memo, Memo_Route, Memo_SwapOperation } from "./universal_swap_memo";
+import { Memo, Memo_IbcWasmTransfer, Memo_Route, Memo_SwapOperation } from "./universal_swap_memo";
 import { IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { UniversalSwapHelper } from "../helper";
 
@@ -26,10 +26,9 @@ export const buildUniversalSwapMemo = async (
   basic: {
     minimumReceive: string;
     recoveryAddr: string;
-    destReceiver: string;
   },
   userSwap: QuerySmartRouteArgs,
-  postActionIbcWasmTransfer?: TransferBackMsg,
+  postActionIbcWasmTransfer?: Memo_IbcWasmTransfer,
   postActionContractCall?: { contractAddress: string; msg: string }
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
@@ -39,13 +38,7 @@ export const buildUniversalSwapMemo = async (
     timeoutTimestamp: IBC_TRANSFER_TIMEOUT,
     recoveryAddr,
     postSwapAction: {
-      ibcWasmTransferMsg: {
-        localChannelId: postActionIbcWasmTransfer.local_channel_id,
-        remoteAddress: basic.destReceiver,
-        remoteDenom: postActionIbcWasmTransfer.remote_denom,
-        memo: postActionIbcWasmTransfer.memo,
-        timeout: IBC_TRANSFER_TIMEOUT
-      },
+      ibcWasmTransferMsg: postActionIbcWasmTransfer,
       contractCall: postActionContractCall
     },
     userSwap: {

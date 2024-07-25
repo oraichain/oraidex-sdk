@@ -73,7 +73,7 @@ import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-con
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { Coin } from "@cosmjs/proto-signing";
-import { AXIOS_TIMEOUT } from "@oraichain/common";
+import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 
@@ -330,7 +330,7 @@ export class UniversalSwapHelper {
     return { swapRoute: source, universalSwapType, isSmartRouter };
   };
 
-  /** 
+  /**
    * // TODO: add test cases
    * Complex swap routes that require a backend router to maximize return amounts.
    * @param basic
@@ -341,26 +341,32 @@ export class UniversalSwapHelper {
     basic: {
       minimumReceive: string;
       recoveryAddr: string;
-      destReceiver: string;
+      destReceiver?: string;
     },
     userSwap: QuerySmartRouteArgs & { destTokenPrefix: string }
   ) => {
-    let receiverPrefix = "";
     const { destReceiver } = basic;
-    if (isEthAddress(destReceiver)) receiverPrefix = userSwap.destTokenPrefix;
-    const toDenom = receiverPrefix + userSwap.destAsset;
-    const finalDestReceiver = receiverPrefix + destReceiver;
-    // we get ibc channel that transfers toToken from Oraichain to the toToken chain
-    const dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfos["Oraichain"][userSwap.destChainId].channel;
+    let receiverPrefix = "";
+    let finalDestReceiver = "";
+    let dstChannel = "";
+    let dstDenom = "";
+    if (destReceiver) {
+      if (isEthAddress(destReceiver)) receiverPrefix = userSwap.destTokenPrefix;
+      dstDenom = receiverPrefix + userSwap.destAsset;
+      finalDestReceiver = receiverPrefix + destReceiver;
+      // we get ibc channel that transfers toToken from Oraichain to the toToken chain
+      dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfos["Oraichain"][userSwap.destChainId].channel;
+    }
 
     return buildUniversalSwapMemo(
       basic,
       userSwap,
-      dstChannel // if there's no dst channel then there wont be a transfer back msg
+      destReceiver // if there's no dst channel then there wont be a transfer back msg
         ? {
-            local_channel_id: dstChannel,
-            remote_denom: toDenom,
-            remote_address: finalDestReceiver
+            localChannelId: dstChannel,
+            remoteDenom: dstDenom,
+            remoteAddress: finalDestReceiver,
+            timeout: IBC_TRANSFER_TIMEOUT
           }
         : undefined
     );
