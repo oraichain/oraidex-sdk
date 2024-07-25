@@ -1,6 +1,6 @@
 import { PeriodParams } from "../charting_library";
 import { Bar } from "./types";
-import Axios from "axios";
+import Axios, { AxiosAdapter } from "axios";
 import { throttleAdapterEnhancer, retryAdapterEnhancer } from "axios-extensions";
 
 const AXIOS_TIMEOUT = 10000;
@@ -10,11 +10,11 @@ const axios = Axios.create({
   retryTimes: 3,
   // cache will be enabled by default in 2 seconds
   adapter: retryAdapterEnhancer(
-    throttleAdapterEnhancer(Axios.defaults.adapter!, {
-      threshold: AXIOS_THROTTLE_THRESHOLD,
+    throttleAdapterEnhancer(Axios.defaults.adapter as AxiosAdapter, {
+      threshold: AXIOS_THROTTLE_THRESHOLD
     })
   ),
-  baseURL: "https://api.oraidex.io",
+  baseURL: "https://api.oraidex.io"
 });
 
 export const getTokenChartPrice = async (
@@ -28,8 +28,8 @@ export const getTokenChartPrice = async (
         pair,
         startTime: periodParams.from,
         endTime: periodParams.to,
-        tf: +resolution * 60,
-      },
+        tf: +resolution * 60
+      }
     });
     return res.data;
   } catch (e) {
