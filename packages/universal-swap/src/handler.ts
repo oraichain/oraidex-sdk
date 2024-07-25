@@ -631,14 +631,7 @@ export class UniversalSwapHandler {
           tokenOutAmount: path.tokenOutAmount
         };
 
-        let lastInd = 0;
-        let countTypeSwap = 0;
-        path.actions.forEach((item, index) => {
-          if (item.type === "Swap" && isInOraichain) {
-            lastInd = index;
-            countTypeSwap++;
-          }
-        });
+        const pathsSwapInOraichain = path.actions.filter((item) => item.type === "Swap" && isInOraichain);
 
         path.actions.forEach((action, actionIndex, actionArray) => {
           const isLastAction = !actionArray[actionIndex + 1];
@@ -660,8 +653,10 @@ export class UniversalSwapHandler {
               swapInfo: objActionSwap.type ? [...objActionSwap.swapInfo, ...action.swapInfo] : [...action.swapInfo]
             };
 
-            // count type swap in oraichain
-            if ((countTypeSwap > 1 && lastInd === actionIndex) || countTypeSwap === 1)
+            if (
+              (pathsSwapInOraichain.length > 1 && pathsSwapInOraichain.length - 1 === actionIndex) ||
+              pathsSwapInOraichain.length === 1
+            )
               routesFlatten.push(objActionSwap);
           } else {
             routesFlatten.push(actionsPath);
