@@ -32,7 +32,10 @@ export const buildUniversalSwapMemo = async (
   postActionContractCall?: { contractAddress: string; msg: string }
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
-  const smartRouterResponse = await UniversalSwapHelper.generateSmartRouteForSwap(userSwap);
+  const smartRouterResponse = await UniversalSwapHelper.generateSmartRouteForSwap(userSwap, {
+    url: "https://osor.oraidex.io",
+    path: "/smart-router/alpha-router"
+  });
   const routes = smartRouterResponse.routes.map((route) => convertApiOpsToMemoRoute(userSwap.sourceAsset, route));
   const memo = Memo.fromPartial({
     timeoutTimestamp: IBC_TRANSFER_TIMEOUT,
