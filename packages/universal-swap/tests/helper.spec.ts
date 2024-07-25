@@ -585,11 +585,11 @@ describe("test helper functions", () => {
 
   it("test-addOraiBridgeRoute-empty-swapRoute", async () => {
     vi.spyOn(UniversalSwapHelper, "getRouteV2").mockResolvedValue("");
-    const result = await addOraiBridgeRoute("receiver", { contractAddress: "any" } as any, undefined, 0, "0");
+    const result = await addOraiBridgeRoute("receiver", { contractAddress: "any" } as any, undefined, "0");
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
   });
   it("test-addOraiBridgeRoute-empty-sourceReceiver", async () => {
-    await expect(addOraiBridgeRoute("", undefined, undefined, 0, "0")).rejects.toThrow();
+    await expect(addOraiBridgeRoute("", undefined, undefined, "0")).rejects.toThrow();
   });
 
   it.each<[string, any]>([
