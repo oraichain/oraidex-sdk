@@ -1,5 +1,5 @@
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
-import { QuerySmartRouteArgs, Route } from "../types";
+import { QuerySmartRouteArgs, Route, RouterResponse } from "../types";
 import { Memo, Memo_IbcTransfer, Memo_IbcWasmTransfer, Memo_Route, Memo_SwapOperation } from "./universal_swap_memo";
 import { IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { UniversalSwapHelper } from "../helper";
@@ -10,7 +10,7 @@ export const SWAP_VENUE_NAME = "universal-swap";
 // TODO: write test cases
 // currently, we are only support swap on Oraichain with exactly one route
 // TODO: support multi-route +  universal swap on other dex
-const convertApiOpsToMemoRoute = (sourceAsset: string, route: Route) => {
+const convertApiOpsToMemoRoute = (route: Route) => {
   let returnOps: Memo_SwapOperation[] = [];
   if (route.paths.length != 1) {
     throw new Error("Only support swap on Oraichain!");
@@ -41,20 +41,14 @@ export const buildUniversalSwapMemo = async (
     minimumReceive: string;
     recoveryAddr: string;
   },
-  userSwap: QuerySmartRouteArgs,
+  userSwap: RouterResponse,
   postActionIbcWasmTransfer?: Memo_IbcWasmTransfer,
   postActionContractCall?: { contractAddress: string; msg: string },
   postActionIbcTransfer?: Memo_IbcTransfer
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
-  const smartRouterResponse = await UniversalSwapHelper.generateSmartRouteForSwap(userSwap, {
-    url: "https://osor.oraidex.io",
-    path: "/smart-router/alpha-router"
-  });
 
-  const routes = smartRouterResponse.routes.map((route) =>
-    convertApiOpsToMemoRoute(userSwap.sourceAsset, route as Route)
-  );
+  const routes = userSwap.routes.map((route) => convertApiOpsToMemoRoute(route));
 
   const memo = Memo.fromPartial({
     timeoutTimestamp: IBC_TRANSFER_TIMEOUT,

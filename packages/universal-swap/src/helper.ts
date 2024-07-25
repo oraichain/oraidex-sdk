@@ -53,6 +53,7 @@ import {
   ConvertType,
   OraiBridgeRouteData,
   QuerySmartRouteArgs,
+  RouterResponse,
   SimulateResponse,
   SmartRouterResponse,
   SmartRouterResponseAPI,
@@ -299,7 +300,8 @@ export class UniversalSwapHelper {
     fromAmount: number,
     minimumReceive: string,
     destReceiver?: string,
-    isSourceReceiverTest?: boolean
+    isSourceReceiverTest?: boolean,
+    alphaSmartRoute?: RouterResponse
   ): Promise<SwapRoute> => {
     // TODO: recheck cosmos address undefined (other-chain -> oraichain)
     if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
@@ -314,18 +316,19 @@ export class UniversalSwapHelper {
       toToken,
       destReceiver
     );
-    if (isSmartRouter)
+    if (isSmartRouter) {
+      if (!alphaSmartRoute) throw generateError(`Missing router !`);
       swapRoute = await UniversalSwapHelper.getRouteV2(
         { minimumReceive, recoveryAddr: sourceReceiver, destReceiver },
         {
-          offerAmount: toAmount(fromAmount, toToken.decimals).toString(),
-          sourceAsset: parseTokenInfoRawDenom(fromToken),
-          sourceChainId: fromToken.chainId,
+          ...alphaSmartRoute,
           destAsset: parseTokenInfoRawDenom(toToken),
           destChainId: toToken.chainId,
           destTokenPrefix: toToken.prefix
         }
       );
+    }
+
     if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType, isSmartRouter };
     return { swapRoute: source, universalSwapType, isSmartRouter };
   };
@@ -343,7 +346,7 @@ export class UniversalSwapHelper {
       recoveryAddr: string;
       destReceiver?: string;
     },
-    userSwap: QuerySmartRouteArgs & { destTokenPrefix: string }
+    userSwap: RouterResponse & { destTokenPrefix: string; destAsset: string; destChainId: string }
   ) => {
     const { destReceiver } = basic;
     let receiverPrefix = "";

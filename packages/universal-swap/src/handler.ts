@@ -1101,7 +1101,8 @@ export class UniversalSwapHandler {
       fromAmount,
       simulateAmount,
       toAddress,
-      this.config.swapOptions?.isSourceReceiverTest
+      this.config.swapOptions?.isSourceReceiverTest,
+      this.swapData.alphaSmartRoutes
     );
 
     // version alpha smart router oraiDEX pool + osmosis pool
