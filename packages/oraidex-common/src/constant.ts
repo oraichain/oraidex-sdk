@@ -114,6 +114,7 @@ export const OCH_CONTRACT = "orai1hn8w33cqvysun2aujk5sv33tku4pgcxhhnsxmvnkfvdxag
 export const FACTORY_CONTRACT = "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8";
 export const FACTORY_V2_CONTRACT = "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst";
 export const ROUTER_V2_CONTRACT = "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf";
+export const MIXED_ROUTER = "orai19ffxyc055r6l7nh44dae5fmln2q5quyf2r505w3d36k78hkx4z6qke76q9";
 export const ORACLE_CONTRACT = "orai18rgtdvlrev60plvucw2rz8nmj8pau9gst4q07m";
 export const STAKING_CONTRACT = "orai19p43y0tqnr5qlhfwnxft2u5unph5yn60y7tuvu";
 export const REWARDER_CONTRACT = "orai15hua2q83fp666nwhnyrn9g8gt9ueenl32qnugh";

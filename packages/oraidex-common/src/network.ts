@@ -51,7 +51,8 @@ import {
   OCH_ETH_CONTRACT,
   OCH_CONTRACT,
   ORAIDEX_BID_POOL_CONTRACT,
-  ORAIX_ETH_CONTRACT
+  ORAIX_ETH_CONTRACT,
+  MIXED_ROUTER
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -122,6 +123,7 @@ export interface NetworkConfig {
   oracle: string;
   staking: string;
   router: string;
+  mixer_router: string;
   denom: string;
   prefix: string;
   rewarder: string;
@@ -1096,6 +1098,7 @@ export const network: CustomChainInfo & NetworkConfig = {
   factory: FACTORY_CONTRACT,
   factory_v2: FACTORY_V2_CONTRACT,
   router: ROUTER_V2_CONTRACT,
+  mixer_router: MIXED_ROUTER,
   oracle: ORACLE_CONTRACT,
   staking: STAKING_CONTRACT,
   rewarder: REWARDER_CONTRACT,
