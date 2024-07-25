@@ -1,6 +1,6 @@
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { QuerySmartRouteArgs, SmartRouteSwapAPIOperations } from "../types";
-import { Memo, Memo_IbcWasmTransfer, Memo_Route, Memo_SwapOperation } from "./universal_swap_memo";
+import { Memo, Memo_IbcTransfer, Memo_IbcWasmTransfer, Memo_Route, Memo_SwapOperation } from "./universal_swap_memo";
 import { IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { UniversalSwapHelper } from "../helper";
 
@@ -29,7 +29,8 @@ export const buildUniversalSwapMemo = async (
   },
   userSwap: QuerySmartRouteArgs,
   postActionIbcWasmTransfer?: Memo_IbcWasmTransfer,
-  postActionContractCall?: { contractAddress: string; msg: string }
+  postActionContractCall?: { contractAddress: string; msg: string },
+  postActionIbcTransfer?: Memo_IbcTransfer
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
   const smartRouterResponse = await UniversalSwapHelper.generateSmartRouteForSwap(userSwap, {
@@ -42,7 +43,8 @@ export const buildUniversalSwapMemo = async (
     recoveryAddr,
     postSwapAction: {
       ibcWasmTransferMsg: postActionIbcWasmTransfer,
-      contractCall: postActionContractCall
+      contractCall: postActionContractCall,
+      ibcTransferMsg: postActionIbcTransfer
     },
     userSwap: {
       smartSwapExactAssetIn: { routes },

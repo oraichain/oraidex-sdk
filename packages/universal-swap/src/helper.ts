@@ -357,16 +357,27 @@ export class UniversalSwapHelper {
       // we get ibc channel that transfers toToken from Oraichain to the toToken chain
       dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfos["Oraichain"][userSwap.destChainId].channel;
     }
-
     return buildUniversalSwapMemo(
       basic,
       userSwap,
-      destReceiver // if there's no dst channel then there wont be a transfer back msg
+      // only use ibc wasm bridge when the dst chain id is OraiBridge
+      finalDestReceiver && dstChannel && userSwap.destChainId === "oraibridge-subnet-2"
         ? {
             localChannelId: dstChannel,
             remoteDenom: dstDenom,
             remoteAddress: finalDestReceiver,
             timeout: IBC_TRANSFER_TIMEOUT
+          }
+        : undefined,
+      undefined,
+      // for other chains, we use ibc transfer
+      finalDestReceiver && dstChannel && userSwap.destChainId !== "oraibridge-subnet-2"
+        ? {
+            memo: "",
+            receiver: finalDestReceiver,
+            sourceChannel: dstChannel,
+            sourcePort: ibcInfos["Oraichain"][userSwap.destChainId].source,
+            recoverAddress: basic.recoveryAddr
           }
         : undefined
     );
