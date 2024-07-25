@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="10700" lines-covered="8125" line-rate="0.7593000000000001" branches-valid="927" branches-covered="795" branch-rate="0.8576" timestamp="1721884180370" complexity="0" version="0.1">
+<coverage lines-valid="10700" lines-covered="8125" line-rate="0.7593000000000001" branches-valid="926" branches-covered="795" branch-rate="0.8584999999999999" timestamp="1721890297697" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -5590,9 +5590,9 @@
         </class>
       </classes>
     </package>
-    <package name="packages.universal-swap.src" line-rate="0.5665" branch-rate="0.7515999999999999">
+    <package name="packages.universal-swap.src" line-rate="0.5665" branch-rate="0.754">
       <classes>
-        <class name="handler.ts" filename="packages/universal-swap/src/handler.ts" line-rate="0.5125" branch-rate="0.6984999999999999">
+        <class name="handler.ts" filename="packages/universal-swap/src/handler.ts" line-rate="0.5125" branch-rate="0.7037">
           <methods>
             <method name="UniversalSwapHandler" hits="38" signature="()V">
               <lines>
@@ -6298,7 +6298,7 @@
             <line number="650" hits="7" branch="false"/>
             <line number="651" hits="7" branch="false"/>
             <line number="652" hits="7" branch="false"/>
-            <line number="653" hits="7" branch="true" condition-coverage="0% (0/1)"/>
+            <line number="653" hits="7" branch="false"/>
             <line number="654" hits="7" branch="false"/>
             <line number="657" hits="7" branch="false"/>
             <line number="658" hits="7" branch="true" condition-coverage="100% (2/2)"/>
