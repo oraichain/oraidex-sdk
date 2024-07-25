@@ -8,11 +8,11 @@ export async function getAxios(baseUrl?: string) {
     timeout: AXIOS_TIMEOUT,
     retryTimes: 3,
     // cache will be enabled by default in 2 seconds
-    adapter: retryAdapterEnhancer(
-      throttleAdapterEnhancer(cacheAdapterEnhancer(Axios.defaults.adapter as AxiosAdapter), {
-        threshold: AXIOS_THROTTLE_THRESHOLD
-      })
-    ),
+    // adapter: retryAdapterEnhancer(
+    //   throttleAdapterEnhancer(cacheAdapterEnhancer(adapter), {
+    //     threshold: AXIOS_THROTTLE_THRESHOLD
+    //   })
+    // ),
     baseURL: baseUrl
   });
 
