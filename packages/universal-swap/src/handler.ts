@@ -994,7 +994,7 @@ export class UniversalSwapHandler {
   // Oraichain will be use as a proxy
   // TODO: write test cases
   async swapCosmosToOtherNetwork(destinationReceiver: string) {
-    const { originalFromToken, originalToToken, sender, fromAmount, simulateAmount } = this.swapData;
+    const { originalFromToken, originalToToken, sender, fromAmount, simulateAmount, alphaSmartRoutes } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
 
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
@@ -1023,7 +1023,8 @@ export class UniversalSwapHandler {
       originalToToken,
       simulateAmount,
       destinationReceiver,
-      this.config.swapOptions?.isSourceReceiverTest
+      this.config.swapOptions?.isSourceReceiverTest,
+      alphaSmartRoutes
     );
     const swapRouteSplit = completeSwapRoute.split(":");
     const swapRoute = swapRouteSplit.length === 0 ? swapRouteSplit[0] : swapRouteSplit[1];

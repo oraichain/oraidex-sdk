@@ -670,6 +670,7 @@ export class UniversalSwapHelper {
     routerClient: OraiswapRouterReadOnlyInterface;
     routerOption?: {
       useAlphaSmartRoute?: boolean;
+      useIbcWasm?: boolean;
     };
     urlRouter?: {
       url: string;
@@ -701,9 +702,16 @@ export class UniversalSwapHelper {
     let routes;
     let decimals = 6;
     if (query?.routerOption?.useAlphaSmartRoute) {
+      const fromInfo = query?.routerOption?.useIbcWasm
+        ? getTokenOnOraichain(query.originalFromInfo.coinGeckoId)
+        : query.originalFromInfo;
+      const toInfo = query?.routerOption?.useIbcWasm
+        ? getTokenOnOraichain(query.originalToInfo.coinGeckoId)
+        : query.originalToInfo;
+
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-        fromInfo: query.originalFromInfo,
-        toInfo: query.originalToInfo,
+        fromInfo,
+        toInfo,
         amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
         urlRouter: query.urlRouter
       });
