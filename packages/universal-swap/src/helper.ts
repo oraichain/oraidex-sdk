@@ -317,6 +317,7 @@ export class UniversalSwapHelper {
     );
     if (isSmartRouter) {
       if (!alphaSmartRoute) throw generateError(`Missing router !`);
+
       swapRoute = await UniversalSwapHelper.getRouteV2(
         { minimumReceive, recoveryAddr: sourceReceiver, destReceiver },
         {

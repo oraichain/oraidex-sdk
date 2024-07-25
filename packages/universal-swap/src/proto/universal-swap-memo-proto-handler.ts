@@ -11,6 +11,9 @@ export const SWAP_VENUE_NAME = "universal-swap";
 // currently, we are only support swap on Oraichain with exactly one route
 // TODO: support multi-route +  universal swap on other dex
 const convertApiOpsToMemoRoute = (route: Route) => {
+  // no route => don't swap
+  if (route.paths.length == 0) return;
+
   let returnOps: Memo_SwapOperation[] = [];
   if (route.paths.length != 1) {
     throw new Error("Only support swap on Oraichain!");
@@ -58,10 +61,12 @@ export const buildUniversalSwapMemo = async (
       contractCall: postActionContractCall,
       ibcTransferMsg: postActionIbcTransfer
     },
-    userSwap: {
-      smartSwapExactAssetIn: { routes },
-      swapVenueName: SWAP_VENUE_NAME
-    },
+    userSwap: routes
+      ? {
+          smartSwapExactAssetIn: { routes },
+          swapVenueName: SWAP_VENUE_NAME
+        }
+      : undefined,
     minimumReceive
   });
   const encodedMemo = Memo.encode(memo).finish();
