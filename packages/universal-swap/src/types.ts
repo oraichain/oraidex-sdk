@@ -120,7 +120,7 @@ export type SmartRouteSwapOperations = {
 export type SmartRouterResponse = {
   swapAmount: string;
   returnAmount: string;
-  routes: SmartRouteSwapAPIOperations[];
+  routes: (SmartRouteSwapAPIOperations | Route)[];
 };
 
 export type SmartRouteSwapAPIOperations = {
@@ -232,6 +232,7 @@ interface Action {
   tokenInAmount: string;
   tokenOut: string;
   tokenOutAmount: string;
+  protocol?: string;
   swapInfo?: SwapInfo[];
   bridgeInfo?: BridgeInfo;
 }
