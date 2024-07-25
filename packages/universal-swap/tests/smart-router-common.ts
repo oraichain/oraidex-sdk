@@ -1,49 +1,83 @@
 export const alphaSmartRoutes = {
   routes: [
     {
-      swapAmount: "100000",
-      returnAmount: "40975008686170973",
+      swapAmount: "900000000",
+      returnAmount: "896082327",
       paths: [
         {
           chainId: "Oraichain",
-          tokenIn: "orai",
-          tokenInAmount: "100000",
-          tokenOut: "uatom",
-          tokenOutAmount: "133950",
-          tokenOutChainId: "cosmoshub-4",
+          tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+          tokenInAmount: "900000000",
+          tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+          tokenOutAmount: "896082327",
+          tokenOutChainId: "Oraichain",
           actions: [
             {
-              type: "Bridge",
-              tokenIn: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
-              tokenInAmount: "133950",
-              tokenOut: "uatom",
-              tokenOutAmount: "133950",
-              tokenOutChainId: "cosmoshub-4",
-              bridgeInfo: {
-                port: "transfer",
-                channel: "channel-15"
-              }
+              type: "Swap",
+              tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+              tokenInAmount: "900000000",
+              tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+              tokenOutAmount: "896082327",
+              swapInfo: [
+                {
+                  poolId:
+                    "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd-500000000-10",
+                  tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+                }
+              ]
             }
           ]
-        },
+        }
+      ]
+    },
+    {
+      swapAmount: "100000000",
+      returnAmount: "100709391",
+      paths: [
         {
-          chainId: "cosmoshub-4",
-          tokenIn: "uatom",
-          tokenInAmount: "133950",
-          tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-          tokenOutAmount: "133950",
-          tokenOutChainId: "osmosis-1",
+          chainId: "Oraichain",
+          tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+          tokenInAmount: "100000000",
+          tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+          tokenOutAmount: "100709391",
+          tokenOutChainId: "Oraichain",
           actions: [
             {
+              type: "Swap",
+              tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+              tokenInAmount: "100000000",
+              tokenOut: "orai",
+              tokenOutAmount: "13101414",
+              swapInfo: [
+                {
+                  poolId: "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg",
+                  tokenOut: "orai"
+                }
+              ]
+            },
+            {
+              type: "Swap",
+              tokenIn: "orai",
+              tokenInAmount: "13101414",
+              tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+              tokenOutAmount: "100709391",
+              swapInfo: [
+                {
+                  poolId: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-3000000000-100",
+                  tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+                }
+              ]
+            },
+            {
               type: "Bridge",
-              tokenIn: "uatom",
-              tokenInAmount: "133950",
-              tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-              tokenOutAmount: "133950",
-              tokenOutChainId: "osmosis-1",
+              tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+              tokenInAmount: "4659896949856",
+              tokenOut: "inj",
+              tokenOutAmount: "4659896949856",
+              tokenOutChainId: "injective-1",
               bridgeInfo: {
                 port: "transfer",
-                channel: "channel-141"
+                channel: "channel-122"
               }
             }
           ]
@@ -55,27 +89,52 @@ export const alphaSmartRoutes = {
 
 export const flattenAlphaSmartRouters = [
   {
-    type: "Bridge",
-    tokenIn: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
-    tokenInAmount: "133950",
-    tokenOut: "uatom",
-    tokenOutAmount: "133950",
-    tokenOutChainId: "cosmoshub-4",
-    bridgeInfo: { port: "transfer", channel: "channel-15" },
+    type: "Swap",
+    tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+    tokenInAmount: "900000000",
+    tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+    tokenOutAmount: "896082327",
+    swapInfo: [
+      {
+        poolId:
+          "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd-500000000-10",
+        tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+      }
+    ],
     path: 0,
+    chainId: "Oraichain",
+    isLastPath: true
+  },
+  {
+    type: "Swap",
+    tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+    tokenInAmount: "100000000",
+    tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+    tokenOutAmount: "100709391",
+    swapInfo: [
+      {
+        poolId: "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg",
+        tokenOut: "orai"
+      },
+      {
+        poolId: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-3000000000-100",
+        tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+      }
+    ],
+    path: 1,
     chainId: "Oraichain",
     isLastPath: false
   },
   {
     type: "Bridge",
-    tokenIn: "uatom",
-    tokenInAmount: "133950",
-    tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-    tokenOutAmount: "133950",
-    tokenOutChainId: "osmosis-1",
-    bridgeInfo: { port: "transfer", channel: "channel-141" },
-    path: 0,
-    chainId: "cosmoshub-4",
+    tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+    tokenInAmount: "4659896949856",
+    tokenOut: "inj",
+    tokenOutAmount: "4659896949856",
+    tokenOutChainId: "injective-1",
+    bridgeInfo: { port: "transfer", channel: "channel-122" },
+    path: 1,
+    chainId: "Oraichain",
     isLastPath: true
   }
 ];

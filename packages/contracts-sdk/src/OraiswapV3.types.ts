@@ -111,6 +111,26 @@ export type ExecuteMsg = {
   revoke_all: {
     operator: Addr;
   };
+} | {
+  create_incentive: {
+    pool_key: PoolKey;
+    reward_per_sec: TokenAmount;
+    reward_token: AssetInfo;
+    start_timestamp?: number | null;
+    total_reward?: TokenAmount | null;
+  };
+} | {
+  update_incentive: {
+    incentive_id: number;
+    pool_key: PoolKey;
+    remaining_reward?: TokenAmount | null;
+    reward_per_sec?: TokenAmount | null;
+    start_timestamp?: number | null;
+  };
+} | {
+  claim_incentive: {
+    index: number;
+  };
 };
 export type Addr = string;
 export type Liquidity = string;
@@ -126,6 +146,15 @@ export type Expiration = {
 };
 export type Timestamp = Uint64;
 export type Uint64 = string;
+export type AssetInfo = {
+  token: {
+    contract_addr: Addr;
+  };
+} | {
+  native_token: {
+    denom: string;
+  };
+};
 export interface PoolKey {
   fee_tier: FeeTier;
   token_x: string;
@@ -268,6 +297,11 @@ export type QueryMsg = {
     limit?: number | null;
     start_after?: number | null;
   };
+} | {
+  position_incentives: {
+    index: number;
+    owner_id: Addr;
+  };
 };
 export interface MigrateMsg {}
 export type FeeGrowth = string;
@@ -290,6 +324,7 @@ export interface Position {
   approvals?: Approval[];
   fee_growth_inside_x: FeeGrowth;
   fee_growth_inside_y: FeeGrowth;
+  incentives?: PositionIncentives[];
   last_block_number: number;
   liquidity: Liquidity;
   lower_tick_index: number;
@@ -298,6 +333,11 @@ export interface Position {
   tokens_owed_x: TokenAmount;
   tokens_owed_y: TokenAmount;
   upper_tick_index: number;
+}
+export interface PositionIncentives {
+  incentive_growth_inside: FeeGrowth;
+  incentive_id: number;
+  pending_rewards: TokenAmount;
 }
 export interface TokensResponse {
   tokens: number[];
@@ -324,15 +364,31 @@ export interface Pool {
   fee_protocol_token_x: TokenAmount;
   fee_protocol_token_y: TokenAmount;
   fee_receiver: string;
+  incentives?: IncentiveRecord[];
   last_timestamp: number;
   liquidity: Liquidity;
   sqrt_price: SqrtPrice;
+  start_timestamp: number;
+}
+export interface IncentiveRecord {
+  id: number;
+  incentive_growth_global: FeeGrowth;
+  last_updated: number;
+  remaining: TokenAmount;
+  reward_per_sec: TokenAmount;
+  reward_token: AssetInfo;
   start_timestamp: number;
 }
 export type ArrayOfPoolWithPoolKey = PoolWithPoolKey[];
 export interface PoolWithPoolKey {
   pool: Pool;
   pool_key: PoolKey;
+}
+export type Uint128 = string;
+export type ArrayOfAsset = Asset[];
+export interface Asset {
+  amount: Uint128;
+  info: AssetInfo;
 }
 export type ArrayOfPositionTick = PositionTick[];
 export interface PositionTick {
@@ -351,11 +407,16 @@ export interface QuoteResult {
 export interface Tick {
   fee_growth_outside_x: FeeGrowth;
   fee_growth_outside_y: FeeGrowth;
+  incentives?: TickIncentive[];
   index: number;
   liquidity_change: Liquidity;
   liquidity_gross: Liquidity;
   seconds_outside: number;
   sign: boolean;
   sqrt_price: SqrtPrice;
+}
+export interface TickIncentive {
+  incentive_growth_outside: FeeGrowth;
+  incentive_id: number;
 }
 export type ArrayOfTupleOfUint16AndUint64 = [number, number][];

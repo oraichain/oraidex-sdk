@@ -649,13 +649,14 @@ export class UniversalSwapHandler {
             ...action,
             path: i,
             chainId: path.chainId,
-            isLastRoute: isLastPath && isLastAction
+            isLastPath: isLastPath && isLastAction
           };
 
           if (isSwapInOraichain) {
             objActionSwap = {
               ...actionsPath,
               ...objActionSwap,
+              tokenOutAmount: action.tokenOutAmount,
               swapInfo: objActionSwap.type ? [...objActionSwap.swapInfo, ...action.swapInfo] : [...action.swapInfo]
             };
 
