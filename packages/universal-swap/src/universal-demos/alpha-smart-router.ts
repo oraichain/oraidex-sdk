@@ -469,286 +469,90 @@ import { cosmosTokens, generateError, getTokenOnOraichain, toAmount } from "@ora
 //   ]
 // };
 
-// const router = {
-//   swapAmount: "1000000000",
-//   returnAmount: "996791718",
-//   routes: [
-//     // {
-//     //   swapAmount: "900000000",
-//     //   returnAmount: "896082327",
-//     //   paths: [
-//     //     {
-//     //       chainId: "Oraichain",
-//     //       tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-//     //       tokenInAmount: "900000000",
-//     //       tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-//     //       tokenOutAmount: "896082327",
-//     //       tokenOutChainId: "Oraichain",
-//     //       actions: [
-//     //         {
-//     //           type: "Swap",
-//     //           tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-//     //           tokenInAmount: "900000000",
-//     //           tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-//     //           tokenOutAmount: "896082327",
-//     //           swapInfo: [
-//     //             {
-//     //               poolId:
-//     //                 "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd-500000000-10",
-//     //               tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
-//     //             }
-//     //           ]
-//     //         }
-//     //       ]
-//     //     }
-//     //   ]
-//     // },
-//     {
-//       swapAmount: "1000000",
-//       returnAmount: "1007093",
-//       paths: [
-//         {
-//           chainId: "Oraichain",
-//           tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-//           tokenInAmount: "1000000",
-//           tokenOut: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
-//           tokenOutAmount: "1007093",
-//           tokenOutChainId: "Oraichain",
-//           actions: [
-//             {
-//               type: "Swap",
-//               tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-//               tokenInAmount: "1000000",
-//               tokenOut: "orai",
-//               tokenOutAmount: "131014",
-//               swapInfo: [
-//                 {
-//                   poolId: "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg",
-//                   tokenOut: "orai"
-//                 }
-//               ]
-//             },
-//             {
-//               type: "Swap",
-//               tokenIn: "orai",
-//               tokenInAmount: "131014",
-//               tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-//               tokenOutAmount: "1007093",
-//               swapInfo: [
-//                 {
-//                   poolId: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-3000000000-100",
-//                   tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
-//                 }
-//               ]
-//             }
-//             // {
-//             //   type: "Swap",
-//             //   tokenIn: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-//             //   tokenInAmount: "100000000",
-//             //   tokenOut: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
-//             //   tokenOutAmount: "13101414",
-//             //   swapInfo: [
-//             //     {
-//             //       poolId: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
-//             //       tokenOut: "orai"
-//             //     },
-//             //     {
-//             //       poolId: "orai1m6q5k5nr2eh8q0rdrf57wr7phk7uvlpg7mwfv5",
-//             //       tokenOut: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge"
-//             //     }
-//             //   ]
-//             // }
-//             // {
-//             //   type: "Bridge",
-//             //   tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
-//             //   tokenInAmount: "4659896949856",
-//             //   tokenOut: "inj",
-//             //   tokenOutAmount: "4659896949856",
-//             //   tokenOutChainId: "injective-1",
-//             //   bridgeInfo: {
-//             //     port: "transfer",
-//             //     channel: "channel-122"
-//             //   }
-//             // }
-//           ]
-//         }
-//       ]
-//     }
-//   ]
-// };
-
 const router = {
   swapAmount: "1000000000",
-  returnAmount: "16375767570",
+  returnAmount: "996791718",
   routes: [
+    // {
+    //   swapAmount: "900000000",
+    //   returnAmount: "896082327",
+    //   paths: [
+    //     {
+    //       chainId: "Oraichain",
+    //       tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+    //       tokenInAmount: "900000000",
+    //       tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+    //       tokenOutAmount: "896082327",
+    //       tokenOutChainId: "Oraichain",
+    //       actions: [
+    //         {
+    //           type: "Swap",
+    //           tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+    //           tokenInAmount: "900000000",
+    //           tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+    //           tokenOutAmount: "896082327",
+    //           swapInfo: [
+    //             {
+    //               poolId:
+    //                 "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd-500000000-10",
+    //               tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+    //             }
+    //           ]
+    //         }
+    //       ]
+    //     }
+    //   ]
+    // },
     {
-      swapAmount: "600000000",
-      returnAmount: "9825302858",
+      swapAmount: "100000000",
+      returnAmount: "100709391",
       paths: [
         {
           chainId: "Oraichain",
-          tokenIn: "orai",
-          tokenInAmount: "600000000",
-          tokenOut: "uatom",
-          tokenOutAmount: "781732133",
-          tokenOutChainId: "cosmoshub-4",
+          tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+          tokenInAmount: "100000000",
+          tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+          tokenOutAmount: "100709391",
+          tokenOutChainId: "Oraichain",
           actions: [
             {
               type: "Swap",
-              tokenIn: "orai",
-              tokenInAmount: "600000000",
-              tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
-              tokenOutAmount: "781732133",
-              swapInfo: [
-                {
-                  poolId: "orai1jf74ry4m0jcy9emsaudkhe7vte9l8qy8enakvs",
-                  tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
-                }
-              ]
-            },
-            {
-              type: "Bridge",
-              tokenIn: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
-              tokenInAmount: "781732133",
-              tokenOut: "uatom",
-              tokenOutAmount: "781732133",
-              tokenOutChainId: "cosmoshub-4",
-              bridgeInfo: {
-                port: "transfer",
-                channel: "channel-15"
-              }
-            }
-          ]
-        },
-        {
-          chainId: "cosmoshub-4",
-          tokenIn: "uatom",
-          tokenInAmount: "781732133",
-          tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-          tokenOutAmount: "781732133",
-          tokenOutChainId: "osmosis-1",
-          actions: [
-            {
-              type: "Bridge",
-              tokenIn: "uatom",
-              tokenInAmount: "781732133",
-              tokenOut: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-              tokenOutAmount: "781732133",
-              tokenOutChainId: "osmosis-1",
-              bridgeInfo: {
-                port: "transfer",
-                channel: "channel-141"
-              }
-            }
-          ]
-        },
-        {
-          chainId: "osmosis-1",
-          tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-          tokenInAmount: "781732133",
-          tokenOut: "uosmo",
-          tokenOutAmount: "9825302858",
-          tokenOutChainId: "osmosis-1",
-          actions: [
-            {
-              type: "Swap",
-              tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-              tokenInAmount: "781732133",
-              tokenOut: "uosmo",
-              tokenOutAmount: "9825302858",
-              swapInfo: [
-                {
-                  poolId: "1135",
-                  tokenOut: "uosmo"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    },
-    {
-      swapAmount: "200000000",
-      returnAmount: "3276268429",
-      paths: [
-        {
-          chainId: "Oraichain",
-          tokenIn: "orai",
-          tokenInAmount: "200000000",
-          tokenOut: "uusdc",
-          tokenOutAmount: "1733503520",
-          tokenOutChainId: "noble-1",
-          actions: [
-            {
-              type: "Swap",
-              tokenIn: "orai",
-              tokenInAmount: "200000000",
-              tokenOut: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-              tokenOutAmount: "1737861370",
+              tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
+              tokenInAmount: "100000000",
+              tokenOut: "orai",
+              tokenOutAmount: "13101414",
               swapInfo: [
                 {
                   poolId: "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg",
-                  tokenOut: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
+                  tokenOut: "orai"
                 }
               ]
             },
             {
-              type: "Bridge",
-              tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-              tokenInAmount: "1737861370",
-              tokenOut: "uusdc",
-              tokenOutAmount: "1733503520",
-              tokenOutChainId: "noble-1",
-              bridgeInfo: {
-                port: "transfer",
-                channel: "channel-147"
-              }
-            }
-          ]
-        },
-        {
-          chainId: "noble-1",
-          tokenIn: "uusdc",
-          tokenInAmount: "1733503520",
-          tokenOut: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
-          tokenOutAmount: "1731770016",
-          tokenOutChainId: "osmosis-1",
-          actions: [
-            {
-              type: "Bridge",
-              tokenIn: "uusdc",
-              tokenInAmount: "1733503520",
-              tokenOut: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
-              tokenOutAmount: "1731770016",
-              tokenOutChainId: "osmosis-1",
-              bridgeInfo: {
-                port: "transfer",
-                channel: "channel-1"
-              }
-            }
-          ]
-        },
-        {
-          chainId: "osmosis-1",
-          tokenIn: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
-          tokenInAmount: "1731770016",
-          tokenOut: "uosmo",
-          tokenOutAmount: "3276268429",
-          tokenOutChainId: "osmosis-1",
-          actions: [
-            {
               type: "Swap",
-              tokenIn: "ibc/498A0751C798A0D9A389AA3691123DADA57DAA4FE165D5C75894505B876BA6E4",
-              tokenInAmount: "1731770016",
-              tokenOut: "uosmo",
-              tokenOutAmount: "3276268429",
+              tokenIn: "orai",
+              tokenInAmount: "13101414",
+              tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+              tokenOutAmount: "100709391",
               swapInfo: [
                 {
-                  poolId: "1464",
-                  tokenOut: "uosmo"
+                  poolId: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-3000000000-100",
+                  tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
                 }
               ]
             }
+            // {
+            //   type: "Bridge",
+            //   tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+            //   tokenInAmount: "4659896949856",
+            //   tokenOut: "inj",
+            //   tokenOutAmount: "4659896949856",
+            //   tokenOutChainId: "injective-1",
+            //   bridgeInfo: {
+            //     port: "transfer",
+            //     channel: "channel-122"
+            //   }
+            // }
           ]
         }
       ]

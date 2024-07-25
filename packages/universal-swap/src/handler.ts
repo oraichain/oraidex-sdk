@@ -653,6 +653,7 @@ export class UniversalSwapHandler {
               swapInfo: objActionSwap.type ? [...objActionSwap.swapInfo, ...action.swapInfo] : [...action.swapInfo]
             };
 
+            // count type swap in oraichain
             if (
               (pathsSwapInOraichain.length > 1 && pathsSwapInOraichain.length - 1 === actionIndex) ||
               pathsSwapInOraichain.length === 1
