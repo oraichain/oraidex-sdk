@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="10700" lines-covered="8125" line-rate="0.7593000000000001" branches-valid="926" branches-covered="795" branch-rate="0.8584999999999999" timestamp="1721905941716" complexity="0" version="0.1">
+<coverage lines-valid="10694" lines-covered="8125" line-rate="0.7597" branches-valid="926" branches-covered="795" branch-rate="0.8584999999999999" timestamp="1721921972258" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -619,7 +619,7 @@
         </class>
       </classes>
     </package>
-    <package name="packages.oraidex-common.src" line-rate="0.7715000000000001" branch-rate="0.9059">
+    <package name="packages.oraidex-common.src" line-rate="0.7735" branch-rate="0.9059">
       <classes>
         <class name="alpha-network.ts" filename="packages/oraidex-common/src/alpha-network.ts" line-rate="1" branch-rate="1">
           <methods>
@@ -698,18 +698,12 @@
           </methods>
           <lines>
             <line number="1" hits="0" branch="true" condition-coverage="0% (0/1)"/>
-            <line number="2" hits="0" branch="false"/>
             <line number="4" hits="0" branch="false"/>
             <line number="5" hits="0" branch="false"/>
             <line number="6" hits="0" branch="false"/>
             <line number="7" hits="0" branch="false"/>
             <line number="8" hits="0" branch="false"/>
             <line number="9" hits="0" branch="false"/>
-            <line number="11" hits="0" branch="false"/>
-            <line number="12" hits="0" branch="false"/>
-            <line number="13" hits="0" branch="false"/>
-            <line number="14" hits="0" branch="false"/>
-            <line number="15" hits="0" branch="false"/>
             <line number="16" hits="0" branch="false"/>
             <line number="17" hits="0" branch="false"/>
             <line number="19" hits="0" branch="false"/>
