@@ -650,7 +650,7 @@ export class UniversalSwapHandler {
               ...actionsPath,
               ...objActionSwap,
               tokenOutAmount: action.tokenOutAmount,
-              swapInfo: objActionSwap.type ? [...objActionSwap.swapInfo, ...action.swapInfo] : [...action.swapInfo]
+              swapInfo: [...objActionSwap.swapInfo, ...action.swapInfo]
             };
 
             // count type swap in oraichain
