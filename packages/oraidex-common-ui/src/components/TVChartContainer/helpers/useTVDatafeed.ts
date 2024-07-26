@@ -26,7 +26,7 @@ type Props = {
   dataProvider?: TVDataProvider;
   currentPair: PairToken;
   setChartDataLength: any;
-  pairsChart: PairToken[]
+  pairsChart: PairToken[];
 };
 
 export const EXCHANGE_NAME = "OraiDEX";
@@ -128,14 +128,6 @@ export default function useTVDatafeed({ dataProvider, currentPair, setChartDataL
           onResetCacheNeededCallback: () => void
         ) {
           console.log("[subscribeBars]: Method call with subscriberUID:", subscribeUID);
-          // subscribeOnStream(
-          //   symbolInfo,
-          //   resolution,
-          //   onRealtimeCallback,
-          //   subscribeUID,
-          //   onResetCacheNeededCallback,
-          //   lastBarsCache.get(symbolInfo.full_name)
-          // );
         },
         unsubscribeBars: () => {
           if (intervalRef.current) clearInterval(intervalRef.current);

@@ -1,8 +1,10 @@
 import { Bech32Config, ChainInfo, Currency, FeeCurrency } from "@keplr-wallet/types";
+import { listOsmosisToken } from "./alpha-network";
 import {
   AIRI_BSC_CONTRACT,
   AIRI_CONTRACT,
   ATOM_ORAICHAIN_DENOM,
+  BTC_CONTRACT,
   CONVERTER_CONTRACT,
   FACTORY_CONTRACT,
   FACTORY_V2_CONTRACT,
@@ -20,10 +22,15 @@ import {
   MILKY_ERC_CONTRACT,
   MILKY_SUB_NETWORK_DENOM,
   MULTICALL_CONTRACT,
+  NEUTARO_ORAICHAIN_DENOM,
+  OCH_CONTRACT,
+  OCH_ETH_CONTRACT,
   ORACLE_CONTRACT,
+  ORAIDEX_BID_POOL_CONTRACT,
   ORAIDEX_LISTING_CONTRACT,
   ORAIIBC_INJECTIVE_DENOM,
   ORAIX_CONTRACT,
+  ORAIX_ETH_CONTRACT,
   ORAI_BRIDGE_EVM_DENOM_PREFIX,
   ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
   ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
@@ -40,20 +47,13 @@ import {
   USDC_ETH_CONTRACT,
   USDT_BSC_CONTRACT,
   USDT_CONTRACT,
+  USDT_ETH_CONTRACT,
   USDT_TRON_CONTRACT,
   WETH_CONTRACT,
   WRAP_BNB_CONTRACT,
   WRAP_ETH_CONTRACT,
-  WRAP_TRON_TRX_CONTRACT,
-  USDT_ETH_CONTRACT,
-  BTC_CONTRACT,
-  NEUTARO_ORAICHAIN_DENOM,
-  OCH_ETH_CONTRACT,
-  OCH_CONTRACT,
-  ORAIDEX_BID_POOL_CONTRACT,
-  ORAIX_ETH_CONTRACT
+  WRAP_TRON_TRX_CONTRACT
 } from "./constant";
-import { listOsmosisToken } from "./alpha-network";
 
 export type NetworkName =
   | "Oraichain"
@@ -99,7 +99,6 @@ export type CoinGeckoId =
   | "kawaii-islands"
   | "milky-token"
   | "scorai"
-  | "oraidex"
   | "usd-coin"
   | "tron"
   | "weth"

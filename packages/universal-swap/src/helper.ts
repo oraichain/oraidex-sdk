@@ -1,66 +1,52 @@
+import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { Coin } from "@cosmjs/proto-signing";
+import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
 import {
-  CoinGeckoId,
-  WRAP_BNB_CONTRACT,
-  USDT_BSC_CONTRACT,
-  USDT_TRON_CONTRACT,
-  ORAI_ETH_CONTRACT,
-  ORAI_BSC_CONTRACT,
   AIRI_BSC_CONTRACT,
-  WRAP_ETH_CONTRACT,
-  USDC_ETH_CONTRACT,
-  USDT_ETH_CONTRACT,
-  EvmChainId,
-  proxyContractInfo,
+  AmountDetails,
+  BigDecimal,
+  CoinGeckoId,
   CosmosChainId,
-  NetworkChainId,
-  IBCInfo,
+  cosmosTokens,
+  EvmChainId,
   generateError,
+  getAxios,
+  getSubAmountDetails,
+  getTokenOnOraichain,
+  getTokenOnSpecificChainId,
+  handleSentFunds,
+  IBCInfo,
   ibcInfos,
-  oraib2oraichain,
+  isEthAddress,
+  isInPairList,
+  IUniswapV2Router02__factory,
   KWT_BSC_CONTRACT,
   MILKY_BSC_CONTRACT,
-  TokenItemType,
-  parseTokenInfoRawDenom,
-  getTokenOnOraichain,
-  isEthAddress,
-  PAIRS,
+  network,
+  NetworkChainId,
+  NEUTARO_INFO,
+  ORAI_BSC_CONTRACT,
+  ORAI_ETH_CONTRACT,
   ORAI_INFO,
+  oraib2oraichain,
+  oraib2oraichainTest,
+  PAIRS,
+  parseAssetInfo,
   parseTokenInfo,
+  parseTokenInfoRawDenom,
+  proxyContractInfo,
   toAmount,
   toDisplay,
-  getTokenOnSpecificChainId,
-  IUniswapV2Router02__factory,
-  cosmosTokens,
-  StargateMsg,
-  isInPairList,
-  BigDecimal,
-  NEUTARO_INFO,
-  USDC_INFO,
-  network,
-  ORAIX_ETH_CONTRACT,
-  AmountDetails,
-  handleSentFunds,
+  TokenItemType,
   tokenMap,
-  oraib2oraichainTest,
-  getSubAmountDetails,
-  evmChains,
-  getAxios,
-  parseAssetInfoFromContractAddrOrDenom,
-  parseAssetInfo
+  USDC_ETH_CONTRACT,
+  USDC_INFO,
+  USDT_BSC_CONTRACT,
+  USDT_ETH_CONTRACT,
+  USDT_TRON_CONTRACT,
+  WRAP_BNB_CONTRACT,
+  WRAP_ETH_CONTRACT
 } from "@oraichain/oraidex-common";
-import {
-  ConvertReverse,
-  ConvertType,
-  OraiBridgeRouteData,
-  SimulateResponse,
-  SmartRouterResponse,
-  SmartRouterResponseAPI,
-  SmartRouteSwapOperations,
-  SwapDirection,
-  SwapRoute,
-  Type,
-  UniversalSwapConfig
-} from "./types";
 import {
   AssetInfo,
   OraiswapRouterQueryClient,
@@ -68,13 +54,21 @@ import {
   OraiswapTokenQueryClient,
   SwapOperation
 } from "@oraichain/oraidex-contracts-sdk";
-import { isEqual } from "lodash";
 import { ethers } from "ethers";
-import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
-import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { swapFromTokens, swapToTokens } from "./swap-filter";
+import { isEqual } from "lodash";
 import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
-import { Coin } from "@cosmjs/proto-signing";
+import { swapFromTokens, swapToTokens } from "./swap-filter";
+import {
+  ConvertReverse,
+  ConvertType,
+  OraiBridgeRouteData,
+  SimulateResponse,
+  SmartRouterResponse,
+  SmartRouterResponseAPI,
+  SwapDirection,
+  SwapRoute,
+  Type
+} from "./types";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -225,6 +219,30 @@ export class UniversalSwapHelper {
     return sourceReceiver;
   };
 
+  static getRouteFromOraiToOther(toTokenChainId: NetworkChainId): SwapRoute {
+    if (cosmosTokens.some((t) => t.chainId === toTokenChainId))
+      return { swapRoute: "", universalSwapType: "oraichain-to-cosmos" };
+    return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
+  }
+
+  static getRouteFromOtherToOrai(fromToken, toToken, destReceiver, toDenom): SwapRoute {
+    // if from token is 0x38 & to token chain id is Oraichain & from token is kawaii or milky
+    if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
+      return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
+    // if to token chain id is Oraichain, then we dont need to care about ibc msg case
+    // first case, two tokens are the same, only different in network => simple swap
+    if (fromToken.coinGeckoId === toToken.coinGeckoId)
+      return {
+        swapRoute: parseToIbcWasmMemo(destReceiver, "", ""),
+        universalSwapType: "other-networks-to-oraichain"
+      };
+    // if they are not the same then we set dest denom
+    return {
+      swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
+      universalSwapType: "other-networks-to-oraichain"
+    };
+  }
+
   /**
    * This function receives fromToken and toToken as parameters to generate the destination memo for the receiver address
    * @param from - from token
@@ -245,12 +263,9 @@ export class UniversalSwapHelper {
       return { swapRoute: "", universalSwapType: "oraichain-to-oraichain" };
     }
     // we dont need to have any swapRoute for this case
-    if (fromToken.chainId === "Oraichain") {
-      if (cosmosTokens.some((t) => t.chainId === toToken.chainId))
-        return { swapRoute: "", universalSwapType: "oraichain-to-cosmos" };
-      return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
-    }
-    // TODO: support 1-step swap for kwt
+    if (fromToken.chainId === "Oraichain") return UniversalSwapHelper.getRouteFromOraiToOther(toToken.chainId);
+
+    // support 1-step swap for kwt
     if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6") {
       throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
     }
@@ -277,27 +292,13 @@ export class UniversalSwapHelper {
       return { swapRoute, universalSwapType: "cosmos-to-others" };
     }
 
-    if (toToken.chainId === "Oraichain") {
-      // if from token is 0x38 & to token chain id is Oraichain & from token is kawaii or milky
-      if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
-        return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
-      // if to token chain id is Oraichain, then we dont need to care about ibc msg case
-      // first case, two tokens are the same, only different in network => simple swap
-      if (fromToken.coinGeckoId === toToken.coinGeckoId)
-        return {
-          swapRoute: parseToIbcWasmMemo(destReceiver, "", ""),
-          universalSwapType: "other-networks-to-oraichain"
-        };
-      // if they are not the same then we set dest denom
-      return {
-        swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
-        universalSwapType: "other-networks-to-oraichain"
-      };
-    }
+    if (toToken.chainId === "Oraichain")
+      return UniversalSwapHelper.getRouteFromOtherToOrai(fromToken, toToken, destReceiver, toDenom);
+
     // the remaining cases where we have to process ibc msg
 
     // getTokenOnOraichain is called to get the ibc denom / cw20 denom on Oraichain so that we can create an ibc msg using it
-    // TODO: no need to use to token on Oraichain. Can simply use the swapRoute token directly. Fix this requires fixing the logic on ibc wasm as well
+    // no need to use to token on Oraichain. Can simply use the swapRoute token directly. Fix this requires fixing the logic on ibc wasm as well
     const toTokenOnOraichain = getTokenOnOraichain(toToken.coinGeckoId);
     if (!toTokenOnOraichain)
       return {
@@ -564,7 +565,6 @@ export class UniversalSwapHelper {
       );
     } catch (error) {
       console.log(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
-      // throw new Error(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
       return {
         swapAmount: "0",
         returnAmount: "0",
