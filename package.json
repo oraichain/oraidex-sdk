@@ -28,7 +28,6 @@
     "@cosmjs/proto-signing": "0.31.3",
     "@cosmjs/stargate": "0.31.3",
     "@cosmjs/tendermint-rpc": "0.31.3",
-    "@oraichain/common": "^1.0.3",
     "@oraichain/common-contracts-build": "1.0.35",
     "@oraichain/common-contracts-sdk": "1.0.31"
   },

@@ -718,7 +718,7 @@ export class UniversalSwapHelper {
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo,
         toInfo,
-        amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
+        amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
         urlRouter: query.urlRouter
       });
       routes = simulateRes;

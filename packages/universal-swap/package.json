@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-universal-swap",
-  "version": "1.0.93-beta.4",
+  "version": "1.0.93-beta.7",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -16,6 +16,7 @@
     "bech32": "1.1.4",
     "ethers": "^5.0.15",
     "tronweb": "5.3.2",
+    "@oraichain/common": "^1.0.3",
     "ts-protoc-gen": "^0.15.0"
   },
   "devDependencies": {
