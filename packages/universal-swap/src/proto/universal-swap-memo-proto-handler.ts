@@ -1,11 +1,18 @@
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { QuerySmartRouteArgs, Route, RouterResponse } from "../types";
-import { Memo, Memo_IbcTransfer, Memo_IbcWasmTransfer, Memo_Route, Memo_SwapOperation } from "./universal_swap_memo";
+import {
+  Memo,
+  Memo_IbcTransfer,
+  Memo_IbcWasmTransfer,
+  Memo_Route,
+  Memo_SwapOperation,
+  Memo_Transfer
+} from "./universal_swap_memo";
 import { IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { UniversalSwapHelper } from "../helper";
 
 // FIXME: either pass this as an argument or put this hard-coded value else where
-export const SWAP_VENUE_NAME = "universal-swap";
+export const SWAP_VENUE_NAME = "oraidex";
 
 // TODO: write test cases
 // currently, we are only support swap on Oraichain with exactly one route
@@ -39,7 +46,7 @@ const convertApiOpsToMemoRoute = (route: Route) => {
 };
 
 // TODO: write test cases
-export const buildUniversalSwapMemo = async (
+export const buildUniversalSwapMemo = (
   basic: {
     minimumReceive: string;
     recoveryAddr: string;
@@ -47,19 +54,21 @@ export const buildUniversalSwapMemo = async (
   userSwap: RouterResponse,
   postActionIbcWasmTransfer?: Memo_IbcWasmTransfer,
   postActionContractCall?: { contractAddress: string; msg: string },
-  postActionIbcTransfer?: Memo_IbcTransfer
+  postActionIbcTransfer?: Memo_IbcTransfer,
+  postActionTransfer?: Memo_Transfer
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
 
   const routes = userSwap.routes.map((route) => convertApiOpsToMemoRoute(route));
 
   const memo = Memo.fromPartial({
-    timeoutTimestamp: IBC_TRANSFER_TIMEOUT,
+    timeoutTimestamp: (Date.now() + IBC_TRANSFER_TIMEOUT * 1000) * 1000000, // nanoseconds
     recoveryAddr,
     postSwapAction: {
       ibcWasmTransferMsg: postActionIbcWasmTransfer,
       contractCall: postActionContractCall,
-      ibcTransferMsg: postActionIbcTransfer
+      ibcTransferMsg: postActionIbcTransfer,
+      transferMsg: postActionTransfer
     },
     userSwap: routes
       ? {
@@ -69,6 +78,43 @@ export const buildUniversalSwapMemo = async (
       : undefined,
     minimumReceive
   });
+  console.dir(memo, { depth: null });
   const encodedMemo = Memo.encode(memo).finish();
   return Buffer.from(encodedMemo).toString("base64");
+};
+
+let user_swap: RouterResponse = {
+  swapAmount: "1000",
+  returnAmount: "1000",
+  routes: [
+    {
+      swapAmount: "1000",
+      returnAmount: "1000",
+      paths: [
+        {
+          chainId: "Oraichain",
+          tokenIn: "orai",
+          tokenInAmount: "1000",
+          tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+          tokenOutAmount: "1000",
+          tokenOutChainId: "Oraichain",
+          actions: [
+            {
+              type: "Swap",
+              tokenIn: "orai",
+              tokenInAmount: "1000",
+              tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+              tokenOutAmount: "1000",
+              swapInfo: [
+                {
+                  poolId: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
+                  tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
 };

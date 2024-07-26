@@ -343,7 +343,7 @@ export class UniversalSwapHelper {
   static getRouteV2 = (
     basic: {
       minimumReceive: string;
-      recoveryAddr: string;
+      recoveryAddr: string; // source receiver also is recoveryAddr
       destReceiver?: string;
     },
     userSwap: RouterResponse & { destTokenPrefix: string; destAsset: string; destChainId: string }
@@ -382,7 +382,8 @@ export class UniversalSwapHelper {
             sourcePort: ibcInfos["Oraichain"][userSwap.destChainId].source,
             recoverAddress: basic.recoveryAddr
           }
-        : undefined
+        : undefined,
+      userSwap.destChainId == "Oraichain" ? { toAddress: basic.recoveryAddr } : undefined
     );
   };
 
