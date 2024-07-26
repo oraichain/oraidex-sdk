@@ -709,6 +709,11 @@ export class UniversalSwapHelper {
         ? getTokenOnOraichain(query.originalToInfo.coinGeckoId)
         : query.originalToInfo;
 
+      if (!fromInfo || !toInfo)
+        throw new Error(
+          `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
+        );
+
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
         fromInfo,
         toInfo,
