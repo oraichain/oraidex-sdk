@@ -59,23 +59,28 @@ export const buildUniversalSwapMemo = (
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
 
-  const routes = userSwap.routes.map((route) => convertApiOpsToMemoRoute(route));
+  const routes = userSwap.routes.map((route) => convertApiOpsToMemoRoute(route)).filter((route) => route);
+  const hasPostSwapAction =
+    postActionContractCall && postActionIbcTransfer && postActionIbcWasmTransfer && postActionTransfer;
 
   const memo = Memo.fromPartial({
     timeoutTimestamp: (Date.now() + IBC_TRANSFER_TIMEOUT * 1000) * 1000000, // nanoseconds
     recoveryAddr,
-    postSwapAction: {
-      ibcWasmTransferMsg: postActionIbcWasmTransfer,
-      contractCall: postActionContractCall,
-      ibcTransferMsg: postActionIbcTransfer,
-      transferMsg: postActionTransfer
-    },
-    userSwap: routes
+    postSwapAction: hasPostSwapAction
       ? {
-          smartSwapExactAssetIn: { routes },
-          swapVenueName: SWAP_VENUE_NAME
+          ibcWasmTransferMsg: postActionIbcWasmTransfer,
+          contractCall: postActionContractCall,
+          ibcTransferMsg: postActionIbcTransfer,
+          transferMsg: postActionTransfer
         }
       : undefined,
+    userSwap:
+      routes.length > 0
+        ? {
+            smartSwapExactAssetIn: { routes },
+            swapVenueName: SWAP_VENUE_NAME
+          }
+        : undefined,
     minimumReceive
   });
   console.dir(memo, { depth: null });
