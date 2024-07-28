@@ -33,6 +33,7 @@ const convertApiOpsToMemoRoute = (route: Route) => {
     }
     let denomIn = action.tokenIn;
     // next denom in = previous denom out
+    if (!action.swapInfo) throw new Error("No swap info with action type Swap");
     returnOps.push(
       ...action.swapInfo.map((info) => {
         let tmp = denomIn;
@@ -51,7 +52,7 @@ export const buildUniversalSwapMemo = (
     minimumReceive: string;
     recoveryAddr: string;
   },
-  userSwap: RouterResponse,
+  userSwap: RouterResponse = { returnAmount: "", routes: [], swapAmount: "" },
   postActionIbcWasmTransfer?: Memo_IbcWasmTransfer,
   postActionContractCall?: { contractAddress: string; msg: string },
   postActionIbcTransfer?: Memo_IbcTransfer,
@@ -61,12 +62,15 @@ export const buildUniversalSwapMemo = (
 
   const routes = userSwap.routes.map((route) => convertApiOpsToMemoRoute(route)).filter((route) => route);
   const hasPostSwapAction =
-    postActionContractCall && postActionIbcTransfer && postActionIbcWasmTransfer && postActionTransfer;
+    postActionContractCall === undefined &&
+    postActionIbcTransfer === undefined &&
+    postActionIbcWasmTransfer === undefined &&
+    postActionTransfer === undefined;
 
   const memo = Memo.fromPartial({
     timeoutTimestamp: (Date.now() + IBC_TRANSFER_TIMEOUT * 1000) * 1000000, // nanoseconds
     recoveryAddr,
-    postSwapAction: hasPostSwapAction
+    postSwapAction: !hasPostSwapAction
       ? {
           ibcWasmTransferMsg: postActionIbcWasmTransfer,
           contractCall: postActionContractCall,
