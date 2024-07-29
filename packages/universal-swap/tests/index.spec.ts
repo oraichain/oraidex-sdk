@@ -370,7 +370,7 @@ describe("test universal swap handler functions", () => {
                   local_channel_id: getIbcInfo("Oraichain", "noble-1").channel,
                   remote_address: "noble1234",
                   remote_denom: "uusdc",
-                  timeout: IBC_TRANSFER_TIMEOUT,
+                  timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                   memo: ""
                 })
               }
@@ -621,7 +621,7 @@ describe("test universal swap handler functions", () => {
         {
           source: oraiPort,
           channel: channel,
-          timeout: 3600
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)
         },
         fromToken,
         toToken,
@@ -802,7 +802,7 @@ describe("test universal swap handler functions", () => {
           local_channel_id: oraichain2oraib,
           remote_address: "foobar",
           remote_denom: "john doe",
-          timeout: 3600,
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
           memo: ""
         }
       },
@@ -820,7 +820,7 @@ describe("test universal swap handler functions", () => {
             local_channel_id: oraichain2oraib,
             remote_address: "foobar",
             remote_denom: "john doe",
-            timeout: 3600,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
             memo: ""
           })
         }
@@ -836,7 +836,7 @@ describe("test universal swap handler functions", () => {
           local_channel_id: oraichain2oraib,
           remote_address: "foobar",
           remote_denom: "john doe",
-          timeout: 3600,
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
           memo: ""
         }
       },
@@ -854,7 +854,7 @@ describe("test universal swap handler functions", () => {
             local_channel_id: oraichain2oraib,
             remote_address: "foobar",
             remote_denom: "john doe",
-            timeout: 3600,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
             memo: ""
           })
         }
@@ -900,7 +900,7 @@ describe("test universal swap handler functions", () => {
                     local_channel_id: oraichain2oraib,
                     remote_address: "orai1234",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-                    timeout: IBC_TRANSFER_TIMEOUT,
+                    timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
                   })
                 }
@@ -961,7 +961,7 @@ describe("test universal swap handler functions", () => {
                     local_channel_id: oraichain2oraib,
                     remote_address: "orai1234",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-                    timeout: IBC_TRANSFER_TIMEOUT,
+                    timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
                   })
                 }
@@ -1153,7 +1153,7 @@ describe("test universal swap handler functions", () => {
                   ).toString()
                 }
               },
-              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+              timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
               post_swap_action: {
                 transfer: {
                   to_address: smartRoutesOsmoAddr
@@ -1212,7 +1212,7 @@ describe("test universal swap handler functions", () => {
                   ).toString()
                 }
               },
-              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+              timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
               post_swap_action: {},
               affiliates: []
             }
@@ -1261,7 +1261,7 @@ describe("test universal swap handler functions", () => {
                     ).toString()
                   }
                 },
-                timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                 post_swap_action: {},
                 affiliates: []
               }
@@ -1305,7 +1305,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOsmoAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ],
     [
@@ -1321,7 +1321,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ],
     [
@@ -1337,7 +1337,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ],
     [
@@ -1353,7 +1353,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ]
   ])("test-get-msg-transfer-with-smart-route", (sender, route, expectResult) => {
@@ -1469,7 +1469,7 @@ describe("test universal swap handler functions", () => {
             amount: alphaSmartRouteWithOneRoutes0_0_1.tokenInAmount,
             denom: alphaSmartRouteWithOneRoutes0_0_1.tokenIn
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         }
       ]
     ],
@@ -1548,7 +1548,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithTwoRoutes0_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1561,7 +1561,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         }
       ]
     ],
@@ -1669,7 +1669,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithThreeRoutes0_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1682,7 +1682,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         },
         {
           sourcePort: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.port,
@@ -1723,7 +1723,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithThreeRoutes1_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1736,7 +1736,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         }
       ]
     ]
