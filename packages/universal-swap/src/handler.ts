@@ -1324,7 +1324,7 @@ export class UniversalSwapHandler {
         local_channel_id: ibcInfo.channel,
         remote_address: ibcReceiveAddr,
         remote_denom: remoteDenom,
-        timeout: ibcInfo.timeout,
+        timeout: +calculateTimeoutTimestamp(ibcInfo.timeout), // FIXME: should we use nano with an u64 type? -> probably quite big for a u64
         memo: ibcMemo
       };
 
