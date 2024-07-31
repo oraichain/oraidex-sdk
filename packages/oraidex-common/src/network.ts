@@ -52,7 +52,8 @@ import {
   OCH_CONTRACT,
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT,
-  MIXED_ROUTER
+  MIXED_ROUTER,
+  AMM_V3_CONTRACT
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -131,6 +132,7 @@ export interface NetworkConfig {
   oraidex_listing: string;
   bid_pool: string;
   multicall: string;
+  pool_v3: string;
 }
 
 export type CoinIcon = any;
@@ -1106,7 +1108,8 @@ export const network: CustomChainInfo & NetworkConfig = {
   oraidex_listing: ORAIDEX_LISTING_CONTRACT,
   multicall: MULTICALL_CONTRACT,
   bid_pool: ORAIDEX_BID_POOL_CONTRACT,
-  explorer: "https://scan.orai.io"
+  explorer: "https://scan.orai.io",
+  pool_v3: AMM_V3_CONTRACT
 };
 
 // exclude kawaiverse subnet and other special evm that has different cointype
