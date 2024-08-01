@@ -23,7 +23,8 @@ import {
   USDC_CONTRACT,
   calculateTimeoutTimestamp,
   BigDecimal,
-  OSMOSIS_ROUTER_CONTRACT
+  OSMOSIS_ROUTER_CONTRACT,
+  network
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable vi.spyOn & avoid redefine property error
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
@@ -115,7 +116,6 @@ describe("test universal swap handler functions", () => {
 
   beforeEach(() => {
     vi.restoreAllMocks();
-    vi.useFakeTimers();
   });
 
   beforeAll(async () => {
@@ -254,7 +254,6 @@ describe("test universal swap handler functions", () => {
       localChannelId: channel
     });
   });
-
   class StubCosmosWallet extends CosmosWallet {
     getKeplrAddr(chainId?: NetworkChainId | undefined): Promise<string> {
       let addr: string = "orai1234";
@@ -473,7 +472,6 @@ describe("test universal swap handler functions", () => {
       const originalFromToken = flattenTokens.find(
         (item) => item.coinGeckoId === fromDenom && item.chainId === fromChainId
       );
-
       // TODO: run tests without mocking to simulate actual swap logic
       vi.spyOn(UniversalSwapHelper, "simulateSwap").mockResolvedValue({ amount: relayerFeeAmount });
       const result = await checkFeeRelayer({
@@ -993,7 +991,6 @@ describe("test universal swap handler functions", () => {
       new Promise((resolve) => resolve(undefined as any))
     );
     vi.spyOn(dexCommonHelper, "findToTokenOnOraiBridge").mockReturnValue(oraichainTokens[0]);
-
     try {
       await universalSwap.combineMsgEvm("0x1234", "T1234");
     } catch (error) {
@@ -1101,7 +1098,7 @@ describe("test universal swap handler functions", () => {
 
     const routesFlatten = universalSwap.flattenSmartRouters(alphaSmartRoutes.routes);
     expect(routesFlatten).toEqual(expect.any(Array));
-    expect(routesFlatten).toHaveLength(2);
+    expect(routesFlatten).toHaveLength(3);
     expect(routesFlatten).toEqual(flattenAlphaSmartRouters);
   });
 
@@ -1429,7 +1426,7 @@ describe("test universal swap handler functions", () => {
       alphaSmartRoute[0],
       [
         {
-          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          contractAddress: network.mixer_router,
           msg: {
             execute_swap_operations: {
               operations: [
@@ -1479,7 +1476,7 @@ describe("test universal swap handler functions", () => {
       alphaSmartRoute[1],
       [
         {
-          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          contractAddress: network.mixer_router,
           msg: {
             execute_swap_operations: {
               operations: [
@@ -1571,7 +1568,7 @@ describe("test universal swap handler functions", () => {
       alphaSmartRoute[2],
       [
         {
-          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          contractAddress: network.mixer_router,
           msg: {
             execute_swap_operations: {
               operations: [
@@ -1600,7 +1597,7 @@ describe("test universal swap handler functions", () => {
           ]
         },
         {
-          contractAddress: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          contractAddress: network.mixer_router,
           msg: {
             execute_swap_operations: {
               operations: [

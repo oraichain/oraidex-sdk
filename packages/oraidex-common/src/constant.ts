@@ -73,7 +73,7 @@ export const ATOM_ORAICHAIN_CHANNELS = "channel-301 channel-15";
 // export const ATOM_ORAICHAIN_CHANNELS="channel-642 channel-124"
 export const OSMOSIS_ORAICHAIN_CHANNELS = "channel-216 channel-13";
 export const ORAIB_ORAICHAIN_CHANNELS = "channel-1 channel-29";
-export const ORAIB_ORAICHAIN_CHANNELS_TEST = "channel-5 channel-64";
+export const ORAIB_ORAICHAIN_CHANNELS_TEST = "channel-6 channel-260";
 export const ORAIB_ORAICHAIN_CHANNELS_OLD = "channel-0 channel-20";
 export const KWT_ORAICHAIN_CHANNELS = "channel-0 channel-21";
 export const INJECTIVE_ORAICHAIN_CHANNELS = "channel-147 channel-146";
@@ -114,6 +114,7 @@ export const OCH_CONTRACT = "orai1hn8w33cqvysun2aujk5sv33tku4pgcxhhnsxmvnkfvdxag
 export const FACTORY_CONTRACT = "orai1hemdkz4xx9kukgrunxu3yw0nvpyxf34v82d2c8";
 export const FACTORY_V2_CONTRACT = "orai167r4ut7avvgpp3rlzksz6vw5spmykluzagvmj3ht845fjschwugqjsqhst";
 export const ROUTER_V2_CONTRACT = "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf";
+export const MIXED_ROUTER = "orai1cy2pc5czxm5qlacp6j0hfq7qj9wh8zuhxgpdartcfrdljknq0arsuc4znj";
 export const ORACLE_CONTRACT = "orai18rgtdvlrev60plvucw2rz8nmj8pau9gst4q07m";
 export const STAKING_CONTRACT = "orai19p43y0tqnr5qlhfwnxft2u5unph5yn60y7tuvu";
 export const REWARDER_CONTRACT = "orai15hua2q83fp666nwhnyrn9g8gt9ueenl32qnugh";
@@ -138,6 +139,9 @@ export const IBC_WASM_CONTRACT_TEST = "orai1jtt8c2lz8emh8s708y0aeduh32xef2rxyg8y
 
 // Utiliti contract
 export const MULTICALL_CONTRACT = "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxavsk9ual7dj0sxpmgwd";
+
+export const AMM_V3_CONTRACT = "orai10s0c75gw5y5eftms5ncfknw6lzmx0dyhedn75uz793m8zwz4g8zq4d9x9a";
+export const AMM_V3_TEST_CONTRACT = "orai1wsemv2wuyfeesh3afcxy02lh8sy4yz2wjj6cxgzmcxklpdyyxjfs5qzl7q";
 
 export const BASE_API_URL = "https://api.oraidex.io";
 
