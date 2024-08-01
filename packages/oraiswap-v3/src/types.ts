@@ -28,7 +28,7 @@ export interface PoolStatsData {
 export interface TokenData {
   address: string;
   symbol: string;
-  coingeckoId?: string;
+  coinGeckoId?: string;
   decimals: number;
 }
 
