@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "postinstall": "patch-package",
-    "test": "yarn build && vitest run --silent=false --coverage --no-file-parallelism --no-isolate --pool=threads",
+    "test": "yarn build:test && vitest run --silent=false --coverage --no-file-parallelism --no-isolate --pool=threads",
     "docs": "typedoc --entryPointStrategy expand --name 'Oraidex SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
     "clean": "lerna clean --yes && lerna exec -- rimraf build/ dist/ cache/ && nx reset",
     "build": "lerna run build --concurrency 1",
+    "build:test": "lerna run build:test --concurrency 1",
     "build-tsc": "tsc -p",
     "deploy": "yarn publish --access public",
     "prepare": "husky install",
