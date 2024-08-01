@@ -1,13 +1,13 @@
 {
   "name": "@oraichain/oraidex-universal-swap",
-  "version": "1.0.93-beta.7",
+  "version": "1.0.95",
   "main": "build/index.js",
   "files": [
     "build/"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "build:test": "tsc --project tsconfig.json"
+    "build:test": "tsc --project tsconfig.test.json"
   },
   "license": "MIT",
   "dependencies": {

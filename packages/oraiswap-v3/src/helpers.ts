@@ -61,7 +61,7 @@ export const getTokensData = async (): Promise<Record<string, TokenData>> => {
     tokensObj[token.address] = {
       address: token.address,
       decimals: token.decimals,
-      coingeckoId: token.coingeckoId,
+      coinGeckoId: token.coinGeckoId,
       symbol: token?.symbol
     };
   });
@@ -239,3 +239,15 @@ export const formatWithDecimal = (amountStr?: string, decimalStr?: string, price
   const value = amountDecimal.div(decimal).valueOf();
   return value * price;
 };
+
+export const parsePoolKey = (poolKeyStr: string): PoolKey => {
+  const [tokenX, tokenY, fee, tickSpacing] = poolKeyStr.split("-");
+  return {
+    token_x: tokenX,
+    token_y: tokenY,
+    fee_tier: {
+      fee: Number(fee),
+      tick_spacing: Number(tickSpacing)
+    }
+  };
+}

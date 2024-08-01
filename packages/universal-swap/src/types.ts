@@ -262,11 +262,3 @@ export interface Routes extends RouteBase {
   bridgeInfo?: BridgeInfo;
   swapInfo?: SwapInfo[];
 }
-
-export interface QuerySmartRouteArgs {
-  sourceAsset: string;
-  sourceChainId: NetworkChainId;
-  destAsset: string;
-  destChainId: NetworkChainId;
-  offerAmount: string;
-}

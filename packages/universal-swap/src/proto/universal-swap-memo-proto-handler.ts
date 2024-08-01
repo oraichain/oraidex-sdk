@@ -1,5 +1,5 @@
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
-import { QuerySmartRouteArgs, Route, RouterResponse } from "../types";
+import { Route, RouterResponse } from "../types";
 import {
   Memo,
   Memo_IbcTransfer,
@@ -9,7 +9,6 @@ import {
   Memo_Transfer
 } from "./universal_swap_memo";
 import { IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
-import { UniversalSwapHelper } from "../helper";
 
 // FIXME: either pass this as an argument or put this hard-coded value else where
 export const SWAP_VENUE_NAME = "oraidex";
