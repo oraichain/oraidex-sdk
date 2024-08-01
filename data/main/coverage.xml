@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="10859" lines-covered="8263" line-rate="0.7609" branches-valid="926" branches-covered="795" branch-rate="0.8584999999999999" timestamp="1722507473650" complexity="0" version="0.1">
+<coverage lines-valid="10846" lines-covered="8250" line-rate="0.7606" branches-valid="926" branches-covered="795" branch-rate="0.8584999999999999" timestamp="1722509073938" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -4495,7 +4495,7 @@
         </class>
       </classes>
     </package>
-    <package name="packages.oraiswap-v3.src" line-rate="0.9317" branch-rate="0.8856999999999999">
+    <package name="packages.oraiswap-v3.src" line-rate="0.9298000000000001" branch-rate="0.8856999999999999">
       <classes>
         <class name="const.ts" filename="packages/oraiswap-v3/src/const.ts" line-rate="1" branch-rate="1">
           <methods>
@@ -4655,19 +4655,6 @@
             <line number="155" hits="1" branch="false"/>
             <line number="156" hits="1" branch="false"/>
             <line number="157" hits="1" branch="false"/>
-            <line number="158" hits="1" branch="false"/>
-            <line number="159" hits="1" branch="false"/>
-            <line number="160" hits="1" branch="false"/>
-            <line number="161" hits="1" branch="false"/>
-            <line number="162" hits="1" branch="false"/>
-            <line number="163" hits="1" branch="false"/>
-            <line number="164" hits="1" branch="false"/>
-            <line number="165" hits="1" branch="false"/>
-            <line number="166" hits="1" branch="false"/>
-            <line number="167" hits="1" branch="false"/>
-            <line number="168" hits="1" branch="false"/>
-            <line number="169" hits="1" branch="false"/>
-            <line number="170" hits="1" branch="false"/>
           </lines>
         </class>
         <class name="handler.ts" filename="packages/oraiswap-v3/src/handler.ts" line-rate="0.8861" branch-rate="1">
