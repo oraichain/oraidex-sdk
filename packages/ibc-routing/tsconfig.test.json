@@ -1,5 +1,5 @@
 {
-    "extends": "../../tsconfig.vitest.json",
+    "extends": "../../tsconfig.json",
     "compilerOptions": {
         "baseUrl": ".",
         "outDir": "build",
