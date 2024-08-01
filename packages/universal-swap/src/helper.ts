@@ -444,22 +444,26 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    urlRouter: {
+    optionRouter: {
       url: string;
       path?: string;
+      protocol?: string[];
     }
   ): Promise<SmartRouterResponseAPI> => {
-    const { axios } = await getAxios(urlRouter.url);
+    const { axios } = await getAxios(optionRouter.url);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
       sourceChainId: offerChainId,
       destAsset: parseAssetInfo(askInfo),
       destChainId: askChainId,
-      offerAmount: offerAmount
+      offerAmount: offerAmount,
+      swapOptions: {
+        protocols: optionRouter.protocol
+      }
     };
     const res: {
       data: SmartRouterResponseAPI;
-    } = await axios.post(urlRouter.path, data);
+    } = await axios.post(optionRouter.path, data);
     return {
       swapAmount: res.data.swapAmount,
       returnAmount: res.data.returnAmount,
@@ -473,7 +477,11 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    urlRouter: { url: string; path?: string } = { url: "https://osor.oraidex.io", path: "/smart-router" }
+    optionRouter: { url: string; path?: string; protocol?: string[] } = {
+      url: "https://osor.oraidex.io",
+      path: "/smart-router",
+      protocol: ["Oraidex", "OraidexV3", "Osmosis"]
+    }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
@@ -481,7 +489,7 @@ export class UniversalSwapHelper {
       askInfo,
       askChainId,
       offerAmount,
-      urlRouter
+      optionRouter
     );
 
     return {
@@ -529,13 +537,14 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
-    urlRouter?: {
+    optionRouter?: {
       url: string;
       path?: string;
+      protocol?: string[];
     };
     useAlphaSmartRoute?: boolean;
   }): Promise<SmartRouterResponse> => {
-    const { amount, fromInfo, toInfo, urlRouter } = query;
+    const { amount, fromInfo, toInfo, optionRouter } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
     // if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
@@ -560,7 +569,7 @@ export class UniversalSwapHelper {
         askInfo,
         toInfo.chainId,
         amount,
-        urlRouter
+        optionRouter
       );
     } catch (error) {
       console.log(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
@@ -628,9 +637,10 @@ export class UniversalSwapHelper {
     routerOption?: {
       useAlphaSmartRoute?: boolean;
     };
-    urlRouter?: {
+    optionRouter?: {
       url: string;
       path?: string;
+      protocol?: string[];
     };
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
@@ -662,7 +672,7 @@ export class UniversalSwapHelper {
         fromInfo: query.originalFromInfo,
         toInfo: query.originalToInfo,
         amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
-        urlRouter: query.urlRouter
+        optionRouter: query.optionRouter
       });
       routes = simulateRes;
       amount = simulateRes.returnAmount;

@@ -1,5 +1,5 @@
-import Axios from "axios";
-import { throttleAdapterEnhancer, retryAdapterEnhancer } from "axios-extensions";
+import Axios, { AxiosAdapter } from "axios";
+import { cacheAdapterEnhancer, throttleAdapterEnhancer, retryAdapterEnhancer } from "axios-extensions";
 
 export async function getAxios(baseUrl?: string) {
   const AXIOS_TIMEOUT = 10000;
@@ -8,11 +8,11 @@ export async function getAxios(baseUrl?: string) {
     timeout: AXIOS_TIMEOUT,
     retryTimes: 3,
     // cache will be enabled by default in 2 seconds
-    adapter: retryAdapterEnhancer(
-      throttleAdapterEnhancer(Axios.defaults.adapter!, {
-        threshold: AXIOS_THROTTLE_THRESHOLD
-      })
-    ),
+    // adapter: retryAdapterEnhancer(
+    //   throttleAdapterEnhancer(cacheAdapterEnhancer(adapter), {
+    //     threshold: AXIOS_THROTTLE_THRESHOLD
+    //   })
+    // ),
     baseURL: baseUrl
   });
 
