@@ -61,7 +61,7 @@ export const getTokensData = async (): Promise<Record<string, TokenData>> => {
     tokensObj[token.address] = {
       address: token.address,
       decimals: token.decimals,
-      coingeckoId: token.coingeckoId,
+      coinGeckoId: token.coinGeckoId,
       symbol: token?.symbol
     };
   });
