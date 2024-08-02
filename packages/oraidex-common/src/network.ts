@@ -50,6 +50,7 @@ import {
   NEUTARO_ORAICHAIN_DENOM,
   OCH_ETH_CONTRACT,
   OCH_CONTRACT,
+  TON_ORAICHAIN_DENOM,
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT,
   MIXED_ROUTER,
@@ -111,7 +112,8 @@ export type CoinGeckoId =
   | "bitcoin"
   | "neutaro"
   | "och"
-  | "celestia";
+  | "celestia"
+  | "the-open-network";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -142,7 +144,7 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
   readonly bridgeNetworkIdentifier?: EvmChainId;
-  readonly coinDecimals: 6 | 18;
+  readonly coinDecimals: 6 | 9 | 18;
   readonly contractAddress?: string;
   readonly prefixToken?: string;
 };
@@ -493,6 +495,13 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 6,
       coinImageUrl:
         "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
+    },
+    {
+      coinDenom: "TON",
+      coinMinimalDenom: TON_ORAICHAIN_DENOM,
+      coinDecimals: 9,
+      coinGeckoId: "the-open-network",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png?1696517498"
     }
   ]
 };
