@@ -250,4 +250,29 @@ export const parsePoolKey = (poolKeyStr: string): PoolKey => {
       tick_spacing: Number(tickSpacing)
     }
   };
-}
+};
+
+export const queryChunk = async <T>(
+  chunkSize: number,
+  callback: (params: any) => Promise<any>,
+  params: any
+): Promise<any> => {
+  if (chunkSize <= 0) {
+    throw new Error("Chunk size must be greater than 0.");
+  }
+
+  const result: T[] = [];
+  while (true) {
+    const res = await callback({
+      ...params,
+      limit: chunkSize,
+      offset: result.length
+    });
+    if (res.length === 0) {
+      break;
+    }
+    result.push(...res);
+  }
+
+  return result;
+};

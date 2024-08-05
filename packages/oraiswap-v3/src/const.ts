@@ -1,4 +1,5 @@
 import { AIRI_CONTRACT, ATOM_ORAICHAIN_DENOM, BTC_CONTRACT, INJECTIVE_CONTRACT, INJECTIVE_ORAICHAIN_DENOM, KWT_CONTRACT, KWTBSC_ORAICHAIN_DENOM, MILKY_CONTRACT, MILKYBSC_ORAICHAIN_DENOM, NEUTARO_ORAICHAIN_DENOM, OCH_CONTRACT, ORAIX_CONTRACT, OSMOSIS_ORAICHAIN_DENOM, SCATOM_CONTRACT, SCORAI_CONTRACT, TRX_CONTRACT, USDC_CONTRACT, USDT_CONTRACT, WETH_CONTRACT } from "@oraichain/oraidex-common";
+import { getLiquidityTicksLimit, getMaxSqrtPrice } from "@oraichain/oraiswap-v3-wasm";
 
 export const ORAISWAP_V3_CONTRACT = "orai10s0c75gw5y5eftms5ncfknw6lzmx0dyhedn75uz793m8zwz4g8zq4d9x9a";
 
@@ -7,7 +8,10 @@ export const LIQUIDITY_DENOMINATOR = 10n ** 6n;
 export const PRICE_DENOMINATOR = 10n ** 24n;
 export const MAX_TICKMAP_QUERY_SIZE = (16 * 1024 * 8) / (16 + 64);
 export const CHUNK_SIZE = 64;
-export const LIQUIDITY_TICKS_LIMIT = (16 * 1024 * 8) / (32 + 128 + 8);
+export const LIQUIDITY_TICKS_LIMIT = getLiquidityTicksLimit();
+
+export const CHUNK_QUERY = 100;
+export const POSITION_TICKS_LIMIT = 372;
 
 export const MAINNET_TOKENS = [
   {
