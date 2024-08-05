@@ -6,7 +6,7 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Percentage, InstantiateMsg, ExecuteMsg, Addr, Liquidity, SqrtPrice, TokenAmount, Binary, Expiration, Timestamp, Uint64, AssetInfo, PoolKey, FeeTier, SwapHop, NftExtensionMsg, QueryMsg, MigrateMsg, FeeGrowth, AllNftInfoResponse, OwnerOfResponse, Approval, NftInfoResponse, Position, PositionIncentives, TokensResponse, ApprovedForAllResponse, Boolean, ArrayOfFeeTier, ArrayOfLiquidityTick, LiquidityTick, Uint32, NumTokensResponse, Pool, IncentiveRecord, ArrayOfPoolWithPoolKey, PoolWithPoolKey, Uint128, ArrayOfAsset, Asset, ArrayOfPositionTick, PositionTick, ArrayOfPosition, QuoteResult, Tick, TickIncentive, ArrayOfTupleOfUint16AndUint64} from "./OraiswapV3.types";
+import {Percentage, InstantiateMsg, ExecuteMsg, Addr, Liquidity, SqrtPrice, TokenAmount, Binary, Expiration, Timestamp, Uint64, AssetInfo, PoolKey, FeeTier, SwapHop, NftExtensionMsg, QueryMsg, MigrateMsg, FeeGrowth, AllNftInfoResponse, OwnerOfResponse, Approval, NftInfoResponse, Position, PositionIncentives, ArrayOfPosition, TokensResponse, ApprovedForAllResponse, Boolean, ArrayOfFeeTier, ArrayOfLiquidityTick, LiquidityTick, Uint32, NumTokensResponse, Pool, IncentiveRecord, ArrayOfPoolWithPoolKey, PoolWithPoolKey, Uint128, ArrayOfAsset, Asset, ArrayOfPositionTick, PositionTick, QuoteResult, Tick, TickIncentive, ArrayOfTupleOfUint16AndUint64} from "./OraiswapV3.types";
 export interface OraiswapV3ReadOnlyInterface {
   contractAddress: string;
   admin: () => Promise<Addr>;
@@ -26,6 +26,13 @@ export interface OraiswapV3ReadOnlyInterface {
     limit?: number;
     offset?: number;
     ownerId: Addr;
+  }) => Promise<ArrayOfPosition>;
+  allPosition: ({
+    limit,
+    startAfter
+  }: {
+    limit?: number;
+    startAfter?: Binary;
   }) => Promise<ArrayOfPosition>;
   feeTierExist: ({
     feeTier
@@ -183,6 +190,11 @@ export interface OraiswapV3ReadOnlyInterface {
     index: number;
     ownerId: Addr;
   }) => Promise<ArrayOfAsset>;
+  poolsByPoolKeys: ({
+    poolKeys
+  }: {
+    poolKeys: PoolKey[];
+  }) => Promise<ArrayOfPoolWithPoolKey>;
 }
 export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
   client: CosmWasmClient;
@@ -195,6 +207,7 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
     this.protocolFee = this.protocolFee.bind(this);
     this.position = this.position.bind(this);
     this.positions = this.positions.bind(this);
+    this.allPosition = this.allPosition.bind(this);
     this.feeTierExist = this.feeTierExist.bind(this);
     this.pool = this.pool.bind(this);
     this.pools = this.pools.bind(this);
@@ -217,6 +230,7 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
     this.tokens = this.tokens.bind(this);
     this.allTokens = this.allTokens.bind(this);
     this.positionIncentives = this.positionIncentives.bind(this);
+    this.poolsByPoolKeys = this.poolsByPoolKeys.bind(this);
   }
 
   admin = async (): Promise<Addr> => {
@@ -257,6 +271,20 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
         limit,
         offset,
         owner_id: ownerId
+      }
+    });
+  };
+  allPosition = async ({
+    limit,
+    startAfter
+  }: {
+    limit?: number;
+    startAfter?: Binary;
+  }): Promise<ArrayOfPosition> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      all_position: {
+        limit,
+        start_after: startAfter
       }
     });
   };
@@ -568,6 +596,17 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
       position_incentives: {
         index,
         owner_id: ownerId
+      }
+    });
+  };
+  poolsByPoolKeys = async ({
+    poolKeys
+  }: {
+    poolKeys: PoolKey[];
+  }): Promise<ArrayOfPoolWithPoolKey> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      pools_by_pool_keys: {
+        pool_keys: poolKeys
       }
     });
   };
