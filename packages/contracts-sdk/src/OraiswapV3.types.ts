@@ -192,6 +192,11 @@ export type QueryMsg = {
     owner_id: Addr;
   };
 } | {
+  all_position: {
+    limit?: number | null;
+    start_after?: Binary | null;
+  };
+} | {
   fee_tier_exist: {
     fee_tier: FeeTier;
   };
@@ -302,6 +307,10 @@ export type QueryMsg = {
     index: number;
     owner_id: Addr;
   };
+} | {
+  pools_by_pool_keys: {
+    pool_keys: PoolKey[];
+  };
 };
 export interface MigrateMsg {}
 export type FeeGrowth = string;
@@ -339,6 +348,7 @@ export interface PositionIncentives {
   incentive_id: number;
   pending_rewards: TokenAmount;
 }
+export type ArrayOfPosition = Position[];
 export interface TokensResponse {
   tokens: number[];
 }
@@ -397,7 +407,6 @@ export interface PositionTick {
   index: number;
   seconds_outside: number;
 }
-export type ArrayOfPosition = Position[];
 export interface QuoteResult {
   amount_in: TokenAmount;
   amount_out: TokenAmount;
