@@ -499,13 +499,13 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    optionRouter: {
+    routerConfig: {
       url: string;
       path?: string;
-      protocol?: string[];
+      protocols?: string[];
     }
   ): Promise<SmartRouterResponseAPI> => {
-    const { axios } = await getAxios(optionRouter.url);
+    const { axios } = await getAxios(routerConfig.url);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
       sourceChainId: offerChainId,
@@ -513,12 +513,12 @@ export class UniversalSwapHelper {
       destChainId: askChainId,
       offerAmount: offerAmount,
       swapOptions: {
-        protocols: optionRouter.protocol
+        protocols: routerConfig.protocols
       }
     };
     const res: {
       data: SmartRouterResponseAPI;
-    } = await axios.post(optionRouter.path, data);
+    } = await axios.post(routerConfig.path, data);
     return {
       swapAmount: res.data.swapAmount,
       returnAmount: res.data.returnAmount,
@@ -532,10 +532,10 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    optionRouter: { url: string; path?: string; protocol?: string[] } = {
+    routerConfig: { url: string; path?: string; protocols?: string[] } = {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
-      protocol: ["Oraidex", "OraidexV3", "Osmosis"]
+      protocols: ["Oraidex", "OraidexV3", "Osmosis"]
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
@@ -544,7 +544,7 @@ export class UniversalSwapHelper {
       askInfo,
       askChainId,
       offerAmount,
-      optionRouter
+      routerConfig
     );
 
     return {
@@ -592,14 +592,14 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
-    optionRouter?: {
+    routerConfig?: {
       url: string;
       path?: string;
-      protocol?: string[];
+      protocols?: string[];
     };
     useAlphaSmartRoute?: boolean;
   }): Promise<SmartRouterResponse> => {
-    const { amount, fromInfo, toInfo, optionRouter } = query;
+    const { amount, fromInfo, toInfo, routerConfig } = query;
 
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
     // if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
@@ -624,7 +624,7 @@ export class UniversalSwapHelper {
         askInfo,
         toInfo.chainId,
         amount,
-        optionRouter
+        routerConfig
       );
     } catch (error) {
       console.log(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
@@ -693,10 +693,10 @@ export class UniversalSwapHelper {
       useAlphaSmartRoute?: boolean;
       useIbcWasm?: boolean;
     };
-    optionRouter?: {
+    routerConfig?: {
       url: string;
       path?: string;
-      protocol?: string[];
+      protocols?: string[];
     };
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
@@ -732,19 +732,18 @@ export class UniversalSwapHelper {
         : query.originalToInfo;
 
       if (!fromInfo || !toInfo)
-        throw new Error(
-          `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
-        );
+        throw new Error(`Cannot find token on Oraichain for token ${fromInfo.coinGeckoId} and ${toInfo.coinGeckoId}`);
 
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-        fromInfo: query.originalFromInfo,
-        toInfo: query.originalToInfo,
-        amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
-        optionRouter: query.optionRouter
+        fromInfo,
+        toInfo,
+        amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+        routerConfig: query.routerConfig
       });
+
       routes = simulateRes;
       amount = simulateRes.returnAmount;
-      decimals = query.originalToInfo.decimals;
+      decimals = toInfo.decimals;
     } else {
       const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
       const toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
