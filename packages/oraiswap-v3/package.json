@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
-    "@oraichain/oraidex-contracts-sdk": "^1.0.43",
+    "@oraichain/oraidex-contracts-sdk": "^1.0.48",
     "@oraichain/oraiswap-v3-wasm": "^0.1.0",
     "@oraichain/oraidex-common": "^1.1.2"
   }

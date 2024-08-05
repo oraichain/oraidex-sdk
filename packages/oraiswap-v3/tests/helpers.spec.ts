@@ -7,7 +7,6 @@ import {
   calculateLiquidityForPair,
   calculateLiquidityForRanges,
   getGlobalFee,
-  getTokensData,
   getUsdValue24,
   getVolume,
   getX,
@@ -483,10 +482,5 @@ describe("test oraiswap-v3 helper functions", () => {
     console.log(res);
     expect(res).toBeDefined();
     // TODO: add more expect
-  });
-
-  it("getTokens", async () => {
-    const tokens = await getTokensData();
-    expect(tokens).toBeDefined();
   });
 });

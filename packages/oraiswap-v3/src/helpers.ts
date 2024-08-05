@@ -1,11 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { LiquidityTick, PoolKey, calculateSqrtPrice } from "@oraichain/oraiswap-v3-wasm";
+import { AmountDeltaResult, LiquidityTick, PoolKey, calculateAmountDelta, calculateSqrtPrice } from "@oraichain/oraiswap-v3-wasm";
 import { PoolSnapshot, PoolStatsData, PositionLiquidInfo, TokenData, VirtualRange } from "./types";
-import { DENOMINATOR, LIQUIDITY_DENOMINATOR, MAINNET_TOKENS, PRICE_DENOMINATOR } from "./const";
-import { PoolWithPoolKey } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { BigDecimal } from "@oraichain/oraidex-common";
-
-// TODO!: add docs
+import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
+import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
+import { BigDecimal, oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
 
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
   const feeDenominator = (BigInt(protocolFee) * BigInt(pool.pool_key.fee_tier.fee)) / DENOMINATOR;
@@ -53,21 +51,9 @@ export const calculateLiquidityForRanges = (
   }));
 };
 
-// TODO: get unknown token data like front end
-export const getTokensData = async (): Promise<Record<string, TokenData>> => {
-  const tokensObj: Record<string, TokenData> = {};
-
-  (MAINNET_TOKENS as TokenData[]).forEach((token) => {
-    tokensObj[token.address] = {
-      address: token.address,
-      decimals: token.decimals,
-      coinGeckoId: token.coinGeckoId,
-      symbol: token?.symbol
-    };
-  });
-
-  return tokensObj;
-};
+export function extractAddress(tokenInfo: TokenItemType) {
+  return tokenInfo.contractAddress ? tokenInfo.contractAddress : tokenInfo.denom;
+}
 
 const isBoolean = (value: any): boolean => {
   return typeof value === "boolean";
@@ -275,4 +261,23 @@ export const queryChunk = async <T>(
   }
 
   return result;
+};
+
+export const calculateTokenAmounts = (pool: Pool, position: Position): AmountDeltaResult => {
+  return _calculateTokenAmounts(pool, position, false);
+};
+
+export const _calculateTokenAmounts = (
+  pool: Pool,
+  position: Position,
+  sign: boolean
+): AmountDeltaResult => {
+  return calculateAmountDelta(
+    pool.current_tick_index,
+    BigInt(pool.sqrt_price),
+    BigInt(position.liquidity),
+    sign,
+    position.upper_tick_index,
+    position.lower_tick_index
+  );
 };
