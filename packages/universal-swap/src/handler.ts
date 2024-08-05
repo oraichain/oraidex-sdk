@@ -41,7 +41,8 @@ import {
   BigDecimal,
   OSMOSIS_ROUTER_CONTRACT,
   cosmosChains,
-  parseAssetInfoFromContractAddrOrDenom
+  parseAssetInfoFromContractAddrOrDenom,
+  TON_ORAICHAIN_DENOM
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
@@ -1180,7 +1181,8 @@ export class UniversalSwapHandler {
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, fromAmount } = this.swapData;
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
+    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
+    const fromTokenOnOrai = getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
     const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
     if (!this.swapData.simulatePrice || !isValidSlippage) {
