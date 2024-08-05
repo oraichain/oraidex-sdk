@@ -373,7 +373,7 @@ export class OraiswapV3Handler {
       });
     }
 
-    const pos: PositionLiquidInfo[] = calculateLiquidityForRanges(liquidityTicks, tickArray);
+    const pos: PositionLiquidInfo[] = calculateLiquidityForRanges(liquidityTicks as any, tickArray);
 
     return await calculateLiquidityForPair(pos, BigInt(pool.pool.sqrt_price));
   }
