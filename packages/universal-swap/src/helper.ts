@@ -275,7 +275,8 @@ export class UniversalSwapHelper {
       if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
         return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
 
-      if (["bnb", "eth"].includes(fromToken.denom))
+      // if from token is native evm & to token chain id is Oraichain
+      if (!fromToken.contractAddress && !fromToken.cosmosBased)
         return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
 
       // if to token chain id is Oraichain, then we dont need to care about ibc msg case
