@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="11727" lines-covered="8546" line-rate="0.7287" branches-valid="903" branches-covered="773" branch-rate="0.856" timestamp="1722955899626" complexity="0" version="0.1">
+<coverage lines-valid="11725" lines-covered="8546" line-rate="0.7288" branches-valid="903" branches-covered="773" branch-rate="0.856" timestamp="1722958601875" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -8319,7 +8319,7 @@
         </class>
       </classes>
     </package>
-    <package name="packages.universal-swap.src.proto" line-rate="0.1321" branch-rate="0">
+    <package name="packages.universal-swap.src.proto" line-rate="0.1322" branch-rate="0">
       <classes>
         <class name="index.ts" filename="packages/universal-swap/src/proto/index.ts" line-rate="0" branch-rate="0">
           <methods>
@@ -8333,7 +8333,7 @@
             <line number="1" hits="0" branch="true" condition-coverage="0% (0/1)"/>
           </lines>
         </class>
-        <class name="universal-swap-memo-proto-handler.ts" filename="packages/universal-swap/src/proto/universal-swap-memo-proto-handler.ts" line-rate="0.4019" branch-rate="1">
+        <class name="universal-swap-memo-proto-handler.ts" filename="packages/universal-swap/src/proto/universal-swap-memo-proto-handler.ts" line-rate="0.40590000000000004" branch-rate="1">
           <methods>
             <method name="convertApiOpsToMemoRoute" hits="0" signature="()V">
               <lines>
@@ -8413,7 +8413,7 @@
             <line number="89" hits="0" branch="false"/>
             <line number="90" hits="0" branch="false"/>
             <line number="91" hits="0" branch="false"/>
-            <line number="92" hits="0" branch="false"/>
+            <line number="93" hits="1" branch="false"/>
             <line number="94" hits="1" branch="false"/>
             <line number="95" hits="1" branch="false"/>
             <line number="96" hits="1" branch="false"/>
@@ -8448,7 +8448,6 @@
             <line number="125" hits="1" branch="false"/>
             <line number="126" hits="1" branch="false"/>
             <line number="127" hits="1" branch="false"/>
-            <line number="128" hits="1" branch="false"/>
           </lines>
         </class>
         <class name="universal_swap_memo.ts" filename="packages/universal-swap/src/proto/universal_swap_memo.ts" line-rate="0.102" branch-rate="0">
@@ -10075,10 +10074,9 @@
             <line number="30" hits="0" branch="false"/>
             <line number="31" hits="0" branch="false"/>
             <line number="32" hits="0" branch="false"/>
-            <line number="33" hits="0" branch="false"/>
+            <line number="34" hits="0" branch="false"/>
             <line number="35" hits="0" branch="false"/>
             <line number="36" hits="0" branch="false"/>
-            <line number="37" hits="0" branch="false"/>
           </lines>
         </class>
         <class name="ibc-hooks-demo.ts" filename="packages/universal-swap/src/universal-demos/ibc-hooks-demo.ts" line-rate="0" branch-rate="0">
