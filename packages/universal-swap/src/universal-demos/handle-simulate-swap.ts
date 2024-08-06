@@ -26,7 +26,6 @@ const simulate = async () => {
         protocols: ["Oraidex", "OraidexV3", "Osmosis"]
       }
     });
-    console.dir({ res }, { depth: null });
   } catch (error) {
     console.log("error: ", error);
   }

@@ -86,7 +86,6 @@ export const buildUniversalSwapMemo = (
         : undefined,
     minimumReceive
   });
-  console.dir(memo, { depth: null });
   const encodedMemo = Memo.encode(memo).finish();
   return Buffer.from(encodedMemo).toString("base64");
 };
