@@ -1081,6 +1081,7 @@ export class UniversalSwapHandler {
           msg: {
             ibc_hooks_receive: {
               func: "universal_swap",
+              orai_receiver: oraiAddress,
               args: swapRoute
             }
           }
