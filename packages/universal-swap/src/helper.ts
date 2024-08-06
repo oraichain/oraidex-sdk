@@ -260,9 +260,10 @@ export class UniversalSwapHelper {
 
     // cosmos to others case where from token is a cosmos token
     // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
+    // TODO: support swap from cosmos to oraichain through ibc hooks
 
     if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
-      return { swapRoute: "", universalSwapType: "cosmos-to-others", isSmartRouter: true };
+      return { swapRoute: "", universalSwapType: "cosmos-to-others", isSmartRouter: false };
       // let swapRoute = parseToIbcHookMemo(receiverOnOrai, finalDestReceiver, dstChannel, toDenom);
       // // if from chain is noble, use ibc wasm instead of ibc hooks
       // if (fromToken.chainId == "noble-1") swapRoute = parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom);
@@ -279,7 +280,7 @@ export class UniversalSwapHelper {
         return {
           swapRoute: "",
           universalSwapType: "other-networks-to-oraichain",
-          isSmartRouter: true
+          isSmartRouter: false
         };
       // if they are not the same then we set dest denom
       return {
