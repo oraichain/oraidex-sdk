@@ -59,7 +59,7 @@ export const buildUniversalSwapMemo = (
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
 
-  const routes = userSwap.routes.map((route) => convertApiOpsToMemoRoute(route)).filter((route) => route);
+  const routes = userSwap?.routes?.map((route) => convertApiOpsToMemoRoute(route)).filter((route) => route);
   const hasPostSwapAction =
     postActionContractCall === undefined &&
     postActionIbcTransfer === undefined &&
@@ -78,7 +78,7 @@ export const buildUniversalSwapMemo = (
         }
       : undefined,
     userSwap:
-      routes.length > 0
+      routes?.length > 0
         ? {
             smartSwapExactAssetIn: { routes },
             swapVenueName: SWAP_VENUE_NAME
