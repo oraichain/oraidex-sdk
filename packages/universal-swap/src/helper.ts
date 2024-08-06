@@ -281,12 +281,12 @@ export class UniversalSwapHelper {
 
       // if to token chain id is Oraichain, then we dont need to care about ibc msg case
       // first case, two tokens are the same, only different in network => simple swap
-      if (fromToken.coinGeckoId === toToken.coinGeckoId)
-        return {
-          swapRoute: "",
-          universalSwapType: "other-networks-to-oraichain",
-          isSmartRouter: false
-        };
+      // if (fromToken.coinGeckoId === toToken.coinGeckoId)
+      //   return {
+      //     swapRoute: "",
+      //     universalSwapType: "other-networks-to-oraichain",
+      //     isSmartRouter: false
+      //   };
       // if they are not the same then we set dest denom
       return {
         swapRoute: "",
@@ -321,7 +321,7 @@ export class UniversalSwapHelper {
       destReceiver
     );
     if (isSmartRouter) {
-      if (!alphaSmartRoute) throw generateError(`Missing router !`);
+      if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
 
       swapRoute = await UniversalSwapHelper.getRouteV2(
         { minimumReceive, recoveryAddr: sourceReceiver, destReceiver },

@@ -1113,7 +1113,15 @@ export class UniversalSwapHandler {
 
   async processUniversalSwap() {
     const { evm, tron } = this.swapData.sender;
-    const { originalFromToken, originalToToken, fromAmount, simulateAmount } = this.swapData;
+    const {
+      originalFromToken,
+      originalToToken,
+      fromAmount,
+      bridgeFee = 0.1,
+      relayerFee,
+      userSlippage,
+      simulateAmount
+    } = this.swapData;
     const { swapOptions } = this.config;
     let toAddress = "";
     const currentToNetwork = this.swapData.originalToToken.chainId;
@@ -1133,11 +1141,37 @@ export class UniversalSwapHandler {
     }
 
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+
+    let minimumReceive = simulateAmount;
+    if (swapOptions?.isIbcWasm) {
+      let subRelayerFee = relayerFee.relayerAmount;
+      if (originalToToken.coinGeckoId !== "oraichain-token") {
+        const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+          { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+          { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
+        );
+        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        const { amount } = await UniversalSwapHelper.simulateSwap({
+          fromInfo: getTokenOnOraichain("oraichain-token"),
+          toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
+          amount: relayerFee.relayerAmount,
+          routerClient: routerClient
+        });
+        subRelayerFee = amount;
+      }
+
+      minimumReceive = new BigDecimal(simulateAmount)
+        .sub((bridgeFee * Number(simulateAmount)) / 100)
+        .sub((userSlippage * Number(simulateAmount)) / 100)
+        .sub(subRelayerFee)
+        .toString();
+    }
+
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
       oraiAddress,
       originalFromToken,
       originalToToken,
-      simulateAmount,
+      minimumReceive ?? "0",
       toAddress,
       this.config.swapOptions?.isSourceReceiverTest,
       this.swapData.alphaSmartRoutes

@@ -54,6 +54,7 @@ export interface UniversalSwapData {
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly smartRoutes?: SmartRouteSwapOperations[];
   readonly alphaSmartRoutes?: RouterResponse;
+  readonly bridgeFee?: number;
 }
 
 /**
@@ -85,6 +86,7 @@ export interface SwapOptions {
   ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
   isSourceReceiverTest?: boolean;
   isAlphaSmartRouter?: boolean;
+  isIbcWasm?: boolean;
 }
 
 export enum Type {

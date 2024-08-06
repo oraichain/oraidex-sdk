@@ -202,7 +202,7 @@ describe("test helper functions", () => {
       "airight",
       "Oraichain",
       "orai1234",
-      { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false },
+      { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: true },
       false
     ],
     [
