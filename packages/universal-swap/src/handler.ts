@@ -720,7 +720,7 @@ export class UniversalSwapHandler {
   // TODO: write test cases
   public async evmSwap(data: {
     fromToken: TokenItemType;
-    toToken: TokenItemType;
+    toTokenContractAddr: string;
     fromAmount: number;
     address: {
       metamaskAddress?: string;
@@ -730,8 +730,7 @@ export class UniversalSwapHandler {
     destination: string;
     simulatePrice: string;
   }): Promise<EvmResponse> {
-    const { fromToken, toToken, address, fromAmount, simulatePrice, slippage, destination } = data;
-    const toTokenContractAddr = toToken.contractAddress;
+    const { fromToken, toTokenContractAddr, address, fromAmount, simulatePrice, slippage, destination } = data;
     const { metamaskAddress, tronAddress } = address;
     const { recipientAddress } = this.swapData;
     const signer = this.config.evmWallet.getSigner();
@@ -785,7 +784,7 @@ export class UniversalSwapHandler {
       const evmRoute = UniversalSwapHelper.getEvmSwapRoute(
         fromToken.chainId,
         fromToken.contractAddress,
-        toToken.contractAddress
+        toTokenContractAddr
       );
 
       result = await routerV2.swapExactTokensForTokens(
@@ -976,7 +975,6 @@ export class UniversalSwapHandler {
     };
     const evmSwapData = {
       fromToken: originalFromToken,
-      toToken: originalToToken,
       toTokenContractAddr: originalToToken.contractAddress,
       address: { metamaskAddress, tronAddress },
       fromAmount: fromAmount,
