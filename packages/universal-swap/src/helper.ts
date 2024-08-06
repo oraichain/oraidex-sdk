@@ -597,22 +597,16 @@ export class UniversalSwapHelper {
       path?: string;
       protocols?: string[];
     };
-    useAlphaSmartRoute?: boolean;
   }): Promise<SmartRouterResponse> => {
     const { amount, fromInfo, toInfo, routerConfig } = query;
-
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-    // if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
-    //   return {
-    //     swapAmount: amount,
-    //     returnAmount: amount,
-    //     routes: {
-    //       swapAmount: "0",
-    //       returnAmount: "0",
-    //       routes: []
-    //     }
-    //   };
-    // }
+    if (fromInfo.chainId === toInfo.chainId && fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+      return {
+        swapAmount: amount,
+        returnAmount: amount,
+        routes: []
+      };
+    }
 
     // check if they have pairs. If not then we go through ORAI
     const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
