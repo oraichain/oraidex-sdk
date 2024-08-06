@@ -1168,7 +1168,8 @@ export class UniversalSwapHandler {
         .sub(subRelayerFee)
         .toString();
 
-      minimumReceive = Number(minimumReceive) < 0 ? "0" : Math.floor(Number(minimumReceive)).toString();
+      minimumReceive =
+        !minimumReceive || Number(minimumReceive) < 0 ? "0" : Math.floor(Number(minimumReceive)).toString();
     }
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
