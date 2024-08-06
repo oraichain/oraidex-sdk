@@ -274,6 +274,10 @@ export class UniversalSwapHelper {
       // if from token is 0x38 & to token chain id is Oraichain & from token is kawaii or milky
       if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
         return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
+
+      if (["bnb", "eth"].includes(fromToken.denom))
+        return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
+
       // if to token chain id is Oraichain, then we dont need to care about ibc msg case
       // first case, two tokens are the same, only different in network => simple swap
       if (fromToken.coinGeckoId === toToken.coinGeckoId)
