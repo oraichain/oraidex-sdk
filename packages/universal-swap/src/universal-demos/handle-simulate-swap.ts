@@ -4,9 +4,9 @@ import { handleSimulateSwap } from "../helper";
 
 const simulate = async () => {
   const fromAmount = 1;
-  let originalFromToken = flattenTokens.find((t) => t.chainId === "0x38");
+  let originalFromToken = flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token");
+  let originalToToken = flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token");
 
-  let originalToToken = flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "usd-coin");
   if (!originalFromToken) throw generateError("Could not find original from token");
   if (!originalToToken) throw generateError("Could not find original to token");
 

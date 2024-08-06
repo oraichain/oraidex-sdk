@@ -1142,6 +1142,7 @@ export class UniversalSwapHandler {
 
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
 
+    // TODO: need refactor
     let minimumReceive = simulateAmount;
     if (swapOptions?.isIbcWasm) {
       let subRelayerFee = relayerFee.relayerAmount;
@@ -1161,17 +1162,20 @@ export class UniversalSwapHandler {
       }
 
       minimumReceive = new BigDecimal(simulateAmount)
+        // TODO: need check bridgeFee
         .sub((bridgeFee * Number(simulateAmount)) / 100)
         .sub((userSlippage * Number(simulateAmount)) / 100)
         .sub(subRelayerFee)
         .toString();
+
+      minimumReceive = Number(minimumReceive) < 0 ? "0" : Math.floor(Number(minimumReceive)).toString();
     }
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
       oraiAddress,
       originalFromToken,
       originalToToken,
-      minimumReceive ?? "0",
+      minimumReceive,
       toAddress,
       this.config.swapOptions?.isSourceReceiverTest,
       this.swapData.alphaSmartRoutes
