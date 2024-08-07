@@ -1,5 +1,7 @@
 import { PoolWithPoolKey } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 import {
+  LiquidityTick,
+  PoolKey,
   PoolSnapshot,
   PoolStatsData,
   PositionLiquidInfo,
@@ -18,7 +20,6 @@ import {
   poolKeyToString,
   sliceSnaps
 } from "../src";
-import { LiquidityTick, PoolKey } from "../src/wasm/oraiswap_v3_wasm";
 import { expect, describe, it } from "vitest";
 import { TokenItemType } from "@oraichain/oraidex-common";
 
