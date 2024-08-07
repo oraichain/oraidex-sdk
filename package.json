@@ -12,6 +12,7 @@
     "build:test": "lerna run build:test --concurrency 1",
     "build-tsc": "tsc -p",
     "deploy": "yarn publish --access public",
+    "deploy:beta": "yarn publish --access public --tag beta",
     "prepare": "husky install",
     "build:docker": "lerna run build --concurrency 1"
   },
