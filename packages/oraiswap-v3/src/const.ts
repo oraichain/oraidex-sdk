@@ -4,7 +4,7 @@ import {
   getLiquidityTicksLimit,
   getMaxTickmapQuerySize,
   getPriceDenominator
-} from "@oraichain/oraiswap-v3-wasm";
+} from "./wasm/oraiswap_v3_wasm";
 
 export const ORAISWAP_V3_CONTRACT = "orai10s0c75gw5y5eftms5ncfknw6lzmx0dyhedn75uz793m8zwz4g8zq4d9x9a";
 

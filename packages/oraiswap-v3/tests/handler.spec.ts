@@ -1,5 +1,5 @@
 import { OraiswapV3Client, OraiswapV3Types } from "@oraichain/oraidex-contracts-sdk";
-import { calculateSqrtPrice, getGlobalMinSqrtPrice, newFeeTier, newPoolKey, toPercentage } from "@oraichain/oraiswap-v3-wasm";
+import { calculateSqrtPrice, getGlobalMinSqrtPrice, newFeeTier, newPoolKey, toPercentage } from "../src/wasm/oraiswap_v3_wasm";
 import { bobAddress, client, createTokens, senderAddress } from "./test-common";
 import fs from "fs";
 import path from "path";

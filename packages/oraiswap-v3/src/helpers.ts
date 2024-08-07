@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { AmountDeltaResult, LiquidityTick, PoolKey, calculateAmountDelta, calculateSqrtPrice } from "@oraichain/oraiswap-v3-wasm";
+import { AmountDeltaResult, LiquidityTick, PoolKey, calculateAmountDelta, calculateSqrtPrice } from "./wasm/oraiswap_v3_wasm";
 import { PoolSnapshot, PoolStatsData, PositionLiquidInfo, TokenData, VirtualRange } from "./types";
 import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
 import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";

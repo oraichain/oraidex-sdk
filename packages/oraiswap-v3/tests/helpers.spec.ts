@@ -18,9 +18,9 @@ import {
   poolKeyToString,
   sliceSnaps
 } from "../src";
-import { LiquidityTick, PoolKey } from "@oraichain/oraiswap-v3-wasm";
-import { expect, afterAll, beforeAll, describe, it } from "vitest";
-import { oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
+import { LiquidityTick, PoolKey } from "../src/wasm/oraiswap_v3_wasm";
+import { expect, describe, it } from "vitest";
+import { TokenItemType } from "@oraichain/oraidex-common";
 
 describe("test oraiswap-v3 helper functions", () => {
   it.each<[PoolWithPoolKey, number]>([
@@ -594,7 +594,7 @@ describe("test oraiswap-v3 helper functions", () => {
         coinType: 118,
         contractAddress: undefined,
         prefix: "orai",
-        coinGeckoId: "the-open-network",
+        coinGeckoId: "the-open-network" as any,
         denom: "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/ton",
         bridgeNetworkIdentifier: undefined,
         decimals: 9,
