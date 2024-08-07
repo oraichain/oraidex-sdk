@@ -6,35 +6,32 @@ import {
   FeeTier,
   LiquidityTick,
   OwnerOfResponse,
+  PoolKey,
   PoolWithPoolKey,
   Position,
   PositionTick,
   QuoteResult,
   Tick
 } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { PoolKey } from "@oraichain/oraiswap-v3-wasm";
-import {
-  CHUNK_QUERY,
-  LIQUIDITY_TICKS_LIMIT,
-  ORAISWAP_V3_CONTRACT,
-  POSITION_TICKS_LIMIT
-} from "./const";
-import {
-  calculateTokenAmounts,
-  parsePoolKey,
-  poolKeyToString,
-  queryChunk
-} from "./helpers";
-import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { CHUNK_QUERY, LIQUIDITY_TICKS_LIMIT, ORAISWAP_V3_CONTRACT, POSITION_TICKS_LIMIT } from "./const";
+import { calculateTokenAmounts, parsePoolKey, poolKeyToString } from "./helpers";
+import { CosmWasmClient, fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
+import { MULTICALL_CONTRACT } from "@oraichain/oraidex-common";
 
 export class OraiswapV3Handler {
   private _client: OraiswapV3QueryClient;
+  private _multicall: MulticallQueryClient;
 
-  constructor(client: CosmWasmClient, address: string = ORAISWAP_V3_CONTRACT) {
+  constructor(
+    client: CosmWasmClient,
+    address: string = ORAISWAP_V3_CONTRACT,
+    multicallAddress: string = MULTICALL_CONTRACT
+  ) {
     this._client = new OraiswapV3QueryClient(client, address);
+    this._multicall = new MulticallQueryClient(client, multicallAddress);
   }
 
-  /// ->> NEW CODE
   public async getAdmin(): Promise<string> {
     return await this._client.admin();
   }
@@ -48,8 +45,23 @@ export class OraiswapV3Handler {
   }
 
   public async getPositions(owner: string): Promise<Position[]> {
-    const length = await this.getPositionLength(owner);
-    return await queryChunk(CHUNK_QUERY, this._client.positions, { ownerId: owner });
+    let positions: Position[] = [];
+
+    while (true) {
+      const res = await this._client.positions({
+        ownerId: owner,
+        limit: CHUNK_QUERY,
+        offset: positions.length
+      });
+      if (res.length < CHUNK_QUERY) {
+        positions.push(...res);
+        break;
+      } else {
+        positions.push(...res);
+      }
+    }
+
+    return positions;
   }
 
   public async feeTierExist(feeTier: FeeTier): Promise<boolean> {
@@ -71,7 +83,22 @@ export class OraiswapV3Handler {
   }
 
   public async getPools(): Promise<PoolWithPoolKey[]> {
-    return await queryChunk(CHUNK_QUERY, this._client.pools, {});
+    const pools: PoolWithPoolKey[] = [];
+
+    while (true) {
+      const res = await this._client.pools({
+        limit: CHUNK_QUERY,
+        startAfter: pools.length == 0 ? undefined : pools[pools.length - 1].pool_key
+      });
+      if (res.length < CHUNK_QUERY) {
+        pools.push(...res);
+        break;
+      } else {
+        pools.push(...res);
+      }
+    }
+
+    return pools;
   }
 
   public async getTick(poolKey: PoolKey, tickIndex: number): Promise<Tick> {
@@ -122,10 +149,10 @@ export class OraiswapV3Handler {
   public async liquidityTicks(poolKey: PoolKey, tickIndexes: number[]): Promise<LiquidityTick[]> {
     const liquidityTicks: LiquidityTick[] = [];
 
-    for (let i = 0; i < tickIndexes.length; i += LIQUIDITY_TICKS_LIMIT) {
+    while (tickIndexes.length > 0) {
       const res = await this._client.liquidityTicks({
         poolKey,
-        tickIndexes: tickIndexes.slice(i, i + LIQUIDITY_TICKS_LIMIT)
+        tickIndexes: tickIndexes.splice(0, LIQUIDITY_TICKS_LIMIT)
       });
       liquidityTicks.push(...res);
     }
@@ -170,16 +197,21 @@ export class OraiswapV3Handler {
   public async approveForAll(owner: string, includeExpired: boolean = false): Promise<Approval[]> {
     const approvals: Approval[] = [];
 
-    for (let i = 0; i < length; i += CHUNK_QUERY) {
+    while (true) {
       const res = (
         await this._client.approvedForAll({
           owner,
-          startAfter: i.toString(),
+          includeExpired: includeExpired,
           limit: CHUNK_QUERY,
-          includeExpired
+          startAfter: approvals.length == 0 ? undefined : approvals[approvals.length - 1].spender
         })
       ).operators;
-      approvals.push(...res);
+      if (res.length < CHUNK_QUERY) {
+        approvals.push(...res);
+        break;
+      } else {
+        approvals.push(...res);
+      }
     }
 
     return approvals;
@@ -209,8 +241,13 @@ export class OraiswapV3Handler {
     const tokens: number[] = [];
     const numTokens = await this.numTokens();
 
-    for (let i = 0; i < numTokens; i += CHUNK_QUERY) {
-      const res = (await this._client.allTokens({ startAfter: i, limit: CHUNK_QUERY })).tokens;
+    while (tokens.length < numTokens) {
+      const res = (
+        await this._client.allTokens({
+          startAfter: tokens.length == 0 ? undefined : tokens[tokens.length - 1],
+          limit: CHUNK_QUERY
+        })
+      ).tokens;
       tokens.push(...res);
     }
 
@@ -231,7 +268,33 @@ export class OraiswapV3Handler {
   }
 
   public async allPositions(): Promise<Position[]> {
-    return await queryChunk(CHUNK_QUERY, this._client.allPosition, {});
+    const positions: Position[] = [];
+
+    const allTokens = await this.allTokens();
+    while (true) {
+      const tokens = allTokens.splice(0, 40);
+      const res = await this._multicall.aggregate({
+        queries: tokens.map((tokenId) => ({
+          address: this._client.contractAddress,
+          data: toBinary({
+            nft_info: {
+              token_id: tokenId
+            }
+          })
+        }))
+      });
+
+      tokens.map((tokenId, ind) => {
+        const position = fromBinary(res.return_data[ind].data);
+        positions.push(position.extension);
+      });
+
+      if (allTokens.length == 0) {
+        break;
+      }
+    }
+
+    return positions;
   }
 
   public async getPoolByPoolKeyStr(poolKeyStr: string): Promise<PoolWithPoolKey> {

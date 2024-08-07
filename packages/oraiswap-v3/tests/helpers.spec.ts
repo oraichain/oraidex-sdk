@@ -6,6 +6,7 @@ import {
   VirtualRange,
   calculateLiquidityForPair,
   calculateLiquidityForRanges,
+  extractAddress,
   getGlobalFee,
   getUsdValue24,
   getVolume,
@@ -13,11 +14,13 @@ import {
   getY,
   onlySnaps,
   parse,
+  parsePoolKey,
   poolKeyToString,
   sliceSnaps
 } from "../src";
 import { LiquidityTick, PoolKey } from "@oraichain/oraiswap-v3-wasm";
 import { expect, afterAll, beforeAll, describe, it } from "vitest";
+import { oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
 
 describe("test oraiswap-v3 helper functions", () => {
   it.each<[PoolWithPoolKey, number]>([
@@ -145,13 +148,43 @@ describe("test oraiswap-v3 helper functions", () => {
     [3061221885126646n, 2786952634213000000000000n, 2621000184602367837078723n, 2731770006227000000000000n],
     [3079921929921160n, 2871823670360000000000000n, 2621000184602367837078723n, 2786952634213000000000000n],
     [3053349216741434n, 2944520552269000000000000n, 2621000184602367837078723n, 2871823670360000000000000n],
-    [3224297089568735n, 2959279283182000000000000n, 2621000184602367837078723n, 2944520552269000000000000n]
+    [3224297089568735n, 2959279283182000000000000n, 2621000184602367837078723n, 2944520552269000000000000n],
   ])("getX getY", (liquidity, upperSqrtPrice, currentSqrtPrice, lowerSqrtPrice) => {
     const x = getX(liquidity, upperSqrtPrice, currentSqrtPrice, lowerSqrtPrice);
     const y = getY(liquidity, upperSqrtPrice, currentSqrtPrice, lowerSqrtPrice);
     expect(x).toBeDefined();
     expect(y).toBeDefined();
     // TODO: add more expect
+  });
+
+  it.each<[string, PoolKey]>([
+    [
+      "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-3000000000-100",
+      {
+        token_x: "orai",
+        token_y: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+        fee_tier: { fee: 3000000000, tick_spacing: 100 }
+      }
+    ],
+    [
+      "orai-orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge-100000000-1",
+      {
+        token_x: "orai",
+        token_y: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
+        fee_tier: { fee: 100000000, tick_spacing: 1 }
+      }
+    ],
+    [
+      "factory/3ERD/ton-orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge-100000000-1",
+      {
+        token_x: "factory/3ERD/ton",
+        token_y: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
+        fee_tier: { fee: 100000000, tick_spacing: 1 }
+      }
+    ]
+  ])("parsePoolKey", (poolKeyStr, poolKey) => {
+    const res = parsePoolKey(poolKeyStr);
+    expect(res).toEqual(poolKey);
   });
 
   it.each<[PositionLiquidInfo[], bigint]>([
@@ -482,5 +515,103 @@ describe("test oraiswap-v3 helper functions", () => {
     console.log(res);
     expect(res).toBeDefined();
     // TODO: add more expect
+  });
+
+  it.each<[TokenItemType]>([
+    [
+      {
+        name: "ORAI",
+        org: "Oraichain",
+        coinType: 118,
+        contractAddress: undefined,
+        prefix: "orai",
+        coinGeckoId: "oraichain-token",
+        denom: "orai",
+        bridgeNetworkIdentifier: undefined,
+        decimals: 6,
+        bridgeTo: ["0x38", "0x01", "injective-1"],
+        chainId: "Oraichain",
+        rpc: "https://rpc.orai.io",
+        cosmosBased: true,
+        maxGas: 140,
+        gasPriceStep: { low: 0.003, average: 0.005, high: 0.007 },
+        minAmountSwap: undefined,
+        evmDenoms: undefined,
+        Icon: undefined,
+        IconLight: undefined
+      }
+    ],
+    [
+      {
+        name: "ATOM",
+        org: "Oraichain",
+        coinType: 118,
+        contractAddress: undefined,
+        prefix: "orai",
+        coinGeckoId: "cosmos",
+        denom: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
+        bridgeNetworkIdentifier: undefined,
+        decimals: 6,
+        bridgeTo: ["cosmoshub-4"],
+        chainId: "Oraichain",
+        rpc: "https://rpc.orai.io",
+        cosmosBased: true,
+        maxGas: 140,
+        gasPriceStep: undefined,
+        minAmountSwap: undefined,
+        evmDenoms: undefined,
+        Icon: undefined,
+        IconLight: undefined
+      }
+    ],
+    [
+      {
+        name: "AIRI",
+        org: "Oraichain",
+        coinType: 118,
+        contractAddress: "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg",
+        prefix: "orai",
+        coinGeckoId: "airight",
+        denom: "airi",
+        bridgeNetworkIdentifier: undefined,
+        decimals: 6,
+        bridgeTo: ["0x38"],
+        chainId: "Oraichain",
+        rpc: "https://rpc.orai.io",
+        cosmosBased: true,
+        maxGas: 140,
+        gasPriceStep: undefined,
+        minAmountSwap: undefined,
+        evmDenoms: undefined,
+        Icon: undefined,
+        IconLight: undefined
+      }
+    ],
+    [
+      {
+        name: "TON",
+        org: "Oraichain",
+        coinType: 118,
+        contractAddress: undefined,
+        prefix: "orai",
+        coinGeckoId: "the-open-network",
+        denom: "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/ton",
+        bridgeNetworkIdentifier: undefined,
+        decimals: 9,
+        bridgeTo: undefined,
+        chainId: "Oraichain",
+        rpc: "https://rpc.orai.io",
+        cosmosBased: true,
+        maxGas: 140,
+        gasPriceStep: undefined,
+        minAmountSwap: undefined,
+        evmDenoms: undefined,
+        Icon: undefined,
+        IconLight: undefined
+      }
+    ]
+  ])("extractAddress", (data) => {
+    const res = extractAddress(data);
+    expect(res).equal(data.contractAddress ? data.contractAddress : data.denom);
   });
 });
