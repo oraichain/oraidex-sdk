@@ -17,7 +17,7 @@ export enum SwapDirection {
 export interface SimulateResponse {
   amount: Uint128;
   displayAmount: number;
-  routes?: SmartRouteSwapAPIOperations[];
+  routes?: SmartRouteSwapAPIOperations;
   routeSwapOps?: SmartRouteSwapOperations[];
 }
 

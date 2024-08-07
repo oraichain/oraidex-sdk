@@ -1065,7 +1065,7 @@ export class UniversalSwapHandler {
       alphaSmartRoutes
     );
     const swapRouteSplit = completeSwapRoute.split(":");
-    const swapRoute = swapRouteSplit.length === 0 ? swapRouteSplit[0] : swapRouteSplit[1];
+    const swapRoute = swapRouteSplit.length === 1 ? "" : swapRouteSplit[1];
 
     let msgTransfer = MsgTransfer.fromPartial({
       sourcePort: ibcInfo.source,
@@ -1116,7 +1116,6 @@ export class UniversalSwapHandler {
     const {
       originalFromToken,
       originalToToken,
-      fromAmount,
       bridgeFee = 0.1,
       relayerFee,
       userSlippage,
@@ -1186,7 +1185,8 @@ export class UniversalSwapHandler {
     if (
       swapOptions?.isAlphaSmartRouter &&
       this.swapData?.alphaSmartRoutes?.routes?.length &&
-      ["oraichain-to-oraichain", "oraichain-to-cosmos", "cosmos-to-others"].includes(universalSwapType)
+      ["oraichain-to-oraichain", "oraichain-to-cosmos", "cosmos-to-others"].includes(universalSwapType) &&
+      !swapOptions?.isIbcWasm
     ) {
       return this.alphaSmartRouterSwap();
     }
