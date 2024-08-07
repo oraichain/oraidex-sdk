@@ -5,6 +5,9 @@
   "files": [
     "build/"
   ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
   "license": "MIT",
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
