@@ -89,39 +89,3 @@ export const buildUniversalSwapMemo = (
   const encodedMemo = Memo.encode(memo).finish();
   return Buffer.from(encodedMemo).toString("base64");
 };
-
-let user_swap: RouterResponse = {
-  swapAmount: "1000",
-  returnAmount: "1000",
-  routes: [
-    {
-      swapAmount: "1000",
-      returnAmount: "1000",
-      paths: [
-        {
-          chainId: "Oraichain",
-          tokenIn: "orai",
-          tokenInAmount: "1000",
-          tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
-          tokenOutAmount: "1000",
-          tokenOutChainId: "Oraichain",
-          actions: [
-            {
-              type: "Swap",
-              tokenIn: "orai",
-              tokenInAmount: "1000",
-              tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78",
-              tokenOutAmount: "1000",
-              swapInfo: [
-                {
-                  poolId: "orai1c5s03c3l336dgesne7dylnmhszw8554tsyy9yt",
-                  tokenOut: "ibc/A2E2EEC9057A4A1C2C0A6A4C78B0239118DF5F278830F50B4A6BDD7A66506B78"
-                }
-              ]
-            }
-          ]
-        }
-      ]
-    }
-  ]
-};

@@ -42,7 +42,8 @@ import {
   OSMOSIS_ROUTER_CONTRACT,
   cosmosChains,
   parseAssetInfoFromContractAddrOrDenom,
-  TON_ORAICHAIN_DENOM
+  TON_ORAICHAIN_DENOM,
+  toDisplay
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
@@ -1054,7 +1055,10 @@ export class UniversalSwapHandler {
       );
 
     // get swapRoute
-    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    const [oraiAddress, obridgeAddress] = await Promise.all([
+      this.config.cosmosWallet.getKeplrAddr("Oraichain"),
+      this.config.cosmosWallet.getKeplrAddr("oraibridge-subnet-2")
+    ]);
 
     let minimumReceive = simulateAmount;
     if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
@@ -1065,8 +1069,9 @@ export class UniversalSwapHandler {
       originalToToken,
       minimumReceive,
       destinationReceiver,
-      this.config.swapOptions?.isSourceReceiverTest,
-      alphaSmartRoutes
+      this.config.swapOptions,
+      alphaSmartRoutes,
+      obridgeAddress
     );
     const swapRouteSplit = completeSwapRoute.split(":");
     const swapRoute = swapRouteSplit.length === 1 ? "" : swapRouteSplit[1];
@@ -1136,7 +1141,10 @@ export class UniversalSwapHandler {
       });
     }
 
-    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    const [oraiAddress, obridgeAddress] = await Promise.all([
+      this.config.cosmosWallet.getKeplrAddr("Oraichain"),
+      this.config.cosmosWallet.getKeplrAddr("oraibridge-subnet-2")
+    ]);
 
     let minimumReceive = simulateAmount;
     if (swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
@@ -1147,8 +1155,9 @@ export class UniversalSwapHandler {
       originalToToken,
       minimumReceive,
       toAddress,
-      this.config.swapOptions?.isSourceReceiverTest,
-      this.swapData.alphaSmartRoutes
+      this.config.swapOptions,
+      this.swapData.alphaSmartRoutes,
+      obridgeAddress
     );
 
     // version alpha smart router oraiDEX pool + osmosis pool
@@ -1171,6 +1180,11 @@ export class UniversalSwapHandler {
   async caculateMinimumReceive() {
     const { simulateAmount, relayerFee, originalToToken, bridgeFee = 0.1, userSlippage = 0 } = this.swapData;
     const { cosmosWallet } = this.config;
+    const convertSimulateAmount = toAmount(
+      toDisplay(simulateAmount, originalToToken.decimals),
+      getTokenOnOraichain(originalToToken.coinGeckoId).decimals
+    ).toString();
+
     let subRelayerFee = relayerFee?.relayerAmount || "0";
 
     if (originalToToken.coinGeckoId !== "oraichain-token") {
@@ -1193,7 +1207,7 @@ export class UniversalSwapHandler {
     const bridgeFeeAdjustment = (bridgeFee * Number(simulateAmount)) / 100;
     const slippageAdjustment = (userSlippage * Number(simulateAmount)) / 100;
 
-    const minimumReceive = new BigDecimal(simulateAmount)
+    const minimumReceive = new BigDecimal(convertSimulateAmount)
       .sub(bridgeFeeAdjustment)
       .sub(slippageAdjustment)
       .sub(subRelayerFee)

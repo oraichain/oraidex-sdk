@@ -46,7 +46,8 @@ import {
   evmChains,
   getAxios,
   parseAssetInfoFromContractAddrOrDenom,
-  parseAssetInfo
+  parseAssetInfo,
+  calculateTimeoutTimestamp
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -295,6 +296,10 @@ export class UniversalSwapHelper {
         isSmartRouter: true
       };
     }
+
+    if (["0x38", "0x01"].includes(fromToken.chainId) && fromToken.chainId === toToken.chainId) {
+      return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
+    }
     // the remaining cases where we have to process ibc msg
     return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: true };
   };
@@ -305,15 +310,20 @@ export class UniversalSwapHelper {
     toToken: TokenItemType,
     minimumReceive: string,
     destReceiver?: string,
-    isSourceReceiverTest?: boolean,
-    alphaSmartRoute?: RouterResponse
+    swapOption?: {
+      isSourceReceiverTest?: boolean;
+      isIbcWasm?: boolean;
+      ibcInfoTestMode?: boolean;
+    },
+    alphaSmartRoute?: RouterResponse,
+    remoteAddressObridge?: string
   ): Promise<SwapRoute> => {
     // TODO: recheck cosmos address undefined (other-chain -> oraichain)
     if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
     const source = UniversalSwapHelper.getSourceReceiver(
       sourceReceiver,
       fromToken.contractAddress,
-      isSourceReceiverTest
+      swapOption.isSourceReceiverTest
     );
 
     let { swapRoute, universalSwapType, isSmartRouter } = UniversalSwapHelper.getRoute(
@@ -321,17 +331,19 @@ export class UniversalSwapHelper {
       toToken,
       destReceiver
     );
-    if (isSmartRouter) {
+
+    if (isSmartRouter && swapOption.isIbcWasm) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
 
       swapRoute = await UniversalSwapHelper.getRouteV2(
-        { minimumReceive, recoveryAddr: sourceReceiver, destReceiver },
+        { minimumReceive, recoveryAddr: sourceReceiver, destReceiver, remoteAddressObridge },
         {
           ...alphaSmartRoute,
           destAsset: parseTokenInfoRawDenom(toToken),
           destChainId: toToken.chainId,
           destTokenPrefix: toToken.prefix
-        }
+        },
+        swapOption.ibcInfoTestMode
       );
     }
 
@@ -351,41 +363,52 @@ export class UniversalSwapHelper {
       minimumReceive: string;
       recoveryAddr: string; // source receiver also is recoveryAddr
       destReceiver?: string;
+      remoteAddressObridge?: string; // add with oraibridge
     },
-    userSwap: RouterResponse & { destTokenPrefix: string; destAsset: string; destChainId: string }
+    userSwap: RouterResponse & { destTokenPrefix: string; destAsset: string; destChainId: string },
+    ibcInfoTestMode?: boolean
   ) => {
-    const { destReceiver } = basic;
+    const { destReceiver, remoteAddressObridge } = basic;
     let receiverPrefix = "";
     let finalDestReceiver = "";
     let dstChannel = "";
     let dstDenom = "";
+    const ibcInfo = ibcInfoTestMode
+      ? ibcInfos["Oraichain"][userSwap.destChainId].testInfo
+      : ibcInfos["Oraichain"][userSwap.destChainId];
+
     if (destReceiver) {
       if (isEthAddress(destReceiver)) receiverPrefix = userSwap.destTokenPrefix;
       dstDenom = receiverPrefix + userSwap.destAsset;
       finalDestReceiver = receiverPrefix + destReceiver;
       // we get ibc channel that transfers toToken from Oraichain to the toToken chain
-      dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfos["Oraichain"][userSwap.destChainId].channel;
+      dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfo.channel;
     }
+
+    const destChainIdIsNoble = "noble-1";
+    const useIbcWasm = evmChains.some((evm) => evm.chainId === userSwap.destChainId) || destChainIdIsNoble;
+
     return buildUniversalSwapMemo(
       basic,
       userSwap,
       // only use ibc wasm bridge when the dst chain id is OraiBridge
-      finalDestReceiver && dstChannel && userSwap.destChainId === "oraibridge-subnet-2"
+      finalDestReceiver && dstChannel && useIbcWasm
         ? {
             localChannelId: dstChannel,
             remoteDenom: dstDenom,
-            remoteAddress: finalDestReceiver,
-            timeout: IBC_TRANSFER_TIMEOUT
+            remoteAddress: destChainIdIsNoble ? finalDestReceiver : remoteAddressObridge,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, Date.now()),
+            memo: destChainIdIsNoble ? "" : finalDestReceiver
           }
         : undefined,
       undefined,
       // for other chains, we use ibc transfer
-      finalDestReceiver && dstChannel && userSwap.destChainId !== "oraibridge-subnet-2"
+      finalDestReceiver && dstChannel && !useIbcWasm
         ? {
             memo: "",
             receiver: finalDestReceiver,
             sourceChannel: dstChannel,
-            sourcePort: ibcInfos["Oraichain"][userSwap.destChainId].source,
+            sourcePort: ibcInfo.source,
             recoverAddress: basic.recoveryAddr
           }
         : undefined,
