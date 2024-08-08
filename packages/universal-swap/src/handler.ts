@@ -1113,14 +1113,7 @@ export class UniversalSwapHandler {
 
   async processUniversalSwap() {
     const { evm, tron } = this.swapData.sender;
-    const {
-      originalFromToken,
-      originalToToken,
-      bridgeFee = 0.1,
-      relayerFee,
-      userSlippage,
-      simulateAmount
-    } = this.swapData;
+    const { originalFromToken, originalToToken, simulateAmount, relayerFee } = this.swapData;
     const { swapOptions } = this.config;
     let toAddress = "";
     const currentToNetwork = this.swapData.originalToToken.chainId;
@@ -1141,35 +1134,8 @@ export class UniversalSwapHandler {
 
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
 
-    // TODO: need refactor
     let minimumReceive = simulateAmount;
-    if (swapOptions?.isIbcWasm) {
-      let subRelayerFee = relayerFee.relayerAmount;
-      if (originalToToken.coinGeckoId !== "oraichain-token") {
-        const { client } = await this.config.cosmosWallet.getCosmWasmClient(
-          { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
-          { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
-        );
-        const routerClient = new OraiswapRouterQueryClient(client, network.router);
-        const { amount } = await UniversalSwapHelper.simulateSwap({
-          fromInfo: getTokenOnOraichain("oraichain-token"),
-          toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
-          amount: relayerFee.relayerAmount,
-          routerClient: routerClient
-        });
-        subRelayerFee = amount;
-      }
-
-      minimumReceive = new BigDecimal(simulateAmount)
-        // TODO: need check bridgeFee
-        .sub((bridgeFee * Number(simulateAmount)) / 100)
-        .sub((userSlippage * Number(simulateAmount)) / 100)
-        .sub(subRelayerFee)
-        .toString();
-
-      minimumReceive =
-        !minimumReceive || Number(minimumReceive) < 0 ? "0" : Math.floor(Number(minimumReceive)).toString();
-    }
+    if (swapOptions?.isIbcWasm && !!relayerFee.relayerAmount) minimumReceive = await this.caculateMinimumReceive();
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
       oraiAddress,
@@ -1196,6 +1162,39 @@ export class UniversalSwapHandler {
       return this.swapAndTransferToOtherNetworks(universalSwapType);
     if (universalSwapType === "cosmos-to-others") return this.swapCosmosToOtherNetwork(toAddress);
     return this.transferAndSwap(swapRoute);
+  }
+
+  async caculateMinimumReceive() {
+    const { simulateAmount, relayerFee, originalToToken, bridgeFee = 0.1, userSlippage = 0 } = this.swapData;
+    const { cosmosWallet } = this.config;
+    let subRelayerFee = relayerFee.relayerAmount ?? "1000000";
+
+    if (originalToToken.coinGeckoId !== "oraichain-token") {
+      const { client } = await cosmosWallet.getCosmWasmClient(
+        { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+        { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
+      );
+      const routerClient = new OraiswapRouterQueryClient(client, network.router);
+      const { amount } = await UniversalSwapHelper.simulateSwap({
+        fromInfo: getTokenOnOraichain("oraichain-token"),
+        toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
+        amount: subRelayerFee,
+        routerClient
+      });
+      subRelayerFee = amount;
+    }
+
+    const bridgeFeeAdjustment = (bridgeFee * Number(simulateAmount)) / 100;
+    const slippageAdjustment = (userSlippage * Number(simulateAmount)) / 100;
+
+    const minimumReceive = new BigDecimal(simulateAmount)
+      .sub(bridgeFeeAdjustment)
+      .sub(slippageAdjustment)
+      .sub(subRelayerFee)
+      .toString();
+
+    const finalAmount = Math.max(0, Math.floor(Number(minimumReceive)));
+    return finalAmount.toString();
   }
 
   generateMsgsConvertSmartRouterSwap(route: Routes) {
