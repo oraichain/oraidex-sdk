@@ -49,7 +49,7 @@ jobs:
       - name: Publish Oraidex Common
         id: publish-common
         continue-on-error: true
-        run: yarn deploy:beta packages/oraidex-common
+        run: yarn deploy packages/oraidex-common
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
