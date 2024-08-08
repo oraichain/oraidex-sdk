@@ -1032,7 +1032,8 @@ export class UniversalSwapHandler {
   // Oraichain will be use as a proxy
   // TODO: write test cases
   async swapCosmosToOtherNetwork(destinationReceiver: string) {
-    const { originalFromToken, originalToToken, sender, fromAmount, simulateAmount, alphaSmartRoutes } = this.swapData;
+    const { originalFromToken, originalToToken, sender, fromAmount, simulateAmount, alphaSmartRoutes, relayerFee } =
+      this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
 
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
@@ -1055,11 +1056,14 @@ export class UniversalSwapHandler {
     // get swapRoute
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
 
+    let minimumReceive = simulateAmount;
+    if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
+
     const { swapRoute: completeSwapRoute } = await UniversalSwapHelper.addOraiBridgeRoute(
       oraiAddress,
       originalFromToken,
       originalToToken,
-      simulateAmount,
+      minimumReceive,
       destinationReceiver,
       this.config.swapOptions?.isSourceReceiverTest,
       alphaSmartRoutes
@@ -1135,7 +1139,7 @@ export class UniversalSwapHandler {
     const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
 
     let minimumReceive = simulateAmount;
-    if (swapOptions?.isIbcWasm && !!relayerFee.relayerAmount) minimumReceive = await this.caculateMinimumReceive();
+    if (swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
       oraiAddress,
@@ -1167,21 +1171,23 @@ export class UniversalSwapHandler {
   async caculateMinimumReceive() {
     const { simulateAmount, relayerFee, originalToToken, bridgeFee = 0.1, userSlippage = 0 } = this.swapData;
     const { cosmosWallet } = this.config;
-    let subRelayerFee = relayerFee.relayerAmount ?? "1000000";
+    let subRelayerFee = relayerFee?.relayerAmount || "0";
 
     if (originalToToken.coinGeckoId !== "oraichain-token") {
       const { client } = await cosmosWallet.getCosmWasmClient(
         { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
         { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
       );
-      const routerClient = new OraiswapRouterQueryClient(client, network.router);
-      const { amount } = await UniversalSwapHelper.simulateSwap({
-        fromInfo: getTokenOnOraichain("oraichain-token"),
-        toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
-        amount: subRelayerFee,
-        routerClient
-      });
-      subRelayerFee = amount;
+      if (!!subRelayerFee) {
+        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        const { amount } = await UniversalSwapHelper.simulateSwap({
+          fromInfo: getTokenOnOraichain("oraichain-token"),
+          toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
+          amount: subRelayerFee,
+          routerClient
+        });
+        if (amount) subRelayerFee = amount;
+      }
     }
 
     const bridgeFeeAdjustment = (bridgeFee * Number(simulateAmount)) / 100;

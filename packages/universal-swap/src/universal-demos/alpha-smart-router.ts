@@ -470,89 +470,43 @@ import { cosmosTokens, generateError, getTokenOnOraichain, toAmount } from "@ora
 // };
 
 const router = {
-  swapAmount: "1000000000",
-  returnAmount: "996791718",
+  swapAmount: "1000000",
+  returnAmount: "92048909",
   routes: [
-    // {
-    //   swapAmount: "900000000",
-    //   returnAmount: "896082327",
-    //   paths: [
-    //     {
-    //       chainId: "Oraichain",
-    //       tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-    //       tokenInAmount: "900000000",
-    //       tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-    //       tokenOutAmount: "896082327",
-    //       tokenOutChainId: "Oraichain",
-    //       actions: [
-    //         {
-    //           type: "Swap",
-    //           tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-    //           tokenInAmount: "900000000",
-    //           tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-    //           tokenOutAmount: "896082327",
-    //           swapInfo: [
-    //             {
-    //               poolId:
-    //                 "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd-500000000-10",
-    //               tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
-    //             }
-    //           ]
-    //         }
-    //       ]
-    //     }
-    //   ]
-    // },
     {
-      swapAmount: "100000000",
-      returnAmount: "100709391",
+      swapAmount: "1000000",
+      returnAmount: "92048909",
       paths: [
         {
           chainId: "Oraichain",
-          tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-          tokenInAmount: "100000000",
-          tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-          tokenOutAmount: "100709391",
+          tokenIn: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC",
+          tokenInAmount: "1000000",
+          tokenOut: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
+          tokenOutAmount: "92048909",
           tokenOutChainId: "Oraichain",
           actions: [
             {
               type: "Swap",
-              tokenIn: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd",
-              tokenInAmount: "100000000",
-              tokenOut: "orai",
-              tokenOutAmount: "13101414",
+              protocol: "Oraidex",
+              tokenIn: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC",
+              tokenInAmount: "1000000",
+              tokenOut: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge",
+              tokenOutAmount: "92048909",
               swapInfo: [
+                {
+                  poolId: "orai1d37artrk4tkhz2qyjmaulc2jzjkx7206tmpfug",
+                  tokenOut: "orai"
+                },
                 {
                   poolId: "orai19ttg0j7w5kr83js32tmwnwxxdq9rkmw4m3d7mn2j2hkpugwwa4tszwsnkg",
-                  tokenOut: "orai"
-                }
-              ]
-            },
-            {
-              type: "Swap",
-              tokenIn: "orai",
-              tokenInAmount: "13101414",
-              tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
-              tokenOutAmount: "100709391",
-              swapInfo: [
+                  tokenOut: "orai15un8msx3n5zf9ahlxmfeqd2kwa5wm0nrpxer304m9nd5q6qq0g6sku5pdd"
+                },
                 {
-                  poolId: "orai-orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh-3000000000-100",
-                  tokenOut: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh"
+                  poolId: "orai1n4edv5h86rawzrvhy8lmrmnnmmherxnhuwqnk3yuvt0wgclh75usyn3md6",
+                  tokenOut: "orai1lus0f0rhx8s03gdllx2n6vhkmf0536dv57wfge"
                 }
               ]
             }
-            // {
-            //   type: "Bridge",
-            //   tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
-            //   tokenInAmount: "4659896949856",
-            //   tokenOut: "inj",
-            //   tokenOutAmount: "4659896949856",
-            //   tokenOutChainId: "injective-1",
-            //   bridgeInfo: {
-            //     port: "transfer",
-            //     channel: "channel-122"
-            //   }
-            // }
           ]
         }
       ]
@@ -562,11 +516,11 @@ const router = {
 
 const alphaSwapToOraichain = async () => {
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);
-  const sender = await wallet.getKeplrAddr("Oraichain");
-  const fromAmount = 0.1;
+  const sender = await wallet.getKeplrAddr("osmosis-1");
+  const fromAmount = 1;
   console.log("sender: ", sender);
-  const originalFromToken = cosmosTokens.find((t) => t.coinGeckoId === "usd-coin" && t.chainId === "Oraichain");
-  const originalToToken = cosmosTokens.find((t) => t.coinGeckoId === "tether" && t.chainId === "Oraichain");
+  const originalFromToken = cosmosTokens.find((t) => t.coinGeckoId === "osmosis" && t.chainId === "osmosis-1");
+  const originalToToken = cosmosTokens.find((t) => t.coinGeckoId === "oraidex" && t.chainId === "Oraichain");
 
   if (!originalToToken) throw generateError("Could not find original to token");
   if (!originalFromToken) throw generateError("Could not find original from token");
@@ -577,15 +531,23 @@ const alphaSwapToOraichain = async () => {
       originalToToken,
       sender: { cosmos: sender },
       fromAmount,
-      userSlippage: 100,
+      userSlippage: 50,
+      relayerFee: 0n as any,
+      // relayerFee: {
+      //   relayerAmount: "100000",
+      //   relayerDecimals: 6
+      // },
       // recipientAddress: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
       // recipientAddress: "osmo12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fh4twhr",
       // recipientAddress: "inj133lq4pqjdxspcz4n388glv70z59ffeuh3ktnaj",
-      simulatePrice: "4500",
+      simulatePrice: "91825481",
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
       alphaSmartRoutes: router
     },
-    { cosmosWallet: wallet, swapOptions: { isAlphaSmartRouter: true } }
+    {
+      cosmosWallet: wallet,
+      swapOptions: { isAlphaSmartRouter: true, isIbcWasm: true, isSourceReceiverTest: true, ibcInfoTestMode: true }
+    }
   );
 
   try {
