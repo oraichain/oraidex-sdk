@@ -585,11 +585,24 @@ describe("test helper functions", () => {
 
   it("test-addOraiBridgeRoute-empty-swapRoute", async () => {
     vi.spyOn(UniversalSwapHelper, "getRouteV2").mockResolvedValue("");
-    const result = await addOraiBridgeRoute("receiver", { contractAddress: "any" } as any, undefined, "0");
+    const result = await UniversalSwapHelper.addOraiBridgeRoute(
+      "receiver",
+      { contractAddress: "any" } as any,
+      undefined as any,
+      "0",
+      undefined,
+      {
+        isSourceReceiverTest: false
+      }
+    );
     expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
   });
   it("test-addOraiBridgeRoute-empty-sourceReceiver", async () => {
-    await expect(addOraiBridgeRoute("", undefined, undefined, "0")).rejects.toThrow();
+    await expect(
+      UniversalSwapHelper.addOraiBridgeRoute("", undefined as any, undefined as any, "0", undefined, {
+        isSourceReceiverTest: false
+      })
+    ).rejects.toThrow();
   });
 
   it.each<[string, any]>([
@@ -937,13 +950,11 @@ describe("test helper functions", () => {
       routes: [{ swapAmount: "1", returnAmount: "1", paths: paths }]
     });
     const res = await UniversalSwapHelper.generateSmartRouteForSwap(
-      {
-        sourceAsset: parseAssetInfo(offerAsset),
-        sourceChainId: "Oraichain",
-        destAsset: parseAssetInfo(askAsset),
-        destChainId: "Oraichain",
-        offerAmount: "1"
-      },
+      offerAsset,
+      "Oraichain",
+      askAsset,
+      "Oraichain",
+      "1",
       { url: "test" }
     );
     let getSwapOperationMsgsRoute = res.routes[0].paths;
