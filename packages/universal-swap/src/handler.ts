@@ -1204,8 +1204,8 @@ export class UniversalSwapHandler {
       }
     }
 
-    const bridgeFeeAdjustment = (bridgeFee * Number(simulateAmount)) / 100;
-    const slippageAdjustment = (userSlippage * Number(simulateAmount)) / 100;
+    const bridgeFeeAdjustment = (bridgeFee * Number(convertSimulateAmount)) / 100;
+    const slippageAdjustment = (userSlippage * Number(convertSimulateAmount)) / 100;
 
     const minimumReceive = new BigDecimal(convertSimulateAmount)
       .sub(bridgeFeeAdjustment)
