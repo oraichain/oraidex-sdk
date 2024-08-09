@@ -373,9 +373,8 @@ export class UniversalSwapHelper {
     let finalDestReceiver = "";
     let dstChannel = "";
     let dstDenom = "";
-    const ibcInfo = ibcInfoTestMode
-      ? ibcInfos["Oraichain"][userSwap.destChainId].testInfo
-      : ibcInfos["Oraichain"][userSwap.destChainId];
+    const ibcInfoDestChain = ibcInfos["Oraichain"][userSwap.destChainId];
+    const ibcInfo = ibcInfoTestMode ? ibcInfoDestChain.testInfo ?? ibcInfoDestChain : ibcInfoDestChain;
 
     if (destReceiver) {
       if (isEthAddress(destReceiver)) receiverPrefix = userSwap.destTokenPrefix;
@@ -385,7 +384,7 @@ export class UniversalSwapHelper {
       dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfo.channel;
     }
 
-    const destChainIdIsNoble = "noble-1";
+    const destChainIdIsNoble = userSwap.destChainId === "noble-1";
     const useIbcWasm = evmChains.some((evm) => evm.chainId === userSwap.destChainId) || destChainIdIsNoble;
 
     return buildUniversalSwapMemo(
