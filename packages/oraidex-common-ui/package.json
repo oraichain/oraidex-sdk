@@ -9,6 +9,7 @@
   "types": "dist/umd/types/index.d.ts",
   "scripts": {
     "build": "yarn && rimraf dist/umd && webpack && tsc",
+    "build:test": "yarn && rimraf dist/umd && webpack && tsc -p tsconfig.test.json",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },

@@ -46,20 +46,21 @@ import {
   evmChains,
   getAxios,
   parseAssetInfoFromContractAddrOrDenom,
-  parseAssetInfo
+  parseAssetInfo,
+  calculateTimeoutTimestamp
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
   ConvertType,
   OraiBridgeRouteData,
+  RouterResponse,
   SimulateResponse,
   SmartRouterResponse,
   SmartRouterResponseAPI,
-  SmartRouteSwapOperations,
   SwapDirection,
+  SwapOptions,
   SwapRoute,
-  Type,
-  UniversalSwapConfig
+  Type
 } from "./types";
 import {
   AssetInfo,
@@ -73,8 +74,10 @@ import { ethers } from "ethers";
 import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-contracts-sdk";
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
-import { parseToIbcHookMemo, parseToIbcWasmMemo } from "./proto/proto-gen";
 import { Coin } from "@cosmjs/proto-signing";
+import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
+import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
+import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -232,103 +235,185 @@ export class UniversalSwapHelper {
    * @param destReceiver - destination destReceiver
    * @returns destination in the format <dest-channel>/<dest-destReceiver>:<dest-denom>
    */
-  static getRoute = (
-    fromToken?: TokenItemType,
-    toToken?: TokenItemType,
-    destReceiver?: string,
-    receiverOnOrai?: string
-  ): SwapRoute => {
+  static getRoute = (fromToken?: TokenItemType, toToken?: TokenItemType, destReceiver?: string): SwapRoute => {
     if (!fromToken || !toToken || !destReceiver)
-      return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
+      return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
     // this is the simplest case. Both tokens on the same Oraichain network => simple swap with to token denom
     if (fromToken.chainId === "Oraichain" && toToken.chainId === "Oraichain") {
-      return { swapRoute: "", universalSwapType: "oraichain-to-oraichain" };
+      return { swapRoute: "", universalSwapType: "oraichain-to-oraichain", isSmartRouter: false };
     }
     // we dont need to have any swapRoute for this case
     if (fromToken.chainId === "Oraichain") {
       if (cosmosTokens.some((t) => t.chainId === toToken.chainId))
-        return { swapRoute: "", universalSwapType: "oraichain-to-cosmos" };
-      return { swapRoute: "", universalSwapType: "oraichain-to-evm" };
+        return { swapRoute: "", universalSwapType: "oraichain-to-cosmos", isSmartRouter: false };
+      return { swapRoute: "", universalSwapType: "oraichain-to-evm", isSmartRouter: false };
     }
     // TODO: support 1-step swap for kwt
     if (fromToken.chainId === "kawaii_6886-1" || fromToken.chainId === "0x1ae6") {
       throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
     }
 
-    let receiverPrefix = "";
-    if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
-    const toDenom = receiverPrefix + parseTokenInfoRawDenom(toToken);
-    const finalDestReceiver = receiverPrefix + destReceiver;
-    // we get ibc channel that transfers toToken from Oraichain to the toToken chain
-    const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
+    // let receiverPrefix = "";
+    // if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
+    // const toDenom = receiverPrefix + parseTokenInfoRawDenom(toToken);
+    // const finalDestReceiver = receiverPrefix + destReceiver;
+    // // we get ibc channel that transfers toToken from Oraichain to the toToken chain
+    // const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
 
     // cosmos to others case where from token is a cosmos token
     // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
+    // TODO: support swap from cosmos to oraichain through ibc hooks
 
     if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
-      let swapRoute = "";
-      // if from chain is noble, use ibc wasm instead of ibc hooks
-      if (fromToken.chainId == "noble-1") {
-        swapRoute = parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom);
-      } else {
-        swapRoute = parseToIbcHookMemo(receiverOnOrai, finalDestReceiver, dstChannel, toDenom);
-      }
-
-      return { swapRoute, universalSwapType: "cosmos-to-others" };
+      return { swapRoute: "", universalSwapType: "cosmos-to-others", isSmartRouter: true };
+      // let swapRoute = parseToIbcHookMemo(receiverOnOrai, finalDestReceiver, dstChannel, toDenom);
+      // // if from chain is noble, use ibc wasm instead of ibc hooks
+      // if (fromToken.chainId == "noble-1") swapRoute = parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom);
+      // return { swapRoute, universalSwapType: "cosmos-to-others" };
     }
 
     if (toToken.chainId === "Oraichain") {
       // if from token is 0x38 & to token chain id is Oraichain & from token is kawaii or milky
       if (["0x38"].includes(fromToken.chainId) && ["milky-token", "kawaii-islands"].includes(fromToken.coinGeckoId))
-        return { swapRoute: "", universalSwapType: "other-networks-to-oraichain" };
+        return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
+
+      // if from token is native evm & to token chain id is Oraichain
+      if (!fromToken.contractAddress && !fromToken.cosmosBased)
+        return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
+
       // if to token chain id is Oraichain, then we dont need to care about ibc msg case
       // first case, two tokens are the same, only different in network => simple swap
-      if (fromToken.coinGeckoId === toToken.coinGeckoId)
-        return {
-          swapRoute: parseToIbcWasmMemo(destReceiver, "", ""),
-          universalSwapType: "other-networks-to-oraichain"
-        };
+      // if (fromToken.coinGeckoId === toToken.coinGeckoId)
+      //   return {
+      //     swapRoute: "",
+      //     universalSwapType: "other-networks-to-oraichain",
+      //     isSmartRouter: false
+      //   };
       // if they are not the same then we set dest denom
       return {
-        swapRoute: parseToIbcWasmMemo(destReceiver, "", toDenom),
-        universalSwapType: "other-networks-to-oraichain"
+        swapRoute: "",
+        universalSwapType: "other-networks-to-oraichain",
+        isSmartRouter: true
       };
     }
+
+    if (["0x38", "0x01"].includes(fromToken.chainId) && fromToken.chainId === toToken.chainId) {
+      return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
+    }
     // the remaining cases where we have to process ibc msg
-
-    // getTokenOnOraichain is called to get the ibc denom / cw20 denom on Oraichain so that we can create an ibc msg using it
-    // TODO: no need to use to token on Oraichain. Can simply use the swapRoute token directly. Fix this requires fixing the logic on ibc wasm as well
-    const toTokenOnOraichain = getTokenOnOraichain(toToken.coinGeckoId);
-    if (!toTokenOnOraichain)
-      return {
-        swapRoute: "",
-        universalSwapType: "other-networks-to-oraichain"
-      };
-
-    return {
-      swapRoute: parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom),
-      universalSwapType: "other-networks-to-oraichain"
-    };
+    return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: true };
   };
 
-  static addOraiBridgeRoute = (
+  static addOraiBridgeRoute = async (
     sourceReceiver: string,
     fromToken: TokenItemType,
     toToken: TokenItemType,
+    minimumReceive: string,
     destReceiver?: string,
-    isSourceReceiverTest?: boolean
-  ): SwapRoute => {
+    swapOption?: {
+      isSourceReceiverTest?: boolean;
+      isIbcWasm?: boolean;
+      ibcInfoTestMode?: boolean;
+    },
+    alphaSmartRoute?: RouterResponse,
+    remoteAddressObridge?: string
+  ): Promise<SwapRoute> => {
     // TODO: recheck cosmos address undefined (other-chain -> oraichain)
     if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
     const source = UniversalSwapHelper.getSourceReceiver(
       sourceReceiver,
       fromToken.contractAddress,
-      isSourceReceiverTest
+      swapOption.isSourceReceiverTest
     );
 
-    const { swapRoute, universalSwapType } = UniversalSwapHelper.getRoute(fromToken, toToken, destReceiver);
-    if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType };
-    return { swapRoute: source, universalSwapType };
+    let { swapRoute, universalSwapType, isSmartRouter } = UniversalSwapHelper.getRoute(
+      fromToken,
+      toToken,
+      destReceiver
+    );
+
+    if (isSmartRouter && swapOption.isIbcWasm) {
+      if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
+
+      swapRoute = await UniversalSwapHelper.getRouteV2(
+        { minimumReceive, recoveryAddr: sourceReceiver, destReceiver, remoteAddressObridge },
+        {
+          ...alphaSmartRoute,
+          destAsset: parseTokenInfoRawDenom(toToken),
+          destChainId: toToken.chainId,
+          destTokenPrefix: toToken.prefix
+        },
+        swapOption.ibcInfoTestMode
+      );
+    }
+
+    if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType, isSmartRouter };
+    return { swapRoute: source, universalSwapType, isSmartRouter };
+  };
+
+  /**
+   * // TODO: add test cases
+   * Complex swap routes that require a backend router to maximize return amounts.
+   * @param basic
+   * @param userSwap
+   * @returns
+   */
+  static getRouteV2 = (
+    basic: {
+      minimumReceive: string;
+      recoveryAddr: string; // source receiver also is recoveryAddr
+      destReceiver?: string;
+      remoteAddressObridge?: string; // add with oraibridge
+    },
+    userSwap: RouterResponse & { destTokenPrefix: string; destAsset: string; destChainId: string },
+    ibcInfoTestMode?: boolean
+  ) => {
+    const { destReceiver, remoteAddressObridge } = basic;
+    let receiverPrefix = "";
+    let finalDestReceiver = "";
+    let dstChannel = "";
+    let dstDenom = "";
+    const ibcInfo = ibcInfoTestMode
+      ? ibcInfos["Oraichain"][userSwap.destChainId].testInfo
+      : ibcInfos["Oraichain"][userSwap.destChainId];
+
+    if (destReceiver) {
+      if (isEthAddress(destReceiver)) receiverPrefix = userSwap.destTokenPrefix;
+      dstDenom = receiverPrefix + userSwap.destAsset;
+      finalDestReceiver = receiverPrefix + destReceiver;
+      // we get ibc channel that transfers toToken from Oraichain to the toToken chain
+      dstChannel = userSwap.destChainId == "Oraichain" ? "" : ibcInfo.channel;
+    }
+
+    const destChainIdIsNoble = "noble-1";
+    const useIbcWasm = evmChains.some((evm) => evm.chainId === userSwap.destChainId) || destChainIdIsNoble;
+
+    return buildUniversalSwapMemo(
+      basic,
+      userSwap,
+      // only use ibc wasm bridge when the dst chain id is OraiBridge
+      finalDestReceiver && dstChannel && useIbcWasm
+        ? {
+            localChannelId: dstChannel,
+            remoteDenom: dstDenom,
+            remoteAddress: destChainIdIsNoble ? finalDestReceiver : remoteAddressObridge,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, Date.now()),
+            memo: destChainIdIsNoble ? "" : finalDestReceiver
+          }
+        : undefined,
+      undefined,
+      // for other chains, we use ibc transfer
+      finalDestReceiver && dstChannel && !useIbcWasm
+        ? {
+            memo: "",
+            receiver: finalDestReceiver,
+            sourceChannel: dstChannel,
+            sourcePort: ibcInfo.source,
+            recoverAddress: basic.recoveryAddr
+          }
+        : undefined,
+      userSwap.destChainId == "Oraichain" ? { toAddress: basic.recoveryAddr } : undefined
+    );
   };
 
   /**
@@ -444,13 +529,13 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    optionRouter: {
+    routerConfig: {
       url: string;
       path?: string;
-      protocol?: string[];
+      protocols?: string[];
     }
   ): Promise<SmartRouterResponseAPI> => {
-    const { axios } = await getAxios(optionRouter.url);
+    const { axios } = await getAxios(routerConfig.url);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
       sourceChainId: offerChainId,
@@ -458,12 +543,12 @@ export class UniversalSwapHelper {
       destChainId: askChainId,
       offerAmount: offerAmount,
       swapOptions: {
-        protocols: optionRouter.protocol
+        protocols: routerConfig.protocols
       }
     };
     const res: {
       data: SmartRouterResponseAPI;
-    } = await axios.post(optionRouter.path, data);
+    } = await axios.post(routerConfig.path, data);
     return {
       swapAmount: res.data.swapAmount,
       returnAmount: res.data.returnAmount,
@@ -477,10 +562,10 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    optionRouter: { url: string; path?: string; protocol?: string[] } = {
+    routerConfig: { url: string; path?: string; protocols?: string[] } = {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
-      protocol: ["Oraidex", "OraidexV3", "Osmosis"]
+      protocols: ["Oraidex", "OraidexV3", "Osmosis"]
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
@@ -489,7 +574,7 @@ export class UniversalSwapHelper {
       askInfo,
       askChainId,
       offerAmount,
-      optionRouter
+      routerConfig
     );
 
     return {
@@ -537,27 +622,21 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
-    optionRouter?: {
+    routerConfig?: {
       url: string;
       path?: string;
-      protocol?: string[];
+      protocols?: string[];
     };
-    useAlphaSmartRoute?: boolean;
   }): Promise<SmartRouterResponse> => {
-    const { amount, fromInfo, toInfo, optionRouter } = query;
-
+    const { amount, fromInfo, toInfo, routerConfig } = query;
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
-    // if (fromInfo.coinGeckoId === toInfo.coinGeckoId) {
-    //   return {
-    //     swapAmount: amount,
-    //     returnAmount: amount,
-    //     routes: {
-    //       swapAmount: "0",
-    //       returnAmount: "0",
-    //       routes: []
-    //     }
-    //   };
-    // }
+    if (fromInfo.chainId === toInfo.chainId && fromInfo.coinGeckoId === toInfo.coinGeckoId) {
+      return {
+        swapAmount: amount,
+        returnAmount: amount,
+        routes: []
+      };
+    }
 
     // check if they have pairs. If not then we go through ORAI
     const { info: offerInfo } = parseTokenInfo(fromInfo, amount);
@@ -569,7 +648,7 @@ export class UniversalSwapHelper {
         askInfo,
         toInfo.chainId,
         amount,
-        optionRouter
+        routerConfig
       );
     } catch (error) {
       console.log(`Error when trying to simulate swap using smart router: ${JSON.stringify(error)}`);
@@ -636,11 +715,12 @@ export class UniversalSwapHelper {
     routerClient: OraiswapRouterReadOnlyInterface;
     routerOption?: {
       useAlphaSmartRoute?: boolean;
+      useIbcWasm?: boolean;
     };
-    optionRouter?: {
+    routerConfig?: {
       url: string;
       path?: string;
-      protocol?: string[];
+      protocols?: string[];
     };
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
@@ -668,15 +748,26 @@ export class UniversalSwapHelper {
     let routes;
     let decimals = 6;
     if (query?.routerOption?.useAlphaSmartRoute) {
+      const fromInfo = query?.routerOption?.useIbcWasm
+        ? getTokenOnOraichain(query.originalFromInfo.coinGeckoId)
+        : query.originalFromInfo;
+      const toInfo = query?.routerOption?.useIbcWasm
+        ? getTokenOnOraichain(query.originalToInfo.coinGeckoId)
+        : query.originalToInfo;
+
+      if (!fromInfo || !toInfo)
+        throw new Error(`Cannot find token on Oraichain for token ${fromInfo.coinGeckoId} and ${toInfo.coinGeckoId}`);
+
       const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-        fromInfo: query.originalFromInfo,
-        toInfo: query.originalToInfo,
-        amount: toAmount(query.originalAmount, query.originalFromInfo.decimals).toString(),
-        optionRouter: query.optionRouter
+        fromInfo,
+        toInfo,
+        amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+        routerConfig: query.routerConfig
       });
+
       routes = simulateRes;
       amount = simulateRes.returnAmount;
-      decimals = query.originalToInfo.decimals;
+      decimals = toInfo.decimals;
     } else {
       const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
       const toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
@@ -697,7 +788,7 @@ export class UniversalSwapHelper {
     return {
       amount,
       displayAmount: toDisplay(amount, decimals),
-      routes
+      routes: routes ?? {}
     };
   };
 

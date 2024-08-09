@@ -1,4 +1,4 @@
-import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
+import { AmountDetails, CosmosWallet, EvmWallet, NetworkChainId, TokenItemType } from "@oraichain/oraidex-common";
 import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 
 export type UniversalSwapType =
@@ -6,7 +6,8 @@ export type UniversalSwapType =
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
-  | "cosmos-to-others";
+  | "cosmos-to-others"
+  | "smart-router";
 
 export enum SwapDirection {
   From,
@@ -16,7 +17,7 @@ export enum SwapDirection {
 export interface SimulateResponse {
   amount: Uint128;
   displayAmount: number;
-  routes?: SmartRouteSwapAPIOperations[];
+  routes?: SmartRouteSwapAPIOperations;
   routeSwapOps?: SmartRouteSwapOperations[];
 }
 
@@ -45,7 +46,7 @@ export interface UniversalSwapData {
   readonly originalFromToken: TokenItemType;
   readonly originalToToken: TokenItemType;
   readonly fromAmount: number;
-  readonly simulateAmount: string; // toAmount given fromAmount. TODO: auto simulate if not passed
+  readonly simulateAmount: string; // toAmount given fromAmount. This is the minimum receive of originalToToken
   readonly userSlippage?: number;
   readonly simulatePrice?: string;
   readonly relayerFee?: RelayerFeeData;
@@ -53,6 +54,7 @@ export interface UniversalSwapData {
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly smartRoutes?: SmartRouteSwapOperations[];
   readonly alphaSmartRoutes?: RouterResponse;
+  readonly bridgeFee?: number;
 }
 
 /**
@@ -69,6 +71,7 @@ export interface UniversalSwapConfig {
 export interface SwapRoute {
   swapRoute: string;
   universalSwapType: UniversalSwapType;
+  isSmartRouter: boolean;
 }
 
 export interface OraiBridgeRouteData {
@@ -83,6 +86,7 @@ export interface SwapOptions {
   ibcInfoTestMode?: boolean; // this argument if true allows the object to get test ibc info instead of the production one for testing purposes
   isSourceReceiverTest?: boolean;
   isAlphaSmartRouter?: boolean;
+  isIbcWasm?: boolean;
 }
 
 export enum Type {
@@ -118,7 +122,7 @@ export type SmartRouteSwapOperations = {
 export type SmartRouterResponse = {
   swapAmount: string;
   returnAmount: string;
-  routes: SmartRouteSwapAPIOperations[];
+  routes: (SmartRouteSwapAPIOperations | Route)[];
 };
 
 export type SmartRouteSwapAPIOperations = {
@@ -230,6 +234,7 @@ interface Action {
   tokenInAmount: string;
   tokenOut: string;
   tokenOutAmount: string;
+  protocol?: string;
   swapInfo?: SwapInfo[];
   bridgeInfo?: BridgeInfo;
 }
