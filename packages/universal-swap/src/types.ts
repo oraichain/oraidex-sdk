@@ -1,5 +1,6 @@
 import { AmountDetails, CosmosWallet, EvmWallet, TokenItemType } from "@oraichain/oraidex-common";
 import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
+import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
@@ -53,6 +54,7 @@ export interface UniversalSwapData {
   readonly recipientAddress?: string; // recipient address from client, if user want to send to another address
   readonly smartRoutes?: SmartRouteSwapOperations[];
   readonly alphaSmartRoutes?: RouterResponse;
+  readonly affiliates?: Affiliate[];
 }
 
 /**

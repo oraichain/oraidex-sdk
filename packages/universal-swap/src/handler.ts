@@ -60,6 +60,7 @@ import {
 } from "./types";
 import { GasPrice } from "@cosmjs/stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
 
 export class UniversalSwapHandler {
   constructor(
@@ -1171,7 +1172,7 @@ export class UniversalSwapHandler {
 
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
-    const { originalFromToken, fromAmount } = this.swapData;
+    const { originalFromToken, fromAmount, affiliates } = this.swapData;
     let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
     const fromTokenOnOrai = getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
@@ -1221,14 +1222,20 @@ export class UniversalSwapHandler {
         swapOps: ops
       };
     });
-    const msgs: ExecuteInstruction[] = this.buildSwapMsgsFromSmartRoute(routes, fromTokenOnOrai, to, contractAddr);
+    const msgs: ExecuteInstruction[] = this.buildSwapMsgsFromSmartRoute(
+      routes,
+      fromTokenOnOrai,
+      to,
+      contractAddr,
+      affiliates
+    );
     return buildMultipleExecuteMessages(msgs, ...msgConvertsFrom);
   }
 
   generateMsgsSwap() {
     let input: any;
     let contractAddr: string = network.router;
-    const { originalFromToken, originalToToken, fromAmount } = this.swapData;
+    const { originalFromToken, originalToToken, fromAmount, affiliates } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
     const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId);
@@ -1264,7 +1271,13 @@ export class UniversalSwapHandler {
       let msgs: ExecuteInstruction[];
 
       if (this.swapData.smartRoutes) {
-        msgs = this.buildSwapMsgsFromSmartRoute(this.swapData.smartRoutes, fromTokenOnOrai, to, contractAddr);
+        msgs = this.buildSwapMsgsFromSmartRoute(
+          this.swapData.smartRoutes,
+          fromTokenOnOrai,
+          to,
+          contractAddr,
+          affiliates
+        );
       } else {
         const minimumReceive = calculateMinReceive(
           this.swapData.simulatePrice,
@@ -1312,7 +1325,8 @@ export class UniversalSwapHandler {
     routes: SmartRouteSwapOperations[],
     fromTokenOnOrai: TokenItemType,
     to: string,
-    routerContract: string
+    routerContract: string,
+    affiliates?: Affiliate[]
   ): ExecuteInstruction[] {
     const msgs: ExecuteInstruction[] = routes.map((route) => {
       const minimumReceive = Math.trunc(
@@ -1323,7 +1337,8 @@ export class UniversalSwapHandler {
         execute_swap_operations: {
           operations: route.swapOps,
           minimum_receive: minimumReceive,
-          to
+          to,
+          affiliates
         }
       };
 
