@@ -1,120 +1,300 @@
-import { OraiswapV3QueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { Asset, OraiswapV3QueryClient } from "@oraichain/oraidex-contracts-sdk";
 import {
+  AllNftInfoResponse,
+  Approval,
   ArrayOfTupleOfUint16AndUint64,
-  PoolWithPoolKey
+  FeeTier,
+  LiquidityTick,
+  OwnerOfResponse,
+  PoolKey,
+  PoolWithPoolKey,
+  Position,
+  PositionTick,
+  QuoteResult,
+  Tick
 } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { LiquidityTick, PoolKey, Tickmap, getMaxTick, getMinTick, positionToTick } from "@oraichain/oraiswap-v3-wasm";
-import { CHUNK_SIZE, LIQUIDITY_TICKS_LIMIT, MAX_TICKMAP_QUERY_SIZE, ORAISWAP_V3_CONTRACT } from "./const";
-import {
-  calculateLiquidityForPair,
-  calculateLiquidityForRanges,
-  parse,
-  parsePoolKey,
-  poolKeyToString
-} from "./helpers";
-import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
-import { PositionLiquidInfo, VirtualRange } from "./types";
-
-// TODO!: add docs
+import { CHUNK_QUERY, LIQUIDITY_TICKS_LIMIT, ORAISWAP_V3_CONTRACT, POSITION_TICKS_LIMIT } from "./const";
+import { calculateTokenAmounts, parsePoolKey, poolKeyToString } from "./helpers";
+import { CosmWasmClient, fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
+import { MULTICALL_CONTRACT } from "@oraichain/oraidex-common";
 
 export class OraiswapV3Handler {
   private _client: OraiswapV3QueryClient;
+  private _multicall: MulticallQueryClient;
 
-  constructor(client: CosmWasmClient, address: string = ORAISWAP_V3_CONTRACT) {
+  constructor(
+    client: CosmWasmClient,
+    address: string = ORAISWAP_V3_CONTRACT,
+    multicallAddress: string = MULTICALL_CONTRACT
+  ) {
     this._client = new OraiswapV3QueryClient(client, address);
+    this._multicall = new MulticallQueryClient(client, multicallAddress);
   }
 
-  public async getPoolList(): Promise<PoolWithPoolKey[]> {
-    return await this._client.pools({});
+  public async getAdmin(): Promise<string> {
+    return await this._client.admin();
   }
 
   public async getProtocolFee(): Promise<number> {
     return await this._client.protocolFee();
   }
 
-  public async getRawTickmap(
+  public async getPosition(owner: string, posIndex: number) {
+    return await this._client.position({ ownerId: owner, index: posIndex });
+  }
+
+  public async getPositions(owner: string): Promise<Position[]> {
+    let positions: Position[] = [];
+
+    while (true) {
+      const res = await this._client.positions({
+        ownerId: owner,
+        limit: CHUNK_QUERY,
+        offset: positions.length
+      });
+      if (res.length < CHUNK_QUERY) {
+        positions.push(...res);
+        break;
+      } else {
+        positions.push(...res);
+      }
+    }
+
+    return positions;
+  }
+
+  public async feeTierExist(feeTier: FeeTier): Promise<boolean> {
+    return await this._client.feeTierExist({
+      feeTier
+    });
+  }
+
+  public async getPool(poolKey: PoolKey): Promise<PoolWithPoolKey> {
+    const pool = await this._client.pool({
+      feeTier: poolKey.fee_tier,
+      token0: poolKey.token_x,
+      token1: poolKey.token_y
+    });
+    return {
+      pool_key: poolKey,
+      pool
+    };
+  }
+
+  public async getPools(): Promise<PoolWithPoolKey[]> {
+    const pools: PoolWithPoolKey[] = [];
+
+    while (true) {
+      const res = await this._client.pools({
+        limit: CHUNK_QUERY,
+        startAfter: pools.length == 0 ? undefined : pools[pools.length - 1].pool_key
+      });
+      if (res.length < CHUNK_QUERY) {
+        pools.push(...res);
+        break;
+      } else {
+        pools.push(...res);
+      }
+    }
+
+    return pools;
+  }
+
+  public async getTick(poolKey: PoolKey, tickIndex: number): Promise<Tick> {
+    return await this._client.tick({ key: poolKey, index: tickIndex });
+  }
+
+  public async isTickInitialized(poolKey: PoolKey, tickIndex: number): Promise<boolean> {
+    return await this._client.isTickInitialized({ key: poolKey, index: tickIndex });
+  }
+
+  public async getFeeTiers(): Promise<FeeTier[]> {
+    return await this._client.feeTiers();
+  }
+
+  public async getPositionTicks(owner: string): Promise<PositionTick[]> {
+    const positionTicks: PositionTick[] = [];
+    const positonsLength = await this.getPositionLength(owner);
+
+    for (let i = 0; i < positonsLength; i += POSITION_TICKS_LIMIT) {
+      const res = await this._client.positionTicks({
+        owner,
+        offset: i
+      });
+      positionTicks.push(...res);
+    }
+
+    return positionTicks;
+  }
+
+  public async getPositionLength(owner: string): Promise<number> {
+    return await this._client.userPositionAmount({ owner });
+  }
+
+  public async tickMap(
     poolKey: PoolKey,
-    lowerTick: number,
-    upperTick: number,
+    lowerTickIndex: number,
+    upperTickIndex: number,
     xToY: boolean
   ): Promise<ArrayOfTupleOfUint16AndUint64> {
-    const tickmaps = await this._client.tickMap({
-      lowerTickIndex: lowerTick,
-      upperTickIndex: upperTick,
-      xToY,
-      poolKey
+    return await this._client.tickMap({
+      poolKey,
+      lowerTickIndex,
+      upperTickIndex,
+      xToY
     });
-    return tickmaps;
   }
 
-  public async getFullTickmap(poolKey: PoolKey): Promise<Tickmap> {
-    const maxTick = getMaxTick(poolKey.fee_tier.tick_spacing);
-    let lowerTick = getMinTick(poolKey.fee_tier.tick_spacing);
+  public async liquidityTicks(poolKey: PoolKey, tickIndexes: number[]): Promise<LiquidityTick[]> {
+    const liquidityTicks: LiquidityTick[] = [];
 
-    const xToY = false;
-
-    const promises = [];
-    const tickSpacing = poolKey.fee_tier.tick_spacing;
-
-    const jump = (MAX_TICKMAP_QUERY_SIZE - 3) * CHUNK_SIZE;
-
-    while (lowerTick <= maxTick) {
-      let nextTick = lowerTick + jump;
-      const remainder = nextTick % tickSpacing;
-
-      if (remainder > 0) {
-        nextTick += tickSpacing - remainder;
-      } else if (remainder < 0) {
-        nextTick -= remainder;
-      }
-
-      let upperTick = nextTick;
-
-      if (upperTick > maxTick) {
-        upperTick = maxTick;
-      }
-
-      const result = this.getRawTickmap(poolKey, lowerTick, upperTick, xToY).then(
-        (tickmap) => tickmap.map(([a, b]) => [BigInt(a), BigInt(b)]) as [bigint, bigint][]
-      );
-      promises.push(result);
-
-      lowerTick = upperTick + tickSpacing;
+    while (tickIndexes.length > 0) {
+      const res = await this._client.liquidityTicks({
+        poolKey,
+        tickIndexes: tickIndexes.splice(0, LIQUIDITY_TICKS_LIMIT)
+      });
+      liquidityTicks.push(...res);
     }
 
-    const fullResult = (await Promise.all(promises)).flat(1);
-
-    const storedTickmap = new Map<bigint, bigint>(fullResult);
-
-    return { bitmap: storedTickmap };
+    return liquidityTicks;
   }
 
-  public async getAllLiquidityTicks(poolKey: PoolKey, tickmap: Tickmap): Promise<LiquidityTick[]> {
-    const tickIndexes: number[] = [];
-    for (const [chunkIndex, chunk] of tickmap.bitmap.entries()) {
-      for (let bit = 0; bit < CHUNK_SIZE; bit++) {
-        const checkedBit = chunk & (1n << BigInt(bit));
-        if (checkedBit) {
-          const tickIndex = positionToTick(Number(chunkIndex), bit, poolKey.fee_tier.tick_spacing);
-          tickIndexes.push(tickIndex);
-        }
+  /// get number of tick initialized from lowerTickIndex to upperTickIndex
+  public async liquidityTicksAmount(poolKey: PoolKey, upperTickIndex: number, lowerTickIndex: number): Promise<number> {
+    return await this._client.liquidityTicksAmount({
+      poolKey,
+      upperTick: upperTickIndex,
+      lowerTick: lowerTickIndex
+    });
+  }
+
+  // get all pools that have token0 and token1, no need to limit cause number of feeTiers is small enough
+  public async poolsForPair(token0: string, token1: string): Promise<PoolWithPoolKey[]> {
+    return await this._client.poolsForPair({ token0, token1 });
+  }
+
+  public async quote(
+    poolKey: PoolKey,
+    xToY: boolean,
+    amount: string,
+    byAmountIn: boolean,
+    sqrtPriceLimit: string
+  ): Promise<QuoteResult> {
+    return await this._client.quote({
+      poolKey,
+      xToY,
+      amount,
+      byAmountIn,
+      sqrtPriceLimit
+    });
+  }
+
+  public async ownerOf(tokenId: number, includeExpored: boolean = false): Promise<OwnerOfResponse> {
+    return await this._client.ownerOf({ tokenId, includeExpired: includeExpored });
+  }
+
+  public async approveForAll(owner: string, includeExpired: boolean = false): Promise<Approval[]> {
+    const approvals: Approval[] = [];
+
+    while (true) {
+      const res = (
+        await this._client.approvedForAll({
+          owner,
+          includeExpired: includeExpired,
+          limit: CHUNK_QUERY,
+          startAfter: approvals.length == 0 ? undefined : approvals[approvals.length - 1].spender
+        })
+      ).operators;
+      if (res.length < CHUNK_QUERY) {
+        approvals.push(...res);
+        break;
+      } else {
+        approvals.push(...res);
       }
     }
-    const tickLimit = LIQUIDITY_TICKS_LIMIT;
-    const promises: Promise<LiquidityTick[]>[] = [];
-    for (let i = 0; i < tickIndexes.length; i += tickLimit) {
-      promises.push(
-        this._client
-          .liquidityTicks({
-            poolKey,
-            tickIndexes: tickIndexes.slice(i, i + tickLimit).map(Number)
+
+    return approvals;
+  }
+
+  public async nftInfo(tokenId: number): Promise<Position> {
+    return (await this._client.nftInfo({ tokenId })).extension;
+  }
+
+  public async allNftInfo(tokenId: number): Promise<AllNftInfoResponse> {
+    return await this._client.allNftInfo({ tokenId });
+  }
+
+  public async tokens(owner: string): Promise<number[]> {
+    const tokens: number[] = [];
+    const numTokens = await this.numTokens();
+
+    for (let i = 0; i < numTokens; i += CHUNK_QUERY) {
+      const res = (await this._client.tokens({ owner, startAfter: i, limit: CHUNK_QUERY })).tokens;
+      tokens.push(...res);
+    }
+
+    return tokens;
+  }
+
+  public async allTokens(): Promise<number[]> {
+    const tokens: number[] = [];
+    const numTokens = await this.numTokens();
+
+    while (tokens.length < numTokens) {
+      const res = (
+        await this._client.allTokens({
+          startAfter: tokens.length == 0 ? undefined : tokens[tokens.length - 1],
+          limit: CHUNK_QUERY
+        })
+      ).tokens;
+      tokens.push(...res);
+    }
+
+    return tokens;
+  }
+
+  public async numTokens(): Promise<number> {
+    return (await this._client.numTokens()).count;
+  }
+
+  public async positionIncentives(index: number, owner: string): Promise<Asset[]> {
+    return await this._client.positionIncentives({ index, ownerId: owner });
+  }
+
+  public async poolsByPoolKeys(poolKeys: PoolKey[]): Promise<PoolWithPoolKey[]> {
+    const pools = await this._client.poolsByPoolKeys({ poolKeys });
+    return pools;
+  }
+
+  public async allPositions(): Promise<Position[]> {
+    const positions: Position[] = [];
+
+    const allTokens = await this.allTokens();
+    while (true) {
+      const tokens = allTokens.splice(0, 40);
+      const res = await this._multicall.aggregate({
+        queries: tokens.map((tokenId) => ({
+          address: this._client.contractAddress,
+          data: toBinary({
+            nft_info: {
+              token_id: tokenId
+            }
           })
-          .then(parse)
-      );
+        }))
+      });
+
+      tokens.map((tokenId, ind) => {
+        const position = fromBinary(res.return_data[ind].data);
+        positions.push(position.extension);
+      });
+
+      if (allTokens.length == 0) {
+        break;
+      }
     }
 
-    const tickResults = await Promise.all(promises);
-    return tickResults.flat(1);
+    return positions;
   }
 
   public async getPoolByPoolKeyStr(poolKeyStr: string): Promise<PoolWithPoolKey> {
@@ -136,32 +316,17 @@ export class OraiswapV3Handler {
   }
 
   public async getPairLiquidityValues(pool: PoolWithPoolKey): Promise<{ liquidityX: bigint; liquidityY: bigint }> {
-    const tickmap = await this.getFullTickmap(pool.pool_key);
+    const allPositions = await this.allPositions();
+    const positions = allPositions.filter((pos) => poolKeyToString(pos.pool_key) === poolKeyToString(pool.pool_key));
 
-    const liquidityTicks = await this.getAllLiquidityTicks(pool.pool_key, tickmap);
-
-    const tickIndexes: number[] = [];
-    for (const [chunkIndex, chunk] of tickmap.bitmap.entries()) {
-      for (let bit = 0; bit < CHUNK_SIZE; bit++) {
-        const checkedBit = chunk & (1n << BigInt(bit));
-        if (checkedBit) {
-          const tickIndex = positionToTick(Number(chunkIndex), bit, pool.pool_key.fee_tier.tick_spacing);
-          tickIndexes.push(tickIndex);
-        }
-      }
+    let liquidityX = 0n;
+    let liquidityY = 0n;
+    for (const pos of positions) {
+      const res = calculateTokenAmounts(pool.pool, pos);
+      liquidityX += res.x;
+      liquidityY += res.y;
     }
 
-    const tickArray: VirtualRange[] = [];
-
-    for (let i = 0; i < tickIndexes.length - 1; i++) {
-      tickArray.push({
-        lowerTick: tickIndexes[i],
-        upperTick: tickIndexes[i + 1]
-      });
-    }
-
-    const pos: PositionLiquidInfo[] = calculateLiquidityForRanges(liquidityTicks, tickArray);
-
-    return await calculateLiquidityForPair(pos, BigInt(pool.pool.sqrt_price));
+    return { liquidityX, liquidityY };
   }
 }
