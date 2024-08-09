@@ -1182,7 +1182,7 @@ export class UniversalSwapHandler {
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
       toDisplay(simulateAmount, originalToToken.decimals),
-      getTokenOnOraichain(originalToToken.coinGeckoId).decimals
+      getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
     let subRelayerFee = relayerFee?.relayerAmount || "0";
