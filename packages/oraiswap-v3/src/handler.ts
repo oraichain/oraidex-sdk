@@ -315,9 +315,14 @@ export class OraiswapV3Handler {
     return await Promise.all(promises);
   }
 
-  public async getPairLiquidityValues(pool: PoolWithPoolKey): Promise<{ liquidityX: bigint; liquidityY: bigint }> {
-    const allPositions = await this.allPositions();
-    const positions = allPositions.filter((pos) => poolKeyToString(pos.pool_key) === poolKeyToString(pool.pool_key));
+  public async getPairLiquidityValues(pool: PoolWithPoolKey, positionList?: Position[]): Promise<{ liquidityX: bigint; liquidityY: bigint }> {
+    let positions: Position[];
+    if (!positionList) {
+      const allPositions = await this.allPositions();
+      positions = allPositions.filter((pos) => poolKeyToString(pos.pool_key) === poolKeyToString(pool.pool_key));
+    } else {
+      positions = positionList.filter((pos) => poolKeyToString(pos.pool_key) === poolKeyToString(pool.pool_key));
+    }
 
     let liquidityX = 0n;
     let liquidityY = 0n;
