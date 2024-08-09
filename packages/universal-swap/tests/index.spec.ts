@@ -1754,4 +1754,46 @@ describe("test universal swap handler functions", () => {
     expect(messages).toEqual(expectResultMessages);
     expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
+
+  it.each<[any, string, string, number, string]>([
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+      (1e19).toString(),
+      (1e6).toString(),
+      0.1,
+      "8890000"
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+      (1e18).toString(),
+      (1e6).toString(),
+      0.1,
+      "0"
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "cosmos" && t.chainId === "cosmoshub-4"),
+      (1e6).toString(),
+      "0",
+      0,
+      "990000"
+    ]
+  ])(
+    "test-caculate-minimum-rceive-ibc-wasm",
+    async (originalToToken, simulateAmount, relayerFee, bridgeFee, expectResult) => {
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        userSlippage: 1,
+        bridgeFee,
+        originalToToken,
+        simulateAmount,
+        relayerFee: {
+          relayerAmount: relayerFee,
+          relayerDecimals: 6
+        }
+      });
+
+      const minimumReceive = await universalSwap.caculateMinimumReceive();
+      expect(minimumReceive).toEqual(expectResult);
+    }
+  );
 });

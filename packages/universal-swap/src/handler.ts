@@ -1182,7 +1182,7 @@ export class UniversalSwapHandler {
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
       toDisplay(simulateAmount, originalToToken.decimals),
-      getTokenOnOraichain(originalToToken.coinGeckoId).decimals
+      getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
     let subRelayerFee = relayerFee?.relayerAmount || "0";
@@ -1204,8 +1204,8 @@ export class UniversalSwapHandler {
       }
     }
 
-    const bridgeFeeAdjustment = (bridgeFee * Number(simulateAmount)) / 100;
-    const slippageAdjustment = (userSlippage * Number(simulateAmount)) / 100;
+    const bridgeFeeAdjustment = (bridgeFee * Number(convertSimulateAmount)) / 100;
+    const slippageAdjustment = (userSlippage * Number(convertSimulateAmount)) / 100;
 
     const minimumReceive = new BigDecimal(convertSimulateAmount)
       .sub(bridgeFeeAdjustment)
