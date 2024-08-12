@@ -7,10 +7,9 @@
         "rootDir": "src"
     },
     "include": [
-        "src/**/*.ts",
-        "src/**/*.js",
+        "src/**/*.ts"
     ],
     "exclude": [
-        "node_modules/",
+        "node_modules/"
     ]
 }

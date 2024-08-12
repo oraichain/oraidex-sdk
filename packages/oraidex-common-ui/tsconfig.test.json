@@ -4,7 +4,9 @@
     "baseUrl": ".",
     "outDir": "build",
     "declaration": true,
-    "rootDir": "src"
+    "rootDir": "src",
+    "jsx": "react-jsx",
+    "module": "ES2020"
   },
   "include": ["src/**/*.ts"],
   "exclude": ["node_modules/"]

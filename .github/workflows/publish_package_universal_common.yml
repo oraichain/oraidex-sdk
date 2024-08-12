@@ -49,14 +49,14 @@ jobs:
       - name: Publish Oraidex Common
         id: publish-common
         continue-on-error: true
-        run: yarn deploy packages/oraidex-common
+        run: yarn deploy:beta packages/oraidex-common
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Publish Universal-swap
         id: publish-universal-swap
         continue-on-error: true
-        run: yarn deploy packages/universal-swap
+        run: yarn deploy:beta packages/universal-swap
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

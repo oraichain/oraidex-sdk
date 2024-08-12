@@ -10,7 +10,7 @@ export const client = new SimulateCosmWasmClient({
   bech32Prefix: "orai"
 });
 
-export const createTokens = async (amount: string, ...symbols: string[]) => {
+export const createTokens = async (amount: string, receiver: string, ...symbols: string[]) => {
   // init airi token
   const tokens = await Promise.all(
     symbols.map(async (symbol) => {
@@ -24,7 +24,7 @@ export const createTokens = async (amount: string, ...symbols: string[]) => {
           decimals: 6,
           symbol,
           name: symbol,
-          initial_balances: [{ address: senderAddress, amount }]
+          initial_balances: [{ address: receiver, amount }]
         } as OraiswapTokenTypes.InstantiateMsg,
         "token",
         "oraiswap-token"
