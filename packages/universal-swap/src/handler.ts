@@ -913,7 +913,7 @@ export class UniversalSwapHandler {
         break;
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
-        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
         const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
           originalFromToken: this.swapData.originalFromToken,
           fromAmount: this.swapData.fromAmount,
@@ -1015,7 +1015,7 @@ export class UniversalSwapHandler {
       this.getCwIcs20ContractAddr()
     );
 
-    const routerClient = new OraiswapRouterQueryClient(client, network.router);
+    const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
     const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
       originalFromToken,
       fromAmount,
@@ -1194,7 +1194,7 @@ export class UniversalSwapHandler {
         { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
       );
       if (!!subRelayerFee) {
-        const routerClient = new OraiswapRouterQueryClient(client, network.router);
+        const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
         const { amount } = await UniversalSwapHelper.simulateSwap({
           fromInfo: getTokenOnOraichain("oraichain-token"),
           toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),

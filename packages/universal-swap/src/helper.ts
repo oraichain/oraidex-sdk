@@ -886,7 +886,7 @@ export class UniversalSwapHelper {
         if (fromToken.coinGeckoId !== toToken.coinGeckoId) {
           const fromTokenInfo = getTokenOnOraichain(fromToken.coinGeckoId);
           const toTokenInfo = getTokenOnOraichain(toToken.coinGeckoId);
-          const routerClient = new OraiswapRouterQueryClient(client, network.router);
+          const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
           if (!fromTokenInfo || !toTokenInfo)
             throw generateError(
               `Error in checking balance channel ibc: cannot simulate from: ${fromToken.coinGeckoId} to: ${toToken.coinGeckoId}`
