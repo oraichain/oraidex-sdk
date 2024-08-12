@@ -63,6 +63,7 @@ import { GasPrice } from "@cosmjs/stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
 
+const AFFILATE_DECIMAL = 1e4; // 10_000
 export class UniversalSwapHandler {
   constructor(
     public swapData: UniversalSwapData,
@@ -149,22 +150,22 @@ export class UniversalSwapHandler {
         this.generateMsgsIbcWasm(ibcInfo, ibcReceiveAddr, this.swapData.originalToToken.denom, "")
       );
     } else {
-      const AFFILATE_DECIMAL = 1e4; // 10_000
-      let tokenAmount = parseFloat(this.swapData.simulateAmount);
+      let tokenAmount = this.swapData.simulateAmount;
       if (affiliates?.length) {
         const totalBasisPoints = affiliates.reduce((acc, cur) => acc + parseFloat(cur.basis_points_fee), 0);
         const amountAffilate = totalBasisPoints / AFFILATE_DECIMAL;
-        tokenAmount -= tokenAmount * amountAffilate;
+        tokenAmount = Math.floor(
+          new BigDecimal(tokenAmount).sub(parseFloat(tokenAmount) * amountAffilate).toNumber()
+        ).toString();
       }
 
-      const amount = Math.floor(tokenAmount).toString();
       msgTransfer = [
         {
           typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
           value: MsgTransfer.fromPartial({
             sourcePort: ibcInfo.source,
             sourceChannel: ibcInfo.channel,
-            token: coin(amount, toTokenInOrai.denom),
+            token: coin(tokenAmount, toTokenInOrai.denom),
             sender: sender,
             receiver: ibcReceiveAddr,
             memo: "",
@@ -334,7 +335,8 @@ export class UniversalSwapHandler {
     route: Routes,
     { oraiAddress, injAddress },
     isOnlySwap: boolean,
-    isInitial: boolean
+    isInitial: boolean,
+    flagAffilate?: boolean
   ) {
     const { prefixReceiver, chainInfoReceiver } = this.getPrefixCosmos(route);
     let post_swap_action = {};
@@ -358,9 +360,16 @@ export class UniversalSwapHandler {
       };
     });
 
-    const minimumReceive = Math.trunc(
+    let minimumReceive = Math.trunc(
       new BigDecimal(route.tokenOutAmount).mul((100 - this.swapData.userSlippage) / 100).toNumber()
     ).toString();
+
+    const { affiliates } = this.swapData;
+    if (affiliates?.length && flagAffilate) {
+      const totalBasisPoints = affiliates.reduce((acc, cur) => acc + parseFloat(cur.basis_points_fee), 0);
+      const amountAffilate = totalBasisPoints / AFFILATE_DECIMAL;
+      minimumReceive = new BigDecimal(minimumReceive).sub(parseFloat(minimumReceive) * amountAffilate).toString();
+    }
 
     const msg = {
       msg: {
@@ -466,19 +475,33 @@ export class UniversalSwapHandler {
     return { prefixRecover, prefixReceiver, chainInfoRecover, chainInfoReceiver };
   };
 
-  public getMsgTransfer = (route: Routes, { oraiAddress, injAddress }, isLastRoute: boolean) => {
+  public getMsgTransfer = (
+    route: Routes,
+    { oraiAddress, injAddress },
+    isLastRoute: boolean,
+    flagAffilate?: boolean
+  ) => {
     const { prefixReceiver, prefixRecover, chainInfoRecover, chainInfoReceiver } = this.getPrefixCosmos(route);
     const addressReceiver = this.getAddress(
       prefixReceiver,
       { address60: injAddress, address118: oraiAddress },
       chainInfoReceiver.bip44.coinType
     );
+
+    let tokenInAmount = route.tokenInAmount;
+    const { affiliates } = this.swapData;
+    if (affiliates?.length && flagAffilate) {
+      const totalBasisPoints = affiliates.reduce((acc, cur) => acc + parseFloat(cur.basis_points_fee), 0);
+      const amountAffilate = totalBasisPoints / AFFILATE_DECIMAL;
+      tokenInAmount = new BigDecimal(tokenInAmount).sub(parseFloat(tokenInAmount) * amountAffilate).toString();
+    }
+
     return {
       sourcePort: route.bridgeInfo.port,
       sourceChannel: route.bridgeInfo.channel,
       receiver: isLastRoute ? addressReceiver : this.getReceiverIBCHooks(route.tokenOutChainId, addressReceiver),
       token: {
-        amount: route.tokenInAmount,
+        amount: tokenInAmount,
         denom: route.tokenIn
       },
       sender: this.getAddress(
@@ -496,6 +519,7 @@ export class UniversalSwapHandler {
     let msgTransfers = [];
     let pathProperty = [];
     let pathReceiver = [];
+    let flagAffilate = [];
 
     routeFlatten.forEach((route: Routes, index: number, routes: Routes[]) => {
       const isLastRoute = route.isLastPath;
@@ -507,7 +531,10 @@ export class UniversalSwapHandler {
 
       if (route.chainId === "Oraichain" && !isBridge) {
         // swap in oraichain
-        if (isSwap) messages.push(...this.generateMsgsSmartRouterSwap(route, isLastRoute));
+        if (isSwap) {
+          flagAffilate[route.path] = true;
+          messages.push(...this.generateMsgsSmartRouterSwap(route, isLastRoute));
+        }
         if (isConvert) messages.push(this.generateMsgsConvertSmartRouterSwap(route));
       } else {
         // initial msgTransfer
@@ -518,7 +545,8 @@ export class UniversalSwapHandler {
               route,
               { oraiAddress, injAddress },
               isLastRoute,
-              true
+              true,
+              flagAffilate[route.path]
             );
             msgTransfers[route.path] = msgActionSwap;
             pathProperty[route.path] = "msg.swap_and_action.post_swap_action";
@@ -526,7 +554,12 @@ export class UniversalSwapHandler {
               ? pathProperty[route.path] + ".transfer.to_address"
               : pathProperty[route.path] + ".ibc_transfer.ibc_info.receiver";
           } else {
-            msgTransfers[route.path] = this.getMsgTransfer(route, { oraiAddress, injAddress }, isLastRoute);
+            msgTransfers[route.path] = this.getMsgTransfer(
+              route,
+              { oraiAddress, injAddress },
+              isLastRoute,
+              flagAffilate[route.path]
+            );
             pathProperty[route.path] = "memo";
             pathReceiver[route.path] = "receiver";
           }
