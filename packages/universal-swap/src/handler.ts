@@ -112,6 +112,7 @@ export class UniversalSwapHandler {
     // if to token is on Oraichain then we wont need to transfer IBC to the other chain
     const { chainId: toChainId, coinGeckoId: toCoinGeckoId } = this.swapData.originalToToken;
     const { coinGeckoId: fromCoinGeckoId } = this.swapData.originalFromToken;
+    const { affiliates } = this.swapData;
     const { cosmos: sender } = this.swapData.sender;
     if (toChainId === "Oraichain") {
       const msgSwap = this.generateMsgsSwap();
@@ -148,13 +149,21 @@ export class UniversalSwapHandler {
         this.generateMsgsIbcWasm(ibcInfo, ibcReceiveAddr, this.swapData.originalToToken.denom, "")
       );
     } else {
+      const AFFILATE_DECIMAL = 1e4; // 10_000
+      let tokenAmount = parseFloat(this.swapData.simulateAmount);
+      if (affiliates?.length) {
+        const totalBasisPoints = affiliates.reduce((acc, cur) => acc + parseFloat(cur.basis_points_fee), 0);
+        const amountAffilate = totalBasisPoints / AFFILATE_DECIMAL;
+        tokenAmount -= tokenAmount * amountAffilate;
+      }
+
       msgTransfer = [
         {
           typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
           value: MsgTransfer.fromPartial({
             sourcePort: ibcInfo.source,
             sourceChannel: ibcInfo.channel,
-            token: coin(this.swapData.simulateAmount, toTokenInOrai.denom),
+            token: coin(tokenAmount.toString(), toTokenInOrai.denom),
             sender: sender,
             receiver: ibcReceiveAddr,
             memo: "",
