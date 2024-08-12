@@ -24,7 +24,8 @@ import {
   calculateTimeoutTimestamp,
   BigDecimal,
   OSMOSIS_ROUTER_CONTRACT,
-  network
+  network,
+  MIXED_ROUTER
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable vi.spyOn & avoid redefine property error
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
@@ -392,7 +393,7 @@ describe("test universal swap handler functions", () => {
             contract: USDT_CONTRACT,
             msg: JSON.stringify({
               send: {
-                contract: ROUTER_V2_CONTRACT,
+                contract: MIXED_ROUTER,
                 amount: fromAmount,
                 msg: toBinary({
                   execute_swap_operations: {
@@ -715,7 +716,7 @@ describe("test universal swap handler functions", () => {
     expect(result).toEqual(expectedFunction);
   });
 
-  it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any]>([
+  it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any, any]>([
     [
       "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token",
       "oraichain-token",
@@ -734,8 +735,9 @@ describe("test universal swap handler functions", () => {
           minimum_receive: minimumReceive
         }
       },
-      ROUTER_V2_CONTRACT,
-      { funds: [{ amount: fromAmount, denom: "orai" }] }
+      MIXED_ROUTER,
+      { funds: [{ amount: fromAmount, denom: "orai" }] },
+      undefined
     ],
     [
       "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token",
@@ -744,7 +746,7 @@ describe("test universal swap handler functions", () => {
       "Oraichain",
       {
         send: {
-          contract: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          contract: MIXED_ROUTER,
           amount: fromAmount,
           msg: toBinary({
             execute_swap_operations: {
@@ -768,16 +770,97 @@ describe("test universal swap handler functions", () => {
         }
       },
       USDT_CONTRACT,
-      { funds: null }
+      { funds: null },
+      undefined
+    ],
+    [
+      "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token-with-incentive",
+      "oraichain-token",
+      "airight",
+      "Oraichain",
+      {
+        execute_swap_operations: {
+          operations: [
+            {
+              orai_swap: {
+                offer_asset_info: { native_token: { denom: "orai" } },
+                ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+              }
+            }
+          ],
+          minimum_receive: minimumReceive,
+          affiliates: [
+            { address: "orai123", basis_points_fee: "100" },
+            { address: "orai1234", basis_points_fee: "200" }
+          ]
+        }
+      },
+      MIXED_ROUTER,
+      { funds: [{ amount: fromAmount, denom: "orai" }] },
+      [
+        { address: "orai123", basis_points_fee: "100" },
+        { address: "orai1234", basis_points_fee: "200" }
+      ]
+    ],
+    [
+      "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token-with-incentive",
+      "tether",
+      "airight",
+      "Oraichain",
+      {
+        send: {
+          contract: MIXED_ROUTER,
+          amount: fromAmount,
+          msg: toBinary({
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: { token: { contract_addr: USDT_CONTRACT } },
+                    ask_asset_info: { native_token: { denom: "orai" } }
+                  }
+                },
+                {
+                  orai_swap: {
+                    offer_asset_info: { native_token: { denom: "orai" } },
+                    ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+                  }
+                }
+              ],
+              minimum_receive: minimumReceive,
+              affiliates: [
+                { address: "orai123", basis_points_fee: "100" },
+                { address: "orai1234", basis_points_fee: "200" }
+              ]
+            }
+          })
+        }
+      },
+      USDT_CONTRACT,
+      { funds: null },
+      [
+        { address: "orai123", basis_points_fee: "100" },
+        { address: "orai1234", basis_points_fee: "200" }
+      ]
     ]
   ])(
     "test-generateMsgsSwap-for-%s",
-    (_name, fromCoinGeckoId, toCoinGeckoId, toChainId, expectedSwapMsg, expectedSwapContractAddr, expectedFunds) => {
+    (
+      _name,
+      fromCoinGeckoId,
+      toCoinGeckoId,
+      toChainId,
+      expectedSwapMsg,
+      expectedSwapContractAddr,
+      expectedFunds,
+      affiliates
+    ) => {
       // setup
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
-        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
+        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!,
+        affiliates
       });
       vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
@@ -919,7 +1002,7 @@ describe("test universal swap handler functions", () => {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: {
             sender: testSenderAddress,
-            contract: ROUTER_V2_CONTRACT,
+            contract: MIXED_ROUTER,
             msg: toUtf8(
               JSON.stringify({
                 execute_swap_operations: {

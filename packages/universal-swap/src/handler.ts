@@ -1234,7 +1234,7 @@ export class UniversalSwapHandler {
 
   generateMsgsSwap() {
     let input: any;
-    let contractAddr: string = network.router;
+    let contractAddr: string = network.mixer_router;
     const { originalFromToken, originalToToken, fromAmount, affiliates } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
@@ -1290,7 +1290,8 @@ export class UniversalSwapHandler {
           execute_swap_operations: {
             operations: UniversalSwapHelper.generateSwapOperationMsgs(offerInfo, askInfo),
             minimum_receive: minimumReceive,
-            to
+            to,
+            affiliates
           }
         };
 
