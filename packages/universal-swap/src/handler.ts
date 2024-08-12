@@ -157,13 +157,14 @@ export class UniversalSwapHandler {
         tokenAmount -= tokenAmount * amountAffilate;
       }
 
+      const amount = Math.floor(tokenAmount).toString();
       msgTransfer = [
         {
           typeUrl: "/ibc.applications.transfer.v1.MsgTransfer",
           value: MsgTransfer.fromPartial({
             sourcePort: ibcInfo.source,
             sourceChannel: ibcInfo.channel,
-            token: coin(tokenAmount.toString(), toTokenInOrai.denom),
+            token: coin(amount, toTokenInOrai.denom),
             sender: sender,
             receiver: ibcReceiveAddr,
             memo: "",
