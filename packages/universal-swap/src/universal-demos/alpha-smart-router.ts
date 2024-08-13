@@ -471,33 +471,46 @@ import { cosmosTokens, flattenTokens, generateError, getTokenOnOraichain, toAmou
 
 const router = {
   swapAmount: "1000000",
-  returnAmount: "66772",
+  returnAmount: "14084260",
   routes: [
     {
       swapAmount: "1000000",
-      returnAmount: "66772",
+      returnAmount: "14084260",
       paths: [
         {
           chainId: "Oraichain",
-          tokenIn: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC",
+          tokenIn: "orai",
           tokenInAmount: "1000000",
-          tokenOut: "orai",
-          tokenOutAmount: "66772",
-          tokenOutChainId: "Oraichain",
+          tokenOut: "uosmo",
+          tokenOutAmount: "14084260",
+          tokenOutChainId: "osmosis-1",
           actions: [
             {
               type: "Swap",
               protocol: "Oraidex",
-              tokenIn: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC",
+              tokenIn: "orai",
               tokenInAmount: "1000000",
-              tokenOut: "orai",
-              tokenOutAmount: "66772",
+              tokenOut: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC",
+              tokenOutAmount: "14084260",
               swapInfo: [
                 {
                   poolId: "orai1d37artrk4tkhz2qyjmaulc2jzjkx7206tmpfug",
-                  tokenOut: "orai"
+                  tokenOut: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC"
                 }
               ]
+            },
+            {
+              type: "Bridge",
+              protocol: "Bridge",
+              tokenIn: "ibc/9C4DCD21B48231D0BC2AC3D1B74A864746B37E4292694C93C617324250D002FC",
+              tokenInAmount: "14084260",
+              tokenOut: "uosmo",
+              tokenOutAmount: "14084260",
+              tokenOutChainId: "osmosis-1",
+              bridgeInfo: {
+                port: "transfer",
+                channel: "channel-13"
+              }
             }
           ]
         }
@@ -508,11 +521,11 @@ const router = {
 
 const alphaSwapToOraichain = async () => {
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);
-  const sender = await wallet.getKeplrAddr("osmosis-1");
+  const sender = await wallet.getKeplrAddr("Oraichain");
   const fromAmount = 1;
   console.log("sender: ", sender);
-  const originalFromToken = cosmosTokens.find((t) => t.coinGeckoId === "osmosis" && t.chainId === "osmosis-1");
-  const originalToToken = flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38");
+  const originalFromToken = flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "Oraichain");
+  const originalToToken = cosmosTokens.find((t) => t.coinGeckoId === "osmosis" && t.chainId === "osmosis-1");
 
   if (!originalToToken) throw generateError("Could not find original to token");
   if (!originalFromToken) throw generateError("Could not find original from token");
@@ -532,13 +545,19 @@ const alphaSwapToOraichain = async () => {
       // recipientAddress: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
       // recipientAddress: "osmo12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fh4twhr",
       // recipientAddress: "inj133lq4pqjdxspcz4n388glv70z59ffeuh3ktnaj",
-      simulatePrice: "91825481",
+      simulatePrice: "14082182",
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
-      alphaSmartRoutes: router
+      alphaSmartRoutes: router,
+      affiliates: [
+        {
+          address: "orai1h8rg7zknhxmffp3ut5ztsn8zcaytckfemdkp8n",
+          basis_points_fee: "25"
+        }
+      ]
     },
     {
       cosmosWallet: wallet,
-      swapOptions: { isAlphaSmartRouter: true, isIbcWasm: true, isSourceReceiverTest: true, ibcInfoTestMode: true }
+      swapOptions: { isAlphaSmartRouter: true, isIbcWasm: false }
     }
   );
 
