@@ -491,10 +491,6 @@ export class UniversalSwapHandler {
     );
 
     let tokenInAmount = route.tokenInAmount;
-    console.log({
-      tokenInAmount
-    });
-
     const { affiliates } = this.swapData;
     if (affiliates?.length && flagAffiliate) {
       const totalBasisPoints = affiliates.reduce((acc, cur) => acc + parseFloat(cur.basis_points_fee), 0);
