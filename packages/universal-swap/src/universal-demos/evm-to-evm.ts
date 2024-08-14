@@ -10,7 +10,8 @@ import {
   USDT_CONTRACT,
   ORAI_BSC_CONTRACT,
   EVM_CHAIN_ID_COMMON,
-  USDT_BSC_CONTRACT
+  USDT_BSC_CONTRACT,
+  COSMOS_CHAIN_ID_COMMON
 } from "@oraichain/oraidex-common";
 
 const evmToEvm = async () => {
@@ -19,13 +20,11 @@ const evmToEvm = async () => {
 
   const sender = await wallet.getKeplrAddr("Oraichain");
   let originalFromToken = flattenTokens.find(
-    (t) =>
-      t.chainId === EVM_CHAIN_ID_COMMON.BSC_CHAIN_ID && t.contractAddress && t.contractAddress === ORAI_BSC_CONTRACT
+    (t) => t.chainId === EVM_CHAIN_ID_COMMON.BSC_CHAIN_ID && t.coinGeckoId === "oraichain-token"
   );
 
   let originalToToken = flattenTokens.find(
-    (t) =>
-      t.chainId === EVM_CHAIN_ID_COMMON.BSC_CHAIN_ID && t.contractAddress && t.contractAddress === USDT_BSC_CONTRACT
+    (t) => t.chainId === COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID && t.coinGeckoId === "tether"
   );
   const evmAddress = "0xf2846a1E4dAFaeA38C1660a618277d67605bd2B5";
   if (!originalFromToken) throw generateError("Could not find original from token");
@@ -39,7 +38,7 @@ const evmToEvm = async () => {
         cosmos: sender
       },
       relayerFee: {
-        relayerAmount: "1000000",
+        relayerAmount: "100000",
         relayerDecimals: 6
       },
       simulatePrice: "100000",
@@ -47,7 +46,13 @@ const evmToEvm = async () => {
       fromAmount,
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString()
     },
-    { cosmosWallet: wallet, evmWallet: undefined, swapOptions: {} }
+    {
+      cosmosWallet: wallet,
+      evmWallet: undefined,
+      swapOptions: {
+        isAlphaSmartRouter: true
+      }
+    }
   );
 
   try {

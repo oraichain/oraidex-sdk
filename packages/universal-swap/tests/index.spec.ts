@@ -24,7 +24,8 @@ import {
   calculateTimeoutTimestamp,
   BigDecimal,
   OSMOSIS_ROUTER_CONTRACT,
-  network
+  network,
+  MIXED_ROUTER
 } from "@oraichain/oraidex-common";
 import * as dexCommonHelper from "@oraichain/oraidex-common/build/helper"; // import like this to enable vi.spyOn & avoid redefine property error
 import { DirectSecp256k1HdWallet, EncodeObject, OfflineSigner } from "@cosmjs/proto-signing";
@@ -369,7 +370,7 @@ describe("test universal swap handler functions", () => {
                   local_channel_id: getIbcInfo("Oraichain", "noble-1").channel,
                   remote_address: "noble1234",
                   remote_denom: "uusdc",
-                  timeout: IBC_TRANSFER_TIMEOUT,
+                  timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                   memo: ""
                 })
               }
@@ -392,7 +393,7 @@ describe("test universal swap handler functions", () => {
             contract: USDT_CONTRACT,
             msg: JSON.stringify({
               send: {
-                contract: ROUTER_V2_CONTRACT,
+                contract: MIXED_ROUTER,
                 amount: fromAmount,
                 msg: toBinary({
                   execute_swap_operations: {
@@ -619,7 +620,7 @@ describe("test universal swap handler functions", () => {
         {
           source: oraiPort,
           channel: channel,
-          timeout: 3600
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)
         },
         fromToken,
         toToken,
@@ -698,7 +699,7 @@ describe("test universal swap handler functions", () => {
     const fromToken = flattenTokens.find((item) => item.coinGeckoId === "airight" && item.chainId === "0x38")!;
     const toToken = flattenTokens.find((item) => item.coinGeckoId === "tether" && item.chainId === "0x2b6653dc")!;
     const spy = vi.spyOn(UniversalSwapHelper, "addOraiBridgeRoute");
-    spy.mockReturnValue({ swapRoute: "", universalSwapType });
+    spy.mockResolvedValue({ swapRoute: "", universalSwapType, isSmartRouter: false });
     const universalSwap = new FakeUniversalSwapHandler({
       ...universalSwapData,
       originalFromToken: fromToken,
@@ -715,7 +716,7 @@ describe("test universal swap handler functions", () => {
     expect(result).toEqual(expectedFunction);
   });
 
-  it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any]>([
+  it.each<[string, CoinGeckoId, CoinGeckoId, NetworkChainId, any, string, any, any]>([
     [
       "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token",
       "oraichain-token",
@@ -734,8 +735,9 @@ describe("test universal swap handler functions", () => {
           minimum_receive: minimumReceive
         }
       },
-      ROUTER_V2_CONTRACT,
-      { funds: [{ amount: fromAmount, denom: "orai" }] }
+      MIXED_ROUTER,
+      { funds: [{ amount: fromAmount, denom: "orai" }] },
+      undefined
     ],
     [
       "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token",
@@ -744,7 +746,7 @@ describe("test universal swap handler functions", () => {
       "Oraichain",
       {
         send: {
-          contract: "orai1j0r67r9k8t34pnhy00x3ftuxuwg0r6r4p8p6rrc8az0ednzr8y9s3sj2sf",
+          contract: MIXED_ROUTER,
           amount: fromAmount,
           msg: toBinary({
             execute_swap_operations: {
@@ -768,16 +770,97 @@ describe("test universal swap handler functions", () => {
         }
       },
       USDT_CONTRACT,
-      { funds: null }
+      { funds: null },
+      undefined
+    ],
+    [
+      "swap-tokens-that-both-belong-to-Oraichain-from-is-native-token-with-incentive",
+      "oraichain-token",
+      "airight",
+      "Oraichain",
+      {
+        execute_swap_operations: {
+          operations: [
+            {
+              orai_swap: {
+                offer_asset_info: { native_token: { denom: "orai" } },
+                ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+              }
+            }
+          ],
+          minimum_receive: minimumReceive,
+          affiliates: [
+            { address: "orai123", basis_points_fee: "100" },
+            { address: "orai1234", basis_points_fee: "200" }
+          ]
+        }
+      },
+      MIXED_ROUTER,
+      { funds: [{ amount: fromAmount, denom: "orai" }] },
+      [
+        { address: "orai123", basis_points_fee: "100" },
+        { address: "orai1234", basis_points_fee: "200" }
+      ]
+    ],
+    [
+      "swap-tokens-that-both-belong-to-Oraichain-from-is-cw20-token-with-incentive",
+      "tether",
+      "airight",
+      "Oraichain",
+      {
+        send: {
+          contract: MIXED_ROUTER,
+          amount: fromAmount,
+          msg: toBinary({
+            execute_swap_operations: {
+              operations: [
+                {
+                  orai_swap: {
+                    offer_asset_info: { token: { contract_addr: USDT_CONTRACT } },
+                    ask_asset_info: { native_token: { denom: "orai" } }
+                  }
+                },
+                {
+                  orai_swap: {
+                    offer_asset_info: { native_token: { denom: "orai" } },
+                    ask_asset_info: { token: { contract_addr: AIRI_CONTRACT } }
+                  }
+                }
+              ],
+              minimum_receive: minimumReceive,
+              affiliates: [
+                { address: "orai123", basis_points_fee: "100" },
+                { address: "orai1234", basis_points_fee: "200" }
+              ]
+            }
+          })
+        }
+      },
+      USDT_CONTRACT,
+      { funds: null },
+      [
+        { address: "orai123", basis_points_fee: "100" },
+        { address: "orai1234", basis_points_fee: "200" }
+      ]
     ]
   ])(
     "test-generateMsgsSwap-for-%s",
-    (_name, fromCoinGeckoId, toCoinGeckoId, toChainId, expectedSwapMsg, expectedSwapContractAddr, expectedFunds) => {
+    (
+      _name,
+      fromCoinGeckoId,
+      toCoinGeckoId,
+      toChainId,
+      expectedSwapMsg,
+      expectedSwapContractAddr,
+      expectedFunds,
+      affiliates
+    ) => {
       // setup
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         originalFromToken: oraichainTokens.find((t) => t.coinGeckoId === fromCoinGeckoId)!,
-        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!
+        originalToToken: flattenTokens.find((t) => t.coinGeckoId === toCoinGeckoId && t.chainId === toChainId)!,
+        affiliates
       });
       vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
@@ -800,7 +883,7 @@ describe("test universal swap handler functions", () => {
           local_channel_id: oraichain2oraib,
           remote_address: "foobar",
           remote_denom: "john doe",
-          timeout: 3600,
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
           memo: ""
         }
       },
@@ -818,7 +901,7 @@ describe("test universal swap handler functions", () => {
             local_channel_id: oraichain2oraib,
             remote_address: "foobar",
             remote_denom: "john doe",
-            timeout: 3600,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
             memo: ""
           })
         }
@@ -834,7 +917,7 @@ describe("test universal swap handler functions", () => {
           local_channel_id: oraichain2oraib,
           remote_address: "foobar",
           remote_denom: "john doe",
-          timeout: 3600,
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
           memo: ""
         }
       },
@@ -852,7 +935,7 @@ describe("test universal swap handler functions", () => {
             local_channel_id: oraichain2oraib,
             remote_address: "foobar",
             remote_denom: "john doe",
-            timeout: 3600,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
             memo: ""
           })
         }
@@ -898,7 +981,7 @@ describe("test universal swap handler functions", () => {
                     local_channel_id: oraichain2oraib,
                     remote_address: "orai1234",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-                    timeout: IBC_TRANSFER_TIMEOUT,
+                    timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
                   })
                 }
@@ -919,7 +1002,7 @@ describe("test universal swap handler functions", () => {
           typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
           value: {
             sender: testSenderAddress,
-            contract: ROUTER_V2_CONTRACT,
+            contract: MIXED_ROUTER,
             msg: toUtf8(
               JSON.stringify({
                 execute_swap_operations: {
@@ -959,7 +1042,7 @@ describe("test universal swap handler functions", () => {
                     local_channel_id: oraichain2oraib,
                     remote_address: "orai1234",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-                    timeout: IBC_TRANSFER_TIMEOUT,
+                    timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
                   })
                 }
@@ -1150,7 +1233,7 @@ describe("test universal swap handler functions", () => {
                   ).toString()
                 }
               },
-              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+              timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
               post_swap_action: {
                 transfer: {
                   to_address: smartRoutesOsmoAddr
@@ -1209,7 +1292,7 @@ describe("test universal swap handler functions", () => {
                   ).toString()
                 }
               },
-              timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+              timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
               post_swap_action: {},
               affiliates: []
             }
@@ -1258,7 +1341,7 @@ describe("test universal swap handler functions", () => {
                     ).toString()
                   }
                 },
-                timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                 post_swap_action: {},
                 affiliates: []
               }
@@ -1302,7 +1385,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOsmoAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ],
     [
@@ -1318,7 +1401,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ],
     [
@@ -1334,7 +1417,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ],
     [
@@ -1350,7 +1433,7 @@ describe("test universal swap handler functions", () => {
         },
         sender: smartRoutesOraiAddr,
         memo: "",
-        timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+        timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
       }
     ]
   ])("test-get-msg-transfer-with-smart-route", (sender, route, expectResult) => {
@@ -1466,7 +1549,7 @@ describe("test universal swap handler functions", () => {
             amount: alphaSmartRouteWithOneRoutes0_0_1.tokenInAmount,
             denom: alphaSmartRouteWithOneRoutes0_0_1.tokenIn
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         }
       ]
     ],
@@ -1545,7 +1628,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithTwoRoutes0_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1558,7 +1641,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         }
       ]
     ],
@@ -1666,7 +1749,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithThreeRoutes0_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1679,7 +1762,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         },
         {
           sourcePort: alphaSmartRouteWithThreeRoutes1_0_1.bridgeInfo?.port,
@@ -1720,7 +1803,7 @@ describe("test universal swap handler functions", () => {
                           amount: alphaSmartRouteWithThreeRoutes1_2_0.tokenOutAmount
                         }
                       },
-                      timeout_timestamp: Number(calculateTimeoutTimestamp(3600, now)),
+                      timeout_timestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now)),
                       post_swap_action: {
                         transfer: {
                           to_address: smartRoutesOsmoAddr
@@ -1733,7 +1816,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           },
-          timeoutTimestamp: Number(calculateTimeoutTimestamp(3600, now))
+          timeoutTimestamp: Number(calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now))
         }
       ]
     ]
@@ -1754,4 +1837,46 @@ describe("test universal swap handler functions", () => {
     expect(messages).toEqual(expectResultMessages);
     expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
+
+  it.each<[any, string, string, number, string]>([
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+      (1e19).toString(),
+      (1e6).toString(),
+      0.1,
+      "8890000"
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+      (1e18).toString(),
+      (1e6).toString(),
+      0.1,
+      "0"
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "cosmos" && t.chainId === "cosmoshub-4"),
+      (1e6).toString(),
+      "0",
+      0,
+      "990000"
+    ]
+  ])(
+    "test-caculate-minimum-rceive-ibc-wasm",
+    async (originalToToken, simulateAmount, relayerFee, bridgeFee, expectResult) => {
+      const universalSwap = new FakeUniversalSwapHandler({
+        ...universalSwapData,
+        userSlippage: 1,
+        bridgeFee,
+        originalToToken,
+        simulateAmount,
+        relayerFee: {
+          relayerAmount: relayerFee,
+          relayerDecimals: 6
+        }
+      });
+
+      const minimumReceive = await universalSwap.caculateMinimumReceive();
+      expect(minimumReceive).toEqual(expectResult);
+    }
+  );
 });

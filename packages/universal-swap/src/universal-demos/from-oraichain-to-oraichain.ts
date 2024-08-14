@@ -11,7 +11,7 @@ import {
   ORAI,
   SCATOM_CONTRACT
 } from "@oraichain/oraidex-common";
-import { UniversalSwapHelper } from "src/helper";
+import { UniversalSwapHelper } from "../helper";
 
 const oraichainToOraichain = async (chainId: "Oraichain") => {
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);

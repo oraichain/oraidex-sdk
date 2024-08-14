@@ -123,17 +123,32 @@ export const ibcInfos: IBCInfoMap = {
     "0x01": {
       source: `wasm.${IBC_WASM_CONTRACT}`,
       channel: oraichain2oraib,
-      timeout: IBC_TRANSFER_TIMEOUT
+      timeout: IBC_TRANSFER_TIMEOUT,
+      testInfo: {
+        source: `wasm.${IBC_WASM_CONTRACT_TEST}`,
+        channel: oraichain2oraibTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      }
     },
     "0x38": {
       source: `wasm.${IBC_WASM_CONTRACT}`,
       channel: oraichain2oraib,
-      timeout: IBC_TRANSFER_TIMEOUT
+      timeout: IBC_TRANSFER_TIMEOUT,
+      testInfo: {
+        source: `wasm.${IBC_WASM_CONTRACT_TEST}`,
+        channel: oraichain2oraibTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      }
     },
     "0x2b6653dc": {
       source: `wasm.${IBC_WASM_CONTRACT}`,
       channel: oraichain2oraib,
-      timeout: IBC_TRANSFER_TIMEOUT
+      timeout: IBC_TRANSFER_TIMEOUT,
+      testInfo: {
+        source: `wasm.${IBC_WASM_CONTRACT_TEST}`,
+        channel: oraichain2oraibTest,
+        timeout: IBC_TRANSFER_TIMEOUT
+      }
     },
     "kawaii_6886-1": {
       source: "transfer",
