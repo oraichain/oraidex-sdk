@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="13830" lines-covered="9467" line-rate="0.6845" branches-valid="1057" branches-covered="883" branch-rate="0.8353" timestamp="1723548158252" complexity="0" version="0.1">
+<coverage lines-valid="13834" lines-covered="9471" line-rate="0.6846" branches-valid="1057" branches-covered="883" branch-rate="0.8353" timestamp="1723624348523" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -4518,7 +4518,7 @@
         </class>
       </classes>
     </package>
-    <package name="packages.oraiswap-v3.src" line-rate="0.9673" branch-rate="0.8571">
+    <package name="packages.oraiswap-v3.src" line-rate="0.9676" branch-rate="0.8571">
       <classes>
         <class name="const.ts" filename="packages/oraiswap-v3/src/const.ts" line-rate="1" branch-rate="1">
           <methods>
@@ -4537,7 +4537,7 @@
             <line number="18" hits="1" branch="false"/>
           </lines>
         </class>
-        <class name="handler.ts" filename="packages/oraiswap-v3/src/handler.ts" line-rate="0.977" branch-rate="0.8571">
+        <class name="handler.ts" filename="packages/oraiswap-v3/src/handler.ts" line-rate="0.9773999999999999" branch-rate="0.8571">
           <methods>
             <method name="OraiswapV3Handler" hits="25" signature="()V">
               <lines>
@@ -4947,17 +4947,21 @@
             <line number="316" hits="1" branch="false"/>
             <line number="318" hits="1" branch="true" condition-coverage="100% (1/1)"/>
             <line number="319" hits="1" branch="false"/>
-            <line number="320" hits="1" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="320" hits="1" branch="false"/>
+            <line number="321" hits="1" branch="false"/>
             <line number="322" hits="1" branch="false"/>
-            <line number="323" hits="1" branch="false"/>
-            <line number="324" hits="1" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="325" hits="2" branch="false"/>
-            <line number="326" hits="2" branch="false"/>
-            <line number="327" hits="2" branch="false"/>
-            <line number="328" hits="2" branch="false"/>
-            <line number="330" hits="1" branch="false"/>
-            <line number="331" hits="1" branch="false"/>
-            <line number="332" hits="1" branch="false"/>
+            <line number="323" hits="1" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="324" hits="1" branch="false"/>
+            <line number="326" hits="1" branch="false"/>
+            <line number="327" hits="1" branch="false"/>
+            <line number="328" hits="1" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="329" hits="2" branch="false"/>
+            <line number="330" hits="2" branch="false"/>
+            <line number="331" hits="2" branch="false"/>
+            <line number="332" hits="2" branch="false"/>
+            <line number="334" hits="1" branch="false"/>
+            <line number="335" hits="1" branch="false"/>
+            <line number="336" hits="1" branch="false"/>
           </lines>
         </class>
         <class name="helpers.ts" filename="packages/oraiswap-v3/src/helpers.ts" line-rate="0.9528" branch-rate="0.8571">
