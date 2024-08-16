@@ -1,0 +1,21 @@
+{
+  "name": "@oraichain/ton-bridge-sdk",
+  "version": "1.0.0",
+  "main": "build/index.js",
+  "files": [
+    "build/"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "build:test": "tsc --project tsconfig.json"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@cosmjs/cosmwasm-stargate": "^0.31.0",
+    "@oraichain/ton-bridge-contracts": "^0.15.8",
+    "@oraichain/tonbridge-contracts-sdk": "1.3.0",
+    "@oraichain/oraidex-common": "^1.0.91",
+    "@ton/core": "^0.56.3",
+    "@ton/ton": "^14.0.0"
+  }
+}
