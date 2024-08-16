@@ -115,9 +115,16 @@ export class TonBridgeHandler {
     this.wasmBridge = new TonbridgeBridgeClient(this.cosmosSignerClient, sender, this.wasmBridge.contractAddress);
   }
 
-  async switchAccount(offlineSigner: OfflineSigner) {
+  async switchCosmosAccount(offlineSigner: OfflineSigner) {
     const sender = await offlineSigner.getAccounts()[0];
     this.wasmBridge = new TonbridgeBridgeClient(this.cosmosSignerClient, sender, this.wasmBridge.contractAddress);
+  }
+
+  async switchTonAccount(tonSender: Sender) {
+    if (!tonSender.address) {
+      throw new Error("Ton sender address is required");
+    }
+    this.tonSender = tonSender;
   }
 
   async sendToCosmos(cosmosRecipient: string, amount: bigint, timeout: bigint, denom: TonDenom, opts: ValueOps) {
