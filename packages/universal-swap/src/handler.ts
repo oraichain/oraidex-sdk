@@ -1370,8 +1370,8 @@ export class UniversalSwapHandler {
       const { fund: offerSentFund, info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
       const { fund: askSentFund, info: askInfo } = parseTokenInfo(toTokenInOrai);
       const funds = handleSentFunds(offerSentFund, askSentFund);
-
-      if (this.swapData.recipientAddress) {
+      let to = undefined;
+      if (this.swapData.recipientAddress && originalToToken.chainId === "Oraichain") {
         const isValidRecipient = checkValidateAddressWithNetwork(
           this.swapData.recipientAddress,
           this.swapData.originalToToken.chainId
@@ -1380,8 +1380,10 @@ export class UniversalSwapHandler {
         if (!isValidRecipient.isValid) {
           throw generateError("Recipient address invalid!");
         }
+
+        to = this.swapData.recipientAddress;
       }
-      const to = this.swapData.recipientAddress;
+
       let msgs: ExecuteInstruction[];
 
       if (this.swapData.smartRoutes) {
