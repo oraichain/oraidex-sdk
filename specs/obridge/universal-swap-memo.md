@@ -124,6 +124,8 @@ Details a route in a smart swap.
 - **`offer_amount` (1)**: The amount being offered in this route.
 - **`operations` (2)**: A repeated field of `SwapOperation` messages for operations along this route.
 
+[Build a Swap Route](./universal-swap/swap-route.md)
+
 ### SwapOperation Message
 
 Describes a single swap operation.
