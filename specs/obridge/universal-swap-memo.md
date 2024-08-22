@@ -2,7 +2,7 @@
 
 ## Overview
 
-When tokens are bridged to Oraichain, a memo is utilized to invoke the `UniversalSwap` function in the `Osor-api-contracts`. This contract plays a crucial role in facilitating any-to-any token swaps, seamlessly integrating into multi-chain workflows. The memo is encoded using the protobuf standard, ensuring compatibility and efficiency in the swap process.
+When tokens are bridged to Oraichain, a memo is utilized to invoke the [UniversalSwap](https://github.com/oraichain/osor-api-contracts/blob/14d852cedc0b6adf62a910d889791f2bbfffecb7/contracts/entry-point/src/contract.rs#L222) function in the [Osor-api-contracts](https://github.com/oraichain/osor-api-contracts). This contract plays a crucial role in facilitating any-to-any token swaps, seamlessly integrating into multi-chain workflows. The memo is encoded using the protobuf standard, ensuring compatibility and efficiency in the swap process.
 
 ```proto
 syntax = "proto3";
