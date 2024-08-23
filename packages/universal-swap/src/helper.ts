@@ -12,7 +12,6 @@ import {
   EvmChainId,
   proxyContractInfo,
   CosmosChainId,
-  NetworkChainId,
   IBCInfo,
   generateError,
   ibcInfos,
@@ -75,7 +74,7 @@ import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-con
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { Coin } from "@cosmjs/proto-signing";
-import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
+import { AXIOS_TIMEOUT, COSMOS_CHAIN_IDS, IBC_TRANSFER_TIMEOUT, NetworkChainId } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 
@@ -253,23 +252,15 @@ export class UniversalSwapHelper {
       throw new Error(`chain id ${fromToken.chainId} is currently not supported in universal swap`);
     }
 
-    // let receiverPrefix = "";
-    // if (isEthAddress(destReceiver)) receiverPrefix = toToken.prefix;
-    // const toDenom = receiverPrefix + parseTokenInfoRawDenom(toToken);
-    // const finalDestReceiver = receiverPrefix + destReceiver;
-    // // we get ibc channel that transfers toToken from Oraichain to the toToken chain
-    // const dstChannel = toToken.chainId == "Oraichain" ? "" : ibcInfos["Oraichain"][toToken.chainId].channel;
-
-    // cosmos to others case where from token is a cosmos token
-    // we have 2 cases: 1) Cosmos to Oraichain, 2) Cosmos to cosmos or evm
-    // TODO: support swap from cosmos to oraichain through ibc hooks
-
-    if (cosmosTokens.some((t) => t.chainId === fromToken.chainId)) {
+    if (
+      cosmosTokens.some((t) => t.chainId === fromToken.chainId) &&
+      Object.values(COSMOS_CHAIN_IDS).includes(fromToken.chainId as CosmosChainId)
+    ) {
       return { swapRoute: "", universalSwapType: "cosmos-to-others", isSmartRouter: true };
-      // let swapRoute = parseToIbcHookMemo(receiverOnOrai, finalDestReceiver, dstChannel, toDenom);
-      // // if from chain is noble, use ibc wasm instead of ibc hooks
-      // if (fromToken.chainId == "noble-1") swapRoute = parseToIbcWasmMemo(finalDestReceiver, dstChannel, toDenom);
-      // return { swapRoute, universalSwapType: "cosmos-to-others" };
+    }
+
+    if (fromToken.chainId === "ton") {
+      return { swapRoute: "", universalSwapType: "ton-to-oraichain", isSmartRouter: true };
     }
 
     if (toToken.chainId === "Oraichain") {
@@ -283,13 +274,6 @@ export class UniversalSwapHelper {
 
       // if to token chain id is Oraichain, then we dont need to care about ibc msg case
       // first case, two tokens are the same, only different in network => simple swap
-      // if (fromToken.coinGeckoId === toToken.coinGeckoId)
-      //   return {
-      //     swapRoute: "",
-      //     universalSwapType: "other-networks-to-oraichain",
-      //     isSmartRouter: false
-      //   };
-      // if they are not the same then we set dest denom
       return {
         swapRoute: "",
         universalSwapType: "other-networks-to-oraichain",
@@ -300,7 +284,6 @@ export class UniversalSwapHelper {
     if (["0x38", "0x01"].includes(fromToken.chainId) && fromToken.chainId === toToken.chainId) {
       return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: false };
     }
-    // the remaining cases where we have to process ibc msg
     return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: true };
   };
 
@@ -332,10 +315,10 @@ export class UniversalSwapHelper {
       destReceiver
     );
 
-    if (isSmartRouter && swapOption.isIbcWasm) {
+    if (isSmartRouter && (swapOption.isIbcWasm || universalSwapType === "ton-to-oraichain")) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
 
-      swapRoute = await UniversalSwapHelper.getRouteV2(
+      swapRoute = UniversalSwapHelper.getRouteV2(
         { minimumReceive, recoveryAddr: sourceReceiver, destReceiver, remoteAddressObridge },
         {
           ...alphaSmartRoute,

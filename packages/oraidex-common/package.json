@@ -24,6 +24,7 @@
     "@cosmjs/tendermint-rpc": "0.31.3",
     "bignumber.js": "^9.1.2",
     "cosmjs-types": "0.8.0",
+    "@oraichain/common": "^1.0.7",
     "@oraichain/oraidex-contracts-sdk": "latest",
     "@injectivelabs/sdk-ts": "1.12.1",
     "tronweb": "6.0.0-beta.4"

@@ -1,5 +1,5 @@
 import { OfflineSigner } from "@cosmjs/proto-signing";
-import { CosmosChainId, EvmChainId, NetworkChainId, Networks } from "./network";
+import { CosmosChainId, EvmChainId, Networks } from "./network";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { SigningStargateClient, SigningStargateClientOptions } from "@cosmjs/stargate";
 import { ethToTronAddress, tronToEthAddress } from "./helper";
@@ -12,6 +12,7 @@ import { EncodeObject } from "@cosmjs/proto-signing";
 import { Tendermint37Client } from "@cosmjs/tendermint-rpc";
 import { Stargate } from "@injectivelabs/sdk-ts";
 import { BROADCAST_POLL_INTERVAL } from "./constant";
+import { NetworkChainId } from "@oraichain/common";
 
 export interface EvmResponse {
   transactionHash: string;

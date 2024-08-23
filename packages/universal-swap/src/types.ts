@@ -8,7 +8,8 @@ export type UniversalSwapType =
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
   | "cosmos-to-others"
-  | "smart-router";
+  | "smart-router"
+  | "ton-to-oraichain";
 
 export enum SwapDirection {
   From,

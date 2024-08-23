@@ -19,7 +19,7 @@ import {
   MULTIPLIER,
   CW20_DECIMALS
 } from "./constant";
-import { CoinGeckoId, NetworkChainId, cosmosChains } from "./network";
+import { CoinGeckoId, cosmosChains } from "./network";
 import {
   AmountDetails,
   TokenInfo,
@@ -34,6 +34,7 @@ import { StargateMsg, Tx } from "./tx";
 import { BigDecimal } from "./bigdecimal";
 import { TextProposal } from "cosmjs-types/cosmos/gov/v1beta1/gov";
 import { defaultRegistryTypes as defaultStargateTypes, IndexedTx, logs, StargateClient } from "@cosmjs/stargate";
+import { NetworkChainId } from "@oraichain/common";
 
 export const getEvmAddress = (bech32Address: string) => {
   if (!bech32Address) throw new Error("bech32 address is empty");

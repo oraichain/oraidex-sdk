@@ -57,6 +57,7 @@ import {
   AMM_V3_CONTRACT
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
+import { NetworkChainId as NewNetworkChainId } from "@oraichain/common";
 
 export type NetworkName =
   | "Oraichain"
@@ -72,6 +73,7 @@ export type NetworkName =
   | "Noble"
   | "Neutaro";
 
+/** @deprecated use CosmosChainId from '@oraichain/common' instead */
 export type CosmosChainId =
   | "Oraichain" // oraichain
   | "oraibridge-subnet-2" // oraibridge
@@ -82,12 +84,14 @@ export type CosmosChainId =
   | "noble-1" // noble network
   | "Neutaro-1"; //neutaro network;
 
+/** @deprecated use EvmChainId from '@oraichain/common' instead */
 export type EvmChainId =
   | "0x38" // bsc
   | "0x01" // ethereum
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
+/** @deprecated use NetworkChainId from '@oraichain/common' instead */
 export type NetworkChainId = CosmosChainId | EvmChainId;
 
 export type CoinGeckoId =
@@ -115,6 +119,7 @@ export type CoinGeckoId =
   | "celestia"
   | "the-open-network";
 
+/** @deprecated use NetworkType from '@oraichain/common' instead */
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
   coinType?: number;
@@ -139,7 +144,7 @@ export interface NetworkConfig {
 
 export type CoinIcon = any;
 export type BridgeAppCurrency = FeeCurrency & {
-  readonly bridgeTo?: NetworkChainId[];
+  readonly bridgeTo?: NewNetworkChainId[];
   readonly coinGeckoId?: CoinGeckoId;
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
@@ -152,12 +157,13 @@ export type BridgeAppCurrency = FeeCurrency & {
 export type CoinType = 118 | 60 | 195;
 
 /**
+ * @deprecated use CustomChainInfo from '@oraichain/common' instead
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
  * some chain is already in wallet so we override some attributes as optional
  */
 export interface CustomChainInfo
   extends Omit<ChainInfo, "feeCurrencies" | "stakeCurrency" | "currencies" | "rest" | "bech32Config"> {
-  readonly chainId: NetworkChainId;
+  readonly chainId: NewNetworkChainId;
   readonly chainName: NetworkName;
   readonly Icon?: CoinIcon;
   readonly IconLight?: CoinIcon;
@@ -506,6 +512,7 @@ export const oraichainNetwork: CustomChainInfo = {
   ]
 };
 
+/** @deprecated use OraiCommon.chainInfos from '@oraichain/common' instead */
 export const chainInfos: CustomChainInfo[] = [
   // networks to add on keplr
   oraichainNetwork,

@@ -5,7 +5,6 @@ import { ExecuteInstruction, ExecuteResult, toBinary } from "@cosmjs/cosmwasm-st
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import {
   TokenItemType,
-  NetworkChainId,
   IBCInfo,
   calculateTimeoutTimestamp,
   generateError,
@@ -62,14 +61,25 @@ import {
 import { GasPrice } from "@cosmjs/stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
+import { NetworkChainId } from "@oraichain/common";
+import { BridgeTonHandler } from "./handlers/bridge-ton-handler";
 
 const AFFILIATE_DECIMAL = 1e4; // 10_000
 export class UniversalSwapHandler {
+  // FIXME: right now we don't know the bridge handler pattern yet, so we inject deps directly
+  // when we know the pattern -> turn the handlers into an interface
+  private bridgeTonHandler: BridgeTonHandler;
+
   constructor(
     public swapData: UniversalSwapData,
     public config: UniversalSwapConfig,
     private readonly currentTimestamp = Date.now()
   ) {}
+
+  withBridgeTonHandler(handler: BridgeTonHandler) {
+    this.bridgeTonHandler = handler;
+    return this;
+  }
 
   private getTokenOnOraichain(coinGeckoId: CoinGeckoId): TokenItemType {
     const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
@@ -101,6 +111,10 @@ export class UniversalSwapHandler {
       const tronWeb = this.config.evmWallet.tronWeb;
       if (tronWeb && tronWeb.defaultAddress?.base58) return tronToEthAddress(tronWeb.defaultAddress.base58);
       throw generateError("Cannot find tron web to nor tron address to send to Tron network");
+    }
+    // TODO: handle ton address here
+    if (toChainId === "ton" || toChainId === "ton_testnet") {
+      throw generateError("Need to handle TON to address case");
     }
     return this.config.cosmosWallet.getKeplrAddr(toChainId);
   }
@@ -1208,6 +1222,9 @@ export class UniversalSwapHandler {
       obridgeAddress
     );
 
+    if (universalSwapType === "ton-to-oraichain") {
+      return this.bridgeTonHandler.handleBridge();
+    }
     // version alpha smart router oraiDEX pool + osmosis pool
     if (
       swapOptions?.isAlphaSmartRouter &&

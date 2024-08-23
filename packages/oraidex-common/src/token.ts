@@ -6,11 +6,11 @@ import {
   CoinGeckoId,
   CoinIcon,
   CustomChainInfo,
-  NetworkChainId,
   NetworkName,
   chainInfos,
   oraichainNetwork
 } from "./network";
+import { NetworkChainId } from "@oraichain/common";
 
 export type EvmDenom = "bep20_orai" | "bep20_airi" | "erc20_orai" | "kawaii_orai";
 export type AmountDetails = { [denom: string]: string };
