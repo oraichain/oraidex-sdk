@@ -9,7 +9,7 @@ The Oraichain-EVM bridge leverages GravityBridge and IBC Cw20-Ics 20 to enable s
 | Ibc Bridge Wasm       | Oraichain | orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm |
 | OBridge Contract ETH  | Ethereum  | 0x09Beeedf51AA45718F46837C94712d89B157a9D3                      |
 | OBridge Contract BSC  | BNB Chain | 0xb40C364e70bbD98E8aaab707A41a52A2eAF5733f                      |
-| Gravity contract Tron | Tron      | 0x73Ddc880916021EFC4754Cb42B53db6EAB1f9D64                      |
+| OBridge contract Tron | Tron      | 0x73Ddc880916021EFC4754Cb42B53db6EAB1f9D64                      |
 
 ## Workflows
 
