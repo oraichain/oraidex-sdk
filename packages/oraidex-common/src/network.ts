@@ -722,8 +722,8 @@ export const chainInfos: CustomChainInfo[] = [
       {
         ...OsmoToken,
         bridgeTo: ["Oraichain"]
-      },
-      ...listOsmosisToken
+      }
+      // ...listOsmosisToken
     ]
   },
   /// popular networks already included
