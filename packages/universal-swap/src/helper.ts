@@ -53,6 +53,7 @@ import {
   ConvertReverse,
   ConvertType,
   OraiBridgeRouteData,
+  RouterConfigSmartRoute,
   RouterResponse,
   SimulateResponse,
   SmartRouterResponse,
@@ -528,11 +529,7 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    routerConfig: {
-      url: string;
-      path?: string;
-      protocols?: string[];
-    }
+    routerConfig: RouterConfigSmartRoute
   ): Promise<SmartRouterResponseAPI> => {
     const { axios } = await getAxios(routerConfig.url);
     const data = {
@@ -542,7 +539,8 @@ export class UniversalSwapHelper {
       destChainId: askChainId,
       offerAmount: offerAmount,
       swapOptions: {
-        protocols: routerConfig.protocols
+        protocols: routerConfig.protocols,
+        dontAlowSwapAfter: routerConfig.dontAllowSwapAfter
       }
     };
     const res: {
@@ -561,10 +559,11 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    routerConfig: { url: string; path?: string; protocols?: string[] } = {
+    routerConfig: RouterConfigSmartRoute = {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
-      protocols: ["Oraidex", "OraidexV3", "Osmosis"]
+      protocols: ["Oraidex", "OraidexV3", "Osmosis"],
+      dontAllowSwapAfter: [""]
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
@@ -621,11 +620,7 @@ export class UniversalSwapHelper {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
     amount: string;
-    routerConfig?: {
-      url: string;
-      path?: string;
-      protocols?: string[];
-    };
+    routerConfig?: RouterConfigSmartRoute;
   }): Promise<SmartRouterResponse> => {
     const { amount, fromInfo, toInfo, routerConfig } = query;
     // check for universal-swap 2 tokens that have same coingeckoId, should return simulate data with average ratio 1-1.
@@ -720,6 +715,7 @@ export class UniversalSwapHelper {
       url: string;
       path?: string;
       protocols?: string[];
+      dontAlowSwapAfter?: string[];
     };
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
