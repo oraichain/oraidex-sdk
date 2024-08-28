@@ -711,12 +711,7 @@ export class UniversalSwapHelper {
       useAlphaSmartRoute?: boolean;
       useIbcWasm?: boolean;
     };
-    routerConfig?: {
-      url: string;
-      path?: string;
-      protocols?: string[];
-      dontAlowSwapAfter?: string[];
-    };
+    routerConfig?: RouterConfigSmartRoute;
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
