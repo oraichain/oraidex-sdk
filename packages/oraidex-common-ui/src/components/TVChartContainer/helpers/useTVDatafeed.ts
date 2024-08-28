@@ -82,7 +82,7 @@ export default function useTVDatafeed({
             has_intraday: true,
             has_daily: true,
             currency_code: symbolName?.split("/")[1],
-            visible_plots_set: "ohlc",
+            visible_plots_set: "ohlcv",
             data_status: "streaming",
             exchange: EXCHANGE_NAME,
             has_no_volume: false,

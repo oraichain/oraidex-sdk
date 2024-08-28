@@ -66,6 +66,7 @@ export class TVDataProvider {
     }
 
     const { from, to, countBack } = periodParams;
+    console.log({ countBack });
     const toWithOffset = to;
     const fromWithOffset = from;
     const bars = barsInfo.data.filter((bar) => bar.volume && bar.time > fromWithOffset && bar.time <= toWithOffset);

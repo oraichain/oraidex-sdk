@@ -131,7 +131,7 @@ export default function TVChartContainer({
   useEffect(() => {
     const widgetOptions = {
       ...defaultChartProps,
-      debug: false,
+      debug: true,
       symbol: symbolRef.current, // Using ref to avoid unnecessary re-renders on symbol change and still have access to the latest symbol
       datafeed,
       theme: theme === "dark" ? "Dark" : "Light",
@@ -142,12 +142,6 @@ export default function TVChartContainer({
       },
       interval: getObjectKeyFromValue(period, SUPPORTED_RESOLUTIONS),
       save_load_adapter: new SaveLoadAdapter(symbolRef.current, tvCharts, setTvCharts),
-      studies: [],
-      timeframe: "1M",
-      time_scale: {
-        min_bar_spacing: 15
-      },
-      timezone: getTradingViewTimeZone(),
       time_frames: [
         { text: "6m", resolution: "6h" as ResolutionString, description: "6 Months" },
         { text: "1m", resolution: "1h" as ResolutionString, description: "1 Month" },
@@ -176,7 +170,7 @@ export default function TVChartContainer({
       tvWidgetRef.current.onChartReady(async function () {
         setChartReady(true);
         tvWidgetRef.current!.applyOverrides({
-          ...defaultChartProps.overrides,
+          // ...defaultChartProps.overrides,
           "paneProperties.background": theme === "dark" ? DARK_BACKGROUND_CHART : LIGHT_BACKGROUND_CHART,
           "scalesProperties.textColor": theme === "dark" ? "#fff" : "#000",
           "scalesProperties.lineColor": theme === "dark" ? "#515151" : "#bdbdbd"
@@ -189,9 +183,6 @@ export default function TVChartContainer({
             setPeriod(period);
           }
         });
-
-        // create indicator // TODO: not used when datafeed.resolveSymbol has option: `has_no_volume: false,`
-        // await activeChart.createStudy("Volume");
       });
     };
 

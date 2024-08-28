@@ -86,14 +86,10 @@ export const getTokenChartPrice = async ({
       }
     });
 
-    // if (symbol === "NTMPI/USDC") {
     //   const TWO_PM_TIMESTAMP = 1708412400;
     //   return res.data && res.data.filter((item) => Number(item.time) >= TWO_PM_TIMESTAMP);
     // }
 
     return res.data;
-  } catch (e) {
-    console.error("GetTokenChartPrice", e);
-    return [];
-  }
+  } catch (err) {}
 };
