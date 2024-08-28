@@ -616,6 +616,24 @@ export class UniversalSwapHandler {
     return { messages, msgTransfers };
   };
 
+  generateMsgsConvertSmartRouterSwap(route: Routes) {
+    return {
+      contractAddress: route.tokenIn,
+      msg: {
+        send: {
+          contract: network.converter,
+          amount: route.tokenInAmount,
+          msg: toBinary({
+            convert_reverse: {
+              from: { native_token: { denom: route.tokenOut } }
+            }
+          })
+        }
+      },
+      funds: []
+    };
+  }
+
   async alphaSmartRouterSwap() {
     const { cosmos } = this.swapData.sender;
     const { alphaSmartRoutes, originalFromToken } = this.swapData;
@@ -630,7 +648,7 @@ export class UniversalSwapHandler {
       }
     );
 
-    const routesFlatten = this.flattenSmartRouters(alphaSmartRoutes.routes);
+    const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
       this.config.cosmosWallet.getKeplrAddr("injective-1")
@@ -663,59 +681,6 @@ export class UniversalSwapHandler {
 
     const msgExecuteSwap = getEncodedExecuteContractMsgs(cosmos, [...messages, ...messagesOsmosisStringifyMemo]);
     return client.signAndBroadcast(this.swapData.sender.cosmos, [...msgExecuteSwap, ...transferStringifyMemo], "auto");
-  }
-
-  flattenSmartRouters(routers: Route[]): Routes[] {
-    let routesFlatten = [];
-    routers.forEach((routes, i) => {
-      routes.paths.forEach((path, pathIndex, pathsArray) => {
-        const isLastPath = pathsArray.length === pathIndex + 1;
-        const isInOraichain = path.chainId === "Oraichain";
-
-        let objActionSwap = {
-          type: "Swap",
-          swapInfo: [],
-          tokenIn: path.tokenIn,
-          tokenOut: path.tokenOut,
-          tokenInAmount: path.tokenInAmount,
-          tokenOutAmount: path.tokenOutAmount
-        };
-
-        const pathsSwapInOraichain = path.actions.filter((item) => item.type === "Swap" && isInOraichain);
-
-        path.actions.forEach((action, actionIndex, actionArray) => {
-          const isLastAction = !actionArray[actionIndex + 1];
-          const isSwapType = action.type === "Swap";
-          const isSwapInOraichain = isSwapType && isInOraichain;
-
-          const actionsPath = {
-            ...action,
-            path: i,
-            chainId: path.chainId,
-            isLastPath: isLastPath && isLastAction
-          };
-
-          if (isSwapInOraichain) {
-            objActionSwap = {
-              ...actionsPath,
-              ...objActionSwap,
-              tokenOutAmount: action.tokenOutAmount,
-              swapInfo: [...objActionSwap.swapInfo, ...action.swapInfo]
-            };
-
-            // count type swap in oraichain
-            if (
-              (pathsSwapInOraichain.length > 1 && pathsSwapInOraichain.length - 1 === actionIndex) ||
-              pathsSwapInOraichain.length === 1
-            )
-              routesFlatten.push(objActionSwap);
-          } else {
-            routesFlatten.push(actionsPath);
-          }
-        });
-      });
-    });
-    return routesFlatten;
   }
 
   private updateNestedProperty = (obj, key: string, value: any) => {
@@ -1264,64 +1229,12 @@ export class UniversalSwapHandler {
     const finalAmount = Math.max(0, Math.floor(Number(minimumReceive)));
     return finalAmount.toString();
   }
-
-  generateMsgsConvertSmartRouterSwap(route: Routes) {
-    return {
-      contractAddress: route.tokenIn,
-      msg: {
-        send: {
-          contract: network.converter,
-          amount: route.tokenInAmount,
-          msg: toBinary({
-            convert_reverse: {
-              from: { native_token: { denom: route.tokenOut } }
-            }
-          })
-        }
-      },
-      funds: []
-    };
-  }
-
-  generateRoutesSmartRouterV2withV3(routes, offerInfo) {
-    return routes.map((route) => {
-      let ops = [];
-      let currTokenIn = offerInfo;
-      for (let swap of route.swapInfo) {
-        const [tokenX, tokenY, fee, tickSpacing] = swap.poolId.split("-");
-        let tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
-        if (tokenX && tokenY && fee && tickSpacing) {
-          ops.push({
-            swap_v3: {
-              pool_key: {
-                token_x: tokenX,
-                token_y: tokenY,
-                fee_tier: {
-                  fee: Number(fee),
-                  tick_spacing: Number(tickSpacing)
-                }
-              },
-              x_to_y: tokenY === swap.tokenOut
-            }
-          });
-        } else {
-          ops.push({
-            orai_swap: {
-              offer_asset_info: currTokenIn,
-              ask_asset_info: tokenOut
-            }
-          });
-        }
-        currTokenIn = tokenOut;
-      }
-      return {
-        swapAmount: route.tokenInAmount,
-        returnAmount: route.tokenOutAmount,
-        swapOps: ops
-      };
-    });
-  }
-
+  /**
+   * Generate message swap token in Oraichain of smart route
+   * @param route
+   * @param isLastRoute
+   * @returns
+   */
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, fromAmount, affiliates } = this.swapData;
@@ -1338,7 +1251,7 @@ export class UniversalSwapHandler {
     const { info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
     const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
 
-    const routes = this.generateRoutesSmartRouterV2withV3([route], offerInfo);
+    const routes = UniversalSwapHelper.generateMsgsSmartRouterV2withV3([route], offerInfo);
     const msgs: ExecuteInstruction[] = this.buildSwapMsgsFromSmartRoute(
       routes,
       fromTokenOnOrai,
@@ -1391,16 +1304,20 @@ export class UniversalSwapHandler {
       let msgs: ExecuteInstruction[];
 
       if (this.config.swapOptions.isIbcWasm) {
-        let hasRouteNotIsOraichain = false;
-        this.swapData.alphaSmartRoutes?.routes.forEach((route) => {
-          const status = route.paths.some((rou) => rou.chainId !== "Oraichain");
-          if (status) hasRouteNotIsOraichain = status;
-        });
+        const routes = this.swapData.alphaSmartRoutes?.routes;
 
-        if (hasRouteNotIsOraichain) throw new Error("Only support routes in Oraichain!");
-        const routesFlatten = this.flattenSmartRouters(this.swapData.alphaSmartRoutes.routes);
-        const routes = this.generateRoutesSmartRouterV2withV3(routesFlatten, offerInfo);
-        msgs = this.buildSwapMsgsFromSmartRoute(routes, fromTokenOnOrai, to, contractAddr, affiliates);
+        if (!routes?.length) throw new Error("Route not found");
+
+        const hasRouteNotIsOraichain = routes?.some((route) =>
+          route.paths.some((path) => path.chainId !== "Oraichain")
+        );
+
+        if (hasRouteNotIsOraichain) throw "Only support routes in Oraichain!";
+
+        const routesFlatten = UniversalSwapHelper.flattenSmartRouters(routes);
+        const generatedRoutes = UniversalSwapHelper.generateMsgsSmartRouterV2withV3(routesFlatten, offerInfo);
+
+        msgs = this.buildSwapMsgsFromSmartRoute(generatedRoutes, fromTokenOnOrai, to, contractAddr, affiliates);
       } else {
         const minimumReceive = calculateMinReceive(
           this.swapData.simulatePrice,
@@ -1445,6 +1362,15 @@ export class UniversalSwapHandler {
     }
   }
 
+  /**
+   * Generate message and binary msg of smart route
+   * @param routes
+   * @param fromTokenOnOrai
+   * @param to
+   * @param routerContract
+   * @param affiliates
+   * @returns
+   */
   buildSwapMsgsFromSmartRoute(
     routes: SmartRouteSwapOperations[],
     fromTokenOnOrai: TokenItemType,
