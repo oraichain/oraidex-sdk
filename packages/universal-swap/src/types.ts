@@ -266,3 +266,10 @@ export interface Routes extends RouteBase {
   bridgeInfo?: BridgeInfo;
   swapInfo?: SwapInfo[];
 }
+
+export interface RouterConfigSmartRoute {
+  url: string;
+  path?: string;
+  protocols?: string[];
+  dontAllowSwapAfter?: string[];
+}
