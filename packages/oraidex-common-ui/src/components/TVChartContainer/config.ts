@@ -134,7 +134,7 @@ export const defaultChartProps = {
   fullscreen: true,
   // overrides: chartOverrides,
   disabled_features: ["use_localstorage_for_settings"],
-  enabled_features: ["study_templates"],
+  enabled_features: [],
   // custom_css_url: "/custom.css",
   favorites: {
     intervals: FAVORITES_INTERVAL
