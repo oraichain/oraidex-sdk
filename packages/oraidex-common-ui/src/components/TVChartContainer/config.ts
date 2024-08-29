@@ -128,30 +128,28 @@ const enabledFeatures = [
 export const defaultChartProps = {
   locale: "en",
   library_path: "https://chart.oraidex.io/",
-  // library_path: "/charting_library/",
   clientId: "tradingview.com",
   userId: "public_user_id",
   fullscreen: true,
-  // overrides: chartOverrides,
+  overrides: chartOverrides,
   disabled_features: ["use_localstorage_for_settings"],
   enabled_features: [],
-  // custom_css_url: "/custom.css",
   favorites: {
     intervals: FAVORITES_INTERVAL
+  },
+  drawings_access: {
+    type: "black" as "black" | "white",
+    tools: [{ name: "Regression Trend", grayed: true }]
+  },
+  custom_formatters: {
+    timeFormatter: {
+      format: (date) => {
+        return formatDateFn(addMinutes(date, date.getTimezoneOffset()), "hh:mm:ss a");
+      }
+    },
+    dateFormatter: {
+      // format: (date) => formatTVDate(date)
+      format: (date) => formatDateFn(addMinutes(date, date.getTimezoneOffset()), "dd MMM yyyy hh:mm:ss a")
+    }
   }
-  // drawings_access: {
-  //   type: "black" as "black" | "white",
-  //   tools: [{ name: "Regression Trend", grayed: true }]
-  // },
-  // custom_formatters: {
-  //   timeFormatter: {
-  //     format: (date) => {
-  //       return formatDateFn(addMinutes(date, date.getTimezoneOffset()), "hh:mm:ss a");
-  //     }
-  //   },
-  //   dateFormatter: {
-  //     // format: (date) => formatTVDate(date)
-  //     format: (date) => formatDateFn(addMinutes(date, date.getTimezoneOffset()), "dd MMM yyyy hh:mm:ss a")
-  //   }
-  // }
 };

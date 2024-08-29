@@ -132,6 +132,7 @@ export default function TVChartContainer({
     const widgetOptions = {
       ...defaultChartProps,
       debug: true,
+      timezone: getTradingViewTimeZone(),
       symbol: symbolRef.current, // Using ref to avoid unnecessary re-renders on symbol change and still have access to the latest symbol
       datafeed,
       theme: theme === "dark" ? "Dark" : "Light",
@@ -154,7 +155,6 @@ export default function TVChartContainer({
     // update css url by prop
     if (customCssUrl) {
       widgetOptions["custom_css_url"] = customCssUrl;
-      // tvWidgetRef.current!.addCustomCSSFile("./custom.css");
     }
 
     if (isMobile) widgetOptions.disabled_features.push(...disabledFeaturesOnMobile);
@@ -170,7 +170,7 @@ export default function TVChartContainer({
       tvWidgetRef.current.onChartReady(async function () {
         setChartReady(true);
         tvWidgetRef.current!.applyOverrides({
-          // ...defaultChartProps.overrides,
+          ...defaultChartProps.overrides,
           "paneProperties.background": theme === "dark" ? DARK_BACKGROUND_CHART : LIGHT_BACKGROUND_CHART,
           "scalesProperties.textColor": theme === "dark" ? "#fff" : "#000",
           "scalesProperties.lineColor": theme === "dark" ? "#515151" : "#bdbdbd"
