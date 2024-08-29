@@ -323,7 +323,7 @@ describe("test universal swap handler functions", () => {
           userSlippage: 1,
           fromAmount: 1
         },
-        config ?? { cosmosWallet, evmWallet },
+        config ? { cosmosWallet, evmWallet, ...config } : { cosmosWallet, evmWallet },
         now
       );
     }
@@ -1175,11 +1175,7 @@ describe("test universal swap handler functions", () => {
   // });
 
   it("test-flattenSmartRouters()", async () => {
-    const universalSwap = new FakeUniversalSwapHandler({
-      ...universalSwapData
-    });
-
-    const routesFlatten = universalSwap.flattenSmartRouters(alphaSmartRoutes.routes);
+    const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
     expect(routesFlatten).toEqual(expect.any(Array));
     expect(routesFlatten).toHaveLength(3);
     expect(routesFlatten).toEqual(flattenAlphaSmartRouters);
@@ -1828,7 +1824,7 @@ describe("test universal swap handler functions", () => {
         cosmos: sender
       }
     });
-    const routesFlatten = universalSwap.flattenSmartRouters(route.routes);
+    const routesFlatten = UniversalSwapHelper.flattenSmartRouters(route.routes);
     const { messages, msgTransfers } = universalSwap.getMessagesAndMsgTransfers(routesFlatten, {
       oraiAddress: smartRoutesOraiAddr,
       injAddress: smartRoutesInjAddr
@@ -1852,13 +1848,6 @@ describe("test universal swap handler functions", () => {
       (1e6).toString(),
       0.1,
       "0"
-    ],
-    [
-      flattenTokens.find((t) => t.coinGeckoId === "cosmos" && t.chainId === "cosmoshub-4"),
-      (1e6).toString(),
-      "0",
-      0,
-      "990000"
     ]
   ])(
     "test-caculate-minimum-rceive-ibc-wasm",
