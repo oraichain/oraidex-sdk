@@ -71,8 +71,8 @@ export class UniversalSwapHandler {
     private readonly currentTimestamp = Date.now()
   ) {}
 
-  private getTokenOnOraichain(coinGeckoId: CoinGeckoId): TokenItemType {
-    const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId);
+  private getTokenOnOraichain(coinGeckoId: CoinGeckoId, decimals?: number): TokenItemType {
+    const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId, decimals);
     if (!fromTokenOnOrai) throw generateError(`Could not find token ${coinGeckoId} on Oraichain. Could not swap`);
     return fromTokenOnOrai;
   }
@@ -134,12 +134,12 @@ export class UniversalSwapHandler {
 
     if (!ibcReceiveAddr) throw generateError("Please login cosmos wallet!");
 
-    let toTokenInOrai = getTokenOnOraichain(toCoinGeckoId);
+    let toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
     const isSpecialCoingecko = ["kawaii-islands", "milky-token", "injective-protocol"].includes(toCoinGeckoId);
     if (isSpecialChain && isSpecialCoingecko) {
       const IBC_DECIMALS = 18;
-      toTokenInOrai = getTokenOnOraichain(toCoinGeckoId, IBC_DECIMALS);
+      toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId, IBC_DECIMALS);
     }
 
     let msgTransfer: EncodeObject[];
@@ -183,7 +183,7 @@ export class UniversalSwapHandler {
         const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
         const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
           this.swapData.amounts,
-          getTokenOnOraichain(toCoinGeckoId),
+          this.getTokenOnOraichain(toCoinGeckoId),
           sender,
           evmAmount
         );
@@ -217,7 +217,7 @@ export class UniversalSwapHandler {
     if (this.swapData.originalToToken.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX) {
       transferAddress = tronToEthAddress(tronAddress);
     }
-    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
+    const toTokenInOrai = this.getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     // only allow transferring back to ethereum / bsc only if there's metamask address and when the metamask address is used, which is in the ibcMemo variable
     if (!transferAddress && (toTokenInOrai.evmDenoms || channel === oraichain2oraib)) {
       throw generateError("Please login metamask / tronlink!");
@@ -280,12 +280,12 @@ export class UniversalSwapHandler {
     let getEncodedExecuteMsgs = [];
     if (["kawaii-islands", "milky-token"].includes(originalToToken.coinGeckoId)) {
       const IBC_DECIMALS = 18;
-      const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId, IBC_DECIMALS);
+      const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId, IBC_DECIMALS);
       const evmToken = tokenMap[toTokenInOrai.denom];
       const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
       const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
         this.swapData.amounts,
-        getTokenOnOraichain(originalToToken.coinGeckoId),
+        this.getTokenOnOraichain(originalToToken.coinGeckoId),
         this.swapData.sender.cosmos,
         evmAmount
       );
@@ -616,6 +616,24 @@ export class UniversalSwapHandler {
     return { messages, msgTransfers };
   };
 
+  generateMsgsConvertSmartRouterSwap(route: Routes) {
+    return {
+      contractAddress: route.tokenIn,
+      msg: {
+        send: {
+          contract: network.converter,
+          amount: route.tokenInAmount,
+          msg: toBinary({
+            convert_reverse: {
+              from: { native_token: { denom: route.tokenOut } }
+            }
+          })
+        }
+      },
+      funds: []
+    };
+  }
+
   async alphaSmartRouterSwap() {
     const { cosmos } = this.swapData.sender;
     const { alphaSmartRoutes, originalFromToken } = this.swapData;
@@ -630,7 +648,7 @@ export class UniversalSwapHandler {
       }
     );
 
-    const routesFlatten = this.flattenSmartRouters(alphaSmartRoutes.routes);
+    const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
     const [oraiAddress, injAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr("Oraichain"),
       this.config.cosmosWallet.getKeplrAddr("injective-1")
@@ -663,59 +681,6 @@ export class UniversalSwapHandler {
 
     const msgExecuteSwap = getEncodedExecuteContractMsgs(cosmos, [...messages, ...messagesOsmosisStringifyMemo]);
     return client.signAndBroadcast(this.swapData.sender.cosmos, [...msgExecuteSwap, ...transferStringifyMemo], "auto");
-  }
-
-  flattenSmartRouters(routers: Route[]): Routes[] {
-    let routesFlatten = [];
-    routers.forEach((routes, i) => {
-      routes.paths.forEach((path, pathIndex, pathsArray) => {
-        const isLastPath = pathsArray.length === pathIndex + 1;
-        const isInOraichain = path.chainId === "Oraichain";
-
-        let objActionSwap = {
-          type: "Swap",
-          swapInfo: [],
-          tokenIn: path.tokenIn,
-          tokenOut: path.tokenOut,
-          tokenInAmount: path.tokenInAmount,
-          tokenOutAmount: path.tokenOutAmount
-        };
-
-        const pathsSwapInOraichain = path.actions.filter((item) => item.type === "Swap" && isInOraichain);
-
-        path.actions.forEach((action, actionIndex, actionArray) => {
-          const isLastAction = !actionArray[actionIndex + 1];
-          const isSwapType = action.type === "Swap";
-          const isSwapInOraichain = isSwapType && isInOraichain;
-
-          const actionsPath = {
-            ...action,
-            path: i,
-            chainId: path.chainId,
-            isLastPath: isLastPath && isLastAction
-          };
-
-          if (isSwapInOraichain) {
-            objActionSwap = {
-              ...actionsPath,
-              ...objActionSwap,
-              tokenOutAmount: action.tokenOutAmount,
-              swapInfo: [...objActionSwap.swapInfo, ...action.swapInfo]
-            };
-
-            // count type swap in oraichain
-            if (
-              (pathsSwapInOraichain.length > 1 && pathsSwapInOraichain.length - 1 === actionIndex) ||
-              pathsSwapInOraichain.length === 1
-            )
-              routesFlatten.push(objActionSwap);
-          } else {
-            routesFlatten.push(actionsPath);
-          }
-        });
-      });
-    });
-    return routesFlatten;
   }
 
   private updateNestedProperty = (obj, key: string, value: any) => {
@@ -1230,7 +1195,7 @@ export class UniversalSwapHandler {
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
       toDisplay(simulateAmount, originalToToken.decimals),
-      getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
+      this.getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
     let subRelayerFee = relayerFee?.relayerAmount || "0";
@@ -1243,8 +1208,8 @@ export class UniversalSwapHandler {
       if (!!subRelayerFee) {
         const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
         const { amount } = await UniversalSwapHelper.simulateSwap({
-          fromInfo: getTokenOnOraichain("oraichain-token"),
-          toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
+          fromInfo: this.getTokenOnOraichain("oraichain-token"),
+          toInfo: this.getTokenOnOraichain(originalToToken.coinGeckoId),
           amount: subRelayerFee,
           routerClient
         });
@@ -1264,30 +1229,17 @@ export class UniversalSwapHandler {
     const finalAmount = Math.max(0, Math.floor(Number(minimumReceive)));
     return finalAmount.toString();
   }
-
-  generateMsgsConvertSmartRouterSwap(route: Routes) {
-    return {
-      contractAddress: route.tokenIn,
-      msg: {
-        send: {
-          contract: network.converter,
-          amount: route.tokenInAmount,
-          msg: toBinary({
-            convert_reverse: {
-              from: { native_token: { denom: route.tokenOut } }
-            }
-          })
-        }
-      },
-      funds: []
-    };
-  }
-
+  /**
+   * Generate message swap token in Oraichain of smart route
+   * @param route
+   * @param isLastRoute
+   * @returns
+   */
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, fromAmount, affiliates } = this.swapData;
     let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
-    const fromTokenOnOrai = getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
     const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
     if (!this.swapData.simulatePrice || !isValidSlippage) {
@@ -1299,43 +1251,7 @@ export class UniversalSwapHandler {
     const { info: offerInfo } = parseTokenInfo(fromTokenOnOrai, _fromAmount);
     const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
 
-    const routes = [route].map((route) => {
-      let ops = [];
-      let currTokenIn = offerInfo;
-      for (let swap of route.swapInfo) {
-        const [tokenX, tokenY, fee, tickSpacing] = swap.poolId.split("-");
-        let tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
-        if (tokenX && tokenY && fee && tickSpacing) {
-          ops.push({
-            swap_v3: {
-              pool_key: {
-                token_x: tokenX,
-                token_y: tokenY,
-                fee_tier: {
-                  fee: Number(fee),
-                  tick_spacing: Number(tickSpacing)
-                }
-              },
-              x_to_y: tokenY === swap.tokenOut
-            }
-          });
-        } else {
-          ops.push({
-            orai_swap: {
-              offer_asset_info: currTokenIn,
-              ask_asset_info: tokenOut
-            }
-          });
-        }
-        currTokenIn = tokenOut;
-      }
-      return {
-        swapAmount: route.tokenInAmount,
-        returnAmount: route.tokenOutAmount,
-        swapOps: ops
-      };
-    });
-
+    const routes = UniversalSwapHelper.generateMsgsSmartRouterV2withV3([route], offerInfo);
     const msgs: ExecuteInstruction[] = this.buildSwapMsgsFromSmartRoute(
       routes,
       fromTokenOnOrai,
@@ -1351,8 +1267,9 @@ export class UniversalSwapHandler {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, originalToToken, fromAmount, affiliates } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
-    const toTokenInOrai = getTokenOnOraichain(originalToToken.coinGeckoId);
+    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
+    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
       const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(
@@ -1386,14 +1303,21 @@ export class UniversalSwapHandler {
 
       let msgs: ExecuteInstruction[];
 
-      if (this.swapData.smartRoutes) {
-        msgs = this.buildSwapMsgsFromSmartRoute(
-          this.swapData.smartRoutes,
-          fromTokenOnOrai,
-          to,
-          contractAddr,
-          affiliates
+      if (this.config.swapOptions?.isIbcWasm) {
+        const routes = this.swapData.alphaSmartRoutes?.routes;
+
+        if (!routes?.length) throw "Route not found";
+
+        const hasRouteNotIsOraichain = routes?.some((route) =>
+          route.paths.some((path) => path.chainId !== "Oraichain")
         );
+
+        if (hasRouteNotIsOraichain) throw "Only support routes in Oraichain!";
+
+        const routesFlatten = UniversalSwapHelper.flattenSmartRouters(routes);
+        const generatedRoutes = UniversalSwapHelper.generateMsgsSmartRouterV2withV3(routesFlatten, offerInfo);
+
+        msgs = this.buildSwapMsgsFromSmartRoute(generatedRoutes, fromTokenOnOrai, to, contractAddr, affiliates);
       } else {
         const minimumReceive = calculateMinReceive(
           this.swapData.simulatePrice,
@@ -1434,10 +1358,19 @@ export class UniversalSwapHandler {
       }
       return buildMultipleExecuteMessages(msgs, ...msgConvertsFrom, ...msgConvertTo);
     } catch (error) {
-      throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error)}`);
+      throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error.message)}`);
     }
   }
 
+  /**
+   * Generate message and binary msg of smart route
+   * @param routes
+   * @param fromTokenOnOrai
+   * @param to
+   * @param routerContract
+   * @param affiliates
+   * @returns
+   */
   buildSwapMsgsFromSmartRoute(
     routes: SmartRouteSwapOperations[],
     fromTokenOnOrai: TokenItemType,
@@ -1493,7 +1426,7 @@ export class UniversalSwapHandler {
    * @returns
    */
   generateMsgsIbcWasm(ibcInfo: IBCInfo, ibcReceiveAddr: string, remoteDenom: string, ibcMemo: string) {
-    const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
+    const toTokenInOrai = this.getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
     try {
       const { info: assetInfo } = parseTokenInfo(toTokenInOrai);
 

@@ -53,8 +53,10 @@ import {
   ConvertReverse,
   ConvertType,
   OraiBridgeRouteData,
+  Route,
   RouterConfigSmartRoute,
   RouterResponse,
+  Routes,
   SimulateResponse,
   SmartRouterResponse,
   SmartRouterResponseAPI,
@@ -563,7 +565,7 @@ export class UniversalSwapHelper {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
       protocols: ["Oraidex", "OraidexV3", "Osmosis"],
-      dontAllowSwapAfter: [""]
+      dontAllowSwapAfter: ["Oraidex", "OraidexV3"]
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
@@ -711,12 +713,7 @@ export class UniversalSwapHelper {
       useAlphaSmartRoute?: boolean;
       useIbcWasm?: boolean;
     };
-    routerConfig?: {
-      url: string;
-      path?: string;
-      protocols?: string[];
-      dontAlowSwapAfter?: string[];
-    };
+    routerConfig?: RouterConfigSmartRoute;
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
@@ -1130,6 +1127,109 @@ export class UniversalSwapHelper {
 
     return msg;
   };
+
+  /**
+   * Generate message swap token in Oraichain of smart route (pool v2 + v3)
+   * @param routes
+   * @param offerInfo
+   * @returns
+   */
+  static generateMsgsSmartRouterV2withV3(routes, offerInfo) {
+    return routes.map((route) => {
+      let ops = [];
+      let currTokenIn = offerInfo;
+      for (let swap of route.swapInfo) {
+        const [tokenX, tokenY, fee, tickSpacing] = swap.poolId.split("-");
+        let tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
+        if (tokenX && tokenY && fee && tickSpacing) {
+          ops.push({
+            swap_v3: {
+              pool_key: {
+                token_x: tokenX,
+                token_y: tokenY,
+                fee_tier: {
+                  fee: Number(fee),
+                  tick_spacing: Number(tickSpacing)
+                }
+              },
+              x_to_y: tokenY === swap.tokenOut
+            }
+          });
+        } else {
+          ops.push({
+            orai_swap: {
+              offer_asset_info: currTokenIn,
+              ask_asset_info: tokenOut
+            }
+          });
+        }
+        currTokenIn = tokenOut;
+      }
+      return {
+        swapAmount: route.tokenInAmount,
+        returnAmount: route.tokenOutAmount,
+        swapOps: ops
+      };
+    });
+  }
+
+  /**
+   * flatten arr route of smart router
+   * @param routers
+   * @returns
+   */
+  static flattenSmartRouters(routers: Route[]): Routes[] {
+    let routesFlatten = [];
+    routers.forEach((routes, i) => {
+      routes.paths.forEach((path, pathIndex, pathsArray) => {
+        const isLastPath = pathsArray.length === pathIndex + 1;
+        const isInOraichain = path.chainId === "Oraichain";
+
+        let objActionSwap = {
+          type: "Swap",
+          swapInfo: [],
+          tokenIn: path.tokenIn,
+          tokenOut: path.tokenOut,
+          tokenInAmount: path.tokenInAmount,
+          tokenOutAmount: path.tokenOutAmount
+        };
+
+        const pathsSwapInOraichain = path.actions.filter((item) => item.type === "Swap" && isInOraichain);
+
+        path.actions.forEach((action, actionIndex, actionArray) => {
+          const isLastAction = !actionArray[actionIndex + 1];
+          const isSwapType = action.type === "Swap";
+          const isSwapInOraichain = isSwapType && isInOraichain;
+
+          const actionsPath = {
+            ...action,
+            path: i,
+            chainId: path.chainId,
+            isLastPath: isLastPath && isLastAction
+          };
+
+          if (isSwapInOraichain) {
+            objActionSwap = {
+              ...actionsPath,
+              ...objActionSwap,
+              tokenOutAmount: action.tokenOutAmount,
+              swapInfo: [...objActionSwap.swapInfo, ...action.swapInfo]
+            };
+
+            // count type swap in oraichain
+            if (
+              (pathsSwapInOraichain.length > 1 && pathsSwapInOraichain.length - 1 === actionIndex) ||
+              pathsSwapInOraichain.length === 1
+            )
+              routesFlatten.push(objActionSwap);
+          } else {
+            routesFlatten.push(actionsPath);
+          }
+        });
+      });
+    });
+    return routesFlatten;
+  }
 }
 
 // evm swap helpers
