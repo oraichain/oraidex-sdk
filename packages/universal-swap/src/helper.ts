@@ -565,7 +565,7 @@ export class UniversalSwapHelper {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
       protocols: ["Oraidex", "OraidexV3", "Osmosis"],
-      dontAllowSwapAfter: [""]
+      dontAllowSwapAfter: ["Oraidex", "OraidexV3"]
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(

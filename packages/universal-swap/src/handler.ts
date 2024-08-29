@@ -1303,10 +1303,10 @@ export class UniversalSwapHandler {
 
       let msgs: ExecuteInstruction[];
 
-      if (this.config.swapOptions.isIbcWasm) {
+      if (this.config.swapOptions?.isIbcWasm) {
         const routes = this.swapData.alphaSmartRoutes?.routes;
 
-        if (!routes?.length) throw new Error("Route not found");
+        if (!routes?.length) throw "Route not found";
 
         const hasRouteNotIsOraichain = routes?.some((route) =>
           route.paths.some((path) => path.chainId !== "Oraichain")
@@ -1358,7 +1358,7 @@ export class UniversalSwapHandler {
       }
       return buildMultipleExecuteMessages(msgs, ...msgConvertsFrom, ...msgConvertTo);
     } catch (error) {
-      throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error)}`);
+      throw generateError(`Error generateMsgsSwap: ${JSON.stringify(error.message)}`);
     }
   }
 
