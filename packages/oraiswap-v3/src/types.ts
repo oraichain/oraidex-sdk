@@ -1,3 +1,6 @@
+import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { TokenItemType } from "@oraichain/oraidex-common";
+
 export interface SnapshotValueData {
   tokenBNFromBeginning: string;
   usdValue24: number;
@@ -181,3 +184,83 @@ export interface CalculateSwapResult {
   state_outdated: boolean;
   max_ticks_crossed: boolean;
 }
+
+export type ZapConfig = {
+  routerApi: string;
+  client: CosmWasmClient;
+  dexV3Address: string;
+  multicallAddress: string;
+  devitation: number;
+  smartRouteConfig: SmartRouteConfig;
+};
+
+export type ActionRoute = {
+  type: string;
+  protocol: Protocols;
+  tokenIn: string;
+  tokenInAmount: string;
+  tokenOut: string;
+  tokenOutAmount: string;
+  swapInfo: Route[];
+};
+
+export type Route = {
+  poolId: string;
+  tokenOut: string;
+};
+
+export type SmartRouteResponse = {
+  swapAmount: string;
+  returnAmount: string;
+  routes: [
+    {
+      swapAmount: string;
+      returnAmount: string;
+      paths: {
+        chainId: string;
+        tokenIn: string;
+        tokenInAmount: string;
+        tokenOut: string;
+        tokenOutAmount: string;
+        tokenOutChainId: string;
+        actions: ActionRoute[];
+      }[];
+    }
+  ];
+};
+
+export type Protocols = "Oraidex" | "OraidexV3" | "Osmosis";
+
+export type SmartRouteConfig = {
+  swapOptions: {
+    protocols: Protocols[];
+  };
+};
+
+export type SwapOperation = {
+  swapAmount: string;
+  returnAmount: string;
+  routes: any[];
+};
+
+export type ZapInLiquidityResponse = {
+  swapOperations: SwapOperation[];
+  offerAssets: {
+    asset: TokenItemType;
+    amount: string;
+  }[];
+  addLiquidityOperations: {
+    poolKey: PoolKey;
+    lowerTick: number;
+    upperTick: number;
+  }[];
+  simulatedSqrtPrice: bigint;
+};
+
+export type ZapOutLiquidityResponse = {
+  swapOperations: SwapOperation[];
+  removeLiquidityOperations: {
+    tokenId: number;
+  }[];
+};
+

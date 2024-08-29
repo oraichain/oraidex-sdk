@@ -1,9 +1,19 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { calculateAmountDelta, calculateSqrtPrice } from "./wasm/oraiswap_v3_wasm";
-import { AmountDeltaResult, LiquidityTick, PoolKey, PoolSnapshot, PoolStatsData, PositionLiquidInfo, TokenData, VirtualRange } from "./types";
+import {
+  AmountDeltaResult,
+  LiquidityTick,
+  PoolKey,
+  PoolSnapshot,
+  PoolStatsData,
+  PositionLiquidInfo,
+  SmartRouteResponse,
+  TokenData,
+  VirtualRange
+} from "./types";
 import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
 import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { BigDecimal, oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
+import { BigDecimal, fetchRetry, oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
 
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
   const feeDenominator = (BigInt(protocolFee) * BigInt(pool.pool_key.fee_tier.fee)) / DENOMINATOR;
@@ -242,11 +252,7 @@ export const calculateTokenAmounts = (pool: Pool, position: Position): AmountDel
   return _calculateTokenAmounts(pool, position, false);
 };
 
-export const _calculateTokenAmounts = (
-  pool: Pool,
-  position: Position,
-  sign: boolean
-): AmountDeltaResult => {
+export const _calculateTokenAmounts = (pool: Pool, position: Position, sign: boolean): AmountDeltaResult => {
   return calculateAmountDelta(
     pool.current_tick_index,
     BigInt(pool.sqrt_price),
@@ -256,3 +262,26 @@ export const _calculateTokenAmounts = (
     position.lower_tick_index
   );
 };
+
+export const shiftDecimal = (value: bigint, decimals: number): BigDecimal => {
+  const valueStr = value.toString();
+  const len = valueStr.length;
+  const splitPos = len - decimals;
+
+  let result: string;
+
+  if (splitPos > 0) {
+    // When there are more digits than decimals, insert the decimal point accordingly
+    const intStr = valueStr.slice(0, splitPos);
+    const decStr = valueStr.slice(splitPos);
+    result = `${intStr}.${decStr}`;
+  } else {
+    // When digits are fewer than or equal to decimals, pad with leading zeros
+    const paddedDecStr = valueStr.padStart(decimals, "0");
+    result = `0.${paddedDecStr}`;
+  }
+
+  return new BigDecimal(result, decimals);
+};
+
+
