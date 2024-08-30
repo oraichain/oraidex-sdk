@@ -1,9 +1,9 @@
 import path from "path";
 import { fileURLToPath } from "url";
-import { toPercentage } from "../src";
 import { ZapConsumer } from "../src/zap-consumer";
 import { OraiswapV3Client, OraiswapV3Types } from "@oraichain/oraidex-contracts-sdk";
 import fs from "fs";
+import { describe, it, beforeEach } from "vitest";
 import { client } from "./test-common";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -53,5 +53,9 @@ describe("ZapConsumer", () => {
         )
       ).contractAddress
     );
+  });
+
+  it("work", async () => {
+    console.log("hello");
   });
 });
