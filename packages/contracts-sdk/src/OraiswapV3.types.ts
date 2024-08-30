@@ -428,4 +428,4 @@ export interface TickIncentive {
   incentive_growth_outside: FeeGrowth;
   incentive_id: number;
 }
-export type ArrayOfTupleOfUint16AndUint64 = [number, number][];
+export type ArrayOfTupleOfUint16AndUint64 = [number, Uint64][];
