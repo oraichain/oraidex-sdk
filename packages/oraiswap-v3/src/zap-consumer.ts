@@ -4,7 +4,6 @@ import {
   ActionRoute,
   LiquidityTick,
   PoolKey,
-  Route,
   SmartRouteConfig,
   SmartRouteResponse,
   Tickmap,
@@ -14,7 +13,6 @@ import {
 } from "./types";
 import {
   getLiquidityByX,
-  getLiquidityByY,
   getMaxSqrtPrice,
   getMaxTick,
   getMinSqrtPrice,
@@ -22,8 +20,8 @@ import {
   positionToTick,
   simulateSwap
 } from "./wasm/oraiswap_v3_wasm";
-import { calculateTokenAmounts, extractAddress, parse, poolKeyToString, shiftDecimal } from "./helpers";
-import { CHUNK_SIZE, LIQUIDITY_TICKS_LIMIT, MAX_TICKMAP_QUERY_SIZE } from "./const";
+import { calculateTokenAmounts, extractAddress, poolKeyToString, shiftDecimal } from "./helpers";
+import { CHUNK_SIZE } from "./const";
 import { ArrayOfTupleOfUint16AndUint64 } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 
 export class ZapConsumer {
@@ -127,37 +125,10 @@ export class ZapConsumer {
     return tickmaps;
   }
 
-  /*
-    let tickmap: Vec<(u16, u64)> = get_tickmap!(app, dex, &pool_key, -10, 10, false).unwrap();
-    assert_eq!(tickmap.len(), 2);
-    let mut ticks = vec![];
-    tickmap.iter().for_each(|(chunk_index, chunk)| {
-        for i in 0..(CHUNK_SIZE as u8) {
-            if chunk & (1 << i) != 0 {
-                ticks.push(position_to_tick(
-                    *chunk_index,
-                    i,
-                    pool_key.fee_tier.tick_spacing,
-                ));
-            }
-        }
-    });
-    assert_eq!(ticks, vec![-10i32, 10]);
-
-    let result: Vec<LiquidityTick> =
-        get_liquidity_ticks!(app, dex, &pool_key, ticks.clone()).unwrap();
-    assert_eq!(result.len(), 2);
-  */
-
   public async getAllLiquidityTicks(poolKey: PoolKey, tickmap: Tickmap): Promise<LiquidityTick[]> {
     const tickIndexes: number[] = [];
     for (const [chunkIndex, chunk] of tickmap.bitmap.entries()) {
       for (let bit = 0; bit < CHUNK_SIZE; bit++) {
-        if (chunkIndex === 34n) {
-          if (chunk & (1n << BigInt(bit))) {
-            // console.log(`bit: ${bit}`);
-          }
-        }
         const checkedBit = chunk & (1n << BigInt(bit));
         if (checkedBit !== 0n) {
           const tickIndex = positionToTick(Number(chunkIndex), bit, poolKey.fee_tier.tick_spacing);
@@ -167,6 +138,7 @@ export class ZapConsumer {
     }
     // console.log({ length: tickIndexes.length })
 
+    // TODO: remove this after migrate contract
     const mockTicks: number[] = [];
     await Promise.all(
       tickIndexes.map(async (tickIndex) => {
@@ -195,20 +167,6 @@ export class ZapConsumer {
     });
     return { bitmap };
   }
-
-  /*
-  CalculateSwapResult {
-    amount_in: total_amount_in,
-    amount_out: total_amount_out,
-    start_sqrt_price,
-    target_sqrt_price: pool.sqrt_price,
-    fee: total_fee_amount,
-    crossed_ticks,
-    global_insufficient_liquidity,
-    state_outdated,
-    max_ticks_crossed,
-  }
-  */
 
   public async processZapInPositionLiquidity({
     poolKey,
@@ -319,12 +277,6 @@ export class ZapConsumer {
           });
         });
       });
-    console.dir({ routes }, { depth: null });
-    // if (routes.length > 0)
-    //   console.log(
-    //     `[ZAP-CONSUMER] Routes OraidexV3: ${routes.map((r) => r.swapInfo.flatMap((s) => s.poolId)).join(", ")}`
-    //   );
-    // in routes, find all swapInfos have poolId = poolKey
     let simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
     for (const route of routes) {
       if (route.swapInfo.find((swap) => swap.poolId === poolKeyToString(poolKey))) {
