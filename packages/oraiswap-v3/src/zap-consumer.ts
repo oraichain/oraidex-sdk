@@ -136,18 +136,8 @@ export class ZapConsumer {
         }
       }
     }
-    // console.log({ length: tickIndexes.length })
 
-    // TODO: remove this after migrate contract
-    const mockTicks: number[] = [];
-    await Promise.all(
-      tickIndexes.map(async (tickIndex) => {
-        const isTickInitialized = await this._handler.isTickInitialized(poolKey, tickIndex);
-        if (isTickInitialized) mockTicks.push(tickIndex);
-      })
-    );
-
-    const tickResults = await this.handler.liquidityTicks(poolKey, mockTicks);
+    const tickResults = await this.handler.liquidityTicks(poolKey, tickIndexes);
 
     return tickResults.map((tick) => {
       return {

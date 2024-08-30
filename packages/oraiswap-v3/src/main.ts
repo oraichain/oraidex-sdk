@@ -15,11 +15,11 @@ import { getLiquidityByX, getMaxTick, getMinTick, isEnoughAmountToChangePrice } 
 
 async function main() {
   const poolList = [
-    `orai-${USDT_CONTRACT}-3000000000-100`,
+    // `orai-${USDT_CONTRACT}-3000000000-100`,
     `${ATOM_ORAICHAIN_DENOM}-orai-3000000000-100`,
-    `${USDT_CONTRACT}-${USDC_CONTRACT}-500000000-10`,
-    `orai-${USDC_CONTRACT}-3000000000-100`,
-    `${OSMOSIS_ORAICHAIN_DENOM}-orai-3000000000-100`
+    // `${USDT_CONTRACT}-${USDC_CONTRACT}-500000000-10`,
+    // `orai-${USDC_CONTRACT}-3000000000-100`,
+    // `${OSMOSIS_ORAICHAIN_DENOM}-orai-3000000000-100`
   ];
   const tokenIn = oraichainTokens.find((t) => extractAddress(t) === USDT_CONTRACT);
 
@@ -51,41 +51,43 @@ async function main() {
   // const tickMap = await handler.tickMap(parsePoolKey(poolList[0]), minTick, maxTick, true);
   // console.log(tickMap);
   // const tickMap2 = await zapper.getFullTickmap(parsePoolKey(poolList[0]));
+  // console.log({ tickMap2 });
 
   // const liquidityTick = await zapper.getAllLiquidityTicks(parsePoolKey(poolList[0]), tickMap2);
+  // console.log({ liquidityTick });
 
-  for (const poolKey of poolList) {
-    const poolKeyParsed = parsePoolKey(poolKey);
-    const pool = await handler.getPool(poolKeyParsed);
-    const currentTick = pool.pool.current_tick_index;
-    const spread = pool.pool_key.fee_tier.tick_spacing * 3;
+  // for (const poolKey of poolList) {
+  //   const poolKeyParsed = parsePoolKey(poolKey);
+  //   const pool = await handler.getPool(poolKeyParsed);
+  //   const currentTick = pool.pool.current_tick_index;
+  //   const spread = pool.pool_key.fee_tier.tick_spacing * 3;
 
-    const res = await zapper.processZapInPositionLiquidity({
-      poolKey: poolKeyParsed,
-      tokenIn,
-      amountIn: "1000000000",
-      lowerTick: currentTick - spread,
-      upperTick: currentTick + spread
-    });
+  //   const res = await zapper.processZapInPositionLiquidity({
+  //     poolKey: poolKeyParsed,
+  //     tokenIn,
+  //     amountIn: "1000000000",
+  //     lowerTick: currentTick - spread,
+  //     upperTick: currentTick + spread
+  //   });
 
-    const amountX = res.offerAssets.find((a) => extractAddress(a.asset) === poolKeyParsed.token_x)?.amount;
-    const amountY = res.offerAssets.find((a) => extractAddress(a.asset) === poolKeyParsed.token_y)?.amount;
+  //   const amountX = res.offerAssets.find((a) => extractAddress(a.asset) === poolKeyParsed.token_x)?.amount;
+  //   const amountY = res.offerAssets.find((a) => extractAddress(a.asset) === poolKeyParsed.token_y)?.amount;
 
-    /// front-end check
-    const poolAfter = await handler.getPool(poolKeyParsed);
-    const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
-      BigInt(amountX),
-      res.addLiquidityOperations[0].lowerTick,
-      res.addLiquidityOperations[0].upperTick,
-      res.simulatedSqrtPrice,
-      true
-    );
-    const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;
-    console.log(`Accurancy: ${accurancy.toFixed(2)}%`);
+  //   /// front-end check
+  //   const poolAfter = await handler.getPool(poolKeyParsed);
+  //   const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
+  //     BigInt(amountX),
+  //     res.addLiquidityOperations[0].lowerTick,
+  //     res.addLiquidityOperations[0].upperTick,
+  //     res.simulatedSqrtPrice,
+  //     true
+  //   );
+  //   const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;
+  //   console.log(`Accurancy: ${accurancy.toFixed(2)}%`);
 
-    // sleep 10s
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-  }
+  //   // sleep 10s
+  //   await new Promise((resolve) => setTimeout(resolve, 10000));
+  // }
 }
 
 main().catch(console.error);
