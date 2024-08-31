@@ -268,11 +268,11 @@ export class ZapConsumer {
         });
       });
     let simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
+    // console.dir(routes, { depth: null });
     for (const route of routes) {
       if (route.swapInfo.find((swap) => swap.poolId === poolKeyToString(poolKey))) {
         console.log(`[ZAP-CONSUMER] Found route go through current pool`);
-        const tokenIn = route.tokenIn === extractAddress(tokenX) ? tokenX : tokenY;
-        const isXToY = tokenIn === tokenX;
+        const isXToY = route.tokenOut === poolKey.token_x ? false : true;
         const amountOut = route.tokenOutAmount;
         const tickMap = await this.getFullTickmap(poolKey);
         const liquidityTicks = await this.getAllLiquidityTicks(poolKey, tickMap);
@@ -285,6 +285,7 @@ export class ZapConsumer {
           fee_protocol_token_x: BigInt(pool.pool.fee_protocol_token_x),
           fee_protocol_token_y: BigInt(pool.pool.fee_protocol_token_y)
         };
+        // console.log({ amountOut });
         const swapResult = simulateSwap(
           tickMap,
           poolKey.fee_tier,
@@ -352,7 +353,13 @@ export class ZapConsumer {
       swapOperations: [],
       offerAssets: [],
       addLiquidityOperations: [],
-      simulatedSqrtPrice: simulatedNextSqrtPrice
+      simulatedSqrtPrice: simulatedNextSqrtPrice,
+      simulation: {
+        amountInToX: amountInToX.toString(),
+        amountInToY: amountInToY.toString(),
+        amountX: amountX.toString(),
+        amountY: amountY.toString()
+      }
     };
 
     let xRouteInfo: SmartRouteResponse;
@@ -370,6 +377,12 @@ export class ZapConsumer {
     console.log(
       `[ZAP-CONSUMER] Final result: ${amountInToX} ${tokenIn.name} to ${xRouteInfo.returnAmount} ${tokenX.name}, ${amountInToY} ${tokenIn.name} to ${yRouteInfo.returnAmount} ${tokenY.name}`
     );
+    messages.simulation = {
+      amountInToX: amountInToX.toString(),
+      amountInToY: amountInToY.toString(),
+      amountX: xRouteInfo.returnAmount,
+      amountY: yRouteInfo.returnAmount
+    };
     if (![poolKey.token_x, poolKey.token_y].includes(extractAddress(tokenIn))) {
       messages.swapOperations.push(xRouteInfo);
       messages.swapOperations.push(yRouteInfo);

@@ -255,6 +255,12 @@ export type ZapInLiquidityResponse = {
     upperTick: number;
   }[];
   simulatedSqrtPrice: bigint;
+  simulation: {
+    amountInToX: string;
+    amountInToY: string;
+    amountX: string;
+    amountY: string;
+  }
 };
 
 export type ZapOutLiquidityResponse = {
