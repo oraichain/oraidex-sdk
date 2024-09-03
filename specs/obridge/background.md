@@ -45,5 +45,5 @@ We currently support the following blockchain platforms:
 - [Orai - EVM](./orai-evm.md)
 - [Orai - Cosmos](./orai-cosmos.md)
 - [Orai - Bitcoin]()
-- [Orai - TON]()
+- [Orai - TON](./orai-ton.md)
 - [Orai - XRPL]()
