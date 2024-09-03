@@ -40,9 +40,7 @@ You can bridge two types of tokens from Ton to Oraichain:
 1. **Ton (Native) Tokens**: This includes the native Ton token.
 2. **Jetton Tokens**: This includes tokens like USDT, USDC, and other Jetton-based tokens.
 
-#### Bridging Token to Oraichain
-
-You have to send a message as followed:
+#### For integration on Node.JS server:
 
 ```ts
 const TON_NATIVE = "ton";
@@ -68,7 +66,7 @@ interface ITonBridgeHandler {
 
 **Parameters**:
 
-- `cosmosRecipient` : recipient address on cosmos destination chain
+- `cosmosRecipient` : recipient address on cosmos destination chain.
 - `amount`: amount of token that you want to send.
 - `denom`: denom of the token, which will decide it is **bridge_ton** or **bridge_jetton_token**.
 - `opts`: configuration of **total ton amount** that you want to send along with the messages and the **query id** of that message.
@@ -114,9 +112,114 @@ export async function main() {
 main();
 ```
 
+#### For integration on Web browser client:
+
+Unfortunately, most client libraries for Ton do not support the same types of Ton clients as `@ton/core`. As a result, you’ll need to build the **Cell** and send the message manually.
+
+For building cell, you will use `@oraichain/ton-bridge-contracts` library:
+
+##### With bridging ton case:
+
+```ts
+interface BridgeTon {
+  amount: bigint; // amount of ton you want to transfer
+  timeout: bigint; // timeout of packet
+  memo: Cell; // memo for execution when token reached Oraichain
+  remoteReceiver: string; // cosmos address on destination chain
+}
+
+interface IBridgeAdapter {
+  static buildBridgeTonBody(data: BridgeTon, remoteCosmosData: Uint8Array, ops: ValueOps);
+}
+```
+
+**Parameters**:
+
+- `data` : data for building bridge ton cell.
+- `remoteCosmosData`: cosmos address in bech32.
+- `ops`: configuration of **total ton amount** that you want to send along with the messages and the **query id** of that message.
+
+##### With bridging jetton token case:
+
+```ts
+interface SendTransferInterface {
+  toAddress: Address; // address that receive forwarding packet for handling (here is bridge adapter address)
+  fwdAmount: bigint; // amount of ton for forwading packet
+  jettonAmount: bigint; // amount of tokens for bridging
+  jettonMaster: Address; // jetton master of bridging token
+  remoteReceiver: string; // cosmos receipient address
+  timeout: bigint; // timeout of packet
+  memo: Cell; // memo for execution when token reached Oraichain
+}
+
+interface IJettonWallet {
+  static buildSendTransferPacket(responseAddress: Address, data: SendTransferInterface, queryId: number = 0);
+}
+```
+
+**Parameters**:
+
+- `data` : data for building bridge jetton cell.
+- `responseAddress`: address for receiving redundant fee ton.
+- `queryId`: **query id** of that message.
+
+**Examples for two cases:**
+
+```tsx
+import { useTonConnectUI } from "@tonconnect/ui-react";
+...
+const [tonConnectUI] = useTonConnectUI();
+...
+const memo = beginCell().storeStringRefTail(<memo_string>).endCell();
+const getNativeBridgePayload = () =>
+        BridgeAdapter.buildBridgeTonBody(
+          {
+            amount: BigInt(fmtAmount.toString()),
+            memo,
+            remoteReceiver: oraiAddress,
+            timeout,
+          },
+          oraiAddressBech32,
+          {
+            queryId: 0,
+            value: toNano(0), // don't care this
+          }
+        ).toBoc();
+
+      const getOtherBridgeTokenPayload = () =>
+        JettonWallet.buildSendTransferPacket(
+          Address.parse(tonAddress),
+          {
+            fwdAmount: FWD_AMOUNT,
+            jettonAmount: BigInt(fmtAmount.toString()),
+            jettonMaster: Address.parse(token.contractAddress),
+            remoteReceiver: oraiAddress,
+            timeout,
+            memo,
+            toAddress: bridgeAdapterAddress,
+          },
+          0
+        ).toBoc();
+
+      const boc = isNativeTon
+        ? getNativeBridgePayload()
+        : getOtherBridgeTokenPayload();
+
+      const tx = await tonConnectUI.sendTransaction({
+        validUntil: TON_MESSAGE_VALID_UNTIL,
+        messages: [
+          {
+            address: toAddress, // dia chi token
+            amount: gasAmount, // gas
+            payload: Base64.encode(boc),
+          },
+        ],
+      });
+```
+
 ## Oraichain to Ton
 
-You have to send a message as followed:
+#### For integration on Node.JS server:
 
 ```ts
 const TON_NATIVE = "ton";
@@ -135,7 +238,7 @@ interface ITonBridgeHandler {
 
 **Parameters**:
 
-- `tonRecipient` : ton recipient address
+- `tonRecipient` : ton recipient address.
 - `amount`: amount of token that you want to send.
 - `tokenDenomOnTon`: token denom address on ton. With ton native token it will be **ton zero address** and with jetton token, it will be **jetton master address**.
 - `timeoutTimestamp`: timeout timestamp of packet.
@@ -178,4 +281,98 @@ export async function main() {
 }
 
 main();
+```
+
+#### For integration on Web browser client:
+
+At the time i write this docs, `@oraichain/tonbridge-sdk` does not support for client since it is using ton wallet which can not be used for client. Temporarily, I will show a doc on how to use `@oraichain/tonbridge-contracts-sdk` on client.
+
+##### With bridging native token (which is created by token factory module):
+
+```ts
+interface TonbridgeBridgeInterface {
+  bridgeToTon: (
+    {
+      denom,
+      timeout,
+      to
+    }: {
+      denom: string;
+      timeout?: number;
+      to: string;
+    },
+    _fee?: number | StdFee | "auto",
+    _memo?: string,
+    _funds?: Coin[]
+  ) => Promise<ExecuteResult>;
+}
+```
+
+**Parameters**:
+
+- `denom` : ton denom address on Ton Network (**ZERO ADDRESS** if it is TON & **Jetton Master Address** if it is jetton token).
+- `timeout`: timeout timestamp of packet.
+- `to`: ton recipient address.
+
+##### With jetton token:
+
+```ts
+## with this case, you just need to send cw20 token to the ton bridge contract with the message as follow:
+
+interface Message {
+  denom: string;
+  timeout?: number;
+  to: string;
+}
+```
+
+**Parameters**:
+
+- `denom` : ton denom address on Ton Network (**ZERO ADDRESS** if it is TON & **Jetton Master Address** if it is jetton token).
+- `timeout`: timeout timestamp of packet.
+- `to`: ton recipient address.
+
+**Examples for two cases:**
+
+```ts
+const tonBridgeClient = new TonbridgeBridgeClient(window.client, oraiAddress, network.CW_TON_BRIDGE);
+
+let tx;
+
+const timeout = Math.floor(new Date().getTime() / 1000) + 3600;
+const msg = {
+  // crcSrc: ARG_BRIDGE_TO_TON.CRC_SRC,
+  denom: TonTokenList(tonNetwork).find((tk) => tk.coingeckoId === token.coingeckoId).contractAddress,
+  timeout,
+  to: tonAddress
+};
+
+const funds = handleSentFunds({
+  denom: token.denom,
+  amount: toAmount(amount, token.decimal).toString()
+});
+
+// native token
+if (!token.contractAddress) {
+  tx = await tonBridgeClient.bridgeToTon(msg, "auto", null, funds);
+}
+// cw20 token
+else {
+  tx = await window.client.execute(
+    oraiAddress,
+    token.contractAddress,
+    {
+      send: {
+        contract: network.CW_TON_BRIDGE,
+        amount: toAmount(amount, token.decimal).toString(),
+        msg: toBinary({
+          denom: msg.denom,
+          timeout,
+          to: msg.to
+        })
+      }
+    },
+    "auto"
+  );
+}
 ```
