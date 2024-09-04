@@ -78,7 +78,8 @@ Here we use `@oraichain/tonbridge-sdk` for interaction.
 - Ton Wallet Class:
 
 ```ts
-export default class TonWallet {
+## Ref: "https://github.com/oraichain/tonbridge-sdk/blob/main/packages/bridge-sdk/src/wallet.ts#L19"
+class TonWallet {
   public constructor(
     public readonly tonClient: TonClient,
     public readonly sender: Sender,
@@ -168,6 +169,7 @@ export default class TonWallet {
 - Cosmos Wallet Class:
 
 ```ts
+# Ref: "https://github.com/oraichain/oraidex-sdk/blob/main/packages/oraidex-common/src/wallet.ts#L20"
 abstract class CosmosWallet {
   /**
    * This method should return the cosmos address in bech32 form given a cosmos chain id
