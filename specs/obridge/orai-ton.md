@@ -165,6 +165,82 @@ export default class TonWallet {
 }
 ```
 
+- Cosmos Wallet Class:
+
+```ts
+abstract class CosmosWallet {
+  /**
+   * This method should return the cosmos address in bech32 form given a cosmos chain id
+   * Browsers should make use of the existing methods from the extension to implement this method
+   * @param chainId - Cosmos chain id to parse and return the correct cosmos address
+   */
+  public abstract getKeplrAddr(chainId?: CosmosChainId): Promise<string>;
+
+  /**
+   * This method creates a new cosmos signer which is responsible for signing cosmos-based transactions.
+   * Browsers should use signers from the extension to implement this method
+   * @param chainId - Cosmos chain id
+   */
+  public abstract createCosmosSigner(chainId: CosmosChainId): Promise<OfflineSigner>;
+
+  async getCosmWasmClient(
+    config: { rpc: string; chainId: CosmosChainId },
+    options: SigningStargateClientOptions
+  ): Promise<{
+    wallet: OfflineSigner;
+    client: SigningCosmWasmClient;
+    stargateClient: SigningStargateClient;
+  }> {
+    const { chainId, rpc } = config;
+    const wallet = await this.createCosmosSigner(chainId);
+    const tmClient = await Tendermint37Client.connect(rpc);
+    let client;
+    const optionsClient = {
+      ...options,
+      broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+    };
+    if (chainId === "injective-1") {
+      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(
+        tmClient as any,
+        wallet,
+        optionsClient as any
+      );
+    } else {
+      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, optionsClient);
+    }
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, optionsClient);
+    return { wallet, client, stargateClient };
+  }
+
+  async signAndBroadcast(
+    fromChainId: CosmosChainId,
+    fromRpc: string,
+    options: SigningStargateClientOptions,
+    sender: string,
+    encodedObjects: EncodeObject[]
+  ) {
+    // handle sign and broadcast transactions
+    const { client } = await this.getCosmWasmClient(
+      {
+        chainId: fromChainId as CosmosChainId,
+        rpc: fromRpc
+      },
+      options
+    );
+    return client.signAndBroadcast(sender, encodedObjects, "auto");
+  }
+}
+```
+
+You have to implement the CosmosWallet class.
+
+```ts
+References for implement:
+- Browser: "https://github.com/oraichain/oraiswap-frontend/blob/main/src/libs/keplr.ts#L11"
+
+- Node.JS: "https://github.com/oraichain/tonbridge-sdk/blob/main/packages/bridge-sdk/src/demo-utils.ts#L12"
+```
+
 - Bridge:
 
 ```ts
@@ -298,82 +374,6 @@ interface ITonBridgeHandler {
 **Examples:**
 
 Here we use `@oraichain/tonbridge-sdk` for interaction.
-
-- Cosmos Wallet Class:
-
-```ts
-abstract class CosmosWallet {
-  /**
-   * This method should return the cosmos address in bech32 form given a cosmos chain id
-   * Browsers should make use of the existing methods from the extension to implement this method
-   * @param chainId - Cosmos chain id to parse and return the correct cosmos address
-   */
-  public abstract getKeplrAddr(chainId?: CosmosChainId): Promise<string>;
-
-  /**
-   * This method creates a new cosmos signer which is responsible for signing cosmos-based transactions.
-   * Browsers should use signers from the extension to implement this method
-   * @param chainId - Cosmos chain id
-   */
-  public abstract createCosmosSigner(chainId: CosmosChainId): Promise<OfflineSigner>;
-
-  async getCosmWasmClient(
-    config: { rpc: string; chainId: CosmosChainId },
-    options: SigningStargateClientOptions
-  ): Promise<{
-    wallet: OfflineSigner;
-    client: SigningCosmWasmClient;
-    stargateClient: SigningStargateClient;
-  }> {
-    const { chainId, rpc } = config;
-    const wallet = await this.createCosmosSigner(chainId);
-    const tmClient = await Tendermint37Client.connect(rpc);
-    let client;
-    const optionsClient = {
-      ...options,
-      broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
-    };
-    if (chainId === "injective-1") {
-      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(
-        tmClient as any,
-        wallet,
-        optionsClient as any
-      );
-    } else {
-      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, optionsClient);
-    }
-    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, optionsClient);
-    return { wallet, client, stargateClient };
-  }
-
-  async signAndBroadcast(
-    fromChainId: CosmosChainId,
-    fromRpc: string,
-    options: SigningStargateClientOptions,
-    sender: string,
-    encodedObjects: EncodeObject[]
-  ) {
-    // handle sign and broadcast transactions
-    const { client } = await this.getCosmWasmClient(
-      {
-        chainId: fromChainId as CosmosChainId,
-        rpc: fromRpc
-      },
-      options
-    );
-    return client.signAndBroadcast(sender, encodedObjects, "auto");
-  }
-}
-```
-
-You have to implement the CosmosWallet class.
-
-```ts
-References for implement:
-- Browser: "https://github.com/oraichain/oraiswap-frontend/blob/main/src/libs/keplr.ts#L11"
-
-- Node.JS: "https://github.com/oraichain/tonbridge-sdk/blob/main/packages/bridge-sdk/src/demo-utils.ts#L12"
-```
 
 - Bridge:
 
