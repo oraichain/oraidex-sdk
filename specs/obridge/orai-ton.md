@@ -40,8 +40,6 @@ You can bridge two types of tokens from Ton to Oraichain:
 1. **Ton (Native) Tokens**: This includes the native Ton token.
 2. **Jetton Tokens**: This includes tokens like USDT, USDC, and other Jetton-based tokens.
 
-#### For integration on Node.JS server:
-
 ```ts
 const TON_NATIVE = "ton";
 type JettonMasterAddress = string;
@@ -75,17 +73,118 @@ interface ITonBridgeHandler {
 
 **Example:**
 
+Here we use `@oraichain/tonbridge-sdk` for interaction.
+
+- Ton Wallet Class:
+
+```ts
+export default class TonWallet {
+  public constructor(
+    public readonly tonClient: TonClient,
+    public readonly sender: Sender,
+    public readonly publicKey: Buffer
+  ) {}
+
+  async waitSeqno(
+    seqno: number,
+    walletVersion: TonWalletVersion,
+    network: Network = "mainnet",
+    workchain = MAIN_WORKCHAIN
+  ) {
+    const walletContract = TonWallet.createWalletContractFromPubKey(
+      walletVersion,
+      this.publicKey,
+      workchain,
+      network
+    );
+    const contract = this.tonClient.open(walletContract);
+    let currentSeqno = seqno;
+    while (currentSeqno == seqno) {
+      console.log("waiting for transaction to confirm...");
+      await new Promise((resolve) =>
+        setTimeout(resolve, SLEEP_TIME.WAIT_SEQNO)
+      );
+      const seqno = await contract.getSeqno();
+      currentSeqno = seqno;
+    }
+    console.log("transaction confirmed!");
+  }
+
+  static async create(
+    network: Network,
+    {
+      mnemonicData: { mnemonic, tonWalletVersion, workchain },
+      tonConnector,
+    }: {
+      mnemonicData?: {
+        mnemonic: string[];
+        tonWalletVersion: TonWalletVersion;
+        workchain?: number;
+      };
+      tonConnector?: TonConnectUI;
+    }
+  ) {
+    const endpoint = await getHttpEndpoint({ network });
+    const client = new TonClient({ endpoint });
+    if (!mnemonic && !tonConnector) {
+      throw new Error(
+        "Need at least mnemonic or TonConnector to initialize the TON Wallet"
+      );
+    }
+    let tonSender: Sender;
+    let tonPublicKey: Buffer;
+    if (mnemonic) {
+      const { publicKey, secretKey } = await this.getWalletFromMnemonic(
+        mnemonic
+      );
+      tonPublicKey = publicKey;
+      const wallet = this.createWalletContractFromPubKey(
+        tonWalletVersion,
+        tonPublicKey,
+        workchain,
+        network
+      );
+
+      const walletContract = client.open(wallet);
+      tonSender = {
+        address: walletContract.address,
+        ...walletContract.sender(secretKey),
+      };
+    }
+    if (tonConnector) {
+      const { sender, account } = this.getWalletFromConnector(tonConnector);
+      if (!account.publicKey)
+        throw new Error("TonConnector account does not have public key!");
+      tonSender = sender;
+      tonPublicKey = Buffer.from(account.publicKey, "base64");
+    }
+    if (!tonPublicKey) throw new Error("TON public key is null");
+    return new TonWallet(client, tonSender, tonPublicKey);
+  }
+  ...
+}
+```
+
+- Bridge:
+
 ```ts
 import { COSMOS_CHAIN_IDS, OraiCommon, TON_NATIVE } from "@oraichain/common";
 import { toNano } from "@ton/ton";
-import { initCosmosWallet, initTonWallet } from "./demo-utils";
-import { calculateTimeoutTimestampTon, createTonBridgeHandler } from "./utils";
+import { initCosmosWallet } from "./demo-utils"; // refer: https://github.com/oraichain/tonbridge-sdk/blob/main/packages/bridge-sdk/src/demo-utils.ts#L12
+import { calculateTimeoutTimestampTon, createTonBridgeHandler, TonWallet } from "@oraichain/ton-bridge-sdk";
 
 export async function main() {
   const oraiMnemonic = <ORAICHAIN_MNEMONIC>;
   const tonMnemonic = <TON_MNEMONIC>;
   const cosmosWallet = initCosmosWallet(oraiMnemonic);
-  const tonWallet = await initTonWallet(tonMnemonic, "V5R1");
+  const tonWallet = await TonWallet.create("mainnet", {
+    mnemonicData:
+      {
+        mnemonic: tonMnemonic.split(" "),
+        tonWalletVersion
+      },
+    tonConnector: undefined,
+  }, "V4R2"); // if using on browser, use tonConnector instead of mnemonicData
   const cosmosRpc = (
     await OraiCommon.initializeFromGitRaw({
       chainIds: [COSMOS_CHAIN_IDS.ORAICHAIN]
@@ -112,58 +211,13 @@ export async function main() {
 main();
 ```
 
-#### For integration on Web browser client:
-
-Unfortunately, most client libraries for Ton do not support the same types of Ton clients as `@ton/core`. As a result, you’ll need to build the **Cell** and send the message manually.
-
-For building cell, you will use `@oraichain/ton-bridge-contracts` library:
-
-##### With bridging ton case:
-
-```ts
-interface BridgeTon {
-  amount: bigint; // amount of ton you want to transfer
-  timeout: bigint; // timeout of packet
-  memo: Cell; // memo for execution when token reached Oraichain
-  remoteReceiver: string; // cosmos address on destination chain
-}
-
-interface IBridgeAdapter {
-  static buildBridgeTonBody(data: BridgeTon, remoteCosmosData: Uint8Array, ops: ValueOps);
-}
-```
-
-**Parameters**:
-
-- `data` : data for building bridge ton cell.
-- `remoteCosmosData`: cosmos address in bech32.
-- `ops`: configuration of **total ton amount** that you want to send along with the messages and the **query id** of that message.
-
-##### With bridging jetton token case:
-
-```ts
-interface SendTransferInterface {
-  toAddress: Address; // address that receive forwarding packet for handling (here is bridge adapter address)
-  fwdAmount: bigint; // amount of ton for forwading packet
-  jettonAmount: bigint; // amount of tokens for bridging
-  jettonMaster: Address; // jetton master of bridging token
-  remoteReceiver: string; // cosmos receipient address
-  timeout: bigint; // timeout of packet
-  memo: Cell; // memo for execution when token reached Oraichain
-}
-
-interface IJettonWallet {
-  static buildSendTransferPacket(responseAddress: Address, data: SendTransferInterface, queryId: number = 0);
-}
-```
-
 **Parameters**:
 
 - `data` : data for building bridge jetton cell.
 - `responseAddress`: address for receiving redundant fee ton.
 - `queryId`: **query id** of that message.
 
-**Examples for two cases:**
+**Examples:**
 
 ```tsx
 import { useTonConnectUI } from "@tonconnect/ui-react";
@@ -219,8 +273,6 @@ const getNativeBridgePayload = () =>
 
 ## Oraichain to Ton
 
-#### For integration on Node.JS server:
-
 ```ts
 const TON_NATIVE = "ton";
 type JettonMasterAddress = string;
@@ -245,18 +297,105 @@ interface ITonBridgeHandler {
 
 **Examples:**
 
+Here we use `@oraichain/tonbridge-sdk` for interaction.
+
+- Cosmos Wallet Class:
+
+```ts
+abstract class CosmosWallet {
+  /**
+   * This method should return the cosmos address in bech32 form given a cosmos chain id
+   * Browsers should make use of the existing methods from the extension to implement this method
+   * @param chainId - Cosmos chain id to parse and return the correct cosmos address
+   */
+  public abstract getKeplrAddr(chainId?: CosmosChainId): Promise<string>;
+
+  /**
+   * This method creates a new cosmos signer which is responsible for signing cosmos-based transactions.
+   * Browsers should use signers from the extension to implement this method
+   * @param chainId - Cosmos chain id
+   */
+  public abstract createCosmosSigner(chainId: CosmosChainId): Promise<OfflineSigner>;
+
+  async getCosmWasmClient(
+    config: { rpc: string; chainId: CosmosChainId },
+    options: SigningStargateClientOptions
+  ): Promise<{
+    wallet: OfflineSigner;
+    client: SigningCosmWasmClient;
+    stargateClient: SigningStargateClient;
+  }> {
+    const { chainId, rpc } = config;
+    const wallet = await this.createCosmosSigner(chainId);
+    const tmClient = await Tendermint37Client.connect(rpc);
+    let client;
+    const optionsClient = {
+      ...options,
+      broadcastPollIntervalMs: BROADCAST_POLL_INTERVAL
+    };
+    if (chainId === "injective-1") {
+      client = await Stargate.InjectiveSigningStargateClient.createWithSigner(
+        tmClient as any,
+        wallet,
+        optionsClient as any
+      );
+    } else {
+      client = await SigningCosmWasmClient.createWithSigner(tmClient, wallet, optionsClient);
+    }
+    const stargateClient = await SigningStargateClient.createWithSigner(tmClient, wallet, optionsClient);
+    return { wallet, client, stargateClient };
+  }
+
+  async signAndBroadcast(
+    fromChainId: CosmosChainId,
+    fromRpc: string,
+    options: SigningStargateClientOptions,
+    sender: string,
+    encodedObjects: EncodeObject[]
+  ) {
+    // handle sign and broadcast transactions
+    const { client } = await this.getCosmWasmClient(
+      {
+        chainId: fromChainId as CosmosChainId,
+        rpc: fromRpc
+      },
+      options
+    );
+    return client.signAndBroadcast(sender, encodedObjects, "auto");
+  }
+}
+```
+
+You have to implement the CosmosWallet class.
+
+```ts
+References for implement:
+- Browser: "https://github.com/oraichain/oraiswap-frontend/blob/main/src/libs/keplr.ts#L11"
+
+- Node.JS: "https://github.com/oraichain/tonbridge-sdk/blob/main/packages/bridge-sdk/src/demo-utils.ts#L12"
+```
+
+- Bridge:
+
 ```ts
 import { COSMOS_CHAIN_IDS, OraiCommon } from "@oraichain/common";
 import { toNano } from "@ton/ton";
 import { TON_ZERO_ADDRESS } from "./constants";
-import { initCosmosWallet, initTonWallet } from "./demo-utils";
+import { initCosmosWallet } from "./demo-utils"; https://github.com/oraichain/tonbridge-sdk/blob/main/packages/bridge-sdk/src/demo-utils.ts#L12
 import { createTonBridgeHandler } from "./utils";
 
 export async function main() {
   const oraiMnemonic = <ORAICHAIN_MNEMONIC>;
   const tonMnemonic = <TON_MNEMONIC>;
   const cosmosWallet = initCosmosWallet(oraiMnemonic);
-  const tonWallet = await initTonWallet(tonMnemonic, "V4R2");
+  const tonWallet = await TonWallet.create("mainnet", {
+    mnemonicData:
+      {
+        mnemonic: tonMnemonic.split(" "),
+        tonWalletVersion
+      },
+    tonConnector: undefined,
+  }, "V4R2");
   const cosmosRpc = (
     await OraiCommon.initializeFromGitRaw({
       chainIds: [COSMOS_CHAIN_IDS.ORAICHAIN],
@@ -281,98 +420,4 @@ export async function main() {
 }
 
 main();
-```
-
-#### For integration on Web browser client:
-
-At the time i write this docs, `@oraichain/tonbridge-sdk` does not support for client since it is using ton wallet which can not be used for client. Temporarily, I will show a doc on how to use `@oraichain/tonbridge-contracts-sdk` on client.
-
-##### With bridging native token (which is created by token factory module):
-
-```ts
-interface TonbridgeBridgeInterface {
-  bridgeToTon: (
-    {
-      denom,
-      timeout,
-      to
-    }: {
-      denom: string;
-      timeout?: number;
-      to: string;
-    },
-    _fee?: number | StdFee | "auto",
-    _memo?: string,
-    _funds?: Coin[]
-  ) => Promise<ExecuteResult>;
-}
-```
-
-**Parameters**:
-
-- `denom` : ton denom address on Ton Network (**ZERO ADDRESS** if it is TON & **Jetton Master Address** if it is jetton token).
-- `timeout`: timeout timestamp of packet.
-- `to`: ton recipient address.
-
-##### With jetton token:
-
-```ts
-## with this case, you just need to send cw20 token to the ton bridge contract with the message as follow:
-
-interface Message {
-  denom: string;
-  timeout?: number;
-  to: string;
-}
-```
-
-**Parameters**:
-
-- `denom` : ton denom address on Ton Network (**ZERO ADDRESS** if it is TON & **Jetton Master Address** if it is jetton token).
-- `timeout`: timeout timestamp of packet.
-- `to`: ton recipient address.
-
-**Examples for two cases:**
-
-```ts
-const tonBridgeClient = new TonbridgeBridgeClient(window.client, oraiAddress, network.CW_TON_BRIDGE);
-
-let tx;
-
-const timeout = Math.floor(new Date().getTime() / 1000) + 3600;
-const msg = {
-  // crcSrc: ARG_BRIDGE_TO_TON.CRC_SRC,
-  denom: TonTokenList(tonNetwork).find((tk) => tk.coingeckoId === token.coingeckoId).contractAddress,
-  timeout,
-  to: tonAddress
-};
-
-const funds = handleSentFunds({
-  denom: token.denom,
-  amount: toAmount(amount, token.decimal).toString()
-});
-
-// native token
-if (!token.contractAddress) {
-  tx = await tonBridgeClient.bridgeToTon(msg, "auto", null, funds);
-}
-// cw20 token
-else {
-  tx = await window.client.execute(
-    oraiAddress,
-    token.contractAddress,
-    {
-      send: {
-        contract: network.CW_TON_BRIDGE,
-        amount: toAmount(amount, token.decimal).toString(),
-        msg: toBinary({
-          denom: msg.denom,
-          timeout,
-          to: msg.to
-        })
-      }
-    },
-    "auto"
-  );
-}
 ```
