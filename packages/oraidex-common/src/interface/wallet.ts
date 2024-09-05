@@ -17,5 +17,7 @@ export enum ChainIdEnum {
   BNBChainTestNet = "0x61",
   TRON = "0x2b6653dc",
   BitcoinTestnet = "bitcoinTestnet",
-  Bitcoin = "bitcoin"
+  Bitcoin = "bitcoin",
+  Ton = "ton",
+  TonTestnet = "ton_testnet"
 }
