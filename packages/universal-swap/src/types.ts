@@ -1,15 +1,17 @@
 import { AmountDetails, CosmosWallet, EvmWallet, NetworkChainId, TokenItemType } from "@oraichain/oraidex-common";
 import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
+import { calculateTimeoutTimestampTon, TonBridgeHandler } from "@oraichain/tonbridge-sdk/build";
 
 export type UniversalSwapType =
   | "other-networks-to-oraichain"
   | "oraichain-to-oraichain"
   | "oraichain-to-evm"
   | "oraichain-to-cosmos"
+  | "oraichain-to-ton"
   | "cosmos-to-others"
-  | "ton-to-cosmos"
   | "ton-to-oraichain"
+  | "ton-to-cosmos"
   | "ton-to-evm";
 
 export enum SwapDirection {
@@ -33,6 +35,7 @@ export interface Sender {
   cosmos: string;
   evm?: string;
   tron?: string;
+  ton?: string;
 }
 
 export interface RelayerFeeData {
@@ -69,6 +72,7 @@ export interface UniversalSwapData {
 export interface UniversalSwapConfig {
   readonly cosmosWallet?: CosmosWallet;
   readonly evmWallet?: EvmWallet;
+  readonly tonWallet?: any;
   readonly swapOptions?: SwapOptions;
 }
 

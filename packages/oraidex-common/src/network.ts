@@ -54,7 +54,9 @@ import {
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT,
   MIXED_ROUTER,
-  AMM_V3_CONTRACT
+  AMM_V3_CONTRACT,
+  TON20_USDT_CONTRACT,
+  TON_CONTRACT
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -70,7 +72,8 @@ export type NetworkName =
   | "Tron Network"
   | "Injective"
   | "Noble"
-  | "Neutaro";
+  | "Neutaro"
+  | "Ton";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -88,7 +91,9 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type NetworkChainId = CosmosChainId | EvmChainId;
+export type TonChainId = "ton";
+
+export type NetworkChainId = CosmosChainId | EvmChainId | TonChainId;
 
 export type CoinGeckoId =
   | "oraichain-token"
@@ -115,7 +120,7 @@ export type CoinGeckoId =
   | "celestia"
   | "the-open-network";
 
-export type NetworkType = "cosmos" | "evm";
+export type NetworkType = "cosmos" | "evm" | "ton";
 export interface NetworkConfig {
   coinType?: number;
   explorer: string;
@@ -149,7 +154,7 @@ export type BridgeAppCurrency = FeeCurrency & {
   readonly prefixToken?: string;
 };
 
-export type CoinType = 118 | 60 | 195;
+export type CoinType = 118 | 60 | 195 | 607;
 
 /**
  * A list of Cosmos chain infos. If we need to add / remove any chains, just directly update this variable.
@@ -506,9 +511,61 @@ export const oraichainNetwork: CustomChainInfo = {
   ]
 };
 
+export const tonNetworkMainnet: CustomChainInfo = {
+  rest: "https://toncenter.com/api/v2/jsonRPC",
+  rpc: "https://toncenter.com/api/v2/jsonRPC",
+  chainId: "ton",
+  chainName: "Ton",
+  bip44: {
+    coinType: 607
+  },
+  coinType: 607,
+  stakeCurrency: {
+    coinDenom: "TON",
+    coinMinimalDenom: "ton",
+    coinDecimals: 9,
+    coinGeckoId: "the-open-network",
+    coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png"
+  },
+  bech32Config: defaultBech32Config("ton"),
+  networkType: "ton",
+  currencies: [
+    {
+      coinDenom: "TON",
+      coinMinimalDenom: "ton",
+      coinDecimals: 9,
+      bridgeTo: ["Oraichain"],
+      prefixToken: "ton20_",
+      contractAddress: TON_CONTRACT,
+      coinGeckoId: "the-open-network",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png"
+    },
+    {
+      coinDenom: "USDT",
+      coinMinimalDenom: "ton20_usdt",
+      coinDecimals: 6,
+      bridgeTo: ["Oraichain"],
+      contractAddress: TON20_USDT_CONTRACT,
+      prefixToken: "ton20_",
+      coinGeckoId: "tether",
+      coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/825.png"
+    }
+  ],
+  get feeCurrencies() {
+    return this.currencies;
+  },
+  features: ["isTon"],
+  txExplorer: {
+    name: "BlockStream",
+    txUrl: "https://tonviewer.com/transaction/{txHash}",
+    accountUrl: `https://tonviewer.com/transaction/{address}`
+  }
+};
+
 export const chainInfos: CustomChainInfo[] = [
   // networks to add on keplr
   oraichainNetwork,
+  tonNetworkMainnet,
   {
     rpc: "https://bridge-v2.rpc.orai.io",
     rest: "https://bridge-v2.lcd.orai.io",

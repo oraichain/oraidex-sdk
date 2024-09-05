@@ -43,10 +43,16 @@ import {
   cosmosChains,
   parseAssetInfoFromContractAddrOrDenom,
   TON_ORAICHAIN_DENOM,
-  toDisplay
+  toDisplay,
+  TON_BRIDGE_ADAPTER_ORAICHAIN,
+  TON_BRIDGE_ADAPTER,
+  TON_CONTRACT,
+  ibcInfos
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
+import { TonbridgeBridgeClient } from "@oraichain/tonbridge-contracts-sdk";
+import { calculateTimeoutTimestampTon, TonBridgeHandler } from "@oraichain/tonbridge-sdk";
 import {
   ConvertReverse,
   ConvertType,
@@ -62,6 +68,11 @@ import {
 import { GasPrice } from "@cosmjs/stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
+import { toNano } from "@ton/ton";
+import { Address, Cell, Dictionary, beginCell } from "@ton/core";
+import { buildUniversalSwapMemo } from "./proto";
+
+// import { getHttpEndpoint } from "@orbs-network/ton-access";
 
 const AFFILIATE_DECIMAL = 1e4; // 10_000
 export class UniversalSwapHandler {
@@ -89,8 +100,13 @@ export class UniversalSwapHandler {
 
   async getUniversalSwapToAddress(
     toChainId: NetworkChainId,
-    address: { metamaskAddress?: string; tronAddress?: string }
+    address: { metamaskAddress?: string; tronAddress?: string; tonAddress?: string }
   ): Promise<string> {
+    // ton based
+    if (toChainId === "ton") {
+      return address.tonAddress ?? (await this.config.tonWallet.getTonAddress());
+    }
+
     // evm based
     if (toChainId === "0x01" || toChainId === "0x1ae6" || toChainId === "0x38") {
       return address.metamaskAddress ?? (await this.config.evmWallet.getEthAddress());
@@ -955,6 +971,30 @@ export class UniversalSwapHandler {
       );
 
     switch (universalSwapType) {
+      case "oraichain-to-ton":
+        if (!this.config.tonWallet)
+          throw generateError("Cannot transfer and swap if the ton wallet is not initialized");
+        const wasmBridge = new TonbridgeBridgeClient(client, oraiAddress, TON_BRIDGE_ADAPTER_ORAICHAIN);
+        const handler = await TonBridgeHandler.create({
+          wasmBridge,
+          tonBridge: TON_BRIDGE_ADAPTER,
+          tonSender: this.config.tonWallet.sender,
+          // tonClientParameters: {
+          //      endpoint: "https://toncenter.com/api/v2/jsonRPC",
+          //      apiKey: process.env.TON_API_KEY
+          // },
+        });
+
+        const tonReceiveAddress = await this.config.tonWallet.getTonAddress();
+        if (!tonReceiveAddress) throw generateError("Please login ton wallet!");
+
+        const result = await handler.sendToTon(
+          tonReceiveAddress,
+          toNano(3),
+          TON_CONTRACT
+        );
+
+        return result;
       case "oraichain-to-cosmos":
         encodedObjects = await this.combineSwapMsgOraichain();
         break;
@@ -1077,6 +1117,87 @@ export class UniversalSwapHandler {
     return this.transferEvmToIBC(swapRoute);
   }
 
+  async swapTonToOtherNetwork(universalSwapType: UniversalSwapType) {
+    const { originalToToken, sender , originalFromToken} = this.swapData;
+    
+    if (!this.config.tonWallet)
+      throw generateError("Cannot transfer and swap if the ton wallet is not initialized");
+
+    const { client } = await this.config.cosmosWallet.getCosmWasmClient(
+      { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
+      { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
+    );
+
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
+    if (oraiAddress !== sender.cosmos)
+      throw generateError(
+        `There is a mismatch between the sender ${sender.cosmos} versus the Oraichain address ${oraiAddress}. Should not swap!`
+      );
+
+  
+    const tonReceiveAddress = await this.config.tonWallet.getTonAddress();
+    if (!tonReceiveAddress) throw generateError("Please login ton wallet!");
+
+    const wasmBridge = new TonbridgeBridgeClient(client, sender.cosmos, TON_BRIDGE_ADAPTER_ORAICHAIN);
+    const handler = await TonBridgeHandler.create({
+      wasmBridge,
+      tonBridge: TON_BRIDGE_ADAPTER,
+      tonSender: this.config.tonWallet.sender,
+      tonClientParameters: {
+           endpoint: "https://toncenter.com/api/v2/jsonRPC",
+          //  apiKey: process.env.TON_API_KEY
+      },
+    });
+
+    const ibcInfo = ibcInfos["Oraichain"][originalToToken.chainId];
+    let memo = beginCell().endCell().toString();
+    switch (universalSwapType) {
+      case "ton-to-evm":
+      case "ton-to-oraichain":
+        break;
+      case "ton-to-cosmos":
+        const cosmosAddress = await this.config.cosmosWallet.getKeplrAddr(originalToToken.chainId as  CosmosChainId);
+        if (!cosmosAddress) throw "Please connect Cosmos Wallet!";
+
+        const buildMemoSwap = buildUniversalSwapMemo(
+          {
+            minimumReceive: "0",
+            recoveryAddr: oraiAddress,
+          },
+          undefined,
+          undefined,
+          undefined,
+          {
+            sourceChannel: ibcInfo.channel,
+            sourcePort: ibcInfo.source,
+            receiver: cosmosAddress,
+            memo,
+            recoverAddress: oraiAddress,
+          },
+          undefined
+        );
+
+        memo = beginCell().storeStringRefTail(buildMemoSwap).endCell().toString();
+        break;
+    
+    }
+
+
+    const result =  await handler.sendToCosmos(
+      wasmBridge.sender,
+      toNano(3),
+      originalFromToken.denom,
+      {
+        queryId: 0,
+        value: toNano(0), // dont care
+      },
+      calculateTimeoutTimestampTon(3600),
+      memo
+    );
+    return result;
+
+  }
+
   // this method allows swapping from cosmos networks to arbitrary networks using ibc wasm hooks
   // Oraichain will be use as a proxy
   // TODO: write test cases
@@ -1169,7 +1290,7 @@ export class UniversalSwapHandler {
   }
 
   async processUniversalSwap() {
-    const { evm, tron } = this.swapData.sender;
+    const { evm, tron, ton } = this.swapData.sender;
     const { originalFromToken, originalToToken, simulateAmount, relayerFee } = this.swapData;
     const { swapOptions } = this.config;
     let toAddress = "";
@@ -1185,7 +1306,8 @@ export class UniversalSwapHandler {
     } else {
       toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
         metamaskAddress: evm,
-        tronAddress: tron
+        tronAddress: tron,
+        tonAddress: ton
       });
     }
 
@@ -1219,8 +1341,13 @@ export class UniversalSwapHandler {
     }
 
     if (universalSwapType === "oraichain-to-oraichain") return this.swap();
-    if (universalSwapType === "oraichain-to-cosmos" || universalSwapType === "oraichain-to-evm")
+    if (
+      universalSwapType === "oraichain-to-cosmos" ||
+      universalSwapType === "oraichain-to-evm" ||
+      universalSwapType === "oraichain-to-ton"
+    )
       return this.swapAndTransferToOtherNetworks(universalSwapType);
+    if (universalSwapType === "ton-to-oraichain") return this.swapTonToOtherNetwork(universalSwapType);
     if (universalSwapType === "cosmos-to-others") return this.swapCosmosToOtherNetwork(toAddress);
     return this.transferAndSwap(swapRoute);
   }
@@ -1286,8 +1413,7 @@ export class UniversalSwapHandler {
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, fromAmount, affiliates } = this.swapData;
-    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
-    const fromTokenOnOrai = getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const fromTokenOnOrai = getTokenOnOraichain(originalFromToken.coinGeckoId);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
     const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
     if (!this.swapData.simulatePrice || !isValidSlippage) {
