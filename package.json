@@ -31,7 +31,7 @@
     "@cosmjs/tendermint-rpc": "0.31.3",
     "@oraichain/common-contracts-build": "1.0.35",
     "@oraichain/common-contracts-sdk": "1.0.31",
-    "@oraichain/tonbridge-sdk": "^1.3.2",
+    "@oraichain/tonbridge-sdk": "^1.3.6",
     "@ton/crypto": "^3.3.0"
   },
   "devDependencies": {

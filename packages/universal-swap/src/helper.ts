@@ -241,8 +241,8 @@ export class UniversalSwapHelper {
       return { swapRoute: "", universalSwapType: "oraichain-to-ton", isSmartRouter: false };
     }
 
-    if (fromToken.chainId === "ton" && toToken.chainId == "Oraichain") {
-      return { swapRoute: "", universalSwapType: "ton-to-oraichain", isSmartRouter: false };
+    if (fromToken.chainId === "ton") {
+      return { swapRoute: "", universalSwapType: "ton-to-others", isSmartRouter: false };
     }
 
     if (!fromToken || !toToken || !destReceiver)
