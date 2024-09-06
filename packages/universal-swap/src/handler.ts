@@ -1116,8 +1116,8 @@ export class UniversalSwapHandler {
     return this.transferEvmToIBC(swapRoute);
   }
 
-  async swapTonToOtherNetwork(universalSwapType: UniversalSwapType) {
-    const { originalToToken, sender, originalFromToken } = this.swapData;
+  async swapTonToOtherNetwork(destinationReceiver: string) {
+    const { originalToToken, originalFromToken, alphaSmartRoutes, simulateAmount } = this.swapData;
 
     if (!this.config.tonWallet) throw generateError("Cannot transfer and swap if the ton wallet is not initialized");
 
@@ -1126,16 +1126,16 @@ export class UniversalSwapHandler {
       { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
     );
 
-    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
-    if (oraiAddress !== sender.cosmos)
-      throw generateError(
-        `There is a mismatch between the sender ${sender.cosmos} versus the Oraichain address ${oraiAddress}. Should not swap!`
-      );
+    const [oraiAddress, obridgeAddress, tonReceiveAddress] = await Promise.all([
+      this.config.cosmosWallet.getKeplrAddr("Oraichain"),
+      this.config.cosmosWallet.getKeplrAddr("oraibridge-subnet-2"),
+      this.config.tonWallet.sender.address.toString()
+    ]);
 
-    const tonReceiveAddress = await this.config.tonWallet.sender.address.toString();
+    if (!oraiAddress || !obridgeAddress) throw generateError("Please login cosmos wallet!");
     if (!tonReceiveAddress) throw generateError("Please login ton wallet!");
 
-    const wasmBridge = new TonbridgeBridgeClient(client, sender.cosmos, TON_BRIDGE_ADAPTER_ORAICHAIN);
+    const wasmBridge = new TonbridgeBridgeClient(client, oraiAddress, TON_BRIDGE_ADAPTER_ORAICHAIN);
     const handler = await TonBridgeHandler.create({
       wasmBridge,
       tonBridge: TON_BRIDGE_ADAPTER,
@@ -1146,42 +1146,23 @@ export class UniversalSwapHandler {
       }
     });
 
-    const ibcInfo = ibcInfos["Oraichain"][originalToToken.chainId];
-    let memo = beginCell().endCell().toString();
+    let minimumReceive = simulateAmount;
+    if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
 
-    let universalSwapToType = "";
-    if (originalToToken.cosmosBased) universalSwapToType = "ton-to-cosmos";
-    if (originalToToken.chainId === "Oraichain") universalSwapToType = "ton-to-oraichain";
-    if (!originalToToken.cosmosBased) universalSwapToType = "ton-to-evm";
-    switch (universalSwapToType) {
-      case "ton-to-evm":
-      case "ton-to-oraichain":
-        break;
-      case "ton-to-cosmos":
-        const cosmosAddress = await this.config.cosmosWallet.getKeplrAddr(originalToToken.chainId as CosmosChainId);
-        if (!cosmosAddress) throw "Please connect Cosmos Wallet!";
+    const { swapRoute: completeSwapRoute } = await UniversalSwapHelper.addOraiBridgeRoute(
+      oraiAddress,
+      originalFromToken,
+      originalToToken,
+      minimumReceive,
+      destinationReceiver,
+      this.config.swapOptions,
+      alphaSmartRoutes,
+      obridgeAddress
+    );
 
-        const buildMemoSwap = buildUniversalSwapMemo(
-          {
-            minimumReceive: "0",
-            recoveryAddr: oraiAddress
-          },
-          undefined,
-          undefined,
-          undefined,
-          {
-            sourceChannel: ibcInfo.channel,
-            sourcePort: ibcInfo.source,
-            receiver: cosmosAddress,
-            memo,
-            recoverAddress: oraiAddress
-          },
-          undefined
-        );
-
-        memo = beginCell().storeStringRefTail(buildMemoSwap).endCell().toString();
-        break;
-    }
+    const swapRouteSplit = completeSwapRoute.split(":");
+    const swapRoute = swapRouteSplit.length === 1 ? "" : swapRouteSplit[1];
+    const memo = beginCell().storeStringRefTail(swapRoute).endCell().toString();
 
     const result = await handler.sendToCosmos(
       wasmBridge.sender,
@@ -1346,7 +1327,7 @@ export class UniversalSwapHandler {
       universalSwapType === "oraichain-to-ton"
     )
       return this.swapAndTransferToOtherNetworks(universalSwapType);
-    if (universalSwapType === "ton-to-others") return this.swapTonToOtherNetwork(universalSwapType);
+    if (universalSwapType === "ton-to-others") return this.swapTonToOtherNetwork(toAddress);
     if (universalSwapType === "cosmos-to-others") return this.swapCosmosToOtherNetwork(toAddress);
     return this.transferAndSwap(swapRoute);
   }

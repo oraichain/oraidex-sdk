@@ -52,10 +52,10 @@ export const buildUniversalSwapMemo = (
     recoveryAddr: string;
   },
   userSwap: RouterResponse = { returnAmount: "", routes: [], swapAmount: "" },
-  postActionIbcWasmTransfer?: Memo_IbcWasmTransfer,
-  postActionContractCall?: { contractAddress: string; msg: string },
-  postActionIbcTransfer?: Memo_IbcTransfer,
-  postActionTransfer?: Memo_Transfer
+  postActionIbcWasmTransfer?: Memo_IbcWasmTransfer, // toEvm
+  postActionContractCall?: { contractAddress: string; msg: string }, // toTon
+  postActionIbcTransfer?: Memo_IbcTransfer, // toCosmos
+  postActionTransfer?: Memo_Transfer // toOraichain
 ) => {
   const { minimumReceive, recoveryAddr } = basic;
 
