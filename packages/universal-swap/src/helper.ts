@@ -47,7 +47,8 @@ import {
   getAxios,
   parseAssetInfoFromContractAddrOrDenom,
   parseAssetInfo,
-  calculateTimeoutTimestamp
+  calculateTimeoutTimestamp,
+  TON_BRIDGE_ADAPTER_ORAICHAIN
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -79,6 +80,7 @@ import { Coin } from "@cosmjs/proto-signing";
 import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
+import { Memo_ContractCall } from "./proto/universal_swap_memo";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -396,10 +398,8 @@ export class UniversalSwapHelper {
     const destChainIdIsNoble = userSwap.destChainId === "noble-1";
     const useIbcWasm = evmChains.some((evm) => evm.chainId === userSwap.destChainId) || destChainIdIsNoble;
 
-    return buildUniversalSwapMemo(
-      basic,
-      userSwap,
-      // only use ibc wasm bridge when the dst chain id is OraiBridge
+    // only use ibc wasm bridge when the dst chain id is OraiBridge
+    let postActionIbcWasmTransfer =
       finalDestReceiver && dstChannel && useIbcWasm
         ? {
             localChannelId: dstChannel,
@@ -408,9 +408,28 @@ export class UniversalSwapHelper {
             timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, Date.now()),
             memo: destChainIdIsNoble ? "" : finalDestReceiver
           }
-        : undefined,
-      undefined,
-      // for other chains, we use ibc transfer
+        : undefined;
+    let postActionContractCall: Memo_ContractCall;
+    switch (userSwap.destChainId) {
+      case "ton":
+        postActionContractCall = {
+          contractAddress: TON_BRIDGE_ADAPTER_ORAICHAIN,
+          msg: toBinary({
+            bridge_to_ton: {
+              to: destReceiver,
+              denom: dstDenom,
+              timeout: Math.floor(new Date().getTime() / 1000) + IBC_TRANSFER_TIMEOUT,
+              recovery_addr: basic.recoveryAddr
+            }
+          })
+        };
+        break;
+      default:
+        break;
+    }
+
+    // for other chains, we use ibc transfer
+    let postActionIbcTransfer =
       finalDestReceiver && dstChannel && !useIbcWasm
         ? {
             memo: "",
@@ -419,8 +438,16 @@ export class UniversalSwapHelper {
             sourcePort: ibcInfo.source,
             recoverAddress: basic.recoveryAddr
           }
-        : undefined,
-      userSwap.destChainId == "Oraichain" ? { toAddress: basic.recoveryAddr } : undefined
+        : undefined;
+    let postActionTransfer = userSwap.destChainId == "Oraichain" ? { toAddress: basic.recoveryAddr } : undefined;
+
+    return buildUniversalSwapMemo(
+      basic,
+      userSwap,
+      postActionIbcWasmTransfer,
+      postActionContractCall,
+      postActionIbcTransfer,
+      postActionTransfer
     );
   };
 
