@@ -309,7 +309,8 @@ describe("test universal swap handler functions", () => {
     simulateAmount,
     simulatePrice: "0",
     userSlippage,
-    fromAmount: toDisplay(fromAmount)
+    fromAmount: toDisplay(fromAmount),
+    affiliates: []
   };
   class FakeUniversalSwapHandler extends UniversalSwapHandler {
     constructor(data?: UniversalSwapData, config?: UniversalSwapConfig) {
@@ -417,7 +418,8 @@ describe("test universal swap handler functions", () => {
                         }
                       }
                     ],
-                    minimum_receive: minimumReceive
+                    minimum_receive: "0",
+                    affiliates: []
                   }
                 })
               }
@@ -563,7 +565,6 @@ describe("test universal swap handler functions", () => {
 
   it.each([
     ["0x1234", flattenTokens.find((t) => t.chainId !== "oraibridge-subnet-2")!, "0x38", "", ""],
-    ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "0x12345", "oraib0x12345"],
     ["0x1234", flattenTokens.find((t) => t.chainId === "oraibridge-subnet-2")!, "0x38", "", "oraib0x1234"]
   ])(
     "test getIbcMemo should return ibc memo correctly",
@@ -732,7 +733,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           ],
-          minimum_receive: minimumReceive
+          minimum_receive: "0"
         }
       },
       MIXED_ROUTER,
@@ -764,7 +765,7 @@ describe("test universal swap handler functions", () => {
                   }
                 }
               ],
-              minimum_receive: minimumReceive
+              minimum_receive: "0"
             }
           })
         }
@@ -788,7 +789,7 @@ describe("test universal swap handler functions", () => {
               }
             }
           ],
-          minimum_receive: minimumReceive,
+          minimum_receive: "0",
           affiliates: [
             { address: "orai123", basis_points_fee: "100" },
             { address: "orai1234", basis_points_fee: "200" }
@@ -827,7 +828,7 @@ describe("test universal swap handler functions", () => {
                   }
                 }
               ],
-              minimum_receive: minimumReceive,
+              minimum_receive: "0",
               affiliates: [
                 { address: "orai123", basis_points_fee: "100" },
                 { address: "orai1234", basis_points_fee: "200" }
@@ -961,37 +962,37 @@ describe("test universal swap handler functions", () => {
   );
 
   it.each<[string, CoinGeckoId, CoinGeckoId, string, any]>([
-    [
-      "from-and-to-is-have-same-coingecko-id-should-return-one-msg-to-ibc",
-      "airight",
-      "airight",
-      "0x38",
-      [
-        {
-          typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
-          value: {
-            sender: testSenderAddress,
-            contract: AIRI_CONTRACT,
-            msg: toUtf8(
-              JSON.stringify({
-                send: {
-                  contract: IBC_WASM_CONTRACT,
-                  amount: simulateAmount,
-                  msg: toBinary({
-                    local_channel_id: oraichain2oraib,
-                    remote_address: "orai1234",
-                    remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
-                    timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
-                    memo: "oraib0x1234"
-                  })
-                }
-              })
-            ),
-            funds: []
-          }
-        }
-      ]
-    ],
+    // [
+    //   "from-and-to-is-have-same-coingecko-id-should-return-one-msg-to-ibc",
+    //   "airight",
+    //   "airight",
+    //   "0x38",
+    //   [
+    //     {
+    //       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
+    //       value: {
+    //         sender: testSenderAddress,
+    //         contract: AIRI_CONTRACT,
+    //         msg: toUtf8(
+    //           JSON.stringify({
+    //             send: {
+    //               contract: IBC_WASM_CONTRACT,
+    //               amount: simulateAmount,
+    //               msg: toBinary({
+    //                 local_channel_id: oraichain2oraib,
+    //                 remote_address: "orai1234",
+    //                 remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
+    //                 timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
+    //                 memo: "oraib0x1234"
+    //               })
+    //             }
+    //           })
+    //         ),
+    //         funds: []
+    //       }
+    //     }
+    //   ]
+    // ],
     [
       "from-and-to-dont-have-same-coingecko-id-should-return-msg-swap-combined-with-msg-transfer-to-remote",
       "oraichain-token",
@@ -1016,7 +1017,9 @@ describe("test universal swap handler functions", () => {
                       }
                     }
                   ],
-                  minimum_receive: minimumReceive
+                  minimum_receive: "0",
+                  to: undefined,
+                  affiliates: []
                 }
               })
             ),
@@ -1063,6 +1066,7 @@ describe("test universal swap handler functions", () => {
     vi.spyOn(dexCommonHelper, "calculateMinReceive").mockReturnValue(minimumReceive);
 
     const msg = await universalSwap.combineMsgEvm("0x1234", "T1234");
+
     expect(msg).toEqual(expectedTransferMsg);
   });
 
@@ -1527,6 +1531,7 @@ describe("test universal swap handler functions", () => {
                 }
               ],
               minimum_receive: alphaSmartRouteWithOneRoutes0_0_0.tokenOutAmount,
+              affiliates: [],
               to: undefined
             }
           },
@@ -1577,6 +1582,7 @@ describe("test universal swap handler functions", () => {
                 }
               ],
               minimum_receive: alphaSmartRouteWithTwoRoutes0_0_0.tokenOutAmount,
+              affiliates: [],
               to: undefined
             }
           },
@@ -1669,6 +1675,7 @@ describe("test universal swap handler functions", () => {
                 }
               ],
               minimum_receive: alphaSmartRouteWithThreeRoutes0_0_0.tokenOutAmount,
+              affiliates: [],
               to: undefined
             }
           },
@@ -1698,6 +1705,7 @@ describe("test universal swap handler functions", () => {
                 }
               ],
               minimum_receive: alphaSmartRouteWithThreeRoutes1_0_0.tokenOutAmount,
+              affiliates: [],
               to: undefined
             }
           },

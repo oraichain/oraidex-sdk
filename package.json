@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "postinstall": "patch-package",
-    "test": "yarn build:test && vitest run --silent=false --coverage --no-file-parallelism --no-isolate --pool=threads",
+    "test": "yarn build && vitest run --silent=false --coverage --no-file-parallelism --no-isolate --pool=threads",
     "docs": "typedoc --entryPointStrategy expand --name 'Oraidex SDK' --readme none --tsconfig packages/contracts-sdk/tsconfig.json packages/contracts-sdk/src",
     "clean": "lerna clean --yes && lerna exec -- rimraf build/ dist/ cache/ && nx reset",
     "build": "lerna run build --concurrency 1",
-    "build:test": "lerna run build:test --concurrency 1",
+    "build:test": "lerna run build --concurrency 1",
     "build-tsc": "tsc -p",
     "deploy": "yarn publish --access public",
     "deploy:beta": "yarn publish --access public --tag beta",
@@ -31,7 +31,8 @@
     "@cosmjs/tendermint-rpc": "0.31.3",
     "@oraichain/common-contracts-build": "1.0.35",
     "@oraichain/common-contracts-sdk": "1.0.31",
-    "@oraichain/tonbridge-sdk": "^1.3.2"
+    "@oraichain/tonbridge-sdk": "^1.3.2",
+    "@ton/crypto": "^3.3.0"
   },
   "devDependencies": {
     "@babel/traverse": "7.24.1",
