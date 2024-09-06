@@ -233,7 +233,9 @@ export class UniversalSwapHandler {
     if (this.swapData.originalToToken.prefix === ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX) {
       transferAddress = tronToEthAddress(tronAddress);
     }
+
     const toTokenInOrai = getTokenOnOraichain(this.swapData.originalToToken.coinGeckoId);
+
     // only allow transferring back to ethereum / bsc only if there's metamask address and when the metamask address is used, which is in the ibcMemo variable
     if (!transferAddress && ((toTokenInOrai && toTokenInOrai.evmDenoms) || channel === oraichain2oraib)) {
       throw generateError("Please login metamask / tronlink!");
@@ -267,6 +269,7 @@ export class UniversalSwapHandler {
   async combineMsgEvm(metamaskAddress: string, tronAddress: string) {
     let msgExecuteSwap: EncodeObject[] = [];
     const { originalFromToken, originalToToken, sender, recipientAddress } = this.swapData;
+
     // if from and to dont't have same coingeckoId, create swap msg to combine with bridge msg
     if (originalFromToken.coinGeckoId !== originalToToken.coinGeckoId) {
       const msgSwap = this.generateMsgsSwap();
