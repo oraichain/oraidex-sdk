@@ -352,7 +352,7 @@ export class ZapConsumer {
       amountInToX += BigInt(Math.round(deltaX.mul(m1).toNumber()));
       amountInToY = BigInt(amountIn) - amountInToX;
       console.log(
-        `[ZAP-CONSUMER] Result 3: ${amountInToX} ${tokenIn.name} to ${amountX} ${tokenX.name}, ${amountInToY} ${tokenIn} to ${amountY} ${tokenY.name}`
+        `[ZAP-CONSUMER] Result 3: ${amountInToX} ${tokenIn.name} to ${amountX} ${tokenX.name}, ${amountInToY} ${tokenIn.name} to ${amountY} ${tokenY.name}`
       );
     }
 
@@ -372,6 +372,8 @@ export class ZapConsumer {
       destAsset: tokenY,
       amount: amountInToY
     });
+    console.dir(xRouteInfo, { depth: null });
+    console.dir(yRouteInfo, { depth: null });
     console.log(
       `[ZAP-CONSUMER] Final result: ${amountInToX} ${tokenIn.name} to ${xRouteInfo.returnAmount} ${tokenX.name}, ${amountInToY} ${tokenIn.name} to ${yRouteInfo.returnAmount} ${tokenY.name}`
     );
@@ -399,6 +401,10 @@ export class ZapConsumer {
 
     messages.amountX = xRouteInfo.returnAmount;
     messages.amountY = yRouteInfo.returnAmount;
+    messages.sqrtPrice = BigInt(pool.pool.sqrt_price);
+
+    console.dir(messages.operationToX, { depth: null });
+    console.dir(messages.operationToY, { depth: null });
 
     return messages;
   }
@@ -463,11 +469,13 @@ export class ZapConsumer {
       destAsset: tokenOut,
       amount: rewardAmounts[pool.pool_key.token_x]
     });
+    console.log("xRouteInfo", xRouteInfo);
     const yRouteInfo = await this.findRoute({
       sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_y),
       destAsset: tokenOut,
       amount: rewardAmounts[pool.pool_key.token_y]
     });
+    console.log("yRouteInfo", yRouteInfo);
 
     // build messages
     const messages: ZapOutLiquidityResponse = null;

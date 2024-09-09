@@ -33,7 +33,8 @@ async function main() {
     devitation: 0.05,
     smartRouteConfig: {
       swapOptions: {
-        protocols: ["OraidexV3"]
+        protocols: ["OraidexV3"],
+        maxSplits: 1
       }
     }
   });
@@ -67,7 +68,7 @@ async function main() {
     const res = await zapper.processZapInPositionLiquidity({
       poolKey: poolKeyParsed,
       tokenIn: tokenIn as TokenItemType,
-      amountIn: "10000000000",
+      amountIn: "10000000",
       lowerTick: currentTick - spread,
       upperTick: currentTick + spread
     });
@@ -76,16 +77,16 @@ async function main() {
     const amountY = res.amountY;
 
     /// front-end check
-    const poolAfter = await handler.getPool(poolKeyParsed);
-    const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
-      BigInt(amountX as string),
-      res.tickLowerIndex,
-      res.tickUpperIndex,
-      BigInt(poolAfter.pool.sqrt_price),
-      true
-    );
-    const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;
-    console.log(`Accurancy: ${accurancy.toFixed(2)}%`);
+    // const poolAfter = await handler.getPool(poolKeyParsed);
+    // const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
+    //   BigInt(amountX as string),
+    //   res.tickLowerIndex,
+    //   res.tickUpperIndex,
+    //   res.sqrtPrice,
+    //   true
+    // );
+    // const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;
+    // console.log(`Accurancy: ${accurancy.toFixed(2)}%`);
 
     // sleep 10s
     await new Promise((resolve) => setTimeout(resolve, 10000));

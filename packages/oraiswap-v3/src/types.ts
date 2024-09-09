@@ -233,6 +233,7 @@ export type Protocols = "Oraidex" | "OraidexV3" | "Osmosis";
 export type SmartRouteConfig = {
   swapOptions: {
     protocols: Protocols[];
+    maxSplits?: number;
   };
 };
 
@@ -255,6 +256,7 @@ export type ZapInLiquidityResponse = {
   tickUpperIndex: number;
   amountX: Uint128;
   amountY: Uint128;
+  sqrtPrice: bigint;
 };
 
 export type ZapOutLiquidityResponse = {
