@@ -30,4 +30,6 @@ export * as OraiswapV3Types from "./OraiswapV3.types";
 export * from "./OraiswapV3.client";
 export * as OraiswapMixedRouterTypes from "./OraiswapMixedRouter.types";
 export * from "./OraiswapMixedRouter.client";
+export * as ZapperTypes from "./Zapper.types";
+export * from "./Zapper.client";
 export * from "./types";

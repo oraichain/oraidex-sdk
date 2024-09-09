@@ -13,7 +13,8 @@ import {
 } from "./types";
 import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
 import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { BigDecimal, fetchRetry, oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
+import { BigDecimal, fetchRetry, oraichainTokens, parseAssetInfoFromContractAddrOrDenom, TokenItemType } from "@oraichain/oraidex-common";
+import { Asset, SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
 
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
   const feeDenominator = (BigInt(protocolFee) * BigInt(pool.pool_key.fee_tier.fee)) / DENOMINATOR;
@@ -284,4 +285,58 @@ export const shiftDecimal = (value: bigint, decimals: number): BigDecimal => {
   return new BigDecimal(result, decimals);
 };
 
+export const parseAsset = (token: TokenItemType, amount: string): Asset => {
+  const info = token.contractAddress
+    ? { token: { contract_addr: token.contractAddress } }
+    : { native_token: { denom: token.denom } };
+  return {
+    amount,
+    info
+  };
+};
 
+export const generateMessageSwapOperation = (route: SmartRouteResponse): SwapOperation[] => {
+  const { routes, returnAmount, swapAmount } = route;
+  const operations: SwapOperation[] = [];
+
+  for (const route of routes) {
+    const { swapAmount, returnAmount, paths } = route;
+    for (const path of paths) {
+      const { actions, chainId, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, tokenOutChainId } = path;
+      for (const action of actions) {
+        const { protocol, swapInfo, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, type } = action;
+        let currTokenIn = parseAssetInfoFromContractAddrOrDenom(tokenIn);
+        for (const swap of swapInfo) {
+          const { poolId } = swap;
+          const [tokenX, tokenY, fee, tickSpacing] = poolId.split("-");
+          const tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
+          if (tokenX && tokenY && fee && tickSpacing) {
+            operations.push({
+              swap_v3: {
+                pool_key: {
+                  token_x: tokenX,
+                  token_y: tokenY,
+                  fee_tier: {
+                    fee: Number(fee),
+                    tick_spacing: Number(tickSpacing)
+                  }
+                },
+                x_to_y: tokenY === swap.tokenOut
+              }
+            });
+          } else {
+            operations.push({
+              orai_swap: {
+                offer_asset_info: currTokenIn,
+                ask_asset_info: tokenOut
+              }
+            });
+          }
+          currTokenIn = tokenOut;
+        }
+      }
+    }
+  }
+
+  return operations;
+};

@@ -20,7 +20,14 @@ import {
   positionToTick,
   simulateSwap
 } from "./wasm/oraiswap_v3_wasm";
-import { calculateTokenAmounts, extractAddress, poolKeyToString, shiftDecimal } from "./helpers";
+import {
+  calculateTokenAmounts,
+  extractAddress,
+  generateMessageSwapOperation,
+  parseAsset,
+  poolKeyToString,
+  shiftDecimal
+} from "./helpers";
 import { CHUNK_SIZE } from "./const";
 import { ArrayOfTupleOfUint16AndUint64 } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 
@@ -163,13 +170,15 @@ export class ZapConsumer {
     tokenIn,
     amountIn,
     lowerTick,
-    upperTick
+    upperTick,
+    slippage = 1
   }: {
     poolKey: PoolKey;
     tokenIn: TokenItemType;
     amountIn: string;
     lowerTick: number;
     upperTick: number;
+    slippage?: number;
   }): Promise<ZapInLiquidityResponse> {
     // get pool info
     const tokenX = oraichainTokens.find((t) => extractAddress(t) === poolKey.token_x);
@@ -349,18 +358,7 @@ export class ZapConsumer {
 
     // build messages
     console.log("[ZAP-CONSUMER] Build messages");
-    const messages: ZapInLiquidityResponse = {
-      swapOperations: [],
-      offerAssets: [],
-      addLiquidityOperations: [],
-      simulatedSqrtPrice: simulatedNextSqrtPrice,
-      simulation: {
-        amountInToX: amountInToX.toString(),
-        amountInToY: amountInToY.toString(),
-        amountX: amountX.toString(),
-        amountY: amountY.toString()
-      }
-    };
+    const messages: ZapInLiquidityResponse = null;
 
     let xRouteInfo: SmartRouteResponse;
     let yRouteInfo: SmartRouteResponse;
@@ -377,36 +375,30 @@ export class ZapConsumer {
     console.log(
       `[ZAP-CONSUMER] Final result: ${amountInToX} ${tokenIn.name} to ${xRouteInfo.returnAmount} ${tokenX.name}, ${amountInToY} ${tokenIn.name} to ${yRouteInfo.returnAmount} ${tokenY.name}`
     );
-    messages.simulation = {
-      amountInToX: amountInToX.toString(),
-      amountInToY: amountInToY.toString(),
-      amountX: xRouteInfo.returnAmount,
-      amountY: yRouteInfo.returnAmount
-    };
-    if (![poolKey.token_x, poolKey.token_y].includes(extractAddress(tokenIn))) {
-      messages.swapOperations.push(xRouteInfo);
-      messages.swapOperations.push(yRouteInfo);
-    } else {
-      if (extractAddress(tokenIn) === poolKey.token_x) {
-        messages.swapOperations.push(yRouteInfo);
-      } else {
-        messages.swapOperations.push(xRouteInfo);
-      }
-    }
-    messages.offerAssets.push({
-      asset: tokenX,
-      amount: xRouteInfo.returnAmount
-    });
-    messages.offerAssets.push({
-      asset: tokenY,
-      amount: yRouteInfo.returnAmount
-    });
 
-    messages.addLiquidityOperations.push({
-      poolKey,
-      lowerTick,
-      upperTick
-    });
+    // create message
+    messages.amountToX = amountInToX.toString();
+    messages.amountToY = amountInToY.toString();
+    messages.assetIn = parseAsset(tokenIn, amountIn);
+
+    const minimumReceiveX = xRouteInfo.routes
+      ? Math.trunc(new BigDecimal(xRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+      : xRouteInfo.returnAmount;
+    const minimumReceiveY = yRouteInfo.routes
+      ? Math.trunc(new BigDecimal(yRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+      : yRouteInfo.returnAmount;
+    messages.minimumReceiveX = minimumReceiveX;
+    messages.minimumReceiveY = minimumReceiveY;
+
+    messages.operationToX = xRouteInfo.routes ? generateMessageSwapOperation(xRouteInfo) : [];
+    messages.operationToY = yRouteInfo.routes ? generateMessageSwapOperation(yRouteInfo) : [];
+
+    messages.poolKey = poolKey;
+    messages.tickLowerIndex = lowerTick;
+    messages.tickUpperIndex = upperTick;
+
+    messages.amountX = xRouteInfo.returnAmount;
+    messages.amountY = yRouteInfo.returnAmount;
 
     return messages;
   }
@@ -414,11 +406,13 @@ export class ZapConsumer {
   public async processZapOutPositionLiquidity({
     tokenId,
     owner,
-    tokenOut
+    tokenOut,
+    slippage = 1
   }: {
     tokenId: number;
     owner: string;
     tokenOut: TokenItemType;
+    slippage?: number;
   }): Promise<ZapOutLiquidityResponse> {
     // get position info
     const rewardAmounts: Record<string, bigint> = {};
@@ -440,35 +434,56 @@ export class ZapConsumer {
     // calculate incentives
     const incentives = await this._handler.positionIncentives(index, owner);
     for (const incentive of incentives) {
-      rewardAmounts[parseAssetInfo(incentive.info)] = rewardAmounts[parseAssetInfo(incentive.info)]
-        ? rewardAmounts[parseAssetInfo(incentive.info)] + BigInt(incentive.amount)
-        : BigInt(incentive.amount);
+      if (
+        parseAssetInfo(incentive.info) === pool.pool_key.token_x ||
+        parseAssetInfo(incentive.info) === pool.pool_key.token_y
+      ) {
+        rewardAmounts[parseAssetInfo(incentive.info)] = rewardAmounts[parseAssetInfo(incentive.info)]
+          ? rewardAmounts[parseAssetInfo(incentive.info)] + BigInt(incentive.amount)
+          : BigInt(incentive.amount);
+      }
     }
 
     // find best route
     const routes: SmartRouteResponse[] = [];
-    Object.keys(rewardAmounts).forEach(async (asset) => {
-      if (asset !== tokenOut.name) {
-        const route = await this.findRoute({
-          sourceAsset: oraichainTokens.find((t) => extractAddress(t) === asset),
-          destAsset: tokenOut,
-          amount: rewardAmounts[asset]
-        });
-        if (route) {
-          routes.push(route);
-        }
-      }
+    // Object.keys(rewardAmounts).forEach(async (asset) => {
+    //   if (asset !== tokenOut.name) {
+    //     const route = await this.findRoute({
+    //       sourceAsset: oraichainTokens.find((t) => extractAddress(t) === asset),
+    //       destAsset: tokenOut,
+    //       amount: rewardAmounts[asset]
+    //     });
+    //     if (route) {
+    //       routes.push(route);
+    //     }
+    //   }
+    // });
+    const xRouteInfo = await this.findRoute({
+      sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_x),
+      destAsset: tokenOut,
+      amount: rewardAmounts[pool.pool_key.token_x]
+    });
+    const yRouteInfo = await this.findRoute({
+      sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_y),
+      destAsset: tokenOut,
+      amount: rewardAmounts[pool.pool_key.token_y]
     });
 
     // build messages
-    const messages: ZapOutLiquidityResponse = {
-      swapOperations: [],
-      removeLiquidityOperations: []
-    };
-    routes.forEach((route) => {
-      messages.swapOperations.push(route);
-    });
-    messages.removeLiquidityOperations.push({ tokenId });
+    const messages: ZapOutLiquidityResponse = null;
+    messages.positionIndex = index;
+    
+    const minimumReceiveX = xRouteInfo.routes
+      ? Math.trunc(new BigDecimal(xRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+      : xRouteInfo.returnAmount;
+    const minimumReceiveY = yRouteInfo.routes
+      ? Math.trunc(new BigDecimal(yRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+      : yRouteInfo.returnAmount;
+    messages.minimumReceiveX = minimumReceiveX;
+    messages.minimumReceiveY = minimumReceiveY;
+
+    messages.operationFromX = xRouteInfo.routes ? generateMessageSwapOperation(xRouteInfo) : [];
+    messages.operationFromY = yRouteInfo.routes ? generateMessageSwapOperation(yRouteInfo) : [];
 
     return messages;
   }

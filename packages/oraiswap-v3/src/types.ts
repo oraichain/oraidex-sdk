@@ -1,5 +1,6 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { TokenItemType } from "@oraichain/oraidex-common";
+import { Asset, SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
 
 export interface SnapshotValueData {
   tokenBNFromBeginning: string;
@@ -212,21 +213,19 @@ export type Route = {
 export type SmartRouteResponse = {
   swapAmount: string;
   returnAmount: string;
-  routes: [
-    {
-      swapAmount: string;
-      returnAmount: string;
-      paths: {
-        chainId: string;
-        tokenIn: string;
-        tokenInAmount: string;
-        tokenOut: string;
-        tokenOutAmount: string;
-        tokenOutChainId: string;
-        actions: ActionRoute[];
-      }[];
-    }
-  ];
+  routes: {
+    swapAmount: string;
+    returnAmount: string;
+    paths: {
+      chainId: string;
+      tokenIn: string;
+      tokenInAmount: string;
+      tokenOut: string;
+      tokenOutAmount: string;
+      tokenOutChainId: string;
+      actions: ActionRoute[];
+    }[];
+  }[];
 };
 
 export type Protocols = "Oraidex" | "OraidexV3" | "Osmosis";
@@ -237,36 +236,31 @@ export type SmartRouteConfig = {
   };
 };
 
-export type SwapOperation = {
+export type SmartRouteReponse = {
   swapAmount: string;
   returnAmount: string;
   routes: any[];
 };
 
 export type ZapInLiquidityResponse = {
-  swapOperations: SwapOperation[];
-  offerAssets: {
-    asset: TokenItemType;
-    amount: string;
-  }[];
-  addLiquidityOperations: {
-    poolKey: PoolKey;
-    lowerTick: number;
-    upperTick: number;
-  }[];
-  simulatedSqrtPrice: bigint;
-  simulation: {
-    amountInToX: string;
-    amountInToY: string;
-    amountX: string;
-    amountY: string;
-  }
+  amountToX: Uint128;
+  amountToY: Uint128;
+  assetIn: Asset;
+  minimumReceiveX?: Uint128;
+  minimumReceiveY?: Uint128;
+  operationToY?: SwapOperation[];
+  operationToX?: SwapOperation[];
+  poolKey: PoolKey;
+  tickLowerIndex: number;
+  tickUpperIndex: number;
+  amountX: Uint128;
+  amountY: Uint128;
 };
 
 export type ZapOutLiquidityResponse = {
-  swapOperations: SwapOperation[];
-  removeLiquidityOperations: {
-    tokenId: number;
-  }[];
+  minimumReceiveX?: Uint128;
+  minimumReceiveY?: Uint128;
+  operationFromX?: SwapOperation[];
+  operationFromY?: SwapOperation[];
+  positionIndex: number;
 };
-
