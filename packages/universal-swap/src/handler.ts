@@ -636,7 +636,7 @@ export class UniversalSwapHandler {
 
   async alphaSmartRouterSwap() {
     const { cosmos } = this.swapData.sender;
-    const { alphaSmartRoutes, originalFromToken } = this.swapData;
+    const { alphaSmartRoutes, originalFromToken, originalToToken } = this.swapData;
 
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
       {
@@ -654,11 +654,23 @@ export class UniversalSwapHandler {
       this.config.cosmosWallet.getKeplrAddr("injective-1")
     ]);
 
-    if (!oraiAddress || !injAddress) {
+    // Only support from cosmos <=> cosmos
+    if (!originalFromToken.cosmosBased || !originalToToken.cosmosBased) {
+      throw generateError(`There is a not cosmosbased. Should not using smart router swap!`);
+    }
+
+    if (!oraiAddress) {
+      throw generateError(`There is a mismatch address ${oraiAddress}. Should not using smart router swap!`);
+    }
+
+    // Check route has chainInjective => need has injective
+    const isInjectiveMismatch = routesFlatten.some((route) => route.chainId === "injective-1") && !injAddress;
+    if (isInjectiveMismatch) {
       throw generateError(
         `There is a mismatch address between ${oraiAddress} and ${injAddress}. Should not using smart router swap!`
       );
     }
+
     const { messages, msgTransfers } = this.getMessagesAndMsgTransfers(routesFlatten, {
       oraiAddress,
       injAddress
