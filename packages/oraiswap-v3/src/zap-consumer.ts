@@ -429,13 +429,15 @@ export class ZapConsumer {
       return p.token_id === tokenId;
     });
     const pool = await this._handler.getPool(position.pool_key);
-
+    console.log(`[ZAP-CONSUMER] Pool: ${pool.pool_key.token_x}/${pool.pool_key.token_y} - ${Number(pool.pool_key.fee_tier.fee) / 10 ** 10}%`);
     // calculate amount X and Y
     const res = calculateTokenAmounts(pool.pool, position);
     const amountX = res.x;
     const amountY = res.y;
     rewardAmounts[pool.pool_key.token_x] = amountX;
     rewardAmounts[pool.pool_key.token_y] = amountY;
+
+    console.log(`[ZAP-CONSUMER] reward only ${amountX} and ${amountY}`);
 
     // calculate incentives
     const incentives = await this._handler.positionIncentives(index, owner);
@@ -449,6 +451,8 @@ export class ZapConsumer {
           : BigInt(incentive.amount);
       }
     }
+
+    console.log(`[ZAP-CONSUMER] reward ${rewardAmounts[pool.pool_key.token_x]} and ${rewardAmounts[pool.pool_key.token_y]}`);
 
     // find best route
     const routes: SmartRouteResponse[] = [];
@@ -478,7 +482,7 @@ export class ZapConsumer {
     console.log("yRouteInfo", yRouteInfo);
 
     // build messages
-    const messages: ZapOutLiquidityResponse = null;
+    const messages: ZapOutLiquidityResponse = {} as ZapOutLiquidityResponse;
     messages.positionIndex = index;
     
     const minimumReceiveX = xRouteInfo.routes

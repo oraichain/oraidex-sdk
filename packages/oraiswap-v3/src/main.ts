@@ -59,38 +59,45 @@ async function main() {
   // const liquidityTick = await zapper.getAllLiquidityTicks(parsePoolKey(poolList[0]), tickMap2);
   // console.log({ liquidityTick });
 
-  for (const poolKey of poolList) {
-    const poolKeyParsed = parsePoolKey(poolKey);
-    const pool = await handler.getPool(poolKeyParsed);
-    const currentTick = pool.pool.current_tick_index;
-    const spread = pool.pool_key.fee_tier.tick_spacing * 3;
+  const res = await zapper.processZapOutPositionLiquidity({
+    owner: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
+    tokenId: 1858,
+    tokenOut: tokenIn as TokenItemType
+  });
+  console.log({ res });
 
-    const res = await zapper.processZapInPositionLiquidity({
-      poolKey: poolKeyParsed,
-      tokenIn: tokenIn as TokenItemType,
-      amountIn: "10000000",
-      lowerTick: currentTick - spread,
-      upperTick: currentTick + spread
-    });
+  // for (const poolKey of poolList) {
+  //   const poolKeyParsed = parsePoolKey(poolKey);
+  //   const pool = await handler.getPool(poolKeyParsed);
+  //   const currentTick = pool.pool.current_tick_index;
+  //   const spread = pool.pool_key.fee_tier.tick_spacing * 3;
 
-    const amountX = res.amountX;
-    const amountY = res.amountY;
+  //   const res = await zapper.processZapInPositionLiquidity({
+  //     poolKey: poolKeyParsed,
+  //     tokenIn: tokenIn as TokenItemType,
+  //     amountIn: "10000000",
+  //     lowerTick: currentTick - spread,
+  //     upperTick: currentTick + spread
+  //   });
 
-    /// front-end check
-    // const poolAfter = await handler.getPool(poolKeyParsed);
-    // const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
-    //   BigInt(amountX as string),
-    //   res.tickLowerIndex,
-    //   res.tickUpperIndex,
-    //   res.sqrtPrice,
-    //   true
-    // );
-    // const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;
-    // console.log(`Accurancy: ${accurancy.toFixed(2)}%`);
+  //   const amountX = res.amountX;
+  //   const amountY = res.amountY;
 
-    // sleep 10s
-    await new Promise((resolve) => setTimeout(resolve, 10000));
-  }
+  //   /// front-end check
+  //   // const poolAfter = await handler.getPool(poolKeyParsed);
+  //   // const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
+  //   //   BigInt(amountX as string),
+  //   //   res.tickLowerIndex,
+  //   //   res.tickUpperIndex,
+  //   //   res.sqrtPrice,
+  //   //   true
+  //   // );
+  //   // const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;
+  //   // console.log(`Accurancy: ${accurancy.toFixed(2)}%`);
+
+  //   // sleep 10s
+  //   await new Promise((resolve) => setTimeout(resolve, 10000));
+  // }
 }
 
 main().catch(console.error);
