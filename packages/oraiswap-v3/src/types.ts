@@ -265,4 +265,6 @@ export type ZapOutLiquidityResponse = {
   operationFromX?: SwapOperation[];
   operationFromY?: SwapOperation[];
   positionIndex: number;
+  amountToX: bigint;
+  amountToY: bigint;
 };

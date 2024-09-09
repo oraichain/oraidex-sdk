@@ -497,6 +497,9 @@ export class ZapConsumer {
     messages.operationFromX = xRouteInfo.routes ? generateMessageSwapOperation(xRouteInfo) : [];
     messages.operationFromY = yRouteInfo.routes ? generateMessageSwapOperation(yRouteInfo) : [];
 
+    messages.amountToX = BigInt(xRouteInfo.returnAmount);
+    messages.amountToY = BigInt(yRouteInfo.returnAmount);
+
     return messages;
   }
 }
