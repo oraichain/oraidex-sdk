@@ -72,16 +72,16 @@ async function main() {
       upperTick: currentTick + spread
     });
 
-    const amountX = res.offerAssets.find((a) => extractAddress(a.asset) === poolKeyParsed.token_x)?.amount;
-    const amountY = res.offerAssets.find((a) => extractAddress(a.asset) === poolKeyParsed.token_y)?.amount;
+    const amountX = res.amountX;
+    const amountY = res.amountY;
 
     /// front-end check
     const poolAfter = await handler.getPool(poolKeyParsed);
     const { amount: tokenYAmount, l: positionLiquidity } = getLiquidityByX(
       BigInt(amountX as string),
-      res.addLiquidityOperations[0].lowerTick,
-      res.addLiquidityOperations[0].upperTick,
-      res.simulatedSqrtPrice,
+      res.tickLowerIndex,
+      res.tickUpperIndex,
+      BigInt(poolAfter.pool.sqrt_price),
       true
     );
     const accurancy = (1 - Math.abs(Number(tokenYAmount) - Number(amountY)) / Number(tokenYAmount)) * 100;

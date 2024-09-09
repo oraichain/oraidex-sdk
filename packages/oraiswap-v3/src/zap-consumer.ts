@@ -358,7 +358,7 @@ export class ZapConsumer {
 
     // build messages
     console.log("[ZAP-CONSUMER] Build messages");
-    const messages: ZapInLiquidityResponse = null;
+    const messages: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
 
     let xRouteInfo: SmartRouteResponse;
     let yRouteInfo: SmartRouteResponse;
