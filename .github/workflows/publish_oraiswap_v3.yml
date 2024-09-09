@@ -53,3 +53,17 @@ jobs:
         env:
           CI: false
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish Contract SDK
+        id: publish-oraidex-contracts-sdk
+        continue-on-error: true
+        run: yarn deploy:beta packages/contracts-sdk
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish Contract Build
+        id: publish-oraidex-contracts-build
+        continue-on-error: true
+        run: yarn deploy:beta packages/contracts-build
+        env:
+          CI: false
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -13,7 +13,7 @@ import {
 } from "./types";
 import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
 import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { BigDecimal, fetchRetry, oraichainTokens, parseAssetInfoFromContractAddrOrDenom, TokenItemType } from "@oraichain/oraidex-common";
+import { BigDecimal, parseAssetInfoFromContractAddrOrDenom, TokenItemType } from "@oraichain/oraidex-common";
 import { Asset, SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
 
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
