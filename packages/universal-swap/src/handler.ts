@@ -991,6 +991,7 @@ export class UniversalSwapHandler {
         const tonReceiveAddress = await this.config.tonWallet.sender.address.toString();
         if (!tonReceiveAddress) throw generateError("Please login ton wallet!");
 
+        //  TODO: need check TON_CONTRACT or Address of Token In Token
         const result = await handler.sendToTon(tonReceiveAddress, toNano(3), TON_CONTRACT);
 
         return result;
@@ -1135,17 +1136,6 @@ export class UniversalSwapHandler {
     if (!oraiAddress || !obridgeAddress) throw generateError("Please login cosmos wallet!");
     if (!tonReceiveAddress) throw generateError("Please login ton wallet!");
 
-    const wasmBridge = new TonbridgeBridgeClient(client, oraiAddress, TON_BRIDGE_ADAPTER_ORAICHAIN);
-    const handler = await TonBridgeHandler.create({
-      wasmBridge,
-      tonBridge: TON_BRIDGE_ADAPTER,
-      tonSender: this.config.tonWallet.sender,
-      tonClientParameters: {
-        endpoint: "https://toncenter.com/api/v2/jsonRPC"
-        //  apiKey: process.env.TON_API_KEY
-      }
-    });
-
     let minimumReceive = simulateAmount;
     if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
 
@@ -1163,6 +1153,17 @@ export class UniversalSwapHandler {
     const swapRouteSplit = completeSwapRoute.split(":");
     const swapRoute = swapRouteSplit.length === 1 ? "" : swapRouteSplit[1];
     const memo = beginCell().storeStringRefTail(swapRoute).endCell().toString();
+
+    const wasmBridge = new TonbridgeBridgeClient(client, oraiAddress, TON_BRIDGE_ADAPTER_ORAICHAIN);
+    const handler = await TonBridgeHandler.create({
+      wasmBridge,
+      tonBridge: TON_BRIDGE_ADAPTER,
+      tonSender: this.config.tonWallet.sender,
+      tonClientParameters: {
+        endpoint: "https://toncenter.com/api/v2/jsonRPC"
+        //  apiKey: process.env.TON_API_KEY
+      }
+    });
 
     const result = await handler.sendToCosmos(
       wasmBridge.sender,
@@ -1347,13 +1348,23 @@ export class UniversalSwapHandler {
         { rpc: network.rpc, chainId: network.chainId as CosmosChainId },
         { gasPrice: GasPrice.fromString(`${network.fee.gasPrice}${network.denom}`) }
       );
-      if (!!subRelayerFee) {
+      if (subRelayerFee && subRelayerFee !== "0") {
         const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-        const { amount } = await UniversalSwapHelper.simulateSwap({
-          fromInfo: getTokenOnOraichain("oraichain-token"),
-          toInfo: getTokenOnOraichain(originalToToken.coinGeckoId),
-          amount: subRelayerFee,
-          routerClient
+        const { amount } = await UniversalSwapHelper.handleSimulateSwap({
+          originalFromInfo: getTokenOnOraichain("oraichain-token"),
+          originalToInfo: getTokenOnOraichain(originalToToken.coinGeckoId, originalToToken.decimals),
+          originalAmount: toDisplay(subRelayerFee),
+          routerClient,
+          routerOption: {
+            useAlphaSmartRoute: true,
+            useIbcWasm: false
+          },
+          routerConfig: {
+            url: "https://osor.oraidex.io",
+            path: "/smart-router/alpha-router",
+            protocols: ["Oraidex", "OraidexV3"],
+            dontAlowSwapAfter: ["Oraidex", "OraidexV3"]
+          }
         });
         if (amount) subRelayerFee = amount;
       }

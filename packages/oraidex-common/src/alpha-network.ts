@@ -65,4 +65,17 @@ export const InjOsmosisToken: BridgeAppCurrency = {
   }
 };
 
-export const listOsmosisToken = [AtomOsmosisToken, OraiOsmosisToken, TiaOsmosisToken, InjOsmosisToken];
+export const TonOsmosisToken: BridgeAppCurrency = {
+  coinDenom: "TON",
+  coinMinimalDenom: "ibc/905889A7F0B94F1CE1506D9BADF13AE9141E4CBDBCD565E1DFC7AE418B3E3E98",
+  coinDecimals: 9,
+  coinGeckoId: "the-open-network",
+  coinImageUrl: "https://raw.githubusercontent.com/cosmos/chain-registry/master/_non-cosmos/ton/images/ton.png",
+  gasPriceStep: {
+    low: 0,
+    average: 0.025,
+    high: 0.04
+  }
+};
+
+export const listOsmosisToken = [AtomOsmosisToken, OraiOsmosisToken, TiaOsmosisToken, TonOsmosisToken];

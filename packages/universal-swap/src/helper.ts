@@ -244,7 +244,7 @@ export class UniversalSwapHelper {
     }
 
     if (fromToken.chainId === "ton") {
-      return { swapRoute: "", universalSwapType: "ton-to-others", isSmartRouter: false };
+      return { swapRoute: "", universalSwapType: "ton-to-others", isSmartRouter: true };
     }
 
     if (!fromToken || !toToken || !destReceiver)
@@ -342,6 +342,12 @@ export class UniversalSwapHelper {
       toToken,
       destReceiver
     );
+
+    console.log({
+      swapRoute,
+      universalSwapType,
+      isSmartRouter
+    });
 
     if (isSmartRouter && swapOption.isIbcWasm) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
@@ -575,9 +581,12 @@ export class UniversalSwapHelper {
       offerAmount: offerAmount,
       swapOptions: {
         protocols: routerConfig.protocols,
-        dontAlowSwapAfter: routerConfig.dontAllowSwapAfter
+        dontAlowSwapAfter: routerConfig.dontAlowSwapAfter
       }
     };
+
+    console.log({ data });
+
     const res: {
       data: SmartRouterResponseAPI;
     } = await axios.post(routerConfig.path, data);
@@ -598,7 +607,7 @@ export class UniversalSwapHelper {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
       protocols: ["Oraidex", "OraidexV3", "Osmosis"],
-      dontAllowSwapAfter: [""]
+      dontAlowSwapAfter: [""]
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
@@ -746,12 +755,7 @@ export class UniversalSwapHelper {
       useAlphaSmartRoute?: boolean;
       useIbcWasm?: boolean;
     };
-    routerConfig?: {
-      url: string;
-      path?: string;
-      protocols?: string[];
-      dontAlowSwapAfter?: string[];
-    };
+    routerConfig?: RouterConfigSmartRoute;
   }): Promise<SimulateResponse> => {
     // if the from token info is on bsc or eth, then we simulate using uniswap / pancake router
     // otherwise, simulate like normal
