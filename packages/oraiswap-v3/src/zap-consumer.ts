@@ -566,7 +566,13 @@ export class ZapConsumer {
             message.swapFee += getFeeRate(operation);
           });
         });
-        message.minimumLiquidity = liquidity ? (BigInt(liquidity) * BigInt(100 - slippage)) / 100n : 0n;
+
+        const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, sqrtPrice, true);
+        const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, sqrtPrice, true);
+        message.minimumLiquidity =
+          res1.l > res2.l
+            ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
+            : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
         return message;
       }
 
@@ -657,7 +663,13 @@ export class ZapConsumer {
         messages.swapFee += getFeeRate(operation);
       });
     });
-    messages.minimumLiquidity = liquidityAfter ? (BigInt(liquidityAfter) * BigInt(100 - slippage)) / 100n : 0n;
+
+    const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
+    const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
+    messages.minimumLiquidity =
+      res1.l > res2.l
+        ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
+        : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
 
     return messages;
   }
