@@ -1,4 +1,5 @@
-import { Asset, OraiswapV3QueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { Asset } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
+import { OraiswapV3QueryClient } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.client";
 import {
   AllNftInfoResponse,
   Approval,
@@ -16,8 +17,8 @@ import {
 import { CHUNK_QUERY, LIQUIDITY_TICKS_LIMIT, ORAISWAP_V3_CONTRACT, POSITION_TICKS_LIMIT } from "./const";
 import { calculateTokenAmounts, parsePoolKey, poolKeyToString } from "./helpers";
 import { CosmWasmClient, fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { MULTICALL_CONTRACT } from "@oraichain/oraidex-common";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk/build/Multicall.client";
 
 export class OraiswapV3Handler {
   private _client: OraiswapV3QueryClient;

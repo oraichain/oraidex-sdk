@@ -36,7 +36,7 @@ import {
 import { CHUNK_SIZE } from "./const";
 import { ArrayOfTupleOfUint16AndUint64, Pool } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 import { SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
-import { ZapperQueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { ZapperQueryClient } from "@oraichain/oraidex-contracts-sdk/build/Zapper.client";
 
 /** Read the flow chart below to understand the process of the ZapConsumer
 Flow ref: https://lucid.app/lucidchart/11f8ee36-ee71-4f46-8028-a953ac4f5e87/edit?viewport_loc=-3263%2C-2130%2C3114%2C1694%2C0_0&invitationId=inv_cbe9b842-b255-4c8a-824e-2bc78a6f3860
