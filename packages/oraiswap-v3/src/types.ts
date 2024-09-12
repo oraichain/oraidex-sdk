@@ -191,7 +191,6 @@ export type ZapConfig = {
   client: CosmWasmClient;
   dexV3Address: string;
   multicallAddress: string;
-  zapper: string;
   devitation: number;
   smartRouteConfig: SmartRouteConfig;
 };
@@ -262,7 +261,6 @@ export type ZapInLiquidityResponse = {
   currentTick: number;
 
   swapFee: number;
-  zapFee: bigint;
   result: ZapInResult;
 };
 
@@ -272,6 +270,8 @@ export type ZapOutLiquidityResponse = {
   operationFromX?: SwapOperation[];
   operationFromY?: SwapOperation[];
   positionIndex: number;
+  routes: Route[];
+  swapFee: number;
   amountToX: bigint;
   amountToY: bigint;
   zapOutResult: ZapOutResult;
@@ -297,5 +297,8 @@ export enum ZapInResult {
 export enum ZapOutResult {
   // Error
   NoRouteFound = "No route found to zap",
-  SomethingWentWrong = "Something went wrong"
+  SomethingWentWrong = "Something went wrong",
+
+  // Success
+  Success = "Zap out successfully"
 }

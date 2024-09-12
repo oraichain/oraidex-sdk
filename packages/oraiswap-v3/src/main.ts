@@ -25,19 +25,19 @@ async function main() {
   ];
   const tokenIn = oraichainTokens.find((t) => extractAddress(t) === USDT_CONTRACT);
 
-  // const zapper = new ZapConsumer({
-  //   routerApi: "https://osor.oraidex.io/smart-router/alpha-router",
-  //   client: await CosmWasmClient.connect("https://rpc.orai.io"),
-  //   dexV3Address: AMM_V3_CONTRACT,
-  //   multicallAddress: MULTICALL_CONTRACT,
-  //   devitation: 0.05,
-  //   smartRouteConfig: {
-  //     swapOptions: {
-  //       protocols: ["OraidexV3"],
-  //       maxSplits: 1
-  //     }
-  //   }
-  // });
+  const zapper = new ZapConsumer({
+    routerApi: "https://osor.oraidex.io/smart-router/alpha-router",
+    client: await CosmWasmClient.connect("https://rpc.orai.io"),
+    dexV3Address: AMM_V3_CONTRACT,
+    multicallAddress: MULTICALL_CONTRACT,
+    devitation: 0.05,
+    smartRouteConfig: {
+      swapOptions: {
+        protocols: ["OraidexV3"],
+        maxSplits: 1
+      }
+    },
+  });
 
   // const handler = zapper.handler;
 
@@ -58,13 +58,24 @@ async function main() {
 
   // const liquidityTick = await zapper.getAllLiquidityTicks(parsePoolKey(poolList[0]), tickMap2);
   // console.log({ liquidityTick });
+  const tickSpacing = parsePoolKey(poolList[0]).fee_tier.tick_spacing;
+  const currentTick = (await zapper.handler.getPool(parsePoolKey(poolList[0]))).pool.current_tick_index;
 
-  // const res = await zapper.processZapOutPositionLiquidity({
-  //   owner: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
-  //   tokenId: 1858,
-  //   tokenOut: tokenIn as TokenItemType
+  // const res = await zapper.processZapInPositionLiquidity({
+  //   poolKey: parsePoolKey(poolList[0]),
+  //   tokenIn: tokenIn as TokenItemType,
+  //   amountIn: "10000000",
+  //   lowerTick: currentTick - tickSpacing * 3,
+  //   upperTick: currentTick - tickSpacing * 1
   // });
   // console.log({ res });
+
+  const res = await zapper.processZapOutPositionLiquidity({
+    owner: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
+    tokenId: 1902,
+    tokenOut: tokenIn as TokenItemType
+  });
+  console.log({ res });
 
   // for (const poolKey of poolList) {
   //   const poolKeyParsed = parsePoolKey(poolKey);
