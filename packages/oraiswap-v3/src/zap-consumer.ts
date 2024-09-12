@@ -743,6 +743,7 @@ export class ZapConsumer {
       return messages;
     } catch (e) {
       const message: ZapOutLiquidityResponse = {} as ZapOutLiquidityResponse;
+      console.log(`error: ${e}`);
       if (e instanceof RouteNotFoundError) {
         message.result = ZapOutResult.NoRouteFound;
       } else {

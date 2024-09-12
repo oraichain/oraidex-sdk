@@ -34,7 +34,6 @@ async function main() {
     smartRouteConfig: {
       swapOptions: {
         protocols: ["OraidexV3"],
-        maxSplits: 1
       }
     },
   });
@@ -66,13 +65,13 @@ async function main() {
   //   tokenIn: tokenIn as TokenItemType,
   //   amountIn: "10000000",
   //   lowerTick: currentTick - tickSpacing * 3,
-  //   upperTick: currentTick - tickSpacing * 1
+  //   upperTick: currentTick + tickSpacing * 3
   // });
   // console.log({ res });
 
   const res = await zapper.processZapOutPositionLiquidity({
     owner: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",
-    tokenId: 1902,
+    tokenId: 1987,
     tokenOut: tokenIn as TokenItemType
   });
   console.log({ res });

@@ -299,6 +299,7 @@ export const generateMessageSwapOperation = (responses: SmartRouteResponse[], sl
   const flattenRoutes: Route[] = [];
 
   for (const response of responses) {
+    if (!response.routes) continue;
     if (response.routes.length === 0) continue;
 
     const { routes, returnAmount, swapAmount } = response;
