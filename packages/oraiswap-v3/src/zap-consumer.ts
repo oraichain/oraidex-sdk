@@ -299,8 +299,8 @@ export class ZapConsumer {
           });
         });
         const res = isTokenX
-          ? getLiquidityByX(BigInt(amountIn), lowerTick, upperTick, BigInt(pool.sqrt_price), true)
-          : getLiquidityByY(BigInt(amountIn), lowerTick, upperTick, BigInt(pool.sqrt_price), true);
+          ? getLiquidityByX(BigInt(actualReceive.returnAmount), lowerTick, upperTick, BigInt(pool.sqrt_price), true)
+          : getLiquidityByY(BigInt(actualReceive.returnAmount), lowerTick, upperTick, BigInt(pool.sqrt_price), true);
         message.minimumLiquidity = res.l ? (BigInt(res.l) * BigInt(100 - slippage)) / 100n : 0n;
         return message;
       }
@@ -339,8 +339,8 @@ export class ZapConsumer {
           });
         });
         const res = isTokenX
-          ? getLiquidityByX(BigInt(amountIn), lowerTick, upperTick, BigInt(pool.sqrt_price), true)
-          : getLiquidityByY(BigInt(amountIn), lowerTick, upperTick, BigInt(pool.sqrt_price), true);
+          ? getLiquidityByX(BigInt(actualReceive.returnAmount), lowerTick, upperTick, BigInt(pool.sqrt_price), true)
+          : getLiquidityByY(BigInt(actualReceive.returnAmount), lowerTick, upperTick, BigInt(pool.sqrt_price), true);
         message.minimumLiquidity = res.l ? (BigInt(res.l) * BigInt(100 - slippage)) / 100n : 0n;
         return message;
       }
