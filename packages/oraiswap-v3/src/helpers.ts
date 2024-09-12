@@ -14,7 +14,7 @@ import {
 import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
 import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 import { BigDecimal, parseAssetInfoFromContractAddrOrDenom, TokenItemType } from "@oraichain/oraidex-common";
-import { Asset, SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
+import { Asset, Route, SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
 
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
   const feeDenominator = (BigInt(protocolFee) * BigInt(pool.pool_key.fee_tier.fee)) / DENOMINATOR;
@@ -295,48 +295,68 @@ export const parseAsset = (token: TokenItemType, amount: string): Asset => {
   };
 };
 
-export const generateMessageSwapOperation = (route: SmartRouteResponse): SwapOperation[] => {
-  const { routes, returnAmount, swapAmount } = route;
-  const operations: SwapOperation[] = [];
+export const generateMessageSwapOperation = (responses: SmartRouteResponse[], slippage: number): Route[]  => {
+  const flattenRoutes: Route[] = [];
 
-  for (const route of routes) {
-    const { swapAmount, returnAmount, paths } = route;
-    for (const path of paths) {
-      const { actions, chainId, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, tokenOutChainId } = path;
-      for (const action of actions) {
-        const { protocol, swapInfo, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, type } = action;
-        let currTokenIn = parseAssetInfoFromContractAddrOrDenom(tokenIn);
-        for (const swap of swapInfo) {
-          const { poolId } = swap;
-          const [tokenX, tokenY, fee, tickSpacing] = poolId.split("-");
-          const tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
-          if (tokenX && tokenY && fee && tickSpacing) {
-            operations.push({
-              swap_v3: {
-                pool_key: {
-                  token_x: tokenX,
-                  token_y: tokenY,
-                  fee_tier: {
-                    fee: Number(fee),
-                    tick_spacing: Number(tickSpacing)
-                  }
-                },
-                x_to_y: tokenY === swap.tokenOut
-              }
-            });
-          } else {
-            operations.push({
-              orai_swap: {
-                offer_asset_info: currTokenIn,
-                ask_asset_info: tokenOut
-              }
-            });
+  for (const response of responses) {
+    if (response.routes.length === 0) continue;
+
+    const { routes, returnAmount, swapAmount } = response;
+    
+    for (const route of routes) {
+      const { swapAmount, returnAmount, paths } = route;
+      const operations: SwapOperation[] = [];
+      for (const path of paths) {
+        const { actions, chainId, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, tokenOutChainId } = path;
+        for (const action of actions) {
+          const { protocol, swapInfo, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, type } = action;
+          let currTokenIn = parseAssetInfoFromContractAddrOrDenom(tokenIn);
+          for (const swap of swapInfo) {
+            const { poolId } = swap;
+            const [tokenX, tokenY, fee, tickSpacing] = poolId.split("-");
+            const tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
+            if (tokenX && tokenY && fee && tickSpacing) {
+              operations.push({
+                swap_v3: {
+                  pool_key: {
+                    token_x: tokenX,
+                    token_y: tokenY,
+                    fee_tier: {
+                      fee: Number(fee),
+                      tick_spacing: Number(tickSpacing)
+                    }
+                  },
+                  x_to_y: tokenY === swap.tokenOut
+                }
+              });
+            } else {
+              operations.push({
+                orai_swap: {
+                  offer_asset_info: currTokenIn,
+                  ask_asset_info: tokenOut
+                }
+              });
+            }
+            currTokenIn = tokenOut;
           }
-          currTokenIn = tokenOut;
         }
       }
+      flattenRoutes.push({
+        offer_amount: swapAmount,
+        operations,
+        token_in: paths[0].tokenIn,
+        minimum_receive: Math.round(Number(returnAmount) * (1 - slippage)).toString()
+      });
     }
   }
 
-  return operations;
+  return flattenRoutes;
 };
+
+export const getFeeRate = (operation: SwapOperation): number => {
+  if ("orai_swap" in operation) {
+    return 0.003;
+  } else {
+    return operation.swap_v3.pool_key.fee_tier.fee / 10 ** 12;
+  }
+}

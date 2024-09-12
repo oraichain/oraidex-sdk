@@ -1,6 +1,6 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { TokenItemType } from "@oraichain/oraidex-common";
-import { Asset, SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
+import { Asset, Route, SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
 
 export interface SnapshotValueData {
   tokenBNFromBeginning: string;
@@ -191,6 +191,7 @@ export type ZapConfig = {
   client: CosmWasmClient;
   dexV3Address: string;
   multicallAddress: string;
+  zapper: string;
   devitation: number;
   smartRouteConfig: SmartRouteConfig;
 };
@@ -202,10 +203,10 @@ export type ActionRoute = {
   tokenInAmount: string;
   tokenOut: string;
   tokenOutAmount: string;
-  swapInfo: Route[];
+  swapInfo: Path[];
 };
 
-export type Route = {
+export type Path = {
   poolId: string;
   tokenOut: string;
 };
@@ -244,19 +245,25 @@ export type SmartRouteReponse = {
 };
 
 export type ZapInLiquidityResponse = {
+  minimumLiquidity?: Liquidity;
+  routes: Route[];
+
   amountToX: Uint128;
   amountToY: Uint128;
   assetIn: Asset;
   minimumReceiveX?: Uint128;
   minimumReceiveY?: Uint128;
-  operationToY?: SwapOperation[];
-  operationToX?: SwapOperation[];
   poolKey: PoolKey;
   tickLowerIndex: number;
   tickUpperIndex: number;
   amountX: Uint128;
   amountY: Uint128;
   sqrtPrice: bigint;
+  currentTick: number;
+
+  swapFee: number;
+  zapFee: bigint;
+  result: ZapInResult;
 };
 
 export type ZapOutLiquidityResponse = {
@@ -267,4 +274,28 @@ export type ZapOutLiquidityResponse = {
   positionIndex: number;
   amountToX: bigint;
   amountToY: bigint;
+  zapOutResult: ZapOutResult;
+  result: ZapOutResult;
 };
+
+export enum ZapInResult {
+  // Error
+  NoRouteFound = "No route found to zap",
+  SomethingWentWrong = "Something went wrong",
+
+  // in range
+  InRangeNoRouteThroughSelf = "This zap operation has no swap through this pool and the position is in range so the accurancy is good",
+  InRangeHasRouteThroughSelf = "This zap operation has swap through this pool and the position is in range so the accurancy is good",
+  InRangeHasRouteThroughSelfMayBecomeOutRange = "This zap operation has swap through this pool and the position is in range but the next tick is out of range so the accurancy is low",
+
+  // out range
+  OutRangeNoRouteThroughSelf = "This zap operation has no swap through this pool and the position is out of range so the accurancy is good",
+  OutRangeHasRouteThroughSelf = "This zap operation has swap through this pool and the position is out of range but the next tick is not in range so the accurancy is good",
+  OutRangeHasRouteThroughSelfMayBecomeInRange = "This zap operation has swap through this pool and the position is out of range but the next tick is in range so the accurancy is low"
+}
+
+export enum ZapOutResult {
+  // Error
+  NoRouteFound = "No route found to zap",
+  SomethingWentWrong = "Something went wrong"
+}

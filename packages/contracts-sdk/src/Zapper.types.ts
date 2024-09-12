@@ -12,24 +12,22 @@ export type ExecuteMsg = {
   };
 } | {
   zap_in_liquidity: {
-    amount_to_x: Uint128;
-    amount_to_y: Uint128;
     asset_in: Asset;
-    minimum_receive_x?: Uint128 | null;
-    minimum_receive_y?: Uint128 | null;
-    operation_to_x?: SwapOperation[] | null;
-    operation_to_y?: SwapOperation[] | null;
+    minimum_liquidity?: Liquidity | null;
     pool_key: PoolKey;
+    routes: Route[];
     tick_lower_index: number;
     tick_upper_index: number;
   };
 } | {
   zap_out_liquidity: {
-    minimum_receive_x?: Uint128 | null;
-    minimum_receive_y?: Uint128 | null;
-    operation_from_x?: SwapOperation[] | null;
-    operation_from_y?: SwapOperation[] | null;
     position_index: number;
+    routes: Route[];
+  };
+} | {
+  register_protocol_fee: {
+    fee_receiver: Addr;
+    percent: Decimal;
   };
 };
 export type Uint128 = string;
@@ -42,6 +40,8 @@ export type AssetInfo = {
     denom: string;
   };
 };
+export type Liquidity = string;
+export type Percentage = number;
 export type SwapOperation = {
   orai_swap: {
     ask_asset_info: AssetInfo2;
@@ -49,7 +49,7 @@ export type SwapOperation = {
   };
 } | {
   swap_v3: {
-    pool_key: PoolKey2;
+    pool_key: PoolKey;
     x_to_y: boolean;
   };
 };
@@ -62,20 +62,10 @@ export type AssetInfo2 = {
     denom: string;
   };
 };
-export type Percentage2 = number;
-export type Percentage = number;
+export type Decimal = string;
 export interface Asset {
   amount: Uint128;
   info: AssetInfo;
-}
-export interface PoolKey2 {
-  fee_tier: FeeTier2;
-  token_x: string;
-  token_y: string;
-}
-export interface FeeTier2 {
-  fee: Percentage2;
-  tick_spacing: number;
 }
 export interface PoolKey {
   fee_tier: FeeTier;
@@ -86,12 +76,24 @@ export interface FeeTier {
   fee: Percentage;
   tick_spacing: number;
 }
+export interface Route {
+  minimum_receive?: Uint128 | null;
+  offer_amount: Uint128;
+  operations: SwapOperation[];
+  token_in: string;
+}
 export type QueryMsg = {
   config: {};
+} | {
+  protocol_fee: {};
 };
 export interface MigrateMsg {}
 export interface Config {
   admin: Addr;
   dex_v3: Addr;
   mixed_router: Addr;
+}
+export interface ProtocolFee {
+  fee_receiver: Addr;
+  percent: Decimal;
 }

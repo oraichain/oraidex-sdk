@@ -6,10 +6,11 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Addr, InstantiateMsg, ExecuteMsg, Uint128, AssetInfo, SwapOperation, AssetInfo2, Percentage2, Percentage, Asset, PoolKey2, FeeTier2, PoolKey, FeeTier, QueryMsg, MigrateMsg, Config} from "./Zapper.types";
+import {Addr, InstantiateMsg, ExecuteMsg, Uint128, AssetInfo, Liquidity, Percentage, SwapOperation, AssetInfo2, Decimal, Asset, PoolKey, FeeTier, Route, QueryMsg, MigrateMsg, Config, ProtocolFee} from "./Zapper.types";
 export interface ZapperReadOnlyInterface {
   contractAddress: string;
   config: () => Promise<Config>;
+  protocolFee: () => Promise<ProtocolFee>;
 }
 export class ZapperQueryClient implements ZapperReadOnlyInterface {
   client: CosmWasmClient;
@@ -19,11 +20,17 @@ export class ZapperQueryClient implements ZapperReadOnlyInterface {
     this.client = client;
     this.contractAddress = contractAddress;
     this.config = this.config.bind(this);
+    this.protocolFee = this.protocolFee.bind(this);
   }
 
   config = async (): Promise<Config> => {
     return this.client.queryContractSmart(this.contractAddress, {
       config: {}
+    });
+  };
+  protocolFee = async (): Promise<ProtocolFee> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      protocol_fee: {}
     });
   };
 }
@@ -40,40 +47,33 @@ export interface ZapperInterface extends ZapperReadOnlyInterface {
     mixedRouter?: Addr;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   zapInLiquidity: ({
-    amountToX,
-    amountToY,
     assetIn,
-    minimumReceiveX,
-    minimumReceiveY,
-    operationToX,
-    operationToY,
+    minimumLiquidity,
     poolKey,
+    routes,
     tickLowerIndex,
     tickUpperIndex
   }: {
-    amountToX: Uint128;
-    amountToY: Uint128;
     assetIn: Asset;
-    minimumReceiveX?: Uint128;
-    minimumReceiveY?: Uint128;
-    operationToX?: SwapOperation[];
-    operationToY?: SwapOperation[];
+    minimumLiquidity?: Liquidity;
     poolKey: PoolKey;
+    routes: Route[];
     tickLowerIndex: number;
     tickUpperIndex: number;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
   zapOutLiquidity: ({
-    minimumReceiveX,
-    minimumReceiveY,
-    operationFromX,
-    operationFromY,
-    positionIndex
+    positionIndex,
+    routes
   }: {
-    minimumReceiveX?: Uint128;
-    minimumReceiveY?: Uint128;
-    operationFromX?: SwapOperation[];
-    operationFromY?: SwapOperation[];
     positionIndex: number;
+    routes: Route[];
+  }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
+  registerProtocolFee: ({
+    feeReceiver,
+    percent
+  }: {
+    feeReceiver: Addr;
+    percent: Decimal;
   }, _fee?: number | StdFee | "auto", _memo?: string, _funds?: Coin[]) => Promise<ExecuteResult>;
 }
 export class ZapperClient extends ZapperQueryClient implements ZapperInterface {
@@ -89,6 +89,7 @@ export class ZapperClient extends ZapperQueryClient implements ZapperInterface {
     this.updateConfig = this.updateConfig.bind(this);
     this.zapInLiquidity = this.zapInLiquidity.bind(this);
     this.zapOutLiquidity = this.zapOutLiquidity.bind(this);
+    this.registerProtocolFee = this.registerProtocolFee.bind(this);
   }
 
   updateConfig = async ({
@@ -109,63 +110,56 @@ export class ZapperClient extends ZapperQueryClient implements ZapperInterface {
     }, _fee, _memo, _funds);
   };
   zapInLiquidity = async ({
-    amountToX,
-    amountToY,
     assetIn,
-    minimumReceiveX,
-    minimumReceiveY,
-    operationToX,
-    operationToY,
+    minimumLiquidity,
     poolKey,
+    routes,
     tickLowerIndex,
     tickUpperIndex
   }: {
-    amountToX: Uint128;
-    amountToY: Uint128;
     assetIn: Asset;
-    minimumReceiveX?: Uint128;
-    minimumReceiveY?: Uint128;
-    operationToX?: SwapOperation[];
-    operationToY?: SwapOperation[];
+    minimumLiquidity?: Liquidity;
     poolKey: PoolKey;
+    routes: Route[];
     tickLowerIndex: number;
     tickUpperIndex: number;
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       zap_in_liquidity: {
-        amount_to_x: amountToX,
-        amount_to_y: amountToY,
         asset_in: assetIn,
-        minimum_receive_x: minimumReceiveX,
-        minimum_receive_y: minimumReceiveY,
-        operation_to_x: operationToX,
-        operation_to_y: operationToY,
+        minimum_liquidity: minimumLiquidity,
         pool_key: poolKey,
+        routes,
         tick_lower_index: tickLowerIndex,
         tick_upper_index: tickUpperIndex
       }
     }, _fee, _memo, _funds);
   };
   zapOutLiquidity = async ({
-    minimumReceiveX,
-    minimumReceiveY,
-    operationFromX,
-    operationFromY,
-    positionIndex
+    positionIndex,
+    routes
   }: {
-    minimumReceiveX?: Uint128;
-    minimumReceiveY?: Uint128;
-    operationFromX?: SwapOperation[];
-    operationFromY?: SwapOperation[];
     positionIndex: number;
+    routes: Route[];
   }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
     return await this.client.execute(this.sender, this.contractAddress, {
       zap_out_liquidity: {
-        minimum_receive_x: minimumReceiveX,
-        minimum_receive_y: minimumReceiveY,
-        operation_from_x: operationFromX,
-        operation_from_y: operationFromY,
-        position_index: positionIndex
+        position_index: positionIndex,
+        routes
+      }
+    }, _fee, _memo, _funds);
+  };
+  registerProtocolFee = async ({
+    feeReceiver,
+    percent
+  }: {
+    feeReceiver: Addr;
+    percent: Decimal;
+  }, _fee: number | StdFee | "auto" = "auto", _memo?: string, _funds?: Coin[]): Promise<ExecuteResult> => {
+    return await this.client.execute(this.sender, this.contractAddress, {
+      register_protocol_fee: {
+        fee_receiver: feeReceiver,
+        percent
       }
     }, _fee, _memo, _funds);
   };
