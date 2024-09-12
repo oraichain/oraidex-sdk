@@ -1249,7 +1249,7 @@ export class UniversalSwapHandler {
    */
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
-    const { originalFromToken, fromAmount, affiliates } = this.swapData;
+    const { originalFromToken, fromAmount, affiliates, userSlippage } = this.swapData;
     let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
@@ -1264,11 +1264,12 @@ export class UniversalSwapHandler {
     const msgConvertsFrom = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, fromTokenOnOrai);
 
     const routes = UniversalSwapHelper.generateMsgsSmartRouterV2withV3([route], offerInfo);
-    const msgs: ExecuteInstruction[] = this.buildSwapMsgsFromSmartRoute(
+    const msgs: ExecuteInstruction[] = UniversalSwapHelper.buildSwapMsgsFromSmartRoute(
       routes,
       fromTokenOnOrai,
       to,
       contractAddr,
+      userSlippage,
       affiliates
     );
     return buildMultipleExecuteMessages(msgs, ...msgConvertsFrom);
@@ -1277,7 +1278,7 @@ export class UniversalSwapHandler {
   generateMsgsSwap() {
     let input: any;
     let contractAddr: string = network.mixer_router;
-    const { originalFromToken, originalToToken, fromAmount, affiliates } = this.swapData;
+    const { originalFromToken, originalToToken, fromAmount, affiliates, userSlippage } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
     let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
     const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
@@ -1289,7 +1290,7 @@ export class UniversalSwapHandler {
         fromTokenOnOrai
       );
       const msgConvertTo = UniversalSwapHelper.generateConvertErc20Cw20Message(this.swapData.amounts, toTokenInOrai);
-      const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
+      const isValidSlippage = userSlippage || userSlippage === 0;
       if (!this.swapData.simulatePrice || !isValidSlippage) {
         throw generateError(
           "Could not calculate the minimum receive value because there is no simulate price or user slippage"
@@ -1329,7 +1330,14 @@ export class UniversalSwapHandler {
         const routesFlatten = UniversalSwapHelper.flattenSmartRouters(routes);
         const generatedRoutes = UniversalSwapHelper.generateMsgsSmartRouterV2withV3(routesFlatten, offerInfo);
 
-        msgs = this.buildSwapMsgsFromSmartRoute(generatedRoutes, fromTokenOnOrai, to, contractAddr, affiliates);
+        msgs = UniversalSwapHelper.buildSwapMsgsFromSmartRoute(
+          generatedRoutes,
+          fromTokenOnOrai,
+          to,
+          contractAddr,
+          userSlippage,
+          affiliates
+        );
       } else {
         const minimumReceive = calculateMinReceive(
           this.swapData.simulatePrice,
