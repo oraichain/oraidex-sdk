@@ -262,6 +262,9 @@ export type ZapInLiquidityResponse = {
 
   swapFee: number;
   result: ZapInResult;
+
+  priceImpactX: number;
+  priceImpactY: number;
 };
 
 export type ZapOutLiquidityResponse = {
@@ -276,6 +279,9 @@ export type ZapOutLiquidityResponse = {
   amountToY: bigint;
   zapOutResult: ZapOutResult;
   result: ZapOutResult;
+
+  priceImpactX: number;
+  priceImpactY: number;
 };
 
 export enum ZapInResult {

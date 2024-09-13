@@ -29,12 +29,17 @@ import {
   extractAddress,
   generateMessageSwapOperation,
   getFeeRate,
+  getPriceImpactAfterSwap,
   parseAsset,
   poolKeyToString,
   shiftDecimal
 } from "./helpers";
 import { CHUNK_SIZE } from "./const";
-import { ArrayOfTupleOfUint16AndUint64, Pool } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
+import {
+  ArrayOfTupleOfUint16AndUint64,
+  Pool,
+  PoolWithPoolKey
+} from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
 import { RouteNotFoundError } from "./error";
 
 /** Read the flow chart below to understand the process of the ZapConsumer
@@ -192,7 +197,10 @@ export class ZapConsumer {
     upperTick,
     tokenX,
     tokenY,
-    slippage = 1
+    slippage = 1,
+    allPools,
+    allTicks,
+    allTickMaps
   }: {
     poolKey: PoolKey;
     pool: Pool;
@@ -204,6 +212,9 @@ export class ZapConsumer {
     tokenX: TokenItemType;
     tokenY: TokenItemType;
     slippage?: number;
+    allPools: Record<string, PoolWithPoolKey>;
+    allTicks: Record<string, LiquidityTick[]>;
+    allTickMaps: Record<string, Tickmap>;
   }): Promise<ZapInLiquidityResponse> {
     try {
       let tokenNeed: TokenItemType;
@@ -291,7 +302,20 @@ export class ZapConsumer {
         message.sqrtPrice = BigInt(pool.sqrt_price);
         message.tickLowerIndex = lowerTick;
         message.tickUpperIndex = upperTick;
-        message.routes = generateMessageSwapOperation([actualReceive], slippage);
+        const routesNeed = generateMessageSwapOperation([actualReceive], slippage);
+        let priceImpact = 0;
+        routesNeed.forEach((route) => {
+          priceImpact += getPriceImpactAfterSwap({
+            route: route,
+            allPools,
+            allTicks,
+            allTickMaps
+          });
+        });
+        message.priceImpactX = isTokenX ? priceImpact : 0;
+        message.priceImpactY = isTokenX ? 0 : priceImpact;
+
+        message.routes = [...routesNeed];
         message.swapFee = 0;
         message.routes.forEach((route) => {
           route.operations.forEach((operation) => {
@@ -331,7 +355,19 @@ export class ZapConsumer {
         message.sqrtPrice = BigInt(pool.sqrt_price);
         message.tickLowerIndex = lowerTick;
         message.tickUpperIndex = upperTick;
-        message.routes = generateMessageSwapOperation([actualReceive], slippage);
+        const routesNeed = generateMessageSwapOperation([actualReceive], slippage);
+        let priceImpact = 0;
+        routesNeed.forEach((route) => {
+          priceImpact += getPriceImpactAfterSwap({
+            route: route,
+            allPools,
+            allTicks,
+            allTickMaps
+          });
+        });
+        message.priceImpactX = isTokenX ? priceImpact : 0;
+        message.priceImpactY = isTokenX ? 0 : priceImpact;
+
         message.swapFee = 0;
         message.routes.forEach((route) => {
           route.operations.forEach((operation) => {
@@ -359,22 +395,30 @@ export class ZapConsumer {
   public async processZapInPositionLiquidity({
     poolKey,
     tokenIn,
+    tokenX,
+    tokenY,
     amountIn,
     lowerTick,
     upperTick,
-    slippage = 1
+    slippage = 1,
+    allPools,
+    allTicks,
+    allTickMaps
   }: {
     poolKey: PoolKey;
     tokenIn: TokenItemType;
+    tokenX: TokenItemType;
+    tokenY: TokenItemType;
     amountIn: string;
     lowerTick: number;
     upperTick: number;
     slippage?: number;
+    allPools: Record<string, PoolWithPoolKey>;
+    allTicks: Record<string, LiquidityTick[]>;
+    allTickMaps: Record<string, Tickmap>;
   }): Promise<ZapInLiquidityResponse> {
     // get pool info
-    const tokenX = oraichainTokens.find((t) => extractAddress(t) === poolKey.token_x);
-    const tokenY = oraichainTokens.find((t) => extractAddress(t) === poolKey.token_y);
-    const pool = await this._handler.getPool(poolKey);
+    const pool = allPools[poolKeyToString(poolKey)];
 
     console.log(`[ZAPPER] pool: ${tokenX.name} / ${tokenY.name} - ${pool.pool_key.fee_tier.fee / 10 ** 10}%`);
 
@@ -397,7 +441,10 @@ export class ZapConsumer {
         upperTick,
         tokenX,
         tokenY,
-        slippage
+        slippage,
+        allPools,
+        allTicks,
+        allTickMaps
       });
     }
 
@@ -426,6 +473,7 @@ export class ZapConsumer {
     let m1 = new BigDecimal(1); // xPrice
     let m2 = new BigDecimal(1); // yPrice
 
+    // API time: need to check
     const getXPriceByTokenIn = await this.getPriceInfo({
       sourceAsset: tokenX,
       destAsset: tokenIn
@@ -459,6 +507,7 @@ export class ZapConsumer {
     let amountInToY = BigInt(amountIn) - amountInToX;
 
     // re-check
+    // API time: need to check
     const actualAmountXReceived = await this.findRoute({
       sourceAsset: tokenIn,
       destAsset: tokenX,
@@ -507,8 +556,8 @@ export class ZapConsumer {
       if (route.swapInfo.find((swap) => swap.poolId === poolKeyToString(poolKey))) {
         const isXToY = route.tokenOut === poolKey.token_x ? false : true;
         const amountOut = route.tokenOutAmount;
-        const tickMap = await this.getFullTickmap(poolKey);
-        const liquidityTicks = await this.getAllLiquidityTicks(poolKey, tickMap);
+        const tickMap = allTickMaps[poolKeyToString(poolKey)];
+        const liquidityTicks = allTicks[poolKeyToString(poolKey)];
         const convertPool = {
           ...pool.pool,
           liquidity: BigInt(pool.pool.liquidity),
@@ -559,7 +608,30 @@ export class ZapConsumer {
         message.sqrtPrice = BigInt(pool.pool.sqrt_price);
         message.tickLowerIndex = lowerTick;
         message.tickUpperIndex = upperTick;
-        message.routes = generateMessageSwapOperation([actualAmountXReceived, actualAmountYReceived], slippage);
+        const routesX = generateMessageSwapOperation([actualAmountXReceived], slippage);
+        const routesY = generateMessageSwapOperation([actualAmountYReceived], slippage);
+        let priceImpactX = 0;
+        let priceImpactY = 0;
+        routesX.forEach((route) => {
+          priceImpactX += getPriceImpactAfterSwap({
+            route: route,
+            allPools,
+            allTicks,
+            allTickMaps
+          });
+        });
+        routesY.forEach((route) => {
+          priceImpactY += getPriceImpactAfterSwap({
+            route: route,
+            allPools,
+            allTicks,
+            allTickMaps
+          });
+        });
+        message.priceImpactX = priceImpactX;
+        message.priceImpactY = priceImpactY;
+
+        message.routes = [...routesX, ...routesY];
         message.swapFee = 0;
         message.routes.forEach((route) => {
           route.operations.forEach((operation) => {
@@ -618,6 +690,7 @@ export class ZapConsumer {
     // build messages
     const messages: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
 
+    // API time: need to check
     let xRouteInfo: SmartRouteResponse;
     let yRouteInfo: SmartRouteResponse;
     xRouteInfo = await this.findRoute({
@@ -647,8 +720,6 @@ export class ZapConsumer {
     messages.minimumReceiveX = minimumReceiveX;
     messages.minimumReceiveY = minimumReceiveY;
 
-    messages.routes = generateMessageSwapOperation([xRouteInfo, yRouteInfo], slippage);
-
     messages.poolKey = poolKey;
     messages.tickLowerIndex = lowerTick;
     messages.tickUpperIndex = upperTick;
@@ -656,6 +727,30 @@ export class ZapConsumer {
     messages.amountX = xRouteInfo.returnAmount;
     messages.amountY = yRouteInfo.returnAmount;
     messages.sqrtPrice = BigInt(pool.pool.sqrt_price);
+
+    const routesX = generateMessageSwapOperation([xRouteInfo], slippage);
+    const routesY = generateMessageSwapOperation([yRouteInfo], slippage);
+    let priceImpactX = 0;
+    let priceImpactY = 0;
+    routesX.forEach((route) => {
+      priceImpactX += getPriceImpactAfterSwap({
+        route: route,
+        allPools,
+        allTicks,
+        allTickMaps
+      });
+    });
+    routesY.forEach((route) => {
+      priceImpactY += getPriceImpactAfterSwap({
+        route: route,
+        allPools,
+        allTicks,
+        allTickMaps
+      });
+    });
+    messages.routes = [...routesX, ...routesY];
+    messages.priceImpactX = priceImpactX;
+    messages.priceImpactY = priceImpactY;
 
     messages.swapFee = 0;
     messages.routes.forEach((route) => {
@@ -678,12 +773,18 @@ export class ZapConsumer {
     tokenId,
     owner,
     tokenOut,
-    slippage = 1
+    slippage = 1,
+    allPools,
+    allTicks,
+    allTickMaps
   }: {
     tokenId: number;
     owner: string;
     tokenOut: TokenItemType;
     slippage?: number;
+    allPools: Record<string, PoolWithPoolKey>;
+    allTicks: Record<string, LiquidityTick[]>;
+    allTickMaps: Record<string, Tickmap>;
   }): Promise<ZapOutLiquidityResponse> {
     try {
       // get position info
@@ -741,7 +842,30 @@ export class ZapConsumer {
       messages.minimumReceiveX = minimumReceiveX;
       messages.minimumReceiveY = minimumReceiveY;
 
-      messages.routes = generateMessageSwapOperation([xRouteInfo, yRouteInfo], slippage);
+      const routesX = generateMessageSwapOperation([xRouteInfo], slippage);
+      const routesY = generateMessageSwapOperation([yRouteInfo], slippage);
+      let priceImpactX = 0;
+      let priceImpactY = 0;
+      routesX.forEach((route) => {
+        priceImpactX += getPriceImpactAfterSwap({
+          route: route,
+          allPools,
+          allTicks,
+          allTickMaps
+        });
+      });
+      routesY.forEach((route) => {
+        priceImpactY += getPriceImpactAfterSwap({
+          route: route,
+          allPools,
+          allTicks,
+          allTickMaps
+        });
+      });
+      messages.priceImpactX = priceImpactX;
+      messages.priceImpactY = priceImpactY;
+
+      messages.routes = [...routesX, ...routesY];
       messages.swapFee = 0;
       messages.routes.forEach((route) => {
         route.operations.forEach((operation) => {
