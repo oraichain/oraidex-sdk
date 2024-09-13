@@ -685,17 +685,11 @@ export class ZapConsumer {
     owner,
     tokenOut,
     slippage = 1,
-    allPools,
-    allTicks,
-    allTickMaps
   }: {
     tokenId: number;
     owner: string;
     tokenOut: TokenItemType;
     slippage?: number;
-    allPools: Record<string, PoolWithPoolKey>;
-    allTicks: Record<string, LiquidityTick[]>;
-    allTickMaps: Record<string, Tickmap>;
   }): Promise<ZapOutLiquidityResponse> {
     try {
       // get position info
