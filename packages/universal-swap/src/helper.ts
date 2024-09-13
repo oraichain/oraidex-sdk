@@ -58,6 +58,7 @@ import {
   RouterResponse,
   Routes,
   SimulateResponse,
+  SmartRouteSwapOperations,
   SmartRouterResponse,
   SmartRouterResponseAPI,
   SwapDirection,
@@ -81,6 +82,7 @@ import { Coin } from "@cosmjs/proto-signing";
 import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
+import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -1229,6 +1231,64 @@ export class UniversalSwapHelper {
       });
     });
     return routesFlatten;
+  }
+
+  /**
+   * Generate message and binary msg of smart route
+   * @param routes
+   * @param fromTokenOnOrai
+   * @param to
+   * @param routerContract
+   * @param userSlippage
+   * @param affiliates
+   * @returns
+   */
+
+  static buildSwapMsgsFromSmartRoute(
+    routes: SmartRouteSwapOperations[],
+    fromTokenOnOrai: TokenItemType,
+    to: string,
+    routerContract: string,
+    userSlippage: number,
+    affiliates?: Affiliate[]
+  ): ExecuteInstruction[] {
+    const msgs: ExecuteInstruction[] = routes.map((route) => {
+      const minimumReceive = Math.trunc(
+        new BigDecimal(route.returnAmount).mul((100 - userSlippage) / 100).toNumber()
+      ).toString();
+
+      const swapOps = {
+        execute_swap_operations: {
+          operations: route.swapOps,
+          minimum_receive: minimumReceive,
+          to,
+          affiliates
+        }
+      };
+
+      // if cw20 => has to send through cw20 contract
+      if (!fromTokenOnOrai.contractAddress) {
+        return {
+          contractAddress: routerContract,
+          msg: swapOps,
+          funds: handleSentFunds(parseTokenInfo(fromTokenOnOrai, route.swapAmount).fund)
+        };
+      } else {
+        return {
+          contractAddress: fromTokenOnOrai.contractAddress,
+          msg: {
+            send: {
+              contract: routerContract,
+              amount: route.swapAmount,
+              msg: toBinary(swapOps)
+            }
+          },
+          funds: []
+        };
+      }
+    });
+
+    return msgs;
   }
 }
 
