@@ -144,16 +144,6 @@ export class ZapConsumer {
     }
   }
 
-  public async getRawTickmap(
-    poolKey: PoolKey,
-    lowerTick: number,
-    upperTick: number,
-    xToY: boolean
-  ): Promise<ArrayOfTupleOfUint16AndUint64> {
-    const tickmaps = await this._handler.tickMap(poolKey, lowerTick, upperTick, xToY);
-    return tickmaps;
-  }
-
   public async getAllLiquidityTicks(poolKey: PoolKey, tickmap: Tickmap): Promise<LiquidityTick[]> {
     const tickIndexes: number[] = [];
     for (const [chunkIndex, chunk] of tickmap.bitmap.entries()) {
