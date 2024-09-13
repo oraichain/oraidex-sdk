@@ -4168,15 +4168,6 @@
         "hash": "sha512-INpHnhL970OCkR7I71Kssb2aLl2l4Y/x8W6FlyRO0KmC8GHjxc/hlNB1t44BiI7lkOYmcWMRQoC8dwParsp1RQ=="
       }
     },
-    "npm:@oraichain/oraidex-contracts-sdk@1.0.51-beta.2": {
-      "type": "npm",
-      "name": "npm:@oraichain/oraidex-contracts-sdk@1.0.51-beta.2",
-      "data": {
-        "version": "1.0.51-beta.2",
-        "packageName": "@oraichain/oraidex-contracts-sdk",
-        "hash": "sha512-VSbiuvolyhW6a0CIeY/awvDqm1fxfu/+cKD3sTzzr2Fs4vg8dk8M7XrWX7JQQ8gmb0U2HcWHX1pA0kJ8N2JYfQ=="
-      }
-    },
     "npm:@oraichain/oraidex-contracts-sdk@1.0.51": {
       "type": "npm",
       "name": "npm:@oraichain/oraidex-contracts-sdk@1.0.51",
