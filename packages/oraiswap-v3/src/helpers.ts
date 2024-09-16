@@ -339,7 +339,7 @@ export const generateMessageSwapOperation = (responses: SmartRouteResponse[], sl
         offer_amount: swapAmount,
         operations,
         token_in: paths[0].tokenIn,
-        minimum_receive: Math.round(Number(returnAmount) * (100 - slippage)).toString()
+        minimum_receive: Math.round(Number(returnAmount) * (100 - slippage) / 100).toString()
       });
     }
   }
