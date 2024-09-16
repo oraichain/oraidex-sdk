@@ -23,20 +23,20 @@ async function main() {
     // `${OSMOSIS_ORAICHAIN_DENOM}-orai-3000000000-100`,
     `orai-${ORAIX_CONTRACT}-3000000000-100`
   ];
-  const tokenIn = oraichainTokens.find((t) => extractAddress(t) === USDT_CONTRACT);
+  const tokenIn = oraichainTokens.find((t) => extractAddress(t) === 'orai');
 
-  // const zapper = new ZapConsumer({
-  //   routerApi: "https://osor.oraidex.io/smart-router/alpha-router",
-  //   client: await CosmWasmClient.connect("https://rpc.orai.io"),
-  //   dexV3Address: AMM_V3_CONTRACT,
-  //   multicallAddress: MULTICALL_CONTRACT,
-  //   devitation: 0.05,
-  //   smartRouteConfig: {
-  //     swapOptions: {
-  //       protocols: ["OraidexV3"],
-  //     }
-  //   },
-  // });
+  const zapper = new ZapConsumer({
+    routerApi: "https://osor.oraidex.io/smart-router/alpha-router",
+    client: await CosmWasmClient.connect("https://rpc.orai.io"),
+    dexV3Address: AMM_V3_CONTRACT,
+    multicallAddress: MULTICALL_CONTRACT,
+    devitation: 0,
+    smartRouteConfig: {
+      swapOptions: {
+        protocols: ["OraidexV3"],
+      }
+    },
+  });
 
   // const handler = zapper.handler;
 
@@ -57,17 +57,20 @@ async function main() {
 
   // const liquidityTick = await zapper.getAllLiquidityTicks(parsePoolKey(poolList[0]), tickMap2);
   // console.log({ liquidityTick });
-  // const tickSpacing = parsePoolKey(poolList[0]).fee_tier.tick_spacing;
-  // const currentTick = (await zapper.handler.getPool(parsePoolKey(poolList[0]))).pool.current_tick_index;
+  const tickSpacing = parsePoolKey(poolList[0]).fee_tier.tick_spacing;
+  const currentTick = (await zapper.handler.getPool(parsePoolKey(poolList[0]))).pool.current_tick_index;
 
-  // const res = await zapper.processZapInPositionLiquidity({
-  //   poolKey: parsePoolKey(poolList[0]),
-  //   tokenIn: tokenIn as TokenItemType,
-  //   amountIn: "10000000",
-  //   lowerTick: currentTick - tickSpacing * 3,
-  //   upperTick: currentTick + tickSpacing * 3
-  // });
-  // console.log({ res });
+  const poolKey = parsePoolKey(poolList[0]);
+  const res = await zapper.processZapInPositionLiquidity({
+    poolKey: poolKey,
+    tokenIn: tokenIn as TokenItemType,
+    amountIn: "10000000",
+    lowerTick: currentTick - tickSpacing * 3,
+    upperTick: currentTick + tickSpacing * 3,
+    tokenX: oraichainTokens.find((t) => extractAddress(t) === 'orai') as TokenItemType,
+    tokenY: oraichainTokens.find((t) => extractAddress(t) === ORAIX_CONTRACT) as TokenItemType,
+  });
+  console.log({ res });
 
   // const res = await zapper.processZapOutPositionLiquidity({
   //   owner: "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2",

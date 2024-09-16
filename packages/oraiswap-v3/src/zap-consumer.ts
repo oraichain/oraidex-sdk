@@ -375,7 +375,9 @@ export class ZapConsumer {
     slippage?: number;
   }): Promise<ZapInLiquidityResponse> {
     // get pool info
+    console.time("[ZAPPER] getPool");
     const pool = await this.handler.getPool(poolKey);
+    console.timeEnd("[ZAPPER] getPool");
 
     console.log(`[ZAPPER] pool: ${tokenX.name} / ${tokenY.name} - ${pool.pool_key.fee_tier.fee / 10 ** 10}%`);
 
@@ -414,13 +416,17 @@ export class ZapConsumer {
 
     console.log("[ZAPPER] Position is in range");
     // calculate rate of X and Y in the target range
-    const { amount: yPerX, l: liquidity } = await getLiquidityByX(
+    // console.time("[ZAPPER] getLiquidityByX");
+    const { amount: yPerX, l: liquidity } = getLiquidityByX(
       10n ** BigInt(tokenX.decimals),
       lowerTick,
       upperTick,
       sqrtPrice,
       true
     ); // TODO: still may error
+    // console.timeEnd("[ZAPPER] getLiquidityByX");
+
+    // console.time("[ZAPPER] calculate equation");
     let m3 = shiftDecimal(BigInt(yPerX.toString()), tokenY.decimals);
 
     // get price rate by tokenIn
@@ -428,6 +434,7 @@ export class ZapConsumer {
     let m2 = new BigDecimal(1); // yPrice
 
     // API time: need to check
+    console.time("[ZAPPER] getPriceInfo");
     const getXPriceByTokenIn = await this.getPriceInfo({
       sourceAsset: tokenX,
       destAsset: tokenIn
@@ -437,6 +444,7 @@ export class ZapConsumer {
       sourceAsset: tokenY,
       destAsset: tokenIn
     });
+    console.timeEnd("[ZAPPER] getPriceInfo");
 
     // separate case if tokenIn is on of the pool tokens
     if (![poolKey.token_x, poolKey.token_y].includes(extractAddress(tokenIn))) {
@@ -459,9 +467,11 @@ export class ZapConsumer {
     // get value of Token In
     let amountInToX = BigInt(Math.round(x.mul(m1).toNumber()));
     let amountInToY = BigInt(amountIn) - amountInToX;
+    // console.timeEnd("[ZAPPER] calculate equation");
 
     // re-check
     // API time: need to check
+    console.time("[ZAPPER] findRoute");
     const actualAmountXReceived = await this.findRoute({
       sourceAsset: tokenIn,
       destAsset: tokenX,
@@ -472,6 +482,7 @@ export class ZapConsumer {
       destAsset: tokenY,
       amount: amountInToY
     });
+    console.timeEnd("[ZAPPER] findRoute");
 
     // get all routes
     const routes: ActionRoute[] = [];
@@ -504,6 +515,7 @@ export class ZapConsumer {
       `[ZAPPER] After step 1, result actual is: amountX=${actualAmountXReceived.returnAmount} and amountY=${actualAmountYReceived.returnAmount}`
     );
 
+    console.time("[ZAPPER] simulateSwap");
     let simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
     let simulatedNextTick = pool.pool.current_tick_index;
     for (const route of routes) {
@@ -539,6 +551,7 @@ export class ZapConsumer {
         simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
       }
     }
+    console.timeEnd("[ZAPPER] simulateSwap");
 
     let liquidityAfter = liquidity;
     if (sqrtPrice !== BigInt(pool.pool.sqrt_price)) {
@@ -582,6 +595,7 @@ export class ZapConsumer {
 
       // re calculate m3
       console.log(`[ZAPPER] Recalculate to find the best option`);
+      // console.time("[ZAPPER] getLiquidityByX");
       const { amount: yPerXAfter, liquidityAfter: l } = await getLiquidityByX(
         10n ** BigInt(tokenX.decimals),
         lowerTick,
@@ -601,6 +615,7 @@ export class ZapConsumer {
       amountInToX = BigInt(Math.round(x.mul(m1).toNumber()));
       amountInToY = BigInt(amountIn) - amountInToX;
     }
+    // console.timeEnd("[ZAPPER] getLiquidityByX");
 
     const diffX = Math.abs(Number(actualAmountXReceived.returnAmount) - amountX) / amountX;
     const diffY = Math.abs(Number(actualAmountYReceived.returnAmount) - amountY) / amountY;
@@ -623,6 +638,7 @@ export class ZapConsumer {
     const messages: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
 
     // API time: need to check
+    console.time("[ZAPPER] findRoute");
     let xRouteInfo: SmartRouteResponse;
     let yRouteInfo: SmartRouteResponse;
     xRouteInfo = await this.findRoute({
@@ -635,6 +651,7 @@ export class ZapConsumer {
       destAsset: tokenY,
       amount: amountInToY
     });
+    console.timeEnd("[ZAPPER] findRoute");
 
     // create message
     console.log("[ZAPPER] building message...");
