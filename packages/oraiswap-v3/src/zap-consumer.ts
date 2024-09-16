@@ -256,7 +256,7 @@ export class ZapConsumer {
             false,
             isXToY ? getMinSqrtPrice(poolKey.fee_tier.tick_spacing) : getMaxSqrtPrice(poolKey.fee_tier.tick_spacing)
           );
-
+ 
           pool.sqrt_price = ((BigInt(pool.sqrt_price) + BigInt(swapResult.target_sqrt_price)) / 2n).toString();
           const tick = getTickAtSqrtPrice(BigInt(pool.sqrt_price), poolKey.fee_tier.tick_spacing);
           pool.current_tick_index = (simualteNextTick + tick) / 2;
@@ -436,15 +436,18 @@ export class ZapConsumer {
 
       // API time: need to check
       console.time("[ZAPPER] getPriceInfo");
-      const getXPriceByTokenIn = await this.getPriceInfo({
+      const getXPriceByTokenInPromise = this.getPriceInfo({
         sourceAsset: tokenX,
         destAsset: tokenIn
       });
-
-      const getYPriceByTokenIn = await this.getPriceInfo({
+      const getYPriceByTokenInPromise = this.getPriceInfo({
         sourceAsset: tokenY,
         destAsset: tokenIn
       });
+      const [getXPriceByTokenIn, getYPriceByTokenIn] = await Promise.all([
+        getXPriceByTokenInPromise,
+        getYPriceByTokenInPromise
+      ]);
       console.timeEnd("[ZAPPER] getPriceInfo");
 
       // separate case if tokenIn is on of the pool tokens
@@ -473,16 +476,20 @@ export class ZapConsumer {
       // re-check
       // API time: need to check
       console.time("[ZAPPER] findRoute");
-      const actualAmountXReceived = await this.findRoute({
+      const actualAmountXReceivedPromise = this.findRoute({
         sourceAsset: tokenIn,
         destAsset: tokenX,
         amount: amountInToX
       });
-      const actualAmountYReceived = await this.findRoute({
+      const actualAmountYReceivedPromise = this.findRoute({
         sourceAsset: tokenIn,
         destAsset: tokenY,
         amount: amountInToY
       });
+      const [actualAmountXReceived, actualAmountYReceived] = await Promise.all([  
+        actualAmountXReceivedPromise,
+        actualAmountYReceivedPromise
+      ]);
       console.timeEnd("[ZAPPER] findRoute");
 
       // get all routes
@@ -645,16 +652,17 @@ export class ZapConsumer {
       console.time("[ZAPPER] findRoute");
       let xRouteInfo: SmartRouteResponse;
       let yRouteInfo: SmartRouteResponse;
-      xRouteInfo = await this.findRoute({
+      const xRouteInfoPromise = this.findRoute({
         sourceAsset: tokenIn,
         destAsset: tokenX,
         amount: amountInToX
       });
-      yRouteInfo = await this.findRoute({
+      const yRouteInfoPromise = this.findRoute({
         sourceAsset: tokenIn,
         destAsset: tokenY,
         amount: amountInToY
       });
+      [xRouteInfo, yRouteInfo] = await Promise.all([xRouteInfoPromise, yRouteInfoPromise]);
       console.timeEnd("[ZAPPER] findRoute");
 
       // create message
@@ -753,16 +761,17 @@ export class ZapConsumer {
       // }
 
       // const routes: SmartRouteResponse[] = [];
-      const xRouteInfo = await this.findRoute({
+      const xRouteInfoPromise = this.findRoute({
         sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_x),
         destAsset: tokenOut,
         amount: rewardAmounts[pool.pool_key.token_x]
       });
-      const yRouteInfo = await this.findRoute({
+      const yRouteInfoPromise = this.findRoute({
         sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_y),
         destAsset: tokenOut,
         amount: rewardAmounts[pool.pool_key.token_y]
       });
+      const [xRouteInfo, yRouteInfo] = await Promise.all([xRouteInfoPromise, yRouteInfoPromise]);
 
       // build messages
       const messages: ZapOutLiquidityResponse = {} as ZapOutLiquidityResponse;

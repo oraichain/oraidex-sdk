@@ -23,7 +23,7 @@ async function main() {
     // `${OSMOSIS_ORAICHAIN_DENOM}-orai-3000000000-100`,
     `orai-${ORAIX_CONTRACT}-3000000000-100`
   ];
-  const tokenIn = oraichainTokens.find((t) => t.denom === "NTMPI");
+  const tokenIn = oraichainTokens.find((t) => extractAddress(t) === USDT_CONTRACT) as TokenItemType;
 
   const zapper = new ZapConsumer({
     routerApi: "https://osor.oraidex.io/smart-router/alpha-router",

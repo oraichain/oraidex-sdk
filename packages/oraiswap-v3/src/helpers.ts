@@ -272,24 +272,10 @@ export const _calculateTokenAmounts = (pool: Pool, position: Position, sign: boo
 };
 
 export const shiftDecimal = (value: bigint, decimals: number): BigDecimal => {
-  const valueStr = value.toString();
-  const len = valueStr.length;
-  const splitPos = len - decimals;
-
-  let result: string;
-
-  if (splitPos > 0) {
-    // When there are more digits than decimals, insert the decimal point accordingly
-    const intStr = valueStr.slice(0, splitPos);
-    const decStr = valueStr.slice(splitPos);
-    result = `${intStr}.${decStr}`;
-  } else {
-    // When digits are fewer than or equal to decimals, pad with leading zeros
-    const paddedDecStr = valueStr.padStart(decimals, "0");
-    result = `0.${paddedDecStr}`;
-  }
-
-  return new BigDecimal(result, decimals);
+  const valueStr = value.toString().padStart(decimals + 1, "0"); // Pad with leading zeros if needed
+  const intStr = valueStr.slice(0, -decimals) || "0"; // Retrieve integral part or default to "0"
+  const decStr = valueStr.slice(-decimals); // Retrieve decimal part
+  return new BigDecimal(`${intStr}.${decStr}`, decimals);
 };
 
 export const parseAsset = (token: TokenItemType, amount: string): Asset => {
