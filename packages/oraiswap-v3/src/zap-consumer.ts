@@ -187,7 +187,7 @@ export class ZapConsumer {
     upperTick,
     tokenX,
     tokenY,
-    slippage = 1,
+    slippage = 1
   }: {
     poolKey: PoolKey;
     pool: Pool;
@@ -363,7 +363,7 @@ export class ZapConsumer {
     amountIn,
     lowerTick,
     upperTick,
-    slippage = 1,
+    slippage = 1
   }: {
     poolKey: PoolKey;
     tokenIn: TokenItemType;
@@ -375,333 +375,346 @@ export class ZapConsumer {
     slippage?: number;
   }): Promise<ZapInLiquidityResponse> {
     // get pool info
-    console.time("[ZAPPER] getPool");
-    const pool = await this.handler.getPool(poolKey);
-    console.timeEnd("[ZAPPER] getPool");
+    try {
+      console.time("[ZAPPER] getPool");
+      const pool = await this.handler.getPool(poolKey);
+      console.timeEnd("[ZAPPER] getPool");
 
-    console.log(`[ZAPPER] pool: ${tokenX.name} / ${tokenY.name} - ${pool.pool_key.fee_tier.fee / 10 ** 10}%`);
+      console.log(`[ZAPPER] pool: ${tokenX.name} / ${tokenY.name} - ${pool.pool_key.fee_tier.fee / 10 ** 10}%`);
 
-    const sqrtPrice = BigInt(pool.pool.sqrt_price);
+      const sqrtPrice = BigInt(pool.pool.sqrt_price);
 
-    console.log(`[ZAPPER] sqrtPrice: ${sqrtPrice}, currentTick: ${pool.pool.current_tick_index}`);
+      console.log(`[ZAPPER] sqrtPrice: ${sqrtPrice}, currentTick: ${pool.pool.current_tick_index}`);
 
-    let zapResult: ZapInResult;
-    let result: ZapInLiquidityResponse;
-    if (lowerTick > pool.pool.current_tick_index || upperTick <= pool.pool.current_tick_index) {
-      console.log(`[ZAPPER] Position want to add is out range`);
-      // Handle case zap in when the position is out range
-      result = await this.processZapInWithSingleSide({
-        poolKey,
-        pool: pool.pool,
-        sqrtPrice,
-        tokenIn,
-        amountIn,
-        lowerTick,
-        upperTick,
-        tokenX,
-        tokenY,
-        slippage
-      });
-    }
-
-    if (result) {
-      console.log("[ZAPPER] Result for the out range position!");
-      if (result.result !== ZapInResult.OutRangeHasRouteThroughSelfMayBecomeInRange) {
-        return result;
-      } else {
-        pool.pool.current_tick_index = result.currentTick;
-        pool.pool.sqrt_price = BigInt(pool.pool.sqrt_price).toString();
-      }
-    }
-
-    console.log("[ZAPPER] Position is in range");
-    // calculate rate of X and Y in the target range
-    // console.time("[ZAPPER] getLiquidityByX");
-    const { amount: yPerX, l: liquidity } = getLiquidityByX(
-      10n ** BigInt(tokenX.decimals),
-      lowerTick,
-      upperTick,
-      sqrtPrice,
-      true
-    ); // TODO: still may error
-    // console.timeEnd("[ZAPPER] getLiquidityByX");
-
-    // console.time("[ZAPPER] calculate equation");
-    let m3 = shiftDecimal(BigInt(yPerX.toString()), tokenY.decimals);
-
-    // get price rate by tokenIn
-    let m1 = new BigDecimal(1); // xPrice
-    let m2 = new BigDecimal(1); // yPrice
-
-    // API time: need to check
-    console.time("[ZAPPER] getPriceInfo");
-    const getXPriceByTokenIn = await this.getPriceInfo({
-      sourceAsset: tokenX,
-      destAsset: tokenIn
-    });
-
-    const getYPriceByTokenIn = await this.getPriceInfo({
-      sourceAsset: tokenY,
-      destAsset: tokenIn
-    });
-    console.timeEnd("[ZAPPER] getPriceInfo");
-
-    // separate case if tokenIn is on of the pool tokens
-    if (![poolKey.token_x, poolKey.token_y].includes(extractAddress(tokenIn))) {
-      m1 = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals);
-      m2 = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals);
-    } else {
-      if (extractAddress(tokenIn) === poolKey.token_x) {
-        m2 = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals);
-      } else {
-        m1 = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals);
-      }
-    }
-
-    // solve
-    let x = new BigDecimal(amountIn).div(m1.add(m2.mul(m3)));
-    let y = x.mul(m3);
-    let amountX = Math.round(x.toNumber());
-    let amountY = Math.round(y.toNumber());
-
-    // get value of Token In
-    let amountInToX = BigInt(Math.round(x.mul(m1).toNumber()));
-    let amountInToY = BigInt(amountIn) - amountInToX;
-    // console.timeEnd("[ZAPPER] calculate equation");
-
-    // re-check
-    // API time: need to check
-    console.time("[ZAPPER] findRoute");
-    const actualAmountXReceived = await this.findRoute({
-      sourceAsset: tokenIn,
-      destAsset: tokenX,
-      amount: amountInToX
-    });
-    const actualAmountYReceived = await this.findRoute({
-      sourceAsset: tokenIn,
-      destAsset: tokenY,
-      amount: amountInToY
-    });
-    console.timeEnd("[ZAPPER] findRoute");
-
-    // get all routes
-    const routes: ActionRoute[] = [];
-    actualAmountXReceived.routes !== null &&
-      actualAmountXReceived.routes.forEach((route) => {
-        route.paths.forEach((path) => {
-          path.actions.forEach((action) => {
-            if (action.protocol === "OraidexV3") {
-              routes.push(action);
-            }
-          });
+      let zapResult: ZapInResult;
+      let result: ZapInLiquidityResponse;
+      if (lowerTick > pool.pool.current_tick_index || upperTick <= pool.pool.current_tick_index) {
+        console.log(`[ZAPPER] Position want to add is out range`);
+        // Handle case zap in when the position is out range
+        result = await this.processZapInWithSingleSide({
+          poolKey,
+          pool: pool.pool,
+          sqrtPrice,
+          tokenIn,
+          amountIn,
+          lowerTick,
+          upperTick,
+          tokenX,
+          tokenY,
+          slippage
         });
-      });
-    actualAmountYReceived.routes !== null &&
-      actualAmountYReceived.routes.forEach((route) => {
-        route.paths.forEach((path) => {
-          path.actions.forEach((action) => {
-            if (action.protocol === "OraidexV3") {
-              routes.push(action);
-            }
-          });
-        });
-      });
-    zapResult = ZapInResult.InRangeNoRouteThroughSelf;
-
-    console.log(
-      `[ZAPPER] After step 1, result is: amountX=${amountInToX.toString()} and amountY=${amountInToY.toString()}`
-    );
-    console.log(
-      `[ZAPPER] After step 1, result actual is: amountX=${actualAmountXReceived.returnAmount} and amountY=${actualAmountYReceived.returnAmount}`
-    );
-
-    console.time("[ZAPPER] simulateSwap");
-    let simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
-    let simulatedNextTick = pool.pool.current_tick_index;
-    for (const route of routes) {
-      if (route.swapInfo.find((swap) => swap.poolId === poolKeyToString(poolKey))) {
-        const isXToY = route.tokenOut === poolKey.token_x ? false : true;
-        const amountOut = route.tokenOutAmount;
-        const tickMap = await this.getFullTickmap(poolKey);
-        const liquidityTicks = await this.getAllLiquidityTicks(poolKey, tickMap);
-        const convertPool = {
-          ...pool.pool,
-          liquidity: BigInt(pool.pool.liquidity),
-          sqrt_price: BigInt(pool.pool.sqrt_price),
-          fee_growth_global_x: BigInt(pool.pool.fee_growth_global_x),
-          fee_growth_global_y: BigInt(pool.pool.fee_growth_global_y),
-          fee_protocol_token_x: BigInt(pool.pool.fee_protocol_token_x),
-          fee_protocol_token_y: BigInt(pool.pool.fee_protocol_token_y)
-        };
-        const swapResult = simulateSwap(
-          tickMap,
-          poolKey.fee_tier,
-          convertPool,
-          liquidityTicks,
-          isXToY,
-          BigInt(amountOut),
-          false,
-          isXToY ? getMinSqrtPrice(poolKey.fee_tier.tick_spacing) : getMaxSqrtPrice(poolKey.fee_tier.tick_spacing)
-        );
-
-        pool.pool.sqrt_price = ((BigInt(pool.pool.sqrt_price) + BigInt(swapResult.target_sqrt_price)) / 2n).toString();
-        const tick = getTickAtSqrtPrice(BigInt(pool.pool.sqrt_price), poolKey.fee_tier.tick_spacing);
-        pool.pool.current_tick_index = (simulatedNextTick + tick) / 2;
-        simulatedNextTick = pool.pool.current_tick_index;
-        simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
-      }
-    }
-    console.timeEnd("[ZAPPER] simulateSwap");
-
-    let liquidityAfter = liquidity;
-    if (sqrtPrice !== BigInt(pool.pool.sqrt_price)) {
-      console.log(`[ZAPPER] There is a route through self`);
-      zapResult = ZapInResult.InRangeHasRouteThroughSelf;
-      if (simulatedNextTick > upperTick || simulatedNextTick < lowerTick) {
-        console.log(`[ZAPPER] This route may make the position out of range`);
-        zapResult = ZapInResult.InRangeHasRouteThroughSelfMayBecomeOutRange;
-
-        // out range -> return message imediate instead of re-calculate
-        const message: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
-        message.result = zapResult;
-        message.assetIn = parseAsset(tokenIn, amountIn);
-
-        message.amountToX = amountInToX.toString();
-        message.amountToY = amountInToY.toString();
-        message.amountX = actualAmountXReceived.returnAmount;
-        message.amountY = actualAmountYReceived.returnAmount;
-
-        message.poolKey = poolKey;
-        message.sqrtPrice = BigInt(pool.pool.sqrt_price);
-        message.tickLowerIndex = lowerTick;
-        message.tickUpperIndex = upperTick;
-        
-        message.routes = generateMessageSwapOperation([actualAmountXReceived, actualAmountYReceived], slippage);
-        message.swapFee = 0;
-        message.routes.forEach((route) => {
-          route.operations.forEach((operation) => {
-            message.swapFee += getFeeRate(operation);
-          });
-        });
-
-        const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, sqrtPrice, true);
-        const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, sqrtPrice, true);
-        message.minimumLiquidity =
-          res1.l > res2.l
-            ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
-            : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
-        return message;
       }
 
-      // re calculate m3
-      console.log(`[ZAPPER] Recalculate to find the best option`);
+      if (result) {
+        console.log("[ZAPPER] Result for the out range position!");
+        if (result.result !== ZapInResult.OutRangeHasRouteThroughSelfMayBecomeInRange) {
+          return result;
+        } else {
+          pool.pool.current_tick_index = result.currentTick;
+          pool.pool.sqrt_price = BigInt(pool.pool.sqrt_price).toString();
+        }
+      }
+
+      console.log("[ZAPPER] Position is in range");
+      // calculate rate of X and Y in the target range
       // console.time("[ZAPPER] getLiquidityByX");
-      const { amount: yPerXAfter, liquidityAfter: l } = await getLiquidityByX(
+      const { amount: yPerX, l: liquidity } = getLiquidityByX(
         10n ** BigInt(tokenX.decimals),
         lowerTick,
         upperTick,
-        BigInt(pool.pool.sqrt_price),
+        sqrtPrice,
         true
-      );
-      liquidityAfter = l;
-      m3 = shiftDecimal(BigInt(yPerXAfter.toString()), tokenY.decimals);
+      ); // TODO: still may error
+      // console.timeEnd("[ZAPPER] getLiquidityByX");
+
+      // console.time("[ZAPPER] calculate equation");
+      let m3 = shiftDecimal(BigInt(yPerX.toString()), tokenY.decimals);
+
+      // get price rate by tokenIn
+      let m1 = new BigDecimal(1); // xPrice
+      let m2 = new BigDecimal(1); // yPrice
+
+      // API time: need to check
+      console.time("[ZAPPER] getPriceInfo");
+      const getXPriceByTokenIn = await this.getPriceInfo({
+        sourceAsset: tokenX,
+        destAsset: tokenIn
+      });
+
+      const getYPriceByTokenIn = await this.getPriceInfo({
+        sourceAsset: tokenY,
+        destAsset: tokenIn
+      });
+      console.timeEnd("[ZAPPER] getPriceInfo");
+
+      // separate case if tokenIn is on of the pool tokens
+      if (![poolKey.token_x, poolKey.token_y].includes(extractAddress(tokenIn))) {
+        m1 = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals);
+        m2 = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals);
+      } else {
+        if (extractAddress(tokenIn) === poolKey.token_x) {
+          m2 = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals);
+        } else {
+          m1 = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals);
+        }
+      }
+
       // solve
-      x = new BigDecimal(amountIn).div(m1.add(m2.mul(m3)));
-      y = x.mul(m3);
-      amountX = Math.round(x.toNumber());
-      amountY = Math.round(y.toNumber());
+      let x = new BigDecimal(amountIn).div(m1.add(m2.mul(m3)));
+      let y = x.mul(m3);
+      let amountX = Math.round(x.toNumber());
+      let amountY = Math.round(y.toNumber());
 
       // get value of Token In
-      amountInToX = BigInt(Math.round(x.mul(m1).toNumber()));
-      amountInToY = BigInt(amountIn) - amountInToX;
-    }
-    // console.timeEnd("[ZAPPER] getLiquidityByX");
+      let amountInToX = BigInt(Math.round(x.mul(m1).toNumber()));
+      let amountInToY = BigInt(amountIn) - amountInToX;
+      // console.timeEnd("[ZAPPER] calculate equation");
 
-    const diffX = Math.abs(Number(actualAmountXReceived.returnAmount) - amountX) / amountX;
-    const diffY = Math.abs(Number(actualAmountYReceived.returnAmount) - amountY) / amountY;
-    if (diffX > this._devitation || diffY > this._devitation) {
-      console.log(`[ZAPPER] Deviation is too high, re-calculate`);
-      // > devitation, re-calculate
-      const x1 = new BigDecimal(actualAmountXReceived.returnAmount);
-      const y1 = new BigDecimal(actualAmountYReceived.returnAmount);
-      const xPriceByY = await this.getPriceInfo({
-        sourceAsset: tokenX,
-        destAsset: tokenY
+      // re-check
+      // API time: need to check
+      console.time("[ZAPPER] findRoute");
+      const actualAmountXReceived = await this.findRoute({
+        sourceAsset: tokenIn,
+        destAsset: tokenX,
+        amount: amountInToX
       });
-      const m4 = shiftDecimal(BigInt(xPriceByY.returnAmount), tokenY.decimals);
-      const deltaX = y1.sub(m3.mul(x1)).div(m3.add(m4));
-      amountInToX += BigInt(Math.round(deltaX.mul(m1).toNumber()));
-      amountInToY = BigInt(amountIn) - amountInToX;
-    }
-
-    // build messages
-    const messages: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
-
-    // API time: need to check
-    console.time("[ZAPPER] findRoute");
-    let xRouteInfo: SmartRouteResponse;
-    let yRouteInfo: SmartRouteResponse;
-    xRouteInfo = await this.findRoute({
-      sourceAsset: tokenIn,
-      destAsset: tokenX,
-      amount: amountInToX
-    });
-    yRouteInfo = await this.findRoute({
-      sourceAsset: tokenIn,
-      destAsset: tokenY,
-      amount: amountInToY
-    });
-    console.timeEnd("[ZAPPER] findRoute");
-
-    // create message
-    console.log("[ZAPPER] building message...");
-    messages.result = result ? result.result : zapResult;
-    messages.amountToX = amountInToX.toString();
-    messages.amountToY = amountInToY.toString();
-    messages.assetIn = parseAsset(tokenIn, amountIn);
-
-    const minimumReceiveX = xRouteInfo.routes
-      ? Math.trunc(new BigDecimal(xRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
-      : xRouteInfo.returnAmount;
-    const minimumReceiveY = yRouteInfo.routes
-      ? Math.trunc(new BigDecimal(yRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
-      : yRouteInfo.returnAmount;
-    messages.minimumReceiveX = minimumReceiveX;
-    messages.minimumReceiveY = minimumReceiveY;
-
-    messages.poolKey = poolKey;
-    messages.tickLowerIndex = lowerTick;
-    messages.tickUpperIndex = upperTick;
-
-    messages.amountX = xRouteInfo.returnAmount;
-    messages.amountY = yRouteInfo.returnAmount;
-    messages.sqrtPrice = BigInt(pool.pool.sqrt_price);
-
-    
-    messages.routes = generateMessageSwapOperation([xRouteInfo, yRouteInfo], slippage);
-
-    messages.swapFee = 0;
-    messages.routes.forEach((route) => {
-      route.operations.forEach((operation) => {
-        messages.swapFee += getFeeRate(operation);
+      const actualAmountYReceived = await this.findRoute({
+        sourceAsset: tokenIn,
+        destAsset: tokenY,
+        amount: amountInToY
       });
-    });
+      console.timeEnd("[ZAPPER] findRoute");
 
-    const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
-    const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
-    messages.minimumLiquidity =
-      res1.l > res2.l
-        ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
-        : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
+      // get all routes
+      const routes: ActionRoute[] = [];
+      actualAmountXReceived.routes !== null &&
+        actualAmountXReceived.routes.forEach((route) => {
+          route.paths.forEach((path) => {
+            path.actions.forEach((action) => {
+              if (action.protocol === "OraidexV3") {
+                routes.push(action);
+              }
+            });
+          });
+        });
+      actualAmountYReceived.routes !== null &&
+        actualAmountYReceived.routes.forEach((route) => {
+          route.paths.forEach((path) => {
+            path.actions.forEach((action) => {
+              if (action.protocol === "OraidexV3") {
+                routes.push(action);
+              }
+            });
+          });
+        });
+      zapResult = ZapInResult.InRangeNoRouteThroughSelf;
 
-    return messages;
+      console.log(
+        `[ZAPPER] After step 1, result is: amountX=${amountInToX.toString()} and amountY=${amountInToY.toString()}`
+      );
+      console.log(
+        `[ZAPPER] After step 1, result actual is: amountX=${actualAmountXReceived.returnAmount} and amountY=${actualAmountYReceived.returnAmount}`
+      );
+
+      console.time("[ZAPPER] simulateSwap");
+      let simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
+      let simulatedNextTick = pool.pool.current_tick_index;
+      for (const route of routes) {
+        if (route.swapInfo.find((swap) => swap.poolId === poolKeyToString(poolKey))) {
+          const isXToY = route.tokenOut === poolKey.token_x ? false : true;
+          const amountOut = route.tokenOutAmount;
+          const tickMap = await this.getFullTickmap(poolKey);
+          const liquidityTicks = await this.getAllLiquidityTicks(poolKey, tickMap);
+          const convertPool = {
+            ...pool.pool,
+            liquidity: BigInt(pool.pool.liquidity),
+            sqrt_price: BigInt(pool.pool.sqrt_price),
+            fee_growth_global_x: BigInt(pool.pool.fee_growth_global_x),
+            fee_growth_global_y: BigInt(pool.pool.fee_growth_global_y),
+            fee_protocol_token_x: BigInt(pool.pool.fee_protocol_token_x),
+            fee_protocol_token_y: BigInt(pool.pool.fee_protocol_token_y)
+          };
+          const swapResult = simulateSwap(
+            tickMap,
+            poolKey.fee_tier,
+            convertPool,
+            liquidityTicks,
+            isXToY,
+            BigInt(amountOut),
+            false,
+            isXToY ? getMinSqrtPrice(poolKey.fee_tier.tick_spacing) : getMaxSqrtPrice(poolKey.fee_tier.tick_spacing)
+          );
+
+          pool.pool.sqrt_price = (
+            (BigInt(pool.pool.sqrt_price) + BigInt(swapResult.target_sqrt_price)) /
+            2n
+          ).toString();
+          const tick = getTickAtSqrtPrice(BigInt(pool.pool.sqrt_price), poolKey.fee_tier.tick_spacing);
+          pool.pool.current_tick_index = (simulatedNextTick + tick) / 2;
+          simulatedNextTick = pool.pool.current_tick_index;
+          simulatedNextSqrtPrice = BigInt(pool.pool.sqrt_price);
+        }
+      }
+      console.timeEnd("[ZAPPER] simulateSwap");
+
+      let liquidityAfter = liquidity;
+      if (sqrtPrice !== BigInt(pool.pool.sqrt_price)) {
+        console.log(`[ZAPPER] There is a route through self`);
+        zapResult = ZapInResult.InRangeHasRouteThroughSelf;
+        if (simulatedNextTick > upperTick || simulatedNextTick < lowerTick) {
+          console.log(`[ZAPPER] This route may make the position out of range`);
+          zapResult = ZapInResult.InRangeHasRouteThroughSelfMayBecomeOutRange;
+
+          // out range -> return message imediate instead of re-calculate
+          const message: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
+          message.result = zapResult;
+          message.assetIn = parseAsset(tokenIn, amountIn);
+
+          message.amountToX = amountInToX.toString();
+          message.amountToY = amountInToY.toString();
+          message.amountX = actualAmountXReceived.returnAmount;
+          message.amountY = actualAmountYReceived.returnAmount;
+
+          message.poolKey = poolKey;
+          message.sqrtPrice = BigInt(pool.pool.sqrt_price);
+          message.tickLowerIndex = lowerTick;
+          message.tickUpperIndex = upperTick;
+
+          message.routes = generateMessageSwapOperation([actualAmountXReceived, actualAmountYReceived], slippage);
+          message.swapFee = 0;
+          message.routes.forEach((route) => {
+            route.operations.forEach((operation) => {
+              message.swapFee += getFeeRate(operation);
+            });
+          });
+
+          const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, sqrtPrice, true);
+          const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, sqrtPrice, true);
+          message.minimumLiquidity =
+            res1.l > res2.l
+              ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
+              : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
+          return message;
+        }
+
+        // re calculate m3
+        console.log(`[ZAPPER] Recalculate to find the best option`);
+        // console.time("[ZAPPER] getLiquidityByX");
+        const { amount: yPerXAfter, liquidityAfter: l } = await getLiquidityByX(
+          10n ** BigInt(tokenX.decimals),
+          lowerTick,
+          upperTick,
+          BigInt(pool.pool.sqrt_price),
+          true
+        );
+        liquidityAfter = l;
+        m3 = shiftDecimal(BigInt(yPerXAfter.toString()), tokenY.decimals);
+        // solve
+        x = new BigDecimal(amountIn).div(m1.add(m2.mul(m3)));
+        y = x.mul(m3);
+        amountX = Math.round(x.toNumber());
+        amountY = Math.round(y.toNumber());
+
+        // get value of Token In
+        amountInToX = BigInt(Math.round(x.mul(m1).toNumber()));
+        amountInToY = BigInt(amountIn) - amountInToX;
+      }
+      // console.timeEnd("[ZAPPER] getLiquidityByX");
+
+      const diffX = Math.abs(Number(actualAmountXReceived.returnAmount) - amountX) / amountX;
+      const diffY = Math.abs(Number(actualAmountYReceived.returnAmount) - amountY) / amountY;
+      if (diffX > this._devitation || diffY > this._devitation) {
+        console.log(`[ZAPPER] Deviation is too high, re-calculate`);
+        // > devitation, re-calculate
+        const x1 = new BigDecimal(actualAmountXReceived.returnAmount);
+        const y1 = new BigDecimal(actualAmountYReceived.returnAmount);
+        const xPriceByY = await this.getPriceInfo({
+          sourceAsset: tokenX,
+          destAsset: tokenY
+        });
+        const m4 = shiftDecimal(BigInt(xPriceByY.returnAmount), tokenY.decimals);
+        const deltaX = y1.sub(m3.mul(x1)).div(m3.add(m4));
+        amountInToX += BigInt(Math.round(deltaX.mul(m1).toNumber()));
+        amountInToY = BigInt(amountIn) - amountInToX;
+      }
+
+      // build messages
+      const messages: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
+
+      // API time: need to check
+      console.time("[ZAPPER] findRoute");
+      let xRouteInfo: SmartRouteResponse;
+      let yRouteInfo: SmartRouteResponse;
+      xRouteInfo = await this.findRoute({
+        sourceAsset: tokenIn,
+        destAsset: tokenX,
+        amount: amountInToX
+      });
+      yRouteInfo = await this.findRoute({
+        sourceAsset: tokenIn,
+        destAsset: tokenY,
+        amount: amountInToY
+      });
+      console.timeEnd("[ZAPPER] findRoute");
+
+      // create message
+      console.log("[ZAPPER] building message...");
+      messages.result = result ? result.result : zapResult;
+      messages.amountToX = amountInToX.toString();
+      messages.amountToY = amountInToY.toString();
+      messages.assetIn = parseAsset(tokenIn, amountIn);
+
+      const minimumReceiveX = xRouteInfo.routes
+        ? Math.trunc(new BigDecimal(xRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+        : xRouteInfo.returnAmount;
+      const minimumReceiveY = yRouteInfo.routes
+        ? Math.trunc(new BigDecimal(yRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+        : yRouteInfo.returnAmount;
+      messages.minimumReceiveX = minimumReceiveX;
+      messages.minimumReceiveY = minimumReceiveY;
+
+      messages.poolKey = poolKey;
+      messages.tickLowerIndex = lowerTick;
+      messages.tickUpperIndex = upperTick;
+
+      messages.amountX = xRouteInfo.returnAmount;
+      messages.amountY = yRouteInfo.returnAmount;
+      messages.sqrtPrice = BigInt(pool.pool.sqrt_price);
+
+      messages.routes = generateMessageSwapOperation([xRouteInfo, yRouteInfo], slippage);
+
+      messages.swapFee = 0;
+      messages.routes.forEach((route) => {
+        route.operations.forEach((operation) => {
+          messages.swapFee += getFeeRate(operation);
+        });
+      });
+
+      const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
+      const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
+      messages.minimumLiquidity =
+        res1.l > res2.l
+          ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
+          : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
+
+      return messages;
+    } catch (e) {
+      console.log(`[ZapConsumer] processZapInPositionLiquidity error: ${e}`);
+      const message: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
+      if (e instanceof RouteNotFoundError) {
+        message.result = ZapInResult.NoRouteFound;
+      } else {
+        message.result = ZapInResult.SomethingWentWrong;
+      }
+      return message;
+    }
   }
 
   public async processZapOutPositionLiquidity({
     tokenId,
     owner,
     tokenOut,
-    slippage = 1,
+    slippage = 1
   }: {
     tokenId: number;
     owner: string;
