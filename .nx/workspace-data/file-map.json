@@ -884,10 +884,86 @@
       }
     ],
     "projectFileMap": {
+      "@oraichain/ibc-routing": [
+        {
+          "file": "packages/ibc-routing/.eslintrc.json",
+          "hash": "4928468841147562531"
+        },
+        {
+          "file": "packages/ibc-routing/hardhat.config.ts",
+          "hash": "16333660593579829557"
+        },
+        {
+          "file": "packages/ibc-routing/package.json",
+          "hash": "17076514498932694890",
+          "deps": [
+            "npm:@nomiclabs/hardhat-ethers",
+            "npm:@nomiclabs/hardhat-etherscan",
+            "npm:@typechain/ethers-v6",
+            "npm:@typechain/hardhat",
+            "npm:@types/ws",
+            "npm:cosmjs-types",
+            "npm:dotenv",
+            "npm:hardhat",
+            "npm:jest-websocket-mock",
+            "npm:mockthereum",
+            "npm:ts-results",
+            "npm:@duckdb/duckdb-wasm",
+            "@oraichain/oraidex-common",
+            "@oraichain/oraidex-contracts-sdk",
+            "@oraichain/oraidex-universal-swap",
+            "npm:@xstate/inspect",
+            "npm:bech32",
+            "npm:ethers",
+            "npm:tronweb",
+            "npm:uWebSockets.js",
+            "npm:web-worker",
+            "npm:ws",
+            "npm:xstate",
+            "npm:duckdb-async"
+          ]
+        },
+        {
+          "file": "packages/ibc-routing/src/db.ts",
+          "hash": "14754277918584557232"
+        },
+        {
+          "file": "packages/ibc-routing/src/event.ts",
+          "hash": "6408156560148629906"
+        },
+        {
+          "file": "packages/ibc-routing/src/index.ts",
+          "hash": "6607107111465826593"
+        },
+        {
+          "file": "packages/ibc-routing/src/machine.ts",
+          "hash": "18353186999700929672"
+        },
+        {
+          "file": "packages/ibc-routing/test/mock-eth-ws.ts",
+          "hash": "18111791269509019549"
+        },
+        {
+          "file": "packages/ibc-routing/test/mock-tendermint-ws.spec.ts",
+          "hash": "4818461940476310332"
+        },
+        {
+          "file": "packages/ibc-routing/test/tsconfig.json",
+          "hash": "9186550725768788199"
+        },
+        {
+          "file": "packages/ibc-routing/tsconfig.json",
+          "hash": "17602097860392162275"
+        },
+        {
+          "file": "packages/ibc-routing/tsconfig.test.json",
+          "hash": "10854166303141499170"
+        }
+      ],
       "@oraichain/oraiswap-v3": [
         {
           "file": "packages/oraiswap-v3/package.json",
-          "hash": "17160215302976723763",
+          "hash": "4874927033076726502",
           "deps": [
             "npm:@cosmjs/cosmwasm-stargate",
             "@oraichain/oraidex-contracts-sdk",
@@ -932,7 +1008,7 @@
         },
         {
           "file": "packages/oraiswap-v3/src/zap-consumer.ts",
-          "hash": "14169677502304934328"
+          "hash": "9202665488850314254"
         },
         {
           "file": "packages/oraiswap-v3/tests/data/multicall.wasm",
@@ -965,130 +1041,6 @@
         {
           "file": "packages/oraiswap-v3/tsconfig.json",
           "hash": "1566923510941265995"
-        }
-      ],
-      "@oraichain/oraidex-common-ui": [
-        {
-          "file": "packages/oraidex-common-ui/.babelrc.json",
-          "hash": "902129359307404818"
-        },
-        {
-          "file": "packages/oraidex-common-ui/.storybook/main.ts",
-          "hash": "3030296611831889225"
-        },
-        {
-          "file": "packages/oraidex-common-ui/.storybook/preview.ts",
-          "hash": "8632666333571808005"
-        },
-        {
-          "file": "packages/oraidex-common-ui/README.md",
-          "hash": "6256502674563672244"
-        },
-        {
-          "file": "packages/oraidex-common-ui/package.json",
-          "hash": "1657031441144361514",
-          "deps": [
-            "npm:react",
-            "npm:react-dom",
-            "npm:@babel/preset-env",
-            "npm:@babel/preset-react",
-            "npm:@babel/preset-typescript",
-            "npm:@storybook/addon-essentials",
-            "npm:@storybook/addon-interactions",
-            "npm:@storybook/addon-links",
-            "npm:@storybook/react",
-            "npm:@storybook/react-webpack5",
-            "npm:@types/react",
-            "npm:css-minimizer-webpack-plugin@6.0.0",
-            "npm:mini-css-extract-plugin@2.9.1",
-            "npm:storybook",
-            "npm:terser-webpack-plugin",
-            "npm:webpack@5.89.0",
-            "npm:webpack-cli@5.1.4",
-            "npm:axios-extensions",
-            "npm:axios@1.7.2",
-            "npm:react-use"
-          ]
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/SaveLoadAdapter.ts",
-          "hash": "5574472860960791095"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/TVChartContainer.stories.tsx",
-          "hash": "12593368785090992435"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/TVChartContainer.tsx",
-          "hash": "16537889040869033852"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/charting_library.d.ts",
-          "hash": "9826845641136839825"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/config.ts",
-          "hash": "3041585301542790809"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/TVDataProvider.ts",
-          "hash": "12627046919318253645"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/constants.ts",
-          "hash": "14984533802833966346"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/requests.ts",
-          "hash": "11304590141327330296"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/streaming.spec.ts",
-          "hash": "17459260871234110155"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/streaming.ts",
-          "hash": "7714178981118218456"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/types.ts",
-          "hash": "3535062834188450007"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/useTVDatafeed.ts",
-          "hash": "13242975436190735373"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/utils.spec.ts",
-          "hash": "12935530393197637337"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/utils.ts",
-          "hash": "5031910160392533536"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/index.ts",
-          "hash": "1286975211599669062"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/components/index.ts",
-          "hash": "4707722870073937196"
-        },
-        {
-          "file": "packages/oraidex-common-ui/src/index.ts",
-          "hash": "406893267761917856"
-        },
-        {
-          "file": "packages/oraidex-common-ui/tsconfig.json",
-          "hash": "14542809294647547859"
-        },
-        {
-          "file": "packages/oraidex-common-ui/tsconfig.test.json",
-          "hash": "18280363515485363456"
-        },
-        {
-          "file": "packages/oraidex-common-ui/webpack.config.js",
-          "hash": "2497737777319328883"
         }
       ],
       "@oraichain/oraidex-common": [
@@ -1539,286 +1491,6 @@
           "hash": "7719865648355870270"
         }
       ],
-      "@oraichain/ibc-routing": [
-        {
-          "file": "packages/ibc-routing/.eslintrc.json",
-          "hash": "4928468841147562531"
-        },
-        {
-          "file": "packages/ibc-routing/hardhat.config.ts",
-          "hash": "16333660593579829557"
-        },
-        {
-          "file": "packages/ibc-routing/package.json",
-          "hash": "17076514498932694890",
-          "deps": [
-            "npm:@nomiclabs/hardhat-ethers",
-            "npm:@nomiclabs/hardhat-etherscan",
-            "npm:@typechain/ethers-v6",
-            "npm:@typechain/hardhat",
-            "npm:@types/ws",
-            "npm:cosmjs-types",
-            "npm:dotenv",
-            "npm:hardhat",
-            "npm:jest-websocket-mock",
-            "npm:mockthereum",
-            "npm:ts-results",
-            "npm:@duckdb/duckdb-wasm",
-            "@oraichain/oraidex-common",
-            "@oraichain/oraidex-contracts-sdk",
-            "@oraichain/oraidex-universal-swap",
-            "npm:@xstate/inspect",
-            "npm:bech32",
-            "npm:ethers",
-            "npm:tronweb",
-            "npm:uWebSockets.js",
-            "npm:web-worker",
-            "npm:ws",
-            "npm:xstate",
-            "npm:duckdb-async"
-          ]
-        },
-        {
-          "file": "packages/ibc-routing/src/db.ts",
-          "hash": "14754277918584557232"
-        },
-        {
-          "file": "packages/ibc-routing/src/event.ts",
-          "hash": "6408156560148629906"
-        },
-        {
-          "file": "packages/ibc-routing/src/index.ts",
-          "hash": "6607107111465826593"
-        },
-        {
-          "file": "packages/ibc-routing/src/machine.ts",
-          "hash": "18353186999700929672"
-        },
-        {
-          "file": "packages/ibc-routing/test/mock-eth-ws.ts",
-          "hash": "18111791269509019549"
-        },
-        {
-          "file": "packages/ibc-routing/test/mock-tendermint-ws.spec.ts",
-          "hash": "4818461940476310332"
-        },
-        {
-          "file": "packages/ibc-routing/test/tsconfig.json",
-          "hash": "9186550725768788199"
-        },
-        {
-          "file": "packages/ibc-routing/tsconfig.json",
-          "hash": "17602097860392162275"
-        },
-        {
-          "file": "packages/ibc-routing/tsconfig.test.json",
-          "hash": "10854166303141499170"
-        }
-      ],
-      "@oraichain/oraidex-universal-swap": [
-        {
-          "file": "packages/universal-swap/package.json",
-          "hash": "9680220753839274639",
-          "deps": [
-            "npm:cosmjs-types",
-            "npm:ts-results",
-            "npm:protobufjs@7.2.6",
-            "@oraichain/oraidex-common",
-            "@oraichain/oraidex-contracts-sdk",
-            "npm:bech32",
-            "npm:ethers",
-            "npm:tronweb@5.3.2",
-            "npm:@oraichain/common",
-            "npm:ts-protoc-gen"
-          ]
-        },
-        {
-          "file": "packages/universal-swap/src/handler.ts",
-          "hash": "4433339525173215447"
-        },
-        {
-          "file": "packages/universal-swap/src/helper.ts",
-          "hash": "15581596711461586824"
-        },
-        {
-          "file": "packages/universal-swap/src/index.ts",
-          "hash": "7004462259729090462"
-        },
-        {
-          "file": "packages/universal-swap/src/proto/index.ts",
-          "hash": "15351035107618308384"
-        },
-        {
-          "file": "packages/universal-swap/src/proto/universal-swap-memo-proto-handler.ts",
-          "hash": "11685031909518581792"
-        },
-        {
-          "file": "packages/universal-swap/src/proto/universal_swap_memo.ts",
-          "hash": "12932777294946322012"
-        },
-        {
-          "file": "packages/universal-swap/src/swap-filter.ts",
-          "hash": "9928276261867951031"
-        },
-        {
-          "file": "packages/universal-swap/src/types.ts",
-          "hash": "4483707027807899079"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/alpha-smart-router.ts",
-          "hash": "6614737697075560918"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/evm-to-evm.ts",
-          "hash": "4460049994922088427"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/from-cosmos-to-evm.ts",
-          "hash": "2691111601069853746"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/from-oraichain-to-oraichain.ts",
-          "hash": "10930312916016074964"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/handle-simulate-swap.ts",
-          "hash": "8630107926038885807"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/ibc-hooks-demo.ts",
-          "hash": "3611780478531012681"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/neutaro-ibc-demo.ts",
-          "hash": "10343431623898580722"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/noble-ibc-demo.ts",
-          "hash": "8128274917516872537"
-        },
-        {
-          "file": "packages/universal-swap/src/universal-demos/offline-wallet.ts",
-          "hash": "9082580801238782558"
-        },
-        {
-          "file": "packages/universal-swap/src/wrapper.ts",
-          "hash": "16363884853060948780"
-        },
-        {
-          "file": "packages/universal-swap/tests/helper.spec.ts",
-          "hash": "4649498198509521542"
-        },
-        {
-          "file": "packages/universal-swap/tests/index.spec.ts",
-          "hash": "2068530185508377126"
-        },
-        {
-          "file": "packages/universal-swap/tests/smart-router-common.ts",
-          "hash": "18238203481403417201"
-        },
-        {
-          "file": "packages/universal-swap/tests/test-common.ts",
-          "hash": "5904599990758507083"
-        },
-        {
-          "file": "packages/universal-swap/tests/tsconfig.json",
-          "hash": "750803442383389055"
-        },
-        {
-          "file": "packages/universal-swap/tsconfig.json",
-          "hash": "10854166303141499170"
-        },
-        {
-          "file": "packages/universal-swap/tsconfig.test.json",
-          "hash": "7719865648355870270"
-        }
-      ],
-      "@oraichain/oraidex-contracts-build": [
-        {
-          "file": "packages/contracts-build/data/coharvest-bid-pool.wasm",
-          "hash": "6150935669493171179"
-        },
-        {
-          "file": "packages/contracts-build/data/cw20-staking-proxy-snapshot.wasm",
-          "hash": "2933766116150313041"
-        },
-        {
-          "file": "packages/contracts-build/data/cw20-staking.wasm",
-          "hash": "1350058541894822522"
-        },
-        {
-          "file": "packages/contracts-build/data/oraidex-listing-contract.wasm",
-          "hash": "7419888141996784037"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-converter.wasm",
-          "hash": "9922449567481637798"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-factory.wasm",
-          "hash": "2623070950839327671"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-limit-order.wasm",
-          "hash": "4798958885949584936"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-oracle.wasm",
-          "hash": "17311878287882205244"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-orderbook.wasm",
-          "hash": "811718450698523092"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-pair.wasm",
-          "hash": "16340412173832573307"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-rewarder.wasm",
-          "hash": "7344849172724855388"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-router.wasm",
-          "hash": "462045409837335269"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-smartrouter.wasm",
-          "hash": "1528553894429113316"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-staking.wasm",
-          "hash": "10960924217018103557"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-token.wasm",
-          "hash": "13825225112848069709"
-        },
-        {
-          "file": "packages/contracts-build/data/oraiswap-v3.wasm",
-          "hash": "15945898684174814918"
-        },
-        {
-          "file": "packages/contracts-build/data/zapper.wasm",
-          "hash": "8122287112448366632"
-        },
-        {
-          "file": "packages/contracts-build/package.json",
-          "hash": "8790587546527497852"
-        },
-        {
-          "file": "packages/contracts-build/src/index.ts",
-          "hash": "15120555673955581317"
-        },
-        {
-          "file": "packages/contracts-build/tsconfig.json",
-          "hash": "9518351076910994362"
-        },
-        {
-          "file": "packages/contracts-build/tsconfig.test.json",
-          "hash": "4318706728951752636"
-        }
-      ],
       "@oraichain/oraidex-contracts-sdk": [
         {
           "file": "packages/contracts-sdk/@types/global.d.ts",
@@ -1979,6 +1651,334 @@
         {
           "file": "packages/contracts-sdk/tsconfig.test.json",
           "hash": "4318706728951752636"
+        }
+      ],
+      "@oraichain/oraidex-contracts-build": [
+        {
+          "file": "packages/contracts-build/data/coharvest-bid-pool.wasm",
+          "hash": "6150935669493171179"
+        },
+        {
+          "file": "packages/contracts-build/data/cw20-staking-proxy-snapshot.wasm",
+          "hash": "2933766116150313041"
+        },
+        {
+          "file": "packages/contracts-build/data/cw20-staking.wasm",
+          "hash": "1350058541894822522"
+        },
+        {
+          "file": "packages/contracts-build/data/oraidex-listing-contract.wasm",
+          "hash": "7419888141996784037"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-converter.wasm",
+          "hash": "9922449567481637798"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-factory.wasm",
+          "hash": "2623070950839327671"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-limit-order.wasm",
+          "hash": "4798958885949584936"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-oracle.wasm",
+          "hash": "17311878287882205244"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-orderbook.wasm",
+          "hash": "811718450698523092"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-pair.wasm",
+          "hash": "16340412173832573307"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-rewarder.wasm",
+          "hash": "7344849172724855388"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-router.wasm",
+          "hash": "462045409837335269"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-smartrouter.wasm",
+          "hash": "1528553894429113316"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-staking.wasm",
+          "hash": "10960924217018103557"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-token.wasm",
+          "hash": "13825225112848069709"
+        },
+        {
+          "file": "packages/contracts-build/data/oraiswap-v3.wasm",
+          "hash": "15945898684174814918"
+        },
+        {
+          "file": "packages/contracts-build/data/zapper.wasm",
+          "hash": "8122287112448366632"
+        },
+        {
+          "file": "packages/contracts-build/package.json",
+          "hash": "8790587546527497852"
+        },
+        {
+          "file": "packages/contracts-build/src/index.ts",
+          "hash": "15120555673955581317"
+        },
+        {
+          "file": "packages/contracts-build/tsconfig.json",
+          "hash": "9518351076910994362"
+        },
+        {
+          "file": "packages/contracts-build/tsconfig.test.json",
+          "hash": "4318706728951752636"
+        }
+      ],
+      "@oraichain/oraidex-common-ui": [
+        {
+          "file": "packages/oraidex-common-ui/.babelrc.json",
+          "hash": "902129359307404818"
+        },
+        {
+          "file": "packages/oraidex-common-ui/.storybook/main.ts",
+          "hash": "3030296611831889225"
+        },
+        {
+          "file": "packages/oraidex-common-ui/.storybook/preview.ts",
+          "hash": "8632666333571808005"
+        },
+        {
+          "file": "packages/oraidex-common-ui/README.md",
+          "hash": "6256502674563672244"
+        },
+        {
+          "file": "packages/oraidex-common-ui/package.json",
+          "hash": "1657031441144361514",
+          "deps": [
+            "npm:react",
+            "npm:react-dom",
+            "npm:@babel/preset-env",
+            "npm:@babel/preset-react",
+            "npm:@babel/preset-typescript",
+            "npm:@storybook/addon-essentials",
+            "npm:@storybook/addon-interactions",
+            "npm:@storybook/addon-links",
+            "npm:@storybook/react",
+            "npm:@storybook/react-webpack5",
+            "npm:@types/react",
+            "npm:css-minimizer-webpack-plugin@6.0.0",
+            "npm:mini-css-extract-plugin@2.9.1",
+            "npm:storybook",
+            "npm:terser-webpack-plugin",
+            "npm:webpack@5.89.0",
+            "npm:webpack-cli@5.1.4",
+            "npm:axios-extensions",
+            "npm:axios@1.7.2",
+            "npm:react-use"
+          ]
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/SaveLoadAdapter.ts",
+          "hash": "5574472860960791095"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/TVChartContainer.stories.tsx",
+          "hash": "12593368785090992435"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/TVChartContainer.tsx",
+          "hash": "16537889040869033852"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/charting_library.d.ts",
+          "hash": "9826845641136839825"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/config.ts",
+          "hash": "3041585301542790809"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/TVDataProvider.ts",
+          "hash": "12627046919318253645"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/constants.ts",
+          "hash": "14984533802833966346"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/requests.ts",
+          "hash": "11304590141327330296"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/streaming.spec.ts",
+          "hash": "17459260871234110155"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/streaming.ts",
+          "hash": "7714178981118218456"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/types.ts",
+          "hash": "3535062834188450007"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/useTVDatafeed.ts",
+          "hash": "13242975436190735373"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/utils.spec.ts",
+          "hash": "12935530393197637337"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/helpers/utils.ts",
+          "hash": "5031910160392533536"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/TVChartContainer/index.ts",
+          "hash": "1286975211599669062"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/components/index.ts",
+          "hash": "4707722870073937196"
+        },
+        {
+          "file": "packages/oraidex-common-ui/src/index.ts",
+          "hash": "406893267761917856"
+        },
+        {
+          "file": "packages/oraidex-common-ui/tsconfig.json",
+          "hash": "14542809294647547859"
+        },
+        {
+          "file": "packages/oraidex-common-ui/tsconfig.test.json",
+          "hash": "18280363515485363456"
+        },
+        {
+          "file": "packages/oraidex-common-ui/webpack.config.js",
+          "hash": "2497737777319328883"
+        }
+      ],
+      "@oraichain/oraidex-universal-swap": [
+        {
+          "file": "packages/universal-swap/package.json",
+          "hash": "9680220753839274639",
+          "deps": [
+            "npm:cosmjs-types",
+            "npm:ts-results",
+            "npm:protobufjs@7.2.6",
+            "@oraichain/oraidex-common",
+            "@oraichain/oraidex-contracts-sdk",
+            "npm:bech32",
+            "npm:ethers",
+            "npm:tronweb@5.3.2",
+            "npm:@oraichain/common",
+            "npm:ts-protoc-gen"
+          ]
+        },
+        {
+          "file": "packages/universal-swap/src/handler.ts",
+          "hash": "4433339525173215447"
+        },
+        {
+          "file": "packages/universal-swap/src/helper.ts",
+          "hash": "15581596711461586824"
+        },
+        {
+          "file": "packages/universal-swap/src/index.ts",
+          "hash": "7004462259729090462"
+        },
+        {
+          "file": "packages/universal-swap/src/proto/index.ts",
+          "hash": "15351035107618308384"
+        },
+        {
+          "file": "packages/universal-swap/src/proto/universal-swap-memo-proto-handler.ts",
+          "hash": "11685031909518581792"
+        },
+        {
+          "file": "packages/universal-swap/src/proto/universal_swap_memo.ts",
+          "hash": "12932777294946322012"
+        },
+        {
+          "file": "packages/universal-swap/src/swap-filter.ts",
+          "hash": "9928276261867951031"
+        },
+        {
+          "file": "packages/universal-swap/src/types.ts",
+          "hash": "4483707027807899079"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/alpha-smart-router.ts",
+          "hash": "6614737697075560918"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/evm-to-evm.ts",
+          "hash": "4460049994922088427"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/from-cosmos-to-evm.ts",
+          "hash": "2691111601069853746"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/from-oraichain-to-oraichain.ts",
+          "hash": "10930312916016074964"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/handle-simulate-swap.ts",
+          "hash": "8630107926038885807"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/ibc-hooks-demo.ts",
+          "hash": "3611780478531012681"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/neutaro-ibc-demo.ts",
+          "hash": "10343431623898580722"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/noble-ibc-demo.ts",
+          "hash": "8128274917516872537"
+        },
+        {
+          "file": "packages/universal-swap/src/universal-demos/offline-wallet.ts",
+          "hash": "9082580801238782558"
+        },
+        {
+          "file": "packages/universal-swap/src/wrapper.ts",
+          "hash": "16363884853060948780"
+        },
+        {
+          "file": "packages/universal-swap/tests/helper.spec.ts",
+          "hash": "4649498198509521542"
+        },
+        {
+          "file": "packages/universal-swap/tests/index.spec.ts",
+          "hash": "2068530185508377126"
+        },
+        {
+          "file": "packages/universal-swap/tests/smart-router-common.ts",
+          "hash": "18238203481403417201"
+        },
+        {
+          "file": "packages/universal-swap/tests/test-common.ts",
+          "hash": "5904599990758507083"
+        },
+        {
+          "file": "packages/universal-swap/tests/tsconfig.json",
+          "hash": "750803442383389055"
+        },
+        {
+          "file": "packages/universal-swap/tsconfig.json",
+          "hash": "10854166303141499170"
+        },
+        {
+          "file": "packages/universal-swap/tsconfig.test.json",
+          "hash": "7719865648355870270"
         }
       ]
     }
