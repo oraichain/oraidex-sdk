@@ -722,12 +722,14 @@ export class ZapConsumer {
     tokenId,
     owner,
     tokenOut,
-    slippage = 1
+    slippage = 1,
+    zapFee
   }: {
     tokenId: number;
     owner: string;
     tokenOut: TokenItemType;
     slippage?: number;
+    zapFee: number;
   }): Promise<ZapOutLiquidityResponse> {
     try {
       // get position info
@@ -741,8 +743,9 @@ export class ZapConsumer {
       const pool = await this._handler.getPool(position.pool_key);
       // calculate amount X and Y
       const res = calculateTokenAmounts(pool.pool, position);
-      const amountX = res.x;
-      const amountY = res.y;
+      const amountX = res.x * BigInt(100 - zapFee * 100) / 100n;
+      const amountY = res.y * BigInt(100 - zapFee * 100) / 100n;
+
       rewardAmounts[pool.pool_key.token_x] = amountX;
       rewardAmounts[pool.pool_key.token_y] = amountY;
 
