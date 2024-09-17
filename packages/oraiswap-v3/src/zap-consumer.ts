@@ -595,8 +595,8 @@ export class ZapConsumer {
             });
           });
 
-          const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, sqrtPrice, true);
-          const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, sqrtPrice, true);
+          const res1 = getLiquidityByX(BigInt(actualAmountXReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
+          const res2 = getLiquidityByY(BigInt(actualAmountYReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
           message.minimumLiquidity =
             res1.l > res2.l
               ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
@@ -698,8 +698,8 @@ export class ZapConsumer {
         });
       });
 
-      const res1 = getLiquidityByX(BigInt(amountInToX), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
-      const res2 = getLiquidityByY(BigInt(amountInToY), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
+      const res1 = getLiquidityByX(BigInt(xRouteInfo.returnAmount), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
+      const res2 = getLiquidityByY(BigInt(yRouteInfo.returnAmount), lowerTick, upperTick, BigInt(pool.pool.sqrt_price), true);
       messages.minimumLiquidity =
         res1.l > res2.l
           ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
