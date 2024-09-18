@@ -1,4 +1,4 @@
-name: publish_package_universal_common
+name: publish_package_oraiswap_v3
 
 # Controls when the action will run.
 on:
