@@ -190,8 +190,8 @@ export type ZapConfig = {
   routerApi: string;
   client: CosmWasmClient;
   dexV3Address: string;
-  multicallAddress: string;
-  devitation: number;
+  multiCallAddress: string;
+  deviation: number;
   smartRouteConfig: SmartRouteConfig;
 };
 
@@ -210,22 +210,24 @@ export type Path = {
   tokenOut: string;
 };
 
+export type RouteResponse = {
+  swapAmount: string;
+  returnAmount: string;
+  paths: {
+    chainId: string;
+    tokenIn: string;
+    tokenInAmount: string;
+    tokenOut: string;
+    tokenOutAmount: string;
+    tokenOutChainId: string;
+    actions: ActionRoute[];
+  }[];
+};
+
 export type SmartRouteResponse = {
   swapAmount: string;
   returnAmount: string;
-  routes: {
-    swapAmount: string;
-    returnAmount: string;
-    paths: {
-      chainId: string;
-      tokenIn: string;
-      tokenInAmount: string;
-      tokenOut: string;
-      tokenOutAmount: string;
-      tokenOutChainId: string;
-      actions: ActionRoute[];
-    }[];
-  }[];
+  routes: RouteResponse[];
 };
 
 export type Protocols = "Oraidex" | "OraidexV3" | "Osmosis";
@@ -274,7 +276,6 @@ export type ZapOutLiquidityResponse = {
   swapFee: number;
   amountToX: bigint;
   amountToY: bigint;
-  zapOutResult: ZapOutResult;
   result: ZapOutResult;
 };
 
