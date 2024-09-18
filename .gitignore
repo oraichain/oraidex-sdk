@@ -39,5 +39,3 @@ coverage
 .nx/workspace-data
 
 .yarn
-
-yarn.lock
