@@ -4,10 +4,9 @@ import { bobAddress, client, createTokens, senderAddress } from "./test-common";
 import fs from "fs";
 import path from "path";
 import { OraiswapV3Handler, poolKeyToString } from "../src";
-import { expect, afterAll, beforeAll, describe, it, beforeEach } from "vitest";
+import { expect, describe, it, beforeEach } from "vitest";
 import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
-console.log("__filename: ", __filename);
 const __dirname = path.dirname(__filename);
 
 describe("test oraiswap-v3 handler functions", () => {

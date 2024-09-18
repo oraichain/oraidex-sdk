@@ -1,4 +1,5 @@
-import { Asset, OraiswapV3QueryClient } from "@oraichain/oraidex-contracts-sdk";
+import { Asset } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
+import { OraiswapV3QueryClient } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.client";
 import {
   AllNftInfoResponse,
   Approval,
@@ -13,11 +14,13 @@ import {
   QuoteResult,
   Tick
 } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { CHUNK_QUERY, LIQUIDITY_TICKS_LIMIT, ORAISWAP_V3_CONTRACT, POSITION_TICKS_LIMIT } from "./const";
+import { CHUNK_QUERY, CHUNK_SIZE, LIQUIDITY_TICKS_LIMIT, ORAISWAP_V3_CONTRACT, POSITION_TICKS_LIMIT } from "./const";
 import { calculateTokenAmounts, parsePoolKey, poolKeyToString } from "./helpers";
 import { CosmWasmClient, fromBinary, toBinary } from "@cosmjs/cosmwasm-stargate";
-import { MulticallQueryClient } from "@oraichain/common-contracts-sdk";
 import { MULTICALL_CONTRACT } from "@oraichain/oraidex-common";
+import { MulticallQueryClient } from "@oraichain/common-contracts-sdk/build/Multicall.client";
+import { Tickmap } from "./types";
+import { getMaxTick, getMinTick, positionToTick } from "./wasm/oraiswap_v3_wasm";
 
 export class OraiswapV3Handler {
   private _client: OraiswapV3QueryClient;
@@ -332,5 +335,33 @@ export class OraiswapV3Handler {
     }
 
     return { liquidityX, liquidityY };
+  }
+
+  public async getAllLiquidityTicks(poolKey: PoolKey, tickmap: Tickmap): Promise<LiquidityTick[]> {
+    const tickIndexes: number[] = [];
+    for (const [chunkIndex, chunk] of tickmap.bitmap.entries()) {
+      for (let bit = 0; bit < CHUNK_SIZE; bit++) {
+        const checkedBit = chunk & (1n << BigInt(bit));
+        if (checkedBit !== 0n) {
+          const tickIndex = positionToTick(Number(chunkIndex), bit, poolKey.fee_tier.tick_spacing);
+          tickIndexes.push(tickIndex);
+        }
+      }
+    }
+
+    const tickResults = await this.liquidityTicks(poolKey, tickIndexes);
+
+    return tickResults;
+  }
+
+  public async getFullTickmap(poolKey: PoolKey): Promise<Tickmap> {
+    const minTick = getMinTick(poolKey.fee_tier.tick_spacing);
+    const maxTick = getMaxTick(poolKey.fee_tier.tick_spacing);
+    const tickmap = await this.tickMap(poolKey, minTick, maxTick, true);
+    const bitmap = new Map<bigint, bigint>();
+    tickmap.forEach((t) => {
+      bitmap.set(BigInt(t[0].toString()), BigInt(t[1].toString()));
+    });
+    return { bitmap };
   }
 }

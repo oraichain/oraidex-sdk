@@ -1,9 +1,35 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { calculateAmountDelta, calculateSqrtPrice } from "./wasm/oraiswap_v3_wasm";
-import { AmountDeltaResult, LiquidityTick, PoolKey, PoolSnapshot, PoolStatsData, PositionLiquidInfo, TokenData, VirtualRange } from "./types";
+import {
+  calculateAmountDelta,
+  calculateSqrtPrice,
+  getLiquidityByX,
+  getLiquidityByY,
+  getMaxSqrtPrice,
+  getMinSqrtPrice,
+  simulateSwap
+} from "./wasm/oraiswap_v3_wasm";
+import {
+  ActionRoute,
+  AmountDeltaResult,
+  LiquidityTick,
+  PoolKey,
+  PoolSnapshot,
+  PoolStatsData,
+  PositionLiquidInfo,
+  RouteResponse,
+  SmartRouteResponse,
+  Tickmap,
+  TokenData,
+  VirtualRange,
+  ZapInLiquidityResponse,
+  ZapInResult,
+  ZapOutLiquidityResponse,
+  ZapOutResult
+} from "./types";
 import { DENOMINATOR, LIQUIDITY_DENOMINATOR, PRICE_DENOMINATOR } from "./const";
 import { Pool, PoolWithPoolKey, Position } from "@oraichain/oraidex-contracts-sdk/build/OraiswapV3.types";
-import { BigDecimal, oraichainTokens, TokenItemType } from "@oraichain/oraidex-common";
+import { BigDecimal, parseAssetInfoFromContractAddrOrDenom, TokenItemType } from "@oraichain/oraidex-common";
+import { Asset, Route, SwapOperation } from "@oraichain/oraidex-contracts-sdk/build/Zapper.types";
 
 export const getVolume = (pool: PoolWithPoolKey, protocolFee: number): { volumeX: bigint; volumeY: bigint } => {
   const feeDenominator = (BigInt(protocolFee) * BigInt(pool.pool_key.fee_tier.fee)) / DENOMINATOR;
@@ -242,11 +268,7 @@ export const calculateTokenAmounts = (pool: Pool, position: Position): AmountDel
   return _calculateTokenAmounts(pool, position, false);
 };
 
-export const _calculateTokenAmounts = (
-  pool: Pool,
-  position: Position,
-  sign: boolean
-): AmountDeltaResult => {
+export const _calculateTokenAmounts = (pool: Pool, position: Position, sign: boolean): AmountDeltaResult => {
   return calculateAmountDelta(
     pool.current_tick_index,
     BigInt(pool.sqrt_price),
@@ -255,4 +277,273 @@ export const _calculateTokenAmounts = (
     position.upper_tick_index,
     position.lower_tick_index
   );
+};
+
+export const shiftDecimal = (value: bigint, decimals: number): BigDecimal => {
+  const valueStr = value.toString().padStart(decimals + 1, "0"); // Pad with leading zeros if needed
+  const intStr = valueStr.slice(0, -decimals) || "0"; // Retrieve integral part or default to "0"
+  const decStr = valueStr.slice(-decimals); // Retrieve decimal part
+  return new BigDecimal(`${intStr}.${decStr}`, decimals);
+};
+
+export const parseAsset = (token: TokenItemType, amount: string): Asset => {
+  const info = token.contractAddress
+    ? { token: { contract_addr: token.contractAddress } }
+    : { native_token: { denom: token.denom } };
+  return {
+    amount,
+    info
+  };
+};
+
+export const generateMessageSwapOperation = (responses: SmartRouteResponse[], slippage: number): Route[] => {
+  const flattenRoutes: Route[] = [];
+
+  for (const response of responses) {
+    if (!response.routes) continue;
+    if (response.routes.length === 0) continue;
+
+    const { routes, returnAmount, swapAmount } = response;
+
+    for (const route of routes) {
+      const { swapAmount, returnAmount, paths } = route;
+      const operations: SwapOperation[] = [];
+      for (const path of paths) {
+        const { actions, chainId, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, tokenOutChainId } = path;
+        for (const action of actions) {
+          const { protocol, swapInfo, tokenIn, tokenInAmount, tokenOut, tokenOutAmount, type } = action;
+          let currTokenIn = parseAssetInfoFromContractAddrOrDenom(tokenIn);
+          for (const swap of swapInfo) {
+            const { poolId } = swap;
+            const [tokenX, tokenY, fee, tickSpacing] = poolId.split("-");
+            const tokenOut = parseAssetInfoFromContractAddrOrDenom(swap.tokenOut);
+            if (tokenX && tokenY && fee && tickSpacing) {
+              operations.push({
+                swap_v3: {
+                  pool_key: {
+                    token_x: tokenX,
+                    token_y: tokenY,
+                    fee_tier: {
+                      fee: Number(fee),
+                      tick_spacing: Number(tickSpacing)
+                    }
+                  },
+                  x_to_y: tokenY === swap.tokenOut
+                }
+              });
+            } else {
+              operations.push({
+                orai_swap: {
+                  offer_asset_info: currTokenIn,
+                  ask_asset_info: tokenOut
+                }
+              });
+            }
+            currTokenIn = tokenOut;
+          }
+        }
+      }
+      flattenRoutes.push({
+        offer_amount: swapAmount,
+        operations,
+        token_in: paths[0].tokenIn,
+        minimum_receive: Math.round((Number(returnAmount) * (100 - slippage)) / 100).toString()
+      });
+    }
+  }
+
+  return flattenRoutes;
+};
+
+export const getFeeRate = (operation: SwapOperation): number => {
+  if ("orai_swap" in operation) {
+    return 0.003;
+  } else {
+    return operation.swap_v3.pool_key.fee_tier.fee / 10 ** 12;
+  }
+};
+
+export const calculatePriceImpact = (startingSqrtPrice: bigint, endingSqrtPrice: bigint): bigint => {
+  const startingPrice = startingSqrtPrice * startingSqrtPrice;
+  const endingPrice = endingSqrtPrice * endingSqrtPrice;
+  let priceQuotient: bigint;
+  if (endingPrice >= startingPrice) {
+    priceQuotient = (DENOMINATOR * startingPrice) / endingPrice;
+  } else {
+    priceQuotient = (DENOMINATOR * endingPrice) / startingPrice;
+  }
+  return DENOMINATOR - priceQuotient;
+};
+
+// TODO: current work for only dexV3
+export const getPriceImpactAfterSwap = ({
+  route,
+  allPools,
+  allTickMaps,
+  allTicks
+}: {
+  route: Route;
+  allPools: Record<string, PoolWithPoolKey>;
+  allTickMaps: Record<string, Tickmap>;
+  allTicks: Record<string, LiquidityTick[]>;
+}): number => {
+  const { offer_amount, operations, token_in, minimum_receive } = route;
+
+  let totalPriceImpact = 0n;
+  let amountIn = BigInt(offer_amount);
+  let tokenIn = token_in;
+  operations.forEach((operation) => {
+    const { swap_v3 } = operation as {
+      swap_v3: {
+        pool_key: PoolKey;
+        x_to_y: boolean;
+      };
+    };
+
+    const pool = allPools[poolKeyToString(swap_v3.pool_key)];
+    const convertPool = {
+      ...pool.pool,
+      liquidity: BigInt(pool.pool.liquidity),
+      sqrt_price: BigInt(pool.pool.sqrt_price),
+      fee_growth_global_x: BigInt(pool.pool.fee_growth_global_x),
+      fee_growth_global_y: BigInt(pool.pool.fee_growth_global_y),
+      fee_protocol_token_x: BigInt(pool.pool.fee_protocol_token_x),
+      fee_protocol_token_y: BigInt(pool.pool.fee_protocol_token_y)
+    };
+
+    const swapResult = simulateSwap(
+      allTickMaps[poolKeyToString(swap_v3.pool_key)],
+      allPools[poolKeyToString(swap_v3.pool_key)].pool_key.fee_tier,
+      convertPool,
+      allTicks[poolKeyToString(swap_v3.pool_key)],
+      swap_v3.x_to_y,
+      amountIn,
+      true,
+      swap_v3.x_to_y
+        ? getMinSqrtPrice(swap_v3.pool_key.fee_tier.tick_spacing)
+        : getMaxSqrtPrice(swap_v3.pool_key.fee_tier.tick_spacing)
+    );
+
+    const priceImpact = calculatePriceImpact(
+      BigInt(allPools[poolKeyToString(swap_v3.pool_key)].pool.sqrt_price),
+      swapResult.sqrtPrice
+    );
+    totalPriceImpact += priceImpact;
+    amountIn = swapResult.amountOut;
+  });
+
+  return Number(totalPriceImpact / BigInt(operations.length)) / 10 ** 12;
+};
+
+export const calculateRewardAmounts = (
+  pool: PoolWithPoolKey,
+  position: Position,
+  zapFee: number
+): { amountX: bigint; amountY: bigint } => {
+  const res = calculateTokenAmounts(pool.pool, position);
+  const amountX = (res.x * BigInt(100 - zapFee * 100)) / 100n;
+  const amountY = (res.y * BigInt(100 - zapFee * 100)) / 100n;
+  return { amountX, amountY };
+};
+
+export const buildZapOutMessage = (
+  zapOutResult: ZapOutResult,
+  positionIndex: number,
+  xRouteInfo: SmartRouteResponse,
+  yRouteInfo: SmartRouteResponse,
+  slippage: number
+): ZapOutLiquidityResponse => {
+  const minimumReceiveX = xRouteInfo.routes
+    ? Math.trunc(new BigDecimal(xRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+    : xRouteInfo.returnAmount;
+  const minimumReceiveY = yRouteInfo.routes
+    ? Math.trunc(new BigDecimal(yRouteInfo.returnAmount).mul((100 - slippage) / 100).toNumber()).toString()
+    : yRouteInfo.returnAmount;
+
+  const routes = generateMessageSwapOperation([xRouteInfo, yRouteInfo], slippage);
+  let swapFee = 0;
+  routes.forEach((route) => {
+    route.operations.forEach((operation) => {
+      swapFee += getFeeRate(operation);
+    });
+  });
+
+  return {
+    amountToX: BigInt(xRouteInfo.returnAmount),
+    amountToY: BigInt(yRouteInfo.returnAmount),
+    positionIndex,
+    routes,
+    swapFee,
+    minimumReceiveX,
+    minimumReceiveY,
+    result: zapOutResult
+  };
+};
+
+export const extractOraidexV3Actions = (routes: RouteResponse[]): ActionRoute[] => {
+  const routesArray: ActionRoute[] = [];
+  if (routes !== null) {
+    routes.forEach((route) => {
+      route.paths.forEach((path) => {
+        path.actions.forEach((action) => {
+          if (action.protocol === "OraidexV3") {
+            routesArray.push(action);
+          }
+        });
+      });
+    });
+  }
+  return routesArray;
+};
+
+export const populateMessageZapIn = (
+  message: ZapInLiquidityResponse,
+  tokenIn: TokenItemType,
+  amountIn: string,
+  amountInToX: bigint,
+  amountInToY: bigint,
+  actualAmountXReceived: SmartRouteResponse,
+  actualAmountYReceived: SmartRouteResponse,
+  poolKey: PoolKey,
+  pool: Pool,
+  lowerTick: number,
+  upperTick: number,
+  slippage: number
+) => {
+  message.assetIn = parseAsset(tokenIn, amountIn);
+  message.amountToX = amountInToX.toString();
+  message.amountToY = amountInToY.toString();
+  message.amountX = actualAmountXReceived.returnAmount;
+  message.amountY = actualAmountYReceived.returnAmount;
+  message.poolKey = poolKey;
+  message.sqrtPrice = BigInt(pool.sqrt_price);
+  message.tickLowerIndex = lowerTick;
+  message.tickUpperIndex = upperTick;
+  message.routes = generateMessageSwapOperation([actualAmountXReceived, actualAmountYReceived], slippage);
+};
+
+export const calculateSwapFee = (message: ZapInLiquidityResponse) => {
+  message.swapFee = 0;
+  message.routes.forEach((route) => {
+    route.operations.forEach((operation) => {
+      message.swapFee += getFeeRate(operation);
+    });
+  });
+};
+
+export const calculateMinimumLiquidity = (
+  message: ZapInLiquidityResponse,
+  actualAmountXReceived: SmartRouteResponse,
+  actualAmountYReceived: SmartRouteResponse,
+  lowerTick: number,
+  upperTick: number,
+  sqrtPrice: bigint,
+  slippage: number
+) => {
+  const res1 = getLiquidityByX(BigInt(actualAmountXReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
+  const res2 = getLiquidityByY(BigInt(actualAmountYReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
+  message.minimumLiquidity =
+    res1.l > res2.l
+      ? (BigInt(res2.l) * BigInt(100 - slippage)) / 100n
+      : (BigInt(res1.l) * BigInt(100 - slippage)) / 100n;
 };

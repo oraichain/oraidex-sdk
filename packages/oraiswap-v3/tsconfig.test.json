@@ -4,8 +4,9 @@
     "baseUrl": ".",
     "outDir": "build",
     "declaration": true,
-    "rootDir": "src"
+    "rootDir": "src",
+    "module": "es2020"
   },
-  "include": ["src/**/*.ts", "src/**/*.js"],
-  "exclude": ["node_modules/", "src/main.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules/"]
 }

@@ -36,3 +36,6 @@ packages/contract-state-simulate/public/
 coverage
 
 .nx/cache
+.nx/workspace-data
+
+.yarn

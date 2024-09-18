@@ -1850,7 +1850,7 @@ describe("test universal swap handler functions", () => {
       "0"
     ]
   ])(
-    "test-caculate-minimum-rceive-ibc-wasm",
+    "test-caculate-minimum-receive-ibc-wasm",
     async (originalToToken, simulateAmount, relayerFee, bridgeFee, expectResult) => {
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,

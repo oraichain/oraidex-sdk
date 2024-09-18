@@ -144,6 +144,7 @@ export const MULTICALL_CONTRACT = "orai1q7x644gmf7h8u8y6y8t9z9nnwl8djkmspypr6mxa
 
 export const AMM_V3_CONTRACT = "orai10s0c75gw5y5eftms5ncfknw6lzmx0dyhedn75uz793m8zwz4g8zq4d9x9a";
 export const AMM_V3_TEST_CONTRACT = "orai1wsemv2wuyfeesh3afcxy02lh8sy4yz2wjj6cxgzmcxklpdyyxjfs5qzl7q";
+export const ZAPPER_CONTRACT = "orai19r5wlt3ruc5xmkfvkwx5l3pul5h8kslexptyqyk5u6acue0ly9yqqpwmtp";
 
 export const BASE_API_URL = "https://api.oraidex.io";
 
