@@ -190,6 +190,12 @@ export class ZapConsumer {
     const amountOut = route.tokenOutAmount;
     const tickMap = await this._handler.getFullTickmap(poolKey);
     const liquidityTicks = await this._handler.getAllLiquidityTicks(poolKey, tickMap);
+    const convertLiquidityTicks = liquidityTicks.map((tick) => {
+      return {
+        ...tick,
+        liquidity_change: BigInt(tick.liquidity_change),
+      }
+    });
     const convertPool = {
       ...pool,
       liquidity: BigInt(pool.liquidity),
@@ -203,7 +209,7 @@ export class ZapConsumer {
       tickMap,
       poolKey.fee_tier,
       convertPool,
-      liquidityTicks,
+      convertLiquidityTicks,
       isXToY,
       BigInt(amountOut),
       false,
