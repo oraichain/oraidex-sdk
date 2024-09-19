@@ -54,7 +54,12 @@ import {
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT,
   MIXED_ROUTER,
-  AMM_V3_CONTRACT
+  AMM_V3_CONTRACT,
+  PEPE_ORAICHAIN_DENOM,
+  CAT_ORAICHAIN_DENOM,
+  PEPE_ETH_CONTRACT,
+  PEPE_BSC_CONTRACT,
+  CAT_BSC_CONTRACT
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -504,6 +509,22 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 9,
       coinGeckoId: "the-open-network",
       coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png?1696517498"
+    },
+    {
+      coinDenom: "PEPE",
+      coinMinimalDenom: PEPE_ORAICHAIN_DENOM,
+      coinDecimals: 18,
+      coinGeckoId: "pepe",
+      bridgeTo: ["0x01", "0x38"],
+      coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+    },
+    {
+      coinDenom: "CAT",
+      coinMinimalDenom: CAT_ORAICHAIN_DENOM,
+      coinDecimals: 18,
+      bridgeTo: ["0x38"],
+      coinGeckoId: "simon-s-cat",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
     }
   ]
 };
@@ -639,6 +660,33 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "oraidex",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + PEPE_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + PEPE_BSC_CONTRACT,
+        bridgeNetworkIdentifier: "0x38",
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+      },
+      {
+        coinDenom: "CAT",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + CAT_BSC_CONTRACT,
+        bridgeNetworkIdentifier: "0x38",
+        coinDecimals: 18,
+        coinGeckoId: "simon-s-cat",
+        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
+        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
     ],
     txExplorer: {
@@ -936,6 +984,16 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "oraidex",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: "erc20_pepe",
+        contractAddress: PEPE_ETH_CONTRACT,
+        coinDecimals: 18,
+        bridgeTo: ["Oraichain"],
+        coinGeckoId: "pepe",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
       }
     ],
     txExplorer: {
@@ -1057,6 +1115,24 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "binancecoin",
         bridgeTo: ["Oraichain"],
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: "bep20_pepe",
+        contractAddress: PEPE_BSC_CONTRACT,
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        bridgeTo: ["Oraichain"],
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+      },
+      {
+        coinDenom: "CAT",
+        coinMinimalDenom: "bep20_cat",
+        contractAddress: CAT_BSC_CONTRACT,
+        coinDecimals: 18,
+        coinGeckoId: "simon-s-cat",
+        bridgeTo: ["Oraichain"],
+        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
     ],
     txExplorer: {
