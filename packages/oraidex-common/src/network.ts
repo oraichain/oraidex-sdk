@@ -54,9 +54,20 @@ import {
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT,
   MIXED_ROUTER,
-  AMM_V3_CONTRACT
+  AMM_V3_CONTRACT,
+  PEPE_ORAICHAIN_DENOM,
+  CAT_ORAICHAIN_DENOM,
+  PEPE_BSC_CONTRACT,
+  CAT_BSC_CONTRACT
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
+import {
+  CurrenciesOraichain,
+  OraiOraichainToken as OraiToken,
+  CurrenciesOraiBridge,
+  PepeBscToken,
+  CatBscToken
+} from "./tokens";
 
 export type NetworkName =
   | "Oraichain"
@@ -113,7 +124,9 @@ export type CoinGeckoId =
   | "neutaro"
   | "och"
   | "celestia"
-  | "the-open-network";
+  | "the-open-network"
+  | "pepe"
+  | "simon-s-cat";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -193,20 +206,6 @@ export const defaultBech32Config = (
     bech32PrefixConsAddr: mainPrefix + validatorPrefix + consensusPrefix,
     bech32PrefixConsPub: mainPrefix + validatorPrefix + consensusPrefix + publicPrefix
   };
-};
-
-export const OraiToken: BridgeAppCurrency = {
-  coinDenom: "ORAI",
-  coinMinimalDenom: "orai",
-  coinDecimals: 6,
-  coinGeckoId: "oraichain-token",
-  bridgeTo: ["0x38", "0x01", "injective-1"],
-  coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/7533.png",
-  gasPriceStep: {
-    low: 0.003,
-    average: 0.005,
-    high: 0.007
-  }
 };
 
 export const OraiBToken: BridgeAppCurrency = {
@@ -316,15 +315,7 @@ export const oraichainNetwork: CustomChainInfo = {
     accountUrl: "https://scan.orai.io/account/{address}"
   },
   currencies: [
-    OraiToken,
-    {
-      coinDenom: "ATOM",
-      coinGeckoId: "cosmos",
-      coinMinimalDenom: ATOM_ORAICHAIN_DENOM,
-      bridgeTo: ["cosmoshub-4"],
-      coinDecimals: 6,
-      coinImageUrl: "https://dhj8dql1kzq2v.cloudfront.net/white/atom.png"
-    },
+    ...CurrenciesOraichain,
     {
       coinDenom: "NTMPI",
       coinGeckoId: "neutaro",
@@ -495,13 +486,6 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 6,
       coinImageUrl:
         "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670"
-    },
-    {
-      coinDenom: "TON",
-      coinMinimalDenom: TON_ORAICHAIN_DENOM,
-      coinDecimals: 9,
-      coinGeckoId: "the-open-network",
-      coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png?1696517498"
     }
   ]
 };
@@ -637,7 +621,8 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "oraidex",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
-      }
+      },
+      ...CurrenciesOraiBridge
     ],
     txExplorer: {
       name: "OraiBridge Scan",
@@ -1055,7 +1040,9 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "binancecoin",
         bridgeTo: ["Oraichain"],
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png"
-      }
+      },
+      PepeBscToken,
+      CatBscToken
     ],
     txExplorer: {
       name: "Bsc Scan",
