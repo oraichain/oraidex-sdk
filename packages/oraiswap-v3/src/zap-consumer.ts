@@ -353,8 +353,8 @@ export class ZapConsumer {
         }
       ], true);
 
-      const extendDecimalX = getXPriceByTokenIn.swapAmount.length - tokenIn.decimals;
-      const extendDecimalY = getYPriceByTokenIn.swapAmount.length - tokenIn.decimals;
+      const extendDecimalX = getXPriceByTokenIn.swapAmount.length - 1 - tokenIn.decimals;
+      const extendDecimalY = getYPriceByTokenIn.swapAmount.length - 1 - tokenIn.decimals;
 
       if (![pool.pool_key.token_x, pool.pool_key.token_y].includes(extractAddress(tokenIn))) {
         xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalX);
@@ -366,6 +366,7 @@ export class ZapConsumer {
           xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalX);
         }
       }
+
       let xResult = new BigDecimal(amountIn).div(xPriceByTokenIn.add(yPriceByTokenIn.mul(yPerX)));
       let yResult = xResult.mul(yPerX);
       let amountX = Math.round(xResult.toNumber());

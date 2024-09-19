@@ -25,7 +25,7 @@ async function main() {
     },
   });
 
-  const tokenIn = oraichainTokens.find((t) => t.name === "BTC") as TokenItemType;
+  const tokenIn = oraichainTokens.find((t) => t.name === "ORAI") as TokenItemType;
   const pool = `orai-${ORAIX_CONTRACT}-3000000000-100`;
   const poolKey = parsePoolKey(pool);
   const poolInfo = await zapper.handler.getPool(poolKey);
@@ -43,7 +43,7 @@ async function main() {
     tokenY: oraichainTokens.find((t) => extractAddress(t) === poolKey.token_y) as TokenItemType,
   });
   console.timeEnd("processZapInPositionLiquidity");
-  console.log({ res });
+  console.dir(res, { depth: null });
 }
 
 main().catch(console.error);
