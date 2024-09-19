@@ -71,8 +71,8 @@ export class UniversalSwapHandler {
     private readonly currentTimestamp = Date.now()
   ) {}
 
-  private getTokenOnOraichain(coinGeckoId: CoinGeckoId, decimals?: number): TokenItemType {
-    const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId, decimals);
+  private getTokenOnOraichain(coinGeckoId: CoinGeckoId, isNative?: boolean): TokenItemType {
+    const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId, isNative);
     if (!fromTokenOnOrai) throw generateError(`Could not find token ${coinGeckoId} on Oraichain. Could not swap`);
     return fromTokenOnOrai;
   }
@@ -137,10 +137,7 @@ export class UniversalSwapHandler {
     let toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
     const isSpecialCoingecko = ["kawaii-islands", "milky-token", "injective-protocol"].includes(toCoinGeckoId);
-    if (isSpecialChain && isSpecialCoingecko) {
-      const IBC_DECIMALS = 18;
-      toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId, IBC_DECIMALS);
-    }
+    if (isSpecialChain && isSpecialCoingecko) toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId, true);
 
     let msgTransfer: EncodeObject[];
     // if ibc info source has wasm in it, it means we need to transfer IBC using IBC wasm contract, not normal ibc transfer
@@ -280,7 +277,7 @@ export class UniversalSwapHandler {
     let getEncodedExecuteMsgs = [];
     if (["kawaii-islands", "milky-token"].includes(originalToToken.coinGeckoId)) {
       const IBC_DECIMALS = 18;
-      const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId, IBC_DECIMALS);
+      const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId, true);
       const evmToken = tokenMap[toTokenInOrai.denom];
       const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
       const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
@@ -1250,8 +1247,7 @@ export class UniversalSwapHandler {
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, fromAmount, affiliates, userSlippage } = this.swapData;
-    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
     const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
     if (!this.swapData.simulatePrice || !isValidSlippage) {
@@ -1280,8 +1276,7 @@ export class UniversalSwapHandler {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, originalToToken, fromAmount, affiliates, userSlippage } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
-    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
     const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();

@@ -54,7 +54,12 @@ import {
   ORAIDEX_BID_POOL_CONTRACT,
   ORAIX_ETH_CONTRACT,
   MIXED_ROUTER,
-  AMM_V3_CONTRACT
+  AMM_V3_CONTRACT,
+  PEPE_BSC_CONTRACT,
+  PEPE_ORAICHAIN_DENOM,
+  CAT_ORAICHAIN_DENOM,
+  PEPE_ETH_CONTRACT,
+  CAT_BSC_CONTRACT
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -319,6 +324,22 @@ export const oraichainNetwork: CustomChainInfo = {
   },
   currencies: [
     OraiToken,
+    {
+      coinDenom: "PEPE",
+      coinGeckoId: "pepe",
+      coinMinimalDenom: PEPE_ORAICHAIN_DENOM,
+      bridgeTo: ["0x38", "0x01"],
+      coinDecimals: 18,
+      coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+    },
+    {
+      coinDenom: "CAT",
+      coinMinimalDenom: CAT_ORAICHAIN_DENOM,
+      coinDecimals: 18,
+      bridgeTo: ["0x38"],
+      coinGeckoId: "simon-s-cat",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+    },
     {
       coinDenom: "ATOM",
       coinGeckoId: "cosmos",
@@ -639,6 +660,33 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "oraidex",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://i.ibb.co/VmMJtf7/oraix.png"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + PEPE_BSC_CONTRACT,
+        bridgeNetworkIdentifier: "0x38",
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX + PEPE_ETH_CONTRACT,
+        bridgeNetworkIdentifier: "0x01",
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+      },
+      {
+        coinDenom: "CAT",
+        coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + CAT_BSC_CONTRACT,
+        bridgeNetworkIdentifier: "0x38",
+        coinDecimals: 18,
+        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
+        coinGeckoId: "simon-s-cat",
+        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
     ],
     txExplorer: {
@@ -971,6 +1019,15 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "tron",
         prefixToken: ORAI_BRIDGE_EVM_TRON_DENOM_PREFIX,
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1958.png"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: "pepe",
+        contractAddress: PEPE_ETH_CONTRACT,
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        bridgeTo: ["Oraichain"],
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
       }
     ],
     bip44: {
@@ -1057,6 +1114,24 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "binancecoin",
         bridgeTo: ["Oraichain"],
         coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1839.png"
+      },
+      {
+        coinDenom: "PEPE",
+        coinMinimalDenom: "pepe",
+        contractAddress: PEPE_BSC_CONTRACT,
+        coinDecimals: 18,
+        coinGeckoId: "pepe",
+        bridgeTo: ["Oraichain"],
+        coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
+      },
+      {
+        coinDenom: "CAT",
+        coinMinimalDenom: "cat",
+        contractAddress: CAT_BSC_CONTRACT,
+        coinDecimals: 18,
+        coinGeckoId: "simon-s-cat",
+        bridgeTo: ["Oraichain"],
+        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
     ],
     txExplorer: {
