@@ -950,15 +950,18 @@ export class UniversalSwapHandler {
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
-    const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
-    await UniversalSwapHelper.checkBalanceChannelIbc(
-      ibcInfo,
-      originalFromToken,
-      originalToToken,
-      simulateAmount,
-      client,
-      this.getCwIcs20ContractAddr()
-    );
+
+    if (!this.config?.swapOptions?.isCheckBalanceIbc) {
+      const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
+      await UniversalSwapHelper.checkBalanceChannelIbc(
+        ibcInfo,
+        originalFromToken,
+        originalToToken,
+        simulateAmount,
+        client,
+        this.getCwIcs20ContractAddr()
+      );
+    }
 
     // handle sign and broadcast transactions
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
@@ -1027,14 +1030,16 @@ export class UniversalSwapHandler {
       return this.evmSwap(evmSwapData);
     }
 
-    await UniversalSwapHelper.checkBalanceIBCOraichain(
-      originalToToken,
-      originalFromToken,
-      fromAmount,
-      simulateAmount,
-      client,
-      this.getCwIcs20ContractAddr()
-    );
+    if (!this.config?.swapOptions?.isCheckBalanceIbc) {
+      await UniversalSwapHelper.checkBalanceIBCOraichain(
+        originalToToken,
+        originalFromToken,
+        fromAmount,
+        simulateAmount,
+        client,
+        this.getCwIcs20ContractAddr()
+      );
+    }
 
     const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
     const isSufficient = await UniversalSwapHelper.checkFeeRelayer({

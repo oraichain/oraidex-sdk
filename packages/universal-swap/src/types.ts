@@ -89,6 +89,7 @@ export interface SwapOptions {
   isSourceReceiverTest?: boolean;
   isAlphaSmartRouter?: boolean;
   isIbcWasm?: boolean;
+  isCheckBalanceIbc?: boolean;
 }
 
 export enum Type {
