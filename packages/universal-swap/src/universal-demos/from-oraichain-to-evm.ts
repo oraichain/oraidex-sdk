@@ -45,7 +45,14 @@ const oraichainToEvm = async () => {
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
       userSlippage: 1
     },
-    { cosmosWallet: wallet, swapOptions: {} }
+    {
+      cosmosWallet: wallet,
+      swapOptions: {
+        isAlphaSmartRouter: true,
+        isIbcWasm: true,
+        isCheckBalanceIbc: true
+      }
+    }
   );
 
   try {

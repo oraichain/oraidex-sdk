@@ -934,17 +934,20 @@ export class UniversalSwapHandler {
         break;
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
-        const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-        const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
-          originalFromToken: this.swapData.originalFromToken,
-          fromAmount: this.swapData.fromAmount,
-          relayerFee: this.swapData.relayerFee,
-          routerClient
-        });
-        if (!isSufficient)
-          throw generateError(
-            `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
-          );
+        if (!this.config?.swapOptions?.isCheckBalanceIbc) {
+          const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
+          const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
+            originalFromToken: this.swapData.originalFromToken,
+            fromAmount: this.swapData.fromAmount,
+            relayerFee: this.swapData.relayerFee,
+            routerClient
+          });
+          if (!isSufficient)
+            throw generateError(
+              `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+            );
+        }
+
         encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
         break;
       default:
@@ -1009,9 +1012,9 @@ export class UniversalSwapHandler {
       simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
-      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
-    if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    // if (!this.config.evmWallet.isTron(originalFromToken.chainId))
+    //   await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
+    // if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
@@ -1039,19 +1042,19 @@ export class UniversalSwapHandler {
         client,
         this.getCwIcs20ContractAddr()
       );
-    }
 
-    const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-    const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
-      originalFromToken,
-      fromAmount,
-      relayerFee,
-      routerClient
-    });
-    if (!isSufficient)
-      throw generateError(
-        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
-      );
+      const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
+      const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
+        originalFromToken,
+        fromAmount,
+        relayerFee,
+        routerClient
+      });
+      if (!isSufficient)
+        throw generateError(
+          `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+        );
+    }
 
     return this.transferEvmToIBC(swapRoute);
   }
