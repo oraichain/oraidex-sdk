@@ -104,8 +104,8 @@ export class ZapConsumer {
       if (response.returnAmount === "0") {
         if (isGetPrice) {
           // maybe the amount of source is too small, try to increase the amount 
-          const newAmount = BigInt(amount) * 10n;
-          return await this.findRoute({ sourceAsset, destAsset, amount: newAmount }, true);
+          const newAmount = BigInt(amount) * 10000n;
+          return await this.findRoute({ sourceAsset, destAsset, amount: newAmount }, false);
         }
 
         throw new RouteNoLiquidity();

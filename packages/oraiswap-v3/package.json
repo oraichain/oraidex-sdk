@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraiswap-v3",
-  "version": "0.1.11",
+  "version": "0.1.12",
   "main": "build/index.js",
   "files": [
     "build/"
