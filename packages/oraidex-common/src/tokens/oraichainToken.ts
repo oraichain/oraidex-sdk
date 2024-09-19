@@ -1,5 +1,4 @@
-import { ATOM_ORAICHAIN_DENOM, TON_ORAICHAIN_DENOM } from "@oraichain/oraidex-common";
-import { CAT_ORAICHAIN_DENOM, PEPE_ORAICHAIN_DENOM } from "src/constant";
+import { CAT_ORAICHAIN_DENOM, PEPE_ORAICHAIN_DENOM, ATOM_ORAICHAIN_DENOM, TON_ORAICHAIN_DENOM } from "src/constant";
 import { BridgeAppCurrency } from "src/network";
 
 export const OraiOraichainToken: BridgeAppCurrency = {
