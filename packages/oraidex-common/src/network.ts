@@ -113,7 +113,9 @@ export type CoinGeckoId =
   | "neutaro"
   | "och"
   | "celestia"
-  | "the-open-network";
+  | "the-open-network"
+  | "pepe"
+  | "simon-s-cat";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
