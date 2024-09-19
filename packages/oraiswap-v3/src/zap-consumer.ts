@@ -76,7 +76,7 @@ export class ZapConsumer {
    * @throws SpamTooManyRequestsError
    * @throws Error
    */
-  private async findRoute(route: RouteParams): Promise<SmartRouteResponse> {
+  private async findRoute(route: RouteParams, isGetPrice: boolean = false): Promise<SmartRouteResponse> {
     const { sourceAsset, destAsset, amount } = route;
     if (sourceAsset.name === destAsset.name) {
       return { swapAmount: amount.toString(), returnAmount: amount.toString(), routes: [] };
@@ -102,6 +102,12 @@ export class ZapConsumer {
       const response: SmartRouteResponse = await res.json();
 
       if (response.returnAmount === "0") {
+        if (isGetPrice) {
+          // maybe the amount of source is too small, try to increase the amount 
+          const newAmount = BigInt(amount) * 10n;
+          return await this.findRoute({ sourceAsset, destAsset, amount: newAmount }, true);
+        }
+
         throw new RouteNoLiquidity();
       }
 
@@ -121,8 +127,8 @@ export class ZapConsumer {
    * @param routeParams - the route array want to find
    * @returns SmartRouteResponse[]
    */
-  private async findZapRoutes(routeParams: RouteParams[]): Promise<SmartRouteResponse[]> {
-    const promises = routeParams.map((params) => this.findRoute(params));
+  private async findZapRoutes(routeParams: RouteParams[], isGetPrice: boolean = false): Promise<SmartRouteResponse[]> {
+    const promises = routeParams.map((params) => this.findRoute(params, isGetPrice));
     return Promise.all(promises);
   }
 
@@ -334,7 +340,7 @@ export class ZapConsumer {
       let yPerX = shiftDecimal(BigInt(yPerXAmount.toString()), tokenY.decimals);
       let xPriceByTokenIn = new BigDecimal(1);
       let yPriceByTokenIn = new BigDecimal(1);
-      const [getXPriceByTokenIn, getYPriceByTokenIn] = await this.findZapRoutes([
+      let [getXPriceByTokenIn, getYPriceByTokenIn] = await this.findZapRoutes([
         {
           sourceAsset: tokenX,
           destAsset: tokenIn,
@@ -345,15 +351,19 @@ export class ZapConsumer {
           destAsset: tokenIn,
           amount: 10n ** BigInt(tokenY.decimals)
         }
-      ]);
+      ], true);
+
+      const extendDecimalX = getXPriceByTokenIn.swapAmount.length - tokenIn.decimals;
+      const extendDecimalY = getYPriceByTokenIn.swapAmount.length - tokenIn.decimals;
+
       if (![pool.pool_key.token_x, pool.pool_key.token_y].includes(extractAddress(tokenIn))) {
-        xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals);
-        yPriceByTokenIn = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals);
+        xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalX);
+        yPriceByTokenIn = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalY);
       } else {
         if (extractAddress(tokenIn) === pool.pool_key.token_x) {
-          yPriceByTokenIn = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals);
+          yPriceByTokenIn = shiftDecimal(BigInt(getYPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalY);
         } else {
-          xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals);
+          xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalX);
         }
       }
       let xResult = new BigDecimal(amountIn).div(xPriceByTokenIn.add(yPriceByTokenIn.mul(yPerX)));
@@ -435,8 +445,9 @@ export class ZapConsumer {
           sourceAsset: tokenX,
           destAsset: tokenY,
           amount: 10n ** BigInt(tokenX.decimals)
-        });
-        const xPriceByY = shiftDecimal(BigInt(xPriceByYAmount.returnAmount), tokenY.decimals);
+        }, true);
+        const extendDecimal = xPriceByYAmount.swapAmount.length - tokenY.decimals;
+        const xPriceByY = shiftDecimal(BigInt(xPriceByYAmount.returnAmount), tokenY.decimals + extendDecimal);
         const deltaX = yAmount.sub(yPerX.mul(xAmount)).div(yPerX.add(xPriceByY));
         amountInToX += BigInt(Math.round(deltaX.mul(xPriceByTokenIn).toNumber()));
         amountInToY = BigInt(amountIn) - amountInToX;

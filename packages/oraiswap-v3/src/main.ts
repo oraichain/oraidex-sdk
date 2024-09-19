@@ -25,7 +25,7 @@ async function main() {
     },
   });
 
-  const tokenIn = oraichainTokens.find((t) => t.name === "USDT") as TokenItemType;
+  const tokenIn = oraichainTokens.find((t) => t.name === "BTC") as TokenItemType;
   const pool = `orai-${ORAIX_CONTRACT}-3000000000-100`;
   const poolKey = parsePoolKey(pool);
   const poolInfo = await zapper.handler.getPool(poolKey);
