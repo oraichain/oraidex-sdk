@@ -5,24 +5,17 @@ import { flattenTokens, generateError, toAmount } from "@oraichain/oraidex-commo
 import { UniversalSwapHelper } from "../helper";
 
 const oraichainToEvm = async () => {
-  console.log({ abc: "11111" });
-
   const chainId = "Oraichain";
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);
 
   const sender = await wallet.getKeplrAddr(chainId);
-  const fromAmount = 10000;
-  let originalToToken = flattenTokens.find((t) => t.chainId === chainId && t.coinGeckoId === "pepe");
+  const fromAmount = 1000;
+  let originalFromToken = flattenTokens.find((t) => t.chainId === chainId && t.coinGeckoId === "pepe");
 
-  let originalFromToken = flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "pepe");
+  let originalToToken = flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "pepe");
 
   if (!originalFromToken) throw generateError("Could not find original from token");
   if (!originalToToken) throw generateError("Could not find original to token");
-
-  console.log({
-    originalToToken,
-    originalFromToken
-  });
 
   // const smartRoutes = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
   //   fromInfo: originalFromToken,
@@ -40,7 +33,7 @@ const oraichainToEvm = async () => {
         relayerAmount: "100000",
         relayerDecimals: 6
       },
-      simulatePrice: "10000000",
+      simulatePrice: toAmount(1, originalToToken.decimals).toString(),
       fromAmount,
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
       userSlippage: 1
@@ -48,8 +41,8 @@ const oraichainToEvm = async () => {
     {
       cosmosWallet: wallet,
       swapOptions: {
-        isAlphaSmartRouter: true,
-        isIbcWasm: true,
+        isAlphaSmartRouter: false,
+        isIbcWasm: false,
         isCheckBalanceIbc: true
       }
     }

@@ -261,13 +261,10 @@ export const getTokenOnSpecificChainId = (
 
 export const getTokenOnOraichain = (coingeckoId: CoinGeckoId, isNative?: boolean) => {
   const filterOraichainToken = oraichainTokens.filter((orai) => orai.coinGeckoId === coingeckoId);
-  if (!filterOraichainToken.length) throw new Error("Cannot find token on Oraichain!");
-
+  if (!filterOraichainToken.length) return undefined;
   if (filterOraichainToken.length === 1) return filterOraichainToken[0];
 
   const oraichainToken = filterOraichainToken.find((token) => (isNative ? !token.evmDenoms : token.evmDenoms));
-  if (!oraichainToken) throw new Error("Cannot find token isNative on Oraichain!");
-
   return oraichainToken;
 };
 
