@@ -71,8 +71,8 @@ export class UniversalSwapHandler {
     private readonly currentTimestamp = Date.now()
   ) {}
 
-  private getTokenOnOraichain(coinGeckoId: CoinGeckoId, decimals?: number): TokenItemType {
-    const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId, decimals);
+  private getTokenOnOraichain(coinGeckoId: CoinGeckoId, isNative?: boolean): TokenItemType {
+    const fromTokenOnOrai = getTokenOnOraichain(coinGeckoId, isNative);
     if (!fromTokenOnOrai) throw generateError(`Could not find token ${coinGeckoId} on Oraichain. Could not swap`);
     return fromTokenOnOrai;
   }
@@ -137,10 +137,7 @@ export class UniversalSwapHandler {
     let toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId);
     const isSpecialChain = ["kawaii_6886-1", "injective-1"].includes(toChainId);
     const isSpecialCoingecko = ["kawaii-islands", "milky-token", "injective-protocol"].includes(toCoinGeckoId);
-    if (isSpecialChain && isSpecialCoingecko) {
-      const IBC_DECIMALS = 18;
-      toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId, IBC_DECIMALS);
-    }
+    if (isSpecialChain && isSpecialCoingecko) toTokenInOrai = this.getTokenOnOraichain(toCoinGeckoId, true);
 
     let msgTransfer: EncodeObject[];
     // if ibc info source has wasm in it, it means we need to transfer IBC using IBC wasm contract, not normal ibc transfer
@@ -280,7 +277,7 @@ export class UniversalSwapHandler {
     let getEncodedExecuteMsgs = [];
     if (["kawaii-islands", "milky-token"].includes(originalToToken.coinGeckoId)) {
       const IBC_DECIMALS = 18;
-      const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId, IBC_DECIMALS);
+      const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId, true);
       const evmToken = tokenMap[toTokenInOrai.denom];
       const evmAmount = coin(toAmount(this.swapData.fromAmount, evmToken.decimals).toString(), evmToken.denom);
       const msgConvertReverses = UniversalSwapHelper.generateConvertCw20Erc20Message(
@@ -937,31 +934,37 @@ export class UniversalSwapHandler {
         break;
       case "oraichain-to-evm":
         const { evm: metamaskAddress, tron: tronAddress } = this.swapData.sender;
-        const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-        const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
-          originalFromToken: this.swapData.originalFromToken,
-          fromAmount: this.swapData.fromAmount,
-          relayerFee: this.swapData.relayerFee,
-          routerClient
-        });
-        if (!isSufficient)
-          throw generateError(
-            `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
-          );
+        if (!this.config?.swapOptions?.isCheckBalanceIbc) {
+          const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
+          const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
+            originalFromToken: this.swapData.originalFromToken,
+            fromAmount: this.swapData.fromAmount,
+            relayerFee: this.swapData.relayerFee,
+            routerClient
+          });
+          if (!isSufficient)
+            throw generateError(
+              `Your swap amount ${this.swapData.fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+            );
+        }
+
         encodedObjects = await this.combineMsgEvm(metamaskAddress, tronAddress);
         break;
       default:
         throw generateError(`Universal swap type ${universalSwapType} is wrong. Should not call this function!`);
     }
-    const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
-    await UniversalSwapHelper.checkBalanceChannelIbc(
-      ibcInfo,
-      originalFromToken,
-      originalToToken,
-      simulateAmount,
-      client,
-      this.getCwIcs20ContractAddr()
-    );
+
+    if (!this.config?.swapOptions?.isCheckBalanceIbc) {
+      const ibcInfo = this.getIbcInfo("Oraichain", originalToToken.chainId);
+      await UniversalSwapHelper.checkBalanceChannelIbc(
+        ibcInfo,
+        originalFromToken,
+        originalToToken,
+        simulateAmount,
+        client,
+        this.getCwIcs20ContractAddr()
+      );
+    }
 
     // handle sign and broadcast transactions
     return client.signAndBroadcast(sender.cosmos, encodedObjects, "auto");
@@ -1009,9 +1012,9 @@ export class UniversalSwapHandler {
       simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
-      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
-    if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    // if (!this.config.evmWallet.isTron(originalFromToken.chainId))
+    //   await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
+    // if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
@@ -1030,26 +1033,28 @@ export class UniversalSwapHandler {
       return this.evmSwap(evmSwapData);
     }
 
-    await UniversalSwapHelper.checkBalanceIBCOraichain(
-      originalToToken,
-      originalFromToken,
-      fromAmount,
-      simulateAmount,
-      client,
-      this.getCwIcs20ContractAddr()
-    );
-
-    const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-    const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
-      originalFromToken,
-      fromAmount,
-      relayerFee,
-      routerClient
-    });
-    if (!isSufficient)
-      throw generateError(
-        `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+    if (!this.config?.swapOptions?.isCheckBalanceIbc) {
+      await UniversalSwapHelper.checkBalanceIBCOraichain(
+        originalToToken,
+        originalFromToken,
+        fromAmount,
+        simulateAmount,
+        client,
+        this.getCwIcs20ContractAddr()
       );
+
+      const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
+      const isSufficient = await UniversalSwapHelper.checkFeeRelayer({
+        originalFromToken,
+        fromAmount,
+        relayerFee,
+        routerClient
+      });
+      if (!isSufficient)
+        throw generateError(
+          `Your swap amount ${fromAmount} cannot cover the fees for this transaction. Please try again with a higher swap amount`
+        );
+    }
 
     return this.transferEvmToIBC(swapRoute);
   }
@@ -1250,8 +1255,7 @@ export class UniversalSwapHandler {
   generateMsgsSmartRouterSwap(route: Routes, isLastRoute: boolean) {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, fromAmount, affiliates, userSlippage } = this.swapData;
-    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
     const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();
     const isValidSlippage = this.swapData.userSlippage || this.swapData.userSlippage === 0;
     if (!this.swapData.simulatePrice || !isValidSlippage) {
@@ -1280,8 +1284,7 @@ export class UniversalSwapHandler {
     let contractAddr: string = network.mixer_router;
     const { originalFromToken, originalToToken, fromAmount, affiliates, userSlippage } = this.swapData;
     // since we're swapping on Oraichain, we need to get from token on Oraichain
-    let decimals = originalFromToken.denom === TON_ORAICHAIN_DENOM ? originalFromToken.decimals : undefined;
-    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId, decimals);
+    const fromTokenOnOrai = this.getTokenOnOraichain(originalFromToken.coinGeckoId);
     const toTokenInOrai = this.getTokenOnOraichain(originalToToken.coinGeckoId);
     try {
       const _fromAmount = toAmount(fromAmount, fromTokenOnOrai.decimals).toString();

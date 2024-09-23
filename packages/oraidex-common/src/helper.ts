@@ -252,10 +252,20 @@ export const getTokenOnSpecificChainId = (
   return flattenTokens.find((t) => t.coinGeckoId === coingeckoId && t.chainId === chainId);
 };
 
-export const getTokenOnOraichain = (coingeckoId: CoinGeckoId, decimals?: number) => {
-  return oraichainTokens.find(
-    (token) => token.coinGeckoId === coingeckoId && token.decimals === (decimals || CW20_DECIMALS)
-  );
+/**
+ * This function get token on oraichain from coingeckoId
+ * @param coingeckoId - coingeckoId of tokenInOraichain
+ * @param isNative - isNative token
+ * @returns token on oraichain
+ */
+
+export const getTokenOnOraichain = (coingeckoId: CoinGeckoId, isNative?: boolean) => {
+  const filterOraichainToken = oraichainTokens.filter((orai) => orai.coinGeckoId === coingeckoId);
+  if (!filterOraichainToken.length) return undefined;
+  if (filterOraichainToken.length === 1) return filterOraichainToken[0];
+
+  const oraichainToken = filterOraichainToken.find((token) => (isNative ? !token.evmDenoms : token.evmDenoms));
+  return oraichainToken;
 };
 
 export const parseTokenInfoRawDenom = (tokenInfo: TokenItemType) => {
