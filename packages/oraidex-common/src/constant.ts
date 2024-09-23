@@ -97,8 +97,11 @@ export const INJECTIVE_ORAICHAIN_DENOM = "ibc/49D820DFDE9F885D7081725A58202ABA2F
 export const ORAIIBC_INJECTIVE_DENOM = "ibc/C20C0A822BD22B2CEF0D067400FCCFB6FAEEE9E91D360B4E0725BD522302D565";
 
 export const TON_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/ton";
-export const PEPE_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/pepe";
-export const CAT_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/cat";
+// export const PEPE_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/pepe";
+// export const CAT_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/cat";
+
+export const PEPE_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/extCAT";
+export const CAT_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/extPEPE";
 
 // config for oraichain token
 export const AIRI_CONTRACT = "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg";
