@@ -1224,11 +1224,21 @@ export class UniversalSwapHandler {
       );
       if (!!subRelayerFee) {
         const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-        const { amount } = await UniversalSwapHelper.simulateSwap({
-          fromInfo: this.getTokenOnOraichain("oraichain-token"),
-          toInfo: this.getTokenOnOraichain(originalToToken.coinGeckoId),
-          amount: subRelayerFee,
-          routerClient
+        const { amount } = await UniversalSwapHelper.handleSimulateSwap({
+          originalFromInfo: this.getTokenOnOraichain("oraichain-token"),
+          originalToInfo: this.getTokenOnOraichain(originalToToken.coinGeckoId),
+          originalAmount: toDisplay(subRelayerFee),
+          routerClient: routerClient,
+          routerOption: {
+            useAlphaSmartRoute: true,
+            useIbcWasm: true
+          },
+          routerConfig: {
+            url: "https://osor.oraidex.io",
+            path: "/smart-router/alpha-router",
+            protocols: ["Oraidex", "OraidexV3"],
+            dontAllowSwapAfter: ["Oraidex", "OraidexV3"]
+          }
         });
         if (amount) subRelayerFee = amount;
       }
