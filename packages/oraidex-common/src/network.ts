@@ -329,13 +329,13 @@ export const oraichainNetwork: CustomChainInfo = {
       coinGeckoId: "pepe",
       coinMinimalDenom: PEPE_ORAICHAIN_DENOM,
       bridgeTo: ["0x38", "0x01"],
-      coinDecimals: 18,
+      coinDecimals: 6,
       coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
     },
     {
       coinDenom: "CAT",
       coinMinimalDenom: CAT_ORAICHAIN_DENOM,
-      coinDecimals: 18,
+      coinDecimals: 6,
       bridgeTo: ["0x38"],
       coinGeckoId: "simon-s-cat",
       coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
