@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraiswap-v3",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "main": "build/index.js",
   "files": [
     "build/"
@@ -13,6 +13,6 @@
   "dependencies": {
     "@cosmjs/cosmwasm-stargate": "^0.31.0",
     "@oraichain/oraidex-contracts-sdk": "^1.0.52",
-    "@oraichain/oraidex-common": "^1.1.11"
+    "@oraichain/oraidex-common": "^1.1.12"
   }
 }
