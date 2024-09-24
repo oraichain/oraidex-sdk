@@ -332,14 +332,14 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 6,
       coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
     },
-    {
-      coinDenom: "CAT",
-      coinMinimalDenom: CAT_ORAICHAIN_DENOM,
-      coinDecimals: 6,
-      bridgeTo: ["0x38"],
-      coinGeckoId: "simon-s-cat",
-      coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
-    },
+    // {
+    //   coinDenom: "CAT",
+    //   coinMinimalDenom: CAT_ORAICHAIN_DENOM,
+    //   coinDecimals: 6,
+    //   bridgeTo: ["0x38"],
+    //   coinGeckoId: "simon-s-cat",
+    //   coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+    // },
     {
       coinDenom: "ATOM",
       coinGeckoId: "cosmos",
@@ -678,16 +678,16 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "pepe",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
-      },
-      {
-        coinDenom: "CAT",
-        coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + CAT_BSC_CONTRACT,
-        bridgeNetworkIdentifier: "0x38",
-        coinDecimals: 18,
-        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
-        coinGeckoId: "simon-s-cat",
-        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
+      // {
+      //   coinDenom: "CAT",
+      //   coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + CAT_BSC_CONTRACT,
+      //   bridgeNetworkIdentifier: "0x38",
+      //   coinDecimals: 18,
+      //   prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
+      //   coinGeckoId: "simon-s-cat",
+      //   coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+      // }
     ],
     txExplorer: {
       name: "OraiBridge Scan",
@@ -1124,16 +1124,16 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "pepe",
         bridgeTo: ["Oraichain"],
         coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
-      },
-      {
-        coinDenom: "CAT",
-        coinMinimalDenom: "bep20_cat",
-        contractAddress: CAT_BSC_CONTRACT,
-        coinDecimals: 18,
-        coinGeckoId: "simon-s-cat",
-        bridgeTo: ["Oraichain"],
-        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
+      // {
+      //   coinDenom: "CAT",
+      //   coinMinimalDenom: "bep20_cat",
+      //   contractAddress: CAT_BSC_CONTRACT,
+      //   coinDecimals: 18,
+      //   coinGeckoId: "simon-s-cat",
+      //   bridgeTo: ["Oraichain"],
+      //   coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+      // }
     ],
     txExplorer: {
       name: "Bsc Scan",

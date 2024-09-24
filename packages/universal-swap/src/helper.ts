@@ -590,7 +590,9 @@ export class UniversalSwapHelper {
     };
   };
 
-  // simulate swap functions
+  /**
+   * @deprecated. Use UniversalSwapHelper.handleSimulateSwap
+   */
   static simulateSwap = async (query: {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
