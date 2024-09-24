@@ -1012,9 +1012,9 @@ export class UniversalSwapHandler {
       simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    // if (!this.config.evmWallet.isTron(originalFromToken.chainId))
-    //   await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
-    // if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
+      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
+    if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
