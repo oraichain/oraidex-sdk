@@ -327,7 +327,7 @@ export class UniversalSwapHelper {
     const source = UniversalSwapHelper.getSourceReceiver(
       sourceReceiver,
       fromToken.contractAddress,
-      swapOption.isSourceReceiverTest
+      swapOption?.isSourceReceiverTest
     );
 
     let { swapRoute, universalSwapType, isSmartRouter } = UniversalSwapHelper.getRoute(
