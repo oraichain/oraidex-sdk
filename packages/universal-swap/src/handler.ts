@@ -1206,17 +1206,10 @@ export class UniversalSwapHandler {
   }
 
   async caculateMinimumReceive() {
-    const {
-      simulateAmount,
-      relayerFee,
-      originalFromToken,
-      originalToToken,
-      bridgeFee = 1,
-      userSlippage = 0
-    } = this.swapData;
+    const { relayerFee, fromAmount, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
-      toDisplay(simulateAmount, originalFromToken.decimals),
+      fromAmount,
       this.getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
