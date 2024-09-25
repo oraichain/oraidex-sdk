@@ -93,7 +93,8 @@ export type EvmChainId =
   | "0x1ae6" // kawaii
   | "0x2b6653dc"; // tron
 
-export type NetworkChainId = CosmosChainId | EvmChainId;
+export type BitcoinChainId = "bitcoin";
+export type NetworkChainId = CosmosChainId | EvmChainId | BitcoinChainId;
 
 export type CoinGeckoId =
   | "oraichain-token"
@@ -504,7 +505,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "usat",
       type: "cw20",
       contractAddress: BTC_CONTRACT,
-      // bridgeTo: ["bitcoinTestnet"],
+      bridgeTo: ["bitcoin"],
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
     },
