@@ -9,10 +9,10 @@ const oraichainToEvm = async () => {
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);
 
   const sender = await wallet.getKeplrAddr(chainId);
-  const fromAmount = 100;
-  let originalFromToken = flattenTokens.find((t) => t.chainId === chainId && t.coinGeckoId === "pepe");
+  const fromAmount = 10000;
+  let originalToToken = flattenTokens.find((t) => t.chainId === chainId && t.coinGeckoId === "pepe");
 
-  let originalToToken = flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "pepe");
+  let originalFromToken = flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "pepe");
 
   console.log({ originalFromToken, originalToToken });
 
@@ -44,8 +44,7 @@ const oraichainToEvm = async () => {
       cosmosWallet: wallet,
       swapOptions: {
         isAlphaSmartRouter: true,
-        isIbcWasm: true,
-        isCheckBalanceIbc: true
+        isIbcWasm: true
       }
     }
   );

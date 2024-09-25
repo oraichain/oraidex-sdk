@@ -1206,10 +1206,17 @@ export class UniversalSwapHandler {
   }
 
   async caculateMinimumReceive() {
-    const { simulateAmount, relayerFee, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
+    const {
+      simulateAmount,
+      relayerFee,
+      originalFromToken,
+      originalToToken,
+      bridgeFee = 1,
+      userSlippage = 0
+    } = this.swapData;
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
-      toDisplay(simulateAmount, originalToToken.decimals),
+      toDisplay(simulateAmount, originalFromToken.decimals),
       this.getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
@@ -1252,7 +1259,10 @@ export class UniversalSwapHandler {
       .toString();
 
     const finalAmount = Math.max(0, Math.floor(Number(minimumReceive)));
-    return finalAmount.toString();
+
+    return Number(finalAmount).toLocaleString("fullwide", {
+      useGrouping: false
+    });
   }
   /**
    * Generate message swap token in Oraichain of smart route

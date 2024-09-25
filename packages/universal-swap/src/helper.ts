@@ -746,7 +746,7 @@ export class UniversalSwapHelper {
 
     const routerConfigDefault = {
       url: query?.routerConfig?.url ?? "https://osor.oraidex.io",
-      path: query?.routerConfig?.path ?? "/smart-router",
+      path: query?.routerConfig?.path ?? "/smart-router/alpha-router",
       protocols: query?.routerConfig?.protocols ?? ["Oraidex", "OraidexV3"],
       dontAllowSwapAfter: query?.routerConfig?.dontAllowSwapAfter ?? ["Oraidex", "OraidexV3"]
     };
