@@ -647,27 +647,27 @@ describe("test universal swap handler functions", () => {
   });
 
   it.each<[TokenItemType, TokenItemType, number, string, boolean]>([
-    // [
-    //   oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, // ORAI (ORAICHAIN)
-    //   oraichainTokens.find((t) => t.coinGeckoId === "airight")!, // AIRIGHT (ORAICHAIN)
-    //   0,
-    //   "0",
-    //   false
-    // ],
-    // [
-    //   flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
-    //   flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38")!, // ORAI (BSC)
-    //   10000000,
-    //   "10000000",
-    //   true
-    // ],
-    // [
-    //   flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
-    //   flattenTokens.find((t) => t.coinGeckoId === "airight" && t.chainId === "0x38")!, // AIRIGHT (BSC)
-    //   10000000,
-    //   "10000000",
-    //   false
-    // ],
+    [
+      oraichainTokens.find((t) => t.coinGeckoId === "oraichain-token")!, // ORAI (ORAICHAIN)
+      oraichainTokens.find((t) => t.coinGeckoId === "airight")!, // AIRIGHT (ORAICHAIN)
+      0,
+      "0",
+      false
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38")!, // ORAI (BSC)
+      10000000,
+      "10000000",
+      true
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01")!, // ORAI (ETH)
+      flattenTokens.find((t) => t.coinGeckoId === "airight" && t.chainId === "0x38")!, // AIRIGHT (BSC)
+      10000000,
+      "10000000",
+      false
+    ],
     [
       flattenTokens.find((t) => t.coinGeckoId === "pepe" && t.chainId === "0x38")!, // PEPE (BSC)
       flattenTokens.find((t) => t.coinGeckoId === "pepe" && t.chainId === "Oraichain")!, // PEPE (ORAICHAIN)
