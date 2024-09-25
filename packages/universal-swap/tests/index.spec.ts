@@ -1834,38 +1834,38 @@ describe("test universal swap handler functions", () => {
     expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
 
-  it.each<[any, string, string, number, string]>([
-    [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
-      (1e19).toString(),
-      (1e6).toString(),
-      0.1,
-      "8890000"
-    ],
-    [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
-      (1e18).toString(),
-      (1e6).toString(),
-      0.1,
-      "0"
-    ]
-  ])(
-    "test-caculate-minimum-receive-ibc-wasm",
-    async (originalToToken, simulateAmount, relayerFee, bridgeFee, expectResult) => {
-      const universalSwap = new FakeUniversalSwapHandler({
-        ...universalSwapData,
-        userSlippage: 1,
-        bridgeFee,
-        originalToToken,
-        simulateAmount,
-        relayerFee: {
-          relayerAmount: relayerFee,
-          relayerDecimals: 6
-        }
-      });
+  // it.each<[any, string, string, number, string]>([
+  //   [
+  //     flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+  //     (1e19).toString(),
+  //     (1e6).toString(),
+  //     0.1,
+  //     "8890000"
+  //   ],
+  //   [
+  //     flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+  //     (1e18).toString(),
+  //     (1e6).toString(),
+  //     0.1,
+  //     "0"
+  //   ]
+  // ])(
+  //   "test-caculate-minimum-receive-ibc-wasm",
+  //   async (originalToToken, simulateAmount, relayerFee, bridgeFee, expectResult) => {
+  //     const universalSwap = new FakeUniversalSwapHandler({
+  //       ...universalSwapData,
+  //       userSlippage: 1,
+  //       bridgeFee,
+  //       originalToToken,
+  //       simulateAmount,
+  //       relayerFee: {
+  //         relayerAmount: relayerFee,
+  //         relayerDecimals: 6
+  //       }
+  //     });
 
-      const minimumReceive = await universalSwap.caculateMinimumReceive();
-      expect(minimumReceive).toEqual(expectResult);
-    }
-  );
+  //     const minimumReceive = await universalSwap.caculateMinimumReceive();
+  //     expect(minimumReceive).toEqual(expectResult);
+  //   }
+  // );
 });

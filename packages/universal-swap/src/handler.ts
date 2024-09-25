@@ -1012,9 +1012,9 @@ export class UniversalSwapHandler {
       simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    // if (!this.config.evmWallet.isTron(originalFromToken.chainId))
-    //   await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
-    // if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
+      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
+    if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
@@ -1206,10 +1206,17 @@ export class UniversalSwapHandler {
   }
 
   async caculateMinimumReceive() {
-    const { simulateAmount, relayerFee, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
+    const {
+      simulateAmount,
+      relayerFee,
+      originalFromToken,
+      originalToToken,
+      bridgeFee = 1,
+      userSlippage = 0
+    } = this.swapData;
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
-      toDisplay(simulateAmount, originalToToken.decimals),
+      toDisplay(simulateAmount, originalFromToken.decimals),
       this.getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
@@ -1252,7 +1259,10 @@ export class UniversalSwapHandler {
       .toString();
 
     const finalAmount = Math.max(0, Math.floor(Number(minimumReceive)));
-    return finalAmount.toString();
+
+    return Number(finalAmount).toLocaleString("fullwide", {
+      useGrouping: false
+    });
   }
   /**
    * Generate message swap token in Oraichain of smart route
