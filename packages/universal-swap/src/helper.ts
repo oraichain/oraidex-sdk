@@ -746,7 +746,7 @@ export class UniversalSwapHelper {
 
     const routerConfigDefault = {
       url: query?.routerConfig?.url ?? "https://osor.oraidex.io",
-      path: query?.routerConfig?.path ?? "/smart-router",
+      path: query?.routerConfig?.path ?? "/smart-router/alpha-router",
       protocols: query?.routerConfig?.protocols ?? ["Oraidex", "OraidexV3"],
       dontAllowSwapAfter: query?.routerConfig?.dontAllowSwapAfter ?? ["Oraidex", "OraidexV3"]
     };
@@ -868,6 +868,8 @@ export class UniversalSwapHelper {
 
       if ("native" in balance) {
         const pairMapping = await ics20Client.pairMapping({ key: pairKey });
+        // @ts-ignore
+        if (pairMapping.pair_mapping?.is_mint_burn) return;
         const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
         let _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
         if (fromToken.coinGeckoId !== toToken.coinGeckoId) {

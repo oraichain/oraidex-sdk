@@ -1123,6 +1123,7 @@ export const chainInfos: CustomChainInfo[] = [
         coinDecimals: 18,
         coinGeckoId: "pepe",
         bridgeTo: ["Oraichain"],
+        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
         coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
       }
       // {
