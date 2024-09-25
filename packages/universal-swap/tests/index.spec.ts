@@ -667,6 +667,13 @@ describe("test universal swap handler functions", () => {
       10000000,
       "10000000",
       false
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "pepe" && t.chainId === "0x38")!, // PEPE (BSC)
+      flattenTokens.find((t) => t.coinGeckoId === "pepe" && t.chainId === "Oraichain")!, // PEPE (ORAICHAIN)
+      0,
+      "0",
+      false
     ]
   ])(
     "test-universal-swap-checkBalanceIBCOraichain",
@@ -675,9 +682,10 @@ describe("test universal swap handler functions", () => {
         vi.spyOn(UniversalSwapHelper, "getBalanceIBCOraichain").mockReturnValue(
           new Promise((resolve) => resolve({ balance: +toAmount }))
         );
+
         checkBalanceIBCOraichain(
-          from,
           to,
+          from,
           fromAmount,
           simulateAmount,
           ics20Contract.client,
