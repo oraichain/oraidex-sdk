@@ -82,6 +82,10 @@ export class ZapConsumer {
       return { swapAmount: amount.toString(), returnAmount: amount.toString(), routes: [] };
     }
 
+    if (amount === 0n) {
+      return { swapAmount: "0", returnAmount: "0", routes: [] };
+    }
+
     const body = JSON.stringify({
       sourceAsset: extractAddress(sourceAsset),
       sourceChainId: sourceAsset.chainId,
