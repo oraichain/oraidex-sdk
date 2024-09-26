@@ -533,7 +533,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: HMSTR_ORAICHAIN_DENOM,
       coinDecimals: 9,
       coinGeckoId: "hamster-kombat",
-      coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/32195.png"
+      coinImageUrl: "https://assets.coingecko.com/coins/images/39102/standard/hamster-removebg-preview.png?1720514486"
     }
   ]
 };
