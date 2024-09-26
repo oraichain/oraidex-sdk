@@ -59,7 +59,8 @@ import {
   CAT_ORAICHAIN_EXT_DENOM as CAT_ORAICHAIN_DENOM,
   PEPE_ETH_CONTRACT,
   PEPE_BSC_CONTRACT,
-  CAT_BSC_CONTRACT
+  CAT_BSC_CONTRACT,
+  HMSTR_ORAICHAIN_DENOM
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -120,7 +121,8 @@ export type CoinGeckoId =
   | "celestia"
   | "the-open-network"
   | "pepe"
-  | "simon-s-cat";
+  | "simon-s-cat"
+  | "hamster-kombat";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -525,6 +527,13 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 9,
       coinGeckoId: "the-open-network",
       coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png?1696517498"
+    },
+    {
+      coinDenom: "HMSTR",
+      coinMinimalDenom: HMSTR_ORAICHAIN_DENOM,
+      coinDecimals: 9,
+      coinGeckoId: "hamster-kombat",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/39102/standard/hamster-removebg-preview.png?1720514486"
     }
   ]
 };
