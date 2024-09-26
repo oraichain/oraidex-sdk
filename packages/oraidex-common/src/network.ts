@@ -55,11 +55,12 @@ import {
   ORAIX_ETH_CONTRACT,
   MIXED_ROUTER,
   AMM_V3_CONTRACT,
-  PEPE_ORAICHAIN_DENOM,
-  CAT_ORAICHAIN_DENOM,
+  PEPE_ORAICHAIN_EXT_DENOM as PEPE_ORAICHAIN_DENOM,
+  CAT_ORAICHAIN_EXT_DENOM as CAT_ORAICHAIN_DENOM,
   PEPE_ETH_CONTRACT,
   PEPE_BSC_CONTRACT,
-  CAT_BSC_CONTRACT
+  CAT_BSC_CONTRACT,
+  HMSTR_ORAICHAIN_DENOM
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -120,7 +121,8 @@ export type CoinGeckoId =
   | "celestia"
   | "the-open-network"
   | "pepe"
-  | "simon-s-cat";
+  | "simon-s-cat"
+  | "hamster-kombat";
 
 export type NetworkType = "cosmos" | "evm";
 export interface NetworkConfig {
@@ -332,14 +334,14 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 6,
       coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
     },
-    {
-      coinDenom: "CAT",
-      coinMinimalDenom: CAT_ORAICHAIN_DENOM,
-      coinDecimals: 6,
-      bridgeTo: ["0x38"],
-      coinGeckoId: "simon-s-cat",
-      coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
-    },
+    // {
+    //   coinDenom: "CAT",
+    //   coinMinimalDenom: CAT_ORAICHAIN_DENOM,
+    //   coinDecimals: 6,
+    //   bridgeTo: ["0x38"],
+    //   coinGeckoId: "simon-s-cat",
+    //   coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+    // },
     {
       coinDenom: "ATOM",
       coinGeckoId: "cosmos",
@@ -504,7 +506,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinMinimalDenom: "usat",
       type: "cw20",
       contractAddress: BTC_CONTRACT,
-      // bridgeTo: ["bitcoinTestnet"],
+      bridgeTo: ["bitcoin"] as any,
       coinDecimals: 6,
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
     },
@@ -525,6 +527,13 @@ export const oraichainNetwork: CustomChainInfo = {
       coinDecimals: 9,
       coinGeckoId: "the-open-network",
       coinImageUrl: "https://assets.coingecko.com/coins/images/17980/standard/ton_symbol.png?1696517498"
+    },
+    {
+      coinDenom: "HMSTR",
+      coinMinimalDenom: HMSTR_ORAICHAIN_DENOM,
+      coinDecimals: 9,
+      coinGeckoId: "hamster-kombat",
+      coinImageUrl: "https://assets.coingecko.com/coins/images/39102/standard/hamster-removebg-preview.png?1720514486"
     }
   ]
 };
@@ -678,16 +687,16 @@ export const chainInfos: CustomChainInfo[] = [
         coinGeckoId: "pepe",
         prefixToken: ORAI_BRIDGE_EVM_ETH_DENOM_PREFIX,
         coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
-      },
-      {
-        coinDenom: "CAT",
-        coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + CAT_BSC_CONTRACT,
-        bridgeNetworkIdentifier: "0x38",
-        coinDecimals: 18,
-        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
-        coinGeckoId: "simon-s-cat",
-        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
+      // {
+      //   coinDenom: "CAT",
+      //   coinMinimalDenom: ORAI_BRIDGE_EVM_DENOM_PREFIX + CAT_BSC_CONTRACT,
+      //   bridgeNetworkIdentifier: "0x38",
+      //   coinDecimals: 18,
+      //   prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
+      //   coinGeckoId: "simon-s-cat",
+      //   coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+      // }
     ],
     txExplorer: {
       name: "OraiBridge Scan",
@@ -1123,17 +1132,18 @@ export const chainInfos: CustomChainInfo[] = [
         coinDecimals: 18,
         coinGeckoId: "pepe",
         bridgeTo: ["Oraichain"],
+        prefixToken: ORAI_BRIDGE_EVM_DENOM_PREFIX,
         coinImageUrl: "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776"
-      },
-      {
-        coinDenom: "CAT",
-        coinMinimalDenom: "bep20_cat",
-        contractAddress: CAT_BSC_CONTRACT,
-        coinDecimals: 18,
-        coinGeckoId: "simon-s-cat",
-        bridgeTo: ["Oraichain"],
-        coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
       }
+      // {
+      //   coinDenom: "CAT",
+      //   coinMinimalDenom: "bep20_cat",
+      //   contractAddress: CAT_BSC_CONTRACT,
+      //   coinDecimals: 18,
+      //   coinGeckoId: "simon-s-cat",
+      //   bridgeTo: ["Oraichain"],
+      //   coinImageUrl: "https://assets.coingecko.com/coins/images/39765/standard/Simon's_Cat_Logo.png?1724017505"
+      // }
     ],
     txExplorer: {
       name: "Bsc Scan",

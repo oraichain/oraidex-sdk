@@ -1012,9 +1012,9 @@ export class UniversalSwapHandler {
       simulatePrice: simulatePrice
     };
     // has to switch network to the correct chain id on evm since users can swap between network tokens
-    // if (!this.config.evmWallet.isTron(originalFromToken.chainId))
-    //   await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
-    // if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
+    if (!this.config.evmWallet.isTron(originalFromToken.chainId))
+      await this.config.evmWallet.switchNetwork(originalFromToken.chainId);
+    if (UniversalSwapHelper.isEvmSwappable(swappableData)) return this.evmSwap(evmSwapData);
 
     const toTokenSameFromChainId = getTokenOnSpecificChainId(originalToToken.coinGeckoId, originalFromToken.chainId);
     if (toTokenSameFromChainId) {
@@ -1190,9 +1190,7 @@ export class UniversalSwapHandler {
       obridgeAddress
     );
 
-    // version alpha smart router oraiDEX pool + osmosis pool
     if (
-      swapOptions?.isAlphaSmartRouter &&
       this.swapData?.alphaSmartRoutes?.routes?.length &&
       ["oraichain-to-oraichain", "oraichain-to-cosmos", "cosmos-to-others"].includes(universalSwapType) &&
       !swapOptions?.isIbcWasm
@@ -1208,10 +1206,10 @@ export class UniversalSwapHandler {
   }
 
   async caculateMinimumReceive() {
-    const { simulateAmount, relayerFee, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
+    const { relayerFee, fromAmount, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
     const { cosmosWallet } = this.config;
     const convertSimulateAmount = toAmount(
-      toDisplay(simulateAmount, originalToToken.decimals),
+      fromAmount,
       this.getTokenOnOraichain(originalToToken.coinGeckoId)?.decimals ?? 6
     ).toString();
 
@@ -1224,11 +1222,21 @@ export class UniversalSwapHandler {
       );
       if (!!subRelayerFee) {
         const routerClient = new OraiswapRouterQueryClient(client, network.mixer_router);
-        const { amount } = await UniversalSwapHelper.simulateSwap({
-          fromInfo: this.getTokenOnOraichain("oraichain-token"),
-          toInfo: this.getTokenOnOraichain(originalToToken.coinGeckoId),
-          amount: subRelayerFee,
-          routerClient
+        const { amount } = await UniversalSwapHelper.handleSimulateSwap({
+          originalFromInfo: this.getTokenOnOraichain("oraichain-token"),
+          originalToInfo: this.getTokenOnOraichain(originalToToken.coinGeckoId),
+          originalAmount: toDisplay(subRelayerFee),
+          routerClient: routerClient,
+          routerOption: {
+            useAlphaSmartRoute: true,
+            useIbcWasm: true
+          },
+          routerConfig: {
+            url: "https://osor.oraidex.io",
+            path: "/smart-router/alpha-router",
+            protocols: ["Oraidex", "OraidexV3"],
+            dontAllowSwapAfter: ["Oraidex", "OraidexV3"]
+          }
         });
         if (amount) subRelayerFee = amount;
       }
@@ -1244,7 +1252,10 @@ export class UniversalSwapHandler {
       .toString();
 
     const finalAmount = Math.max(0, Math.floor(Number(minimumReceive)));
-    return finalAmount.toString();
+
+    return Number(finalAmount).toLocaleString("fullwide", {
+      useGrouping: false
+    });
   }
   /**
    * Generate message swap token in Oraichain of smart route

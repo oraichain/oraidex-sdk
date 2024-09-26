@@ -667,6 +667,13 @@ describe("test universal swap handler functions", () => {
       10000000,
       "10000000",
       false
+    ],
+    [
+      flattenTokens.find((t) => t.coinGeckoId === "pepe" && t.chainId === "0x38")!, // PEPE (BSC)
+      flattenTokens.find((t) => t.coinGeckoId === "pepe" && t.chainId === "Oraichain")!, // PEPE (ORAICHAIN)
+      0,
+      "0",
+      false
     ]
   ])(
     "test-universal-swap-checkBalanceIBCOraichain",
@@ -675,9 +682,10 @@ describe("test universal swap handler functions", () => {
         vi.spyOn(UniversalSwapHelper, "getBalanceIBCOraichain").mockReturnValue(
           new Promise((resolve) => resolve({ balance: +toAmount }))
         );
+
         checkBalanceIBCOraichain(
-          from,
           to,
+          from,
           fromAmount,
           simulateAmount,
           ics20Contract.client,
@@ -1834,28 +1842,29 @@ describe("test universal swap handler functions", () => {
     expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
 
-  it.each<[any, string, string, number, string]>([
+  it.each<[any, number, string, number, string]>([
     [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
-      (1e19).toString(),
-      (1e6).toString(),
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "Oraichain"),
+      1,
+      (1e5).toString(),
       0.1,
-      "8890000"
+      "889000"
     ],
     [
       flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
-      (1e18).toString(),
+      1,
       (1e6).toString(),
       0.1,
       "0"
     ]
   ])(
     "test-caculate-minimum-receive-ibc-wasm",
-    async (originalToToken, simulateAmount, relayerFee, bridgeFee, expectResult) => {
+    async (originalToToken, fromAmount, relayerFee, bridgeFee, expectResult) => {
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         userSlippage: 1,
         bridgeFee,
+        fromAmount,
         originalToToken,
         simulateAmount,
         relayerFee: {
