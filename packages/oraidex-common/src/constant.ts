@@ -100,6 +100,7 @@ export const TON_ORAICHAIN_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3q
 export const PEPE_ORAICHAIN_EXT_DENOM =
   "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/extPEPE";
 export const CAT_ORAICHAIN_EXT_DENOM = "factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9/extCAT";
+export const HSMTR_ORAICHAIN_DENOM = "factory/orai17hyr3eg92fv34fdnkend48scu32hn26gqxw3hnwkfy904lk9r09qqzty42/XuanDang";
 
 // config for oraichain token
 export const AIRI_CONTRACT = "orai10ldgzued6zjp0mkqwsv2mux3ml50l97c74x8sg";
