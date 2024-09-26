@@ -20,6 +20,8 @@ const NobleIcon = "https://raw.githubusercontent.com/cosmos/chain-registry/maste
 const BtcIcon = "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png";
 const OCHIcon =
   "https://assets.coingecko.com/coins/images/34236/standard/orchai_logo_white_copy_4x-8_%281%29.png?1704307670";
+const PepeIcon = "https://assets.coingecko.com/coins/images/29850/standard/pepe-token.jpeg?1696528776";
+const HamsterIcon = "https://assets.coingecko.com/coins/images/39102/standard/hamster-removebg-preview.png?1720514486";
 
 import { flatten } from "lodash";
 import { chainInfos as customChainInfos, CustomChainInfo } from "../network";
@@ -124,6 +126,16 @@ export const tokensIcon: TokenIcon[] = [
     coinGeckoId: "och",
     Icon: OCHIcon,
     IconLight: OCHIcon
+  },
+  {
+    coinGeckoId: "pepe",
+    Icon: PepeIcon,
+    IconLight: PepeIcon
+  },
+  {
+    coinGeckoId: "hamster-kombat",
+    Icon: HamsterIcon,
+    IconLight: HamsterIcon
   }
 ];
 
