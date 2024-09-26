@@ -34,16 +34,14 @@ import {
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
   tokenMap,
-  AmountDetails,
   buildMultipleExecuteMessages,
   ibcInfosOld,
   checkValidateAddressWithNetwork,
   BigDecimal,
   OSMOSIS_ROUTER_CONTRACT,
   cosmosChains,
-  parseAssetInfoFromContractAddrOrDenom,
-  TON_ORAICHAIN_DENOM,
-  toDisplay
+  toDisplay,
+  EVM_CHAIN_ID_COMMON
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
@@ -1163,7 +1161,9 @@ export class UniversalSwapHandler {
       if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
 
       toAddress =
-        originalToToken.chainId === "0x2b6653dc" ? tronToEthAddress(recipientAddress) : this.swapData.recipientAddress;
+        originalToToken.chainId === EVM_CHAIN_ID_COMMON.TRON_CHAIN_ID
+          ? tronToEthAddress(recipientAddress)
+          : this.swapData.recipientAddress;
     } else {
       toAddress = await this.getUniversalSwapToAddress(originalToToken.chainId, {
         metamaskAddress: evm,
