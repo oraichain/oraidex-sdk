@@ -60,7 +60,6 @@ import {
   SimulateResponse,
   SmartRouteSwapOperations,
   SmartRouterResponse,
-  SmartRouterResponseAPI,
   SwapDirection,
   SwapOptions,
   SwapRoute,
@@ -328,7 +327,7 @@ export class UniversalSwapHelper {
     const source = UniversalSwapHelper.getSourceReceiver(
       sourceReceiver,
       fromToken.contractAddress,
-      swapOption.isSourceReceiverTest
+      swapOption?.isSourceReceiverTest
     );
 
     let { swapRoute, universalSwapType, isSmartRouter } = UniversalSwapHelper.getRoute(
@@ -466,6 +465,9 @@ export class UniversalSwapHelper {
     return routeData;
   };
 
+  /**
+   * @deprecated. Use UniversalSwapHelper.generateMsgsSmartRouterV2withV3
+   */
   static generateSwapRoute = (offerAsset: AssetInfo, askAsset: AssetInfo, swapRoute: AssetInfo[]) => {
     const swaps = [];
     if (swapRoute.length === 0) {
@@ -500,7 +502,9 @@ export class UniversalSwapHelper {
     return swaps;
   };
 
-  // generate messages
+  /**
+   * @deprecated. Use UniversalSwapHelper.generateMsgsSmartRouterV2withV3
+   */
   static generateSwapOperationMsgs = (offerInfo: AssetInfo, askInfo: AssetInfo): SwapOperation[] => {
     const pairExist = PAIRS.some((pair) => {
       const assetInfos = pair.asset_infos;
@@ -534,7 +538,7 @@ export class UniversalSwapHelper {
     askChainId: string,
     offerAmount: string,
     routerConfig: RouterConfigSmartRoute
-  ): Promise<SmartRouterResponseAPI> => {
+  ): Promise<SmartRouterResponse> => {
     const { axios } = await getAxios(routerConfig.url);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
@@ -548,7 +552,7 @@ export class UniversalSwapHelper {
       }
     };
     const res: {
-      data: SmartRouterResponseAPI;
+      data: SmartRouterResponse;
     } = await axios.post(routerConfig.path, data);
     return {
       swapAmount: res.data.swapAmount,
@@ -566,7 +570,7 @@ export class UniversalSwapHelper {
     routerConfig: RouterConfigSmartRoute = {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
-      protocols: ["Oraidex", "OraidexV3", "Osmosis"],
+      protocols: ["Oraidex", "OraidexV3"],
       dontAllowSwapAfter: ["Oraidex", "OraidexV3"]
     }
   ): Promise<SmartRouterResponse> => {
@@ -586,7 +590,9 @@ export class UniversalSwapHelper {
     };
   };
 
-  // simulate swap functions
+  /**
+   * @deprecated. Use UniversalSwapHelper.handleSimulateSwap
+   */
   static simulateSwap = async (query: {
     fromInfo: TokenItemType;
     toInfo: TokenItemType;
@@ -738,51 +744,37 @@ export class UniversalSwapHelper {
       return { amount, displayAmount };
     }
 
-    let amount;
-    let routes;
-    let decimals = 6;
-    if (query?.routerOption?.useAlphaSmartRoute) {
-      const fromInfo = query?.routerOption?.useIbcWasm
-        ? getTokenOnOraichain(query.originalFromInfo.coinGeckoId)
-        : query.originalFromInfo;
-      const toInfo = query?.routerOption?.useIbcWasm
-        ? getTokenOnOraichain(query.originalToInfo.coinGeckoId)
-        : query.originalToInfo;
+    const routerConfigDefault = {
+      url: query?.routerConfig?.url ?? "https://osor.oraidex.io",
+      path: query?.routerConfig?.path ?? "/smart-router/alpha-router",
+      protocols: query?.routerConfig?.protocols ?? ["Oraidex", "OraidexV3"],
+      dontAllowSwapAfter: query?.routerConfig?.dontAllowSwapAfter ?? ["Oraidex", "OraidexV3"]
+    };
 
-      if (!fromInfo || !toInfo)
-        throw new Error(`Cannot find token on Oraichain for token ${fromInfo.coinGeckoId} and ${toInfo.coinGeckoId}`);
+    let fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
+    let toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
 
-      const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
-        fromInfo,
-        toInfo,
-        amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
-        routerConfig: query.routerConfig
-      });
-
-      routes = simulateRes;
-      amount = simulateRes.returnAmount;
-      decimals = toInfo.decimals;
-    } else {
-      const fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
-      const toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
-      if (!fromInfo || !toInfo)
-        throw new Error(
-          `Cannot find token on Oraichain for token ${query.originalFromInfo.coinGeckoId} and ${query.originalToInfo.coinGeckoId}`
-        );
-      amount = (
-        await UniversalSwapHelper.simulateSwap({
-          fromInfo,
-          toInfo,
-          amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
-          routerClient: query.routerClient
-        })
-      ).amount;
-      decimals = toInfo.decimals;
+    if (!query?.routerOption?.useIbcWasm) {
+      fromInfo = query.originalFromInfo;
+      toInfo = query.originalToInfo;
     }
+
+    if (!fromInfo || !toInfo)
+      throw new Error(`Cannot find token on Oraichain for token ${fromInfo.coinGeckoId} and ${toInfo.coinGeckoId}`);
+
+    const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
+      fromInfo,
+      toInfo,
+      amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+      routerConfig: routerConfigDefault
+    });
+
+    const amount = simulateRes.returnAmount;
+    const routes = simulateRes;
     return {
       amount,
-      displayAmount: toDisplay(amount, decimals),
-      routes: routes ?? {}
+      displayAmount: toDisplay(amount, toInfo.decimals),
+      routes
     };
   };
 
@@ -876,6 +868,8 @@ export class UniversalSwapHelper {
 
       if ("native" in balance) {
         const pairMapping = await ics20Client.pairMapping({ key: pairKey });
+        // @ts-ignore
+        if (pairMapping.pair_mapping?.is_mint_burn) return;
         const trueBalance = toDisplay(balance.native.amount, pairMapping.pair_mapping.remote_decimals);
         let _toAmount = toDisplay(toSimulateAmount, toToken.decimals);
         if (fromToken.coinGeckoId !== toToken.coinGeckoId) {
@@ -928,11 +922,21 @@ export class UniversalSwapHelper {
     // always check from token in ibc wasm should have enough tokens to swap / send to destination
     const token = getTokenOnOraichain(from.coinGeckoId);
     if (!token) return;
+
+    // hardcode if is token factory ( mint) then return
+    if (
+      token.denom &&
+      token.denom.includes("factory/orai1wuvhex9xqs3r539mvc6mtm7n20fcj3qr2m0y9khx6n5vtlngfzes3k0rq9")
+    ) {
+      return;
+    }
+
     let ibcWasmContractAddr = ibcWasmContract;
     // TODO: check balance with kawaii token and milky token
     if (["kawaii-islands", "milky-token"].includes(from.coinGeckoId) && ["0x38"].includes(from.chainId)) {
       ibcWasmContractAddr = network.converter;
     }
+
     const { balance } = await UniversalSwapHelper.getBalanceIBCOraichain(token, client, ibcWasmContractAddr);
     if (balance < fromAmount) {
       throw generateError(
