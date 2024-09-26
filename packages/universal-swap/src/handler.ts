@@ -41,7 +41,7 @@ import {
   OSMOSIS_ROUTER_CONTRACT,
   cosmosChains,
   toDisplay,
-  EVM_CHAIN_ID_COMMON
+  ChainIdEnum
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
@@ -231,7 +231,7 @@ export class UniversalSwapHandler {
     if (recipientAddress) {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toToken.originalChainId);
       if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
-      transferAddress = recipientAddress;
+      transferAddress = toToken.chainId === ChainIdEnum.TRON ? tronToEthAddress(recipientAddress) : recipientAddress;
     } else {
       transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
     }
@@ -1161,7 +1161,7 @@ export class UniversalSwapHandler {
       if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
 
       toAddress =
-        originalToToken.chainId === EVM_CHAIN_ID_COMMON.TRON_CHAIN_ID
+        originalToToken.chainId === ChainIdEnum.TRON
           ? tronToEthAddress(recipientAddress)
           : this.swapData.recipientAddress;
     } else {
