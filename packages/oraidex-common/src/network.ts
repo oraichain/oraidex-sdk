@@ -60,7 +60,7 @@ import {
   PEPE_ETH_CONTRACT,
   PEPE_BSC_CONTRACT,
   CAT_BSC_CONTRACT,
-  HSMTR_ORAICHAIN_DENOM
+  HMSTR_ORAICHAIN_DENOM
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
 
@@ -530,7 +530,7 @@ export const oraichainNetwork: CustomChainInfo = {
     },
     {
       coinDenom: "HMSTR",
-      coinMinimalDenom: HSMTR_ORAICHAIN_DENOM,
+      coinMinimalDenom: HMSTR_ORAICHAIN_DENOM,
       coinDecimals: 9,
       coinGeckoId: "hamster-kombat",
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/32195.png"
