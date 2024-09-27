@@ -231,7 +231,8 @@ export class UniversalSwapHandler {
     if (recipientAddress) {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toToken.originalChainId);
       if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
-      transferAddress = toToken.chainId === ChainIdEnum.TRON ? tronToEthAddress(recipientAddress) : recipientAddress;
+      transferAddress =
+        toToken.originalChainId === ChainIdEnum.TRON ? tronToEthAddress(recipientAddress) : recipientAddress;
     } else {
       transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
     }
