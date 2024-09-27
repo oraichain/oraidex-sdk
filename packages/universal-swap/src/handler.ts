@@ -34,16 +34,14 @@ import {
   IBC_WASM_CONTRACT,
   IBC_WASM_CONTRACT_TEST,
   tokenMap,
-  AmountDetails,
   buildMultipleExecuteMessages,
   ibcInfosOld,
   checkValidateAddressWithNetwork,
   BigDecimal,
   OSMOSIS_ROUTER_CONTRACT,
   cosmosChains,
-  parseAssetInfoFromContractAddrOrDenom,
-  TON_ORAICHAIN_DENOM,
-  toDisplay
+  toDisplay,
+  ChainIdEnum
 } from "@oraichain/oraidex-common";
 import { ethers } from "ethers";
 import { UniversalSwapHelper } from "./helper";
@@ -233,7 +231,8 @@ export class UniversalSwapHandler {
     if (recipientAddress) {
       const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, toToken.originalChainId);
       if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
-      transferAddress = recipientAddress;
+      transferAddress =
+        toToken.originalChainId === ChainIdEnum.TRON ? tronToEthAddress(recipientAddress) : recipientAddress;
     } else {
       transferAddress = this.getTranferAddress(metamaskAddress, tronAddress, channel);
     }
@@ -1152,20 +1151,22 @@ export class UniversalSwapHandler {
 
   async processUniversalSwap() {
     const { evm, tron } = this.swapData.sender;
-    const { originalFromToken, originalToToken, simulateAmount, relayerFee } = this.swapData;
+    const { originalFromToken, originalToToken, simulateAmount, recipientAddress, relayerFee } = this.swapData;
     const { swapOptions } = this.config;
     let toAddress = "";
-    const currentToNetwork = this.swapData.originalToToken.chainId;
+    const currentToNetwork = originalToToken.chainId;
 
     if (this.swapData.recipientAddress) {
-      const isValidRecipient = checkValidateAddressWithNetwork(this.swapData.recipientAddress, currentToNetwork);
+      const isValidRecipient = checkValidateAddressWithNetwork(recipientAddress, currentToNetwork);
 
-      if (!isValidRecipient.isValid) {
-        throw generateError("Recipient address invalid!");
-      }
-      toAddress = this.swapData.recipientAddress;
+      if (!isValidRecipient.isValid) throw generateError("Recipient address invalid!");
+
+      toAddress =
+        originalToToken.chainId === ChainIdEnum.TRON
+          ? tronToEthAddress(recipientAddress)
+          : this.swapData.recipientAddress;
     } else {
-      toAddress = await this.getUniversalSwapToAddress(this.swapData.originalToToken.chainId, {
+      toAddress = await this.getUniversalSwapToAddress(originalToToken.chainId, {
         metamaskAddress: evm,
         tronAddress: tron
       });
