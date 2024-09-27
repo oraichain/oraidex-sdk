@@ -517,7 +517,7 @@ export const populateMessageZapIn = (
   message.poolKey = poolKey;
   message.tickLowerIndex = lowerTick;
   message.tickUpperIndex = upperTick;
-  message.currentSqrtPrice = sqrtPrice.toString();
+  message.currentSqrtPrice = sqrtPrice;
 
   if (buildZapInMessageOptions) {
     if (buildZapInMessageOptions.isTokenX) {
@@ -567,7 +567,8 @@ export const calculateMinimumLiquidity = (
     const res = buildZapInMessageOptions.isTokenX
       ? getLiquidityByX(BigInt(actualAmountXReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true)
       : getLiquidityByY(BigInt(actualAmountYReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
-    message.minimumLiquidity = res.l ? (BigInt(res.l) * BigInt(100 - slippage)) / 100n : 0n;
+    const slippageMultiplier = BigInt(Math.floor((100 - slippage) * 1000));
+    message.minimumLiquidity = res.l ? (BigInt(res.l) * slippageMultiplier) / 100_000n : 0n;
     return;
   }
 

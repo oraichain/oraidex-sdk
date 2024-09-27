@@ -144,7 +144,7 @@ export class ZapConsumer {
    * @returns result of the swap
    */
   private async simulateSwapOffChain(poolKey: PoolKey, pool: Pool, route: ActionRoute): Promise<CalculateSwapResult> {
-    const isXToY = route.tokenOut === poolKey.token_x ? false : true;
+    const isXToY = route.tokenOut !== poolKey.token_x;
     const tickMap = await this._handler.getFullTickmap(poolKey);
     const liquidityTicks = await this._handler.getAllLiquidityTicks(poolKey, tickMap);
     const liquidityChanges = liquidityTicks.map((tick) => ({
@@ -269,7 +269,7 @@ export class ZapConsumer {
       if (pool.current_tick_index < upperTick && pool.current_tick_index >= lowerTick) {
         message.status = ZapInResult.OutRangeHasRouteThroughSelfMayBecomeInRange;
         message.currentTick = pool.current_tick_index;
-        message.currentSqrtPrice = pool.sqrt_price;
+        message.currentSqrtPrice = BigInt(pool.sqrt_price);
         return message;
       } else {
         message.status = ZapInResult.OutRangeHasRouteThroughSelf;
@@ -287,7 +287,7 @@ export class ZapConsumer {
    * @returns result of the zap in operation
    */
   public async processZapInPositionLiquidity(params: {
-    pool: PoolWithPoolKey;
+    poolKey: PoolKey;
     tokenIn: TokenItemType;
     amountIn: string;
     lowerTick: number;
@@ -298,7 +298,8 @@ export class ZapConsumer {
   }): Promise<ZapInLiquidityResponse> {
     try {
       // take params
-      const { pool, tokenIn, amountIn, lowerTick, upperTick, tokenX, tokenY, slippage = 1 } = params;
+      const { poolKey, tokenIn, amountIn, lowerTick, upperTick, tokenX, tokenY, slippage = 1 } = params;
+      const pool = await this._handler.getPool(poolKey);
 
       // init message response
       const zapInResult: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
@@ -326,7 +327,7 @@ export class ZapConsumer {
         }
 
         pool.pool.current_tick_index = zapInSingleSideResult.currentTick;
-        pool.pool.sqrt_price = zapInSingleSideResult.currentSqrtPrice;
+        pool.pool.sqrt_price = zapInSingleSideResult.currentSqrtPrice.toString();
         zapInResult.status = zapInSingleSideResult.status;
       }
 
@@ -521,14 +522,21 @@ export class ZapConsumer {
       const pool = await this._handler.getPool(position.pool_key);
       const { amountX, amountY } = calculateRewardAmounts(pool, position, zapFee);
 
+      const tokenX = oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_x) as TokenItemType;
+      const tokenY = oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_y) as TokenItemType;
+
+      if (!tokenX || !tokenY) {
+        throw new Error("Token X or Token Y not found in oraichainTokens.");
+      }
+
       const [xRouteInfo, yRouteInfo] = await this.findZapRoutes([
         {
-          sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_x) as TokenItemType,
+          sourceAsset: tokenX,
           destAsset: tokenOut,
           amount: amountX
         },
         {
-          sourceAsset: oraichainTokens.find((t) => extractAddress(t) === pool.pool_key.token_y) as TokenItemType,
+          sourceAsset: tokenY,
           destAsset: tokenOut,
           amount: amountY
         }

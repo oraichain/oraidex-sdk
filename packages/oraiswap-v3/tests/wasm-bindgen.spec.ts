@@ -432,7 +432,11 @@ describe("wasm bind gen tests", () => {
     expect(res).toMatchObject(output);
   });
 
-  it.each<[string, string, boolean]>([["orai1zyvk3n9r8sax4xvqph97pxuhduqqsqwq6dwzj2", "orai", false]])(
+  it.each<[string, string, boolean]>([
+    ["orai1zyvk3n9r8sax4xvqph97pxuhduqqsqwq6dwzj2", "orai", false],
+    ["orai1zyvk3n9r8sax4xvqph97pxuhduqqsqwq6dwzj2", "factory/abc/ton", false],
+    ["orai", "orai1zyvk3n9r8sax4xvqph97pxuhduqqsqwq6dwzj2", true]
+  ])(
     "isTokenX",
     (tokenX, tokenY, expected) => {
       const res = isTokenX(tokenX, tokenY);
@@ -490,7 +494,7 @@ describe("wasm bind gen tests", () => {
   it.each<
     [
       {
-        x: bigint;
+        y: bigint;
         lower_tick: number;
         upper_tick: number;
         current_sqrt_price: bigint;
@@ -504,7 +508,7 @@ describe("wasm bind gen tests", () => {
   >([
     [
       {
-        x: 1000000n,
+        y: 1000000n,
         lower_tick: -10,
         upper_tick: 10,
         current_sqrt_price: 10n ** 24n,
@@ -517,7 +521,7 @@ describe("wasm bind gen tests", () => {
     ]
   ])("getLiquidityByY", (input, output) => {
     const res = getLiquidityByY(
-      input.x,
+      input.y,
       input.lower_tick,
       input.upper_tick,
       input.current_sqrt_price,

@@ -250,7 +250,7 @@ export type ZapInLiquidityResponse = {
   tickUpperIndex: number;
   minimumLiquidity?: Liquidity;
   currentTick: number;
-  currentSqrtPrice: string;
+  currentSqrtPrice: SqrtPrice;
 };
 
 export type ZapOutLiquidityResponse = {
