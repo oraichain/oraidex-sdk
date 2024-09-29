@@ -28,7 +28,7 @@ async function main() {
     }
   });
 
-  const tokenIn = oraichainTokens.find((t) => t.name === "ORAI") as TokenItemType;
+  const tokenIn = oraichainTokens.find((t) => t.denom === "orai") as TokenItemType;
   const pool = `${OSMOSIS_ORAICHAIN_DENOM}-orai-${(0.3 / 100) * 10 ** 12}-100`;
   const poolKey = parsePoolKey(pool);
 
@@ -43,15 +43,15 @@ async function main() {
   // console.log(getTickAtSqrtPrice(314557996917228655710133n, 10));
 
   console.time("processZapInPositionLiquidity");
-  // const res = await zapper.processZapInPositionLiquidity({
-  //   pool: poolInfo,
-  //   tokenIn: tokenIn as TokenItemType,
-  //   amountIn: (10 ** tokenIn.decimals).toString(),
-  //   lowerTick: currentTick - tickSpacing * 3,
-  //   upperTick: currentTick + tickSpacing * 3,
-  //   tokenX: oraichainTokens.find((t) => extractAddress(t) === poolKey.token_x) as TokenItemType,
-  //   tokenY: oraichainTokens.find((t) => extractAddress(t) === poolKey.token_y) as TokenItemType,
-  // });
+  const res = await zapper.processZapInPositionLiquidity({
+    poolKey: poolKey,
+    tokenIn: tokenIn as TokenItemType,
+    amountIn: "1000000000",
+    lowerTick: currentTick - tickSpacing * 1,
+    upperTick: currentTick + tickSpacing * 1,
+    tokenX: oraichainTokens.find((t) => extractAddress(t) === poolKey.token_x) as TokenItemType,
+    tokenY: oraichainTokens.find((t) => extractAddress(t) === poolKey.token_y) as TokenItemType,
+  });
   console.timeEnd("processZapInPositionLiquidity");
   // console.dir(res, { depth: null });
 }

@@ -107,7 +107,7 @@ export class ZapConsumer {
 
       if (response.returnAmount === "0") {
         if (isGetPrice) {
-          // maybe the amount of source is too small, try to increase the amount 
+          // maybe the amount of source is too small, try to increase the amount
           const newAmount = BigInt(amount) * 10000n;
           return await this.findRoute({ sourceAsset, destAsset, amount: newAmount }, false);
         }
@@ -183,11 +183,15 @@ export class ZapConsumer {
   private async simulateSwapOffChainForRoute(routes: ActionRoute[], poolKey: PoolKey, pool: Pool) {
     for (const route of routes) {
       if (route.swapInfo.find((swap) => swap.poolId === poolKeyToString(poolKey))) {
+        console.log(`Simulate swap off-chain for route: ${route.tokenIn} -> ${route.tokenOut}`);
         const swapResult = await this.simulateSwapOffChain(poolKey, pool, route);
-
+        console.log(`Simulate swap off-chain result: ${pool.sqrt_price} target: ${swapResult.target_sqrt_price}`);
         pool.sqrt_price = ((BigInt(pool.sqrt_price) + BigInt(swapResult.target_sqrt_price)) / 2n).toString();
         const tick = getTickAtSqrtPrice(BigInt(pool.sqrt_price), poolKey.fee_tier.tick_spacing);
-        pool.current_tick_index = (pool.current_tick_index + tick) / 2;
+        pool.current_tick_index = tick;
+
+        // NOTE: now simulate one time only
+        break; 
       }
     }
   }
@@ -300,6 +304,9 @@ export class ZapConsumer {
       // take params
       const { poolKey, tokenIn, amountIn, lowerTick, upperTick, tokenX, tokenY, slippage = 1 } = params;
       const pool = await this._handler.getPool(poolKey);
+      console.log(`Pool ${tokenX.name}/${tokenY.name} - ${poolKey.fee_tier.fee / 10 ** 10}%`);
+      console.log(`Want to zap ${amountIn} ${tokenIn.name}`);
+      console.log(`Pool now ${pool.pool.sqrt_price} - ${pool.pool.current_tick_index}`);
 
       // init message response
       const zapInResult: ZapInLiquidityResponse = {} as ZapInLiquidityResponse;
@@ -309,6 +316,7 @@ export class ZapConsumer {
 
       // if the position is out range, call @processZapInWithSingleSide
       if (lowerTick >= pool.pool.current_tick_index || upperTick < pool.pool.current_tick_index) {
+        console.log("Position is out of range");
         const zapInSingleSideResult = await this.processZapInWithSingleSide({
           poolKey: pool.pool_key,
           pool: pool.pool,
@@ -342,24 +350,28 @@ export class ZapConsumer {
         BigInt(pool.pool.sqrt_price),
         true
       );
+      console.log(`[CAL1] yPerXAmount: ${yPerXAmount} - liquidity: ${liquidity}`);
       let yPerX = shiftDecimal(BigInt(yPerXAmount.toString()), tokenY.decimals);
       let xPriceByTokenIn = new BigDecimal(1);
       let yPriceByTokenIn = new BigDecimal(1);
-      let [getXPriceByTokenIn, getYPriceByTokenIn] = await this.findZapRoutes([
-        {
-          sourceAsset: tokenX,
-          destAsset: tokenIn,
-          amount: 10n ** BigInt(tokenX.decimals)
-        },
-        {
-          sourceAsset: tokenY,
-          destAsset: tokenIn,
-          amount: 10n ** BigInt(tokenY.decimals)
-        }
-      ], true);
+      let [getXPriceByTokenIn, getYPriceByTokenIn] = await this.findZapRoutes(
+        [
+          {
+            sourceAsset: tokenX,
+            destAsset: tokenIn,
+            amount: 10n ** BigInt(tokenX.decimals)
+          },
+          {
+            sourceAsset: tokenY,
+            destAsset: tokenIn,
+            amount: 10n ** BigInt(tokenY.decimals)
+          }
+        ],
+        true
+      );
 
-      const extendDecimalX = getXPriceByTokenIn.swapAmount.length - 1 - tokenIn.decimals;
-      const extendDecimalY = getYPriceByTokenIn.swapAmount.length - 1 - tokenIn.decimals;
+      const extendDecimalX = getXPriceByTokenIn.swapAmount.length - 1 > tokenIn.decimals ? getXPriceByTokenIn.swapAmount.length - 1 - tokenIn.decimals : 0;
+      const extendDecimalY = getYPriceByTokenIn.swapAmount.length - 1 > tokenIn.decimals ? getYPriceByTokenIn.swapAmount.length - 1 - tokenIn.decimals : 0;
 
       if (![pool.pool_key.token_x, pool.pool_key.token_y].includes(extractAddress(tokenIn))) {
         xPriceByTokenIn = shiftDecimal(BigInt(getXPriceByTokenIn.returnAmount), tokenIn.decimals + extendDecimalX);
@@ -378,6 +390,8 @@ export class ZapConsumer {
       let amountY = Math.round(yResult.toNumber());
       let amountInToX = BigInt(Math.round(xResult.mul(xPriceByTokenIn).toNumber()));
       let amountInToY = BigInt(amountIn) - amountInToX;
+      console.log(`[CAL1] Amount to X: ${amountInToX} - Amount to Y: ${amountInToY}`);
+      console.log(`[CAL1] Amount X: ${amountX} - Amount Y: ${amountY}`);
 
       // After calculate equation, we have to get the actual amount received
       const [actualAmountXReceived, actualAmountYReceived] = await this.findZapRoutes([
@@ -392,6 +406,8 @@ export class ZapConsumer {
           amount: amountInToY
         }
       ]);
+      console.log(`[CAL2] Actual amount X received: ${actualAmountXReceived.returnAmount}`);
+      console.log(`[CAL2] Actual amount Y received: ${actualAmountYReceived.returnAmount}`);
       const routes: ActionRoute[] = extractOraidexV3Actions([
         ...actualAmountXReceived.routes,
         ...actualAmountYReceived.routes
@@ -402,12 +418,14 @@ export class ZapConsumer {
 
       // if the route go through the target pool, we have to simulate the swap off-chain for better accuracy
       await this.simulateSwapOffChainForRoute(routes, pool.pool_key, pool.pool);
+      console.log(`[CAL3] After simulate: ${pool.pool.sqrt_price} ${pool.pool.current_tick_index}`);
 
       if (startSqrtPrice !== BigInt(pool.pool.sqrt_price)) {
         // if the sqrt price is changed, the result is InRangeHasRouteThroughSelf
         zapInResult.status = ZapInResult.InRangeHasRouteThroughSelf;
 
         if (pool.pool.current_tick_index >= upperTick || pool.pool.current_tick_index < lowerTick) {
+          console.log("Position may come out of range");
           // if the pool is out range, the result is InRangeHasRouteThroughSelfMayBecomeOutRange
           zapInResult.status = ZapInResult.InRangeHasRouteThroughSelfMayBecomeOutRange;
 
@@ -425,13 +443,14 @@ export class ZapConsumer {
         }
 
         // Calculate 2: based on xPerY in pool after simulate swap, X and Y price in tokenIn
-        const { amount: yPerXAfter, liquidityAfter: l } = await getLiquidityByX(
+        const { amount: yPerXAfter, l: liquidityAfter } = await getLiquidityByX(
           10n ** BigInt(tokenX.decimals),
           lowerTick,
           upperTick,
           BigInt(pool.pool.sqrt_price),
           true
         );
+        console.log(`[CAL2] yPerXAfter: ${yPerXAfter} - liquidityAfter: ${liquidityAfter}`);
         yPerX = shiftDecimal(BigInt(yPerXAfter.toString()), tokenY.decimals);
         xResult = new BigDecimal(amountIn).div(xPriceByTokenIn.add(yPriceByTokenIn.mul(yPerX)));
         yResult = xResult.mul(yPerX);
@@ -439,6 +458,8 @@ export class ZapConsumer {
         amountY = Math.round(yResult.toNumber());
         amountInToX = BigInt(Math.round(xResult.mul(xPriceByTokenIn).toNumber()));
         amountInToY = BigInt(amountIn) - amountInToX;
+        console.log(`[CAL2] Amount to X: ${amountInToX} - Amount to Y: ${amountInToY}`);
+        console.log(`[CAL2] Amount X: ${amountX} - Amount Y: ${amountY}`);
       }
 
       // Calculate 3: based on actual amount received, re-balance the result
@@ -447,17 +468,25 @@ export class ZapConsumer {
       if (diffX > this._deviation || diffY > this._deviation) {
         const xAmount = new BigDecimal(actualAmountXReceived.returnAmount);
         const yAmount = new BigDecimal(actualAmountYReceived.returnAmount);
-        const xPriceByYAmount = await this.findRoute({
-          sourceAsset: tokenX,
-          destAsset: tokenY,
-          amount: 10n ** BigInt(tokenX.decimals)
-        }, true);
-        const extendDecimal = xPriceByYAmount.swapAmount.length - tokenY.decimals;
+        console.log({ xAmount, yAmount });
+        const xPriceByYAmount = await this.findRoute(
+          {
+            sourceAsset: tokenX,
+            destAsset: tokenY,
+            amount: 10n ** BigInt(tokenX.decimals)
+          },
+          true
+        );
+        console.log(`[CAL3] xPriceByYAmount: ${xPriceByYAmount.returnAmount}`);
+        const extendDecimal = xPriceByYAmount.swapAmount.length - 1 > tokenY.decimals ? xPriceByYAmount.swapAmount.length - 1 - tokenY.decimals : 0;
         const xPriceByY = shiftDecimal(BigInt(xPriceByYAmount.returnAmount), tokenY.decimals + extendDecimal);
+        console.log(`[CAL3] xPriceByY: ${xPriceByY}`);
         const deltaX = yAmount.sub(yPerX.mul(xAmount)).div(yPerX.add(xPriceByY));
+        console.log(`[CAL3] deltaX: ${deltaX}`);
         amountInToX += BigInt(Math.round(deltaX.mul(xPriceByTokenIn).toNumber()));
         amountInToY = BigInt(amountIn) - amountInToX;
       }
+      console.log(`[CAL3] Amount to X: ${amountInToX} - Amount to Y: ${amountInToY}`);
 
       const [xRouteInfo, yRouteInfo] = await this.findZapRoutes([
         {
@@ -471,6 +500,8 @@ export class ZapConsumer {
           amount: amountInToY
         }
       ]);
+      console.log(`[CAL3] Actual amount X received: ${xRouteInfo.returnAmount}`);
+      console.log(`[CAL3] Actual amount Y received: ${yRouteInfo.returnAmount}`);
 
       populateMessageZapIn(
         zapInResult,
