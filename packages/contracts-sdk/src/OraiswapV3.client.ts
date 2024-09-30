@@ -6,11 +6,12 @@
 
 import { CosmWasmClient, SigningCosmWasmClient, ExecuteResult } from "@cosmjs/cosmwasm-stargate";
 import { Coin, StdFee } from "@cosmjs/amino";
-import {Percentage, InstantiateMsg, ExecuteMsg, Addr, Liquidity, SqrtPrice, TokenAmount, Binary, Expiration, Timestamp, Uint64, AssetInfo, PoolKey, FeeTier, SwapHop, NftExtensionMsg, QueryMsg, MigrateMsg, FeeGrowth, AllNftInfoResponse, OwnerOfResponse, Approval, NftInfoResponse, Position, PositionIncentives, ArrayOfPosition, TokensResponse, ApprovedForAllResponse, Boolean, ArrayOfFeeTier, ArrayOfLiquidityTick, LiquidityTick, Uint32, NumTokensResponse, Pool, IncentiveRecord, ArrayOfPoolWithPoolKey, PoolWithPoolKey, Uint128, ArrayOfAsset, Asset, ArrayOfPositionTick, PositionTick, QuoteResult, Tick, TickIncentive, ArrayOfTupleOfUint16AndUint64} from "./OraiswapV3.types";
+import {Addr, Percentage, InstantiateMsg, ExecuteMsg, Liquidity, SqrtPrice, TokenAmount, Binary, Expiration, Timestamp, Uint64, AssetInfo, PoolKey, FeeTier, SwapHop, NftExtensionMsg, QueryMsg, MigrateMsg, FeeGrowth, AllNftInfoResponse, OwnerOfResponse, Approval, NftInfoResponse, Position, PositionIncentives, ArrayOfPosition, TokensResponse, ApprovedForAllResponse, Boolean, ArrayOfFeeTier, ArrayOfLiquidityTick, LiquidityTick, Uint32, NumTokensResponse, Pool, IncentiveRecord, ArrayOfPoolWithPoolKey, PoolWithPoolKey, Uint128, ArrayOfAsset, Asset, ArrayOfPositionTick, PositionTick, QuoteResult, Tick, TickIncentive, ArrayOfTupleOfUint16AndUint64} from "./OraiswapV3.types";
 export interface OraiswapV3ReadOnlyInterface {
   contractAddress: string;
   admin: () => Promise<Addr>;
   protocolFee: () => Promise<Percentage>;
+  incentivesFundManager: () => Promise<Addr>;
   position: ({
     index,
     ownerId
@@ -205,6 +206,7 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
     this.contractAddress = contractAddress;
     this.admin = this.admin.bind(this);
     this.protocolFee = this.protocolFee.bind(this);
+    this.incentivesFundManager = this.incentivesFundManager.bind(this);
     this.position = this.position.bind(this);
     this.positions = this.positions.bind(this);
     this.allPosition = this.allPosition.bind(this);
@@ -241,6 +243,11 @@ export class OraiswapV3QueryClient implements OraiswapV3ReadOnlyInterface {
   protocolFee = async (): Promise<Percentage> => {
     return this.client.queryContractSmart(this.contractAddress, {
       protocol_fee: {}
+    });
+  };
+  incentivesFundManager = async (): Promise<Addr> => {
+    return this.client.queryContractSmart(this.contractAddress, {
+      incentives_fund_manager: {}
     });
   };
   position = async ({
