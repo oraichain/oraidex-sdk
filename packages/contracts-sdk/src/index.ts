@@ -32,4 +32,6 @@ export * as OraiswapMixedRouterTypes from "./OraiswapMixedRouter.types";
 export * from "./OraiswapMixedRouter.client";
 export * as ZapperTypes from "./Zapper.types";
 export * from "./Zapper.client";
+export * as IncentivesFundManagerTypes from "./IncentivesFundManager.types";
+export * from "./IncentivesFundManager.client";
 export * from "./types";
