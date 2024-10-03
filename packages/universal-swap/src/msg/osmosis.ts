@@ -16,7 +16,7 @@ import { toUtf8 } from "@cosmjs/encoding";
 
 export class OsmosisMsg {
   SWAP_VENUE_NAME = "osmosis-poolmanager";
-  ENTRY_POINT_CONTRACT = "";
+  ENTRY_POINT_CONTRACT = "osmo1h3jkejkcpthl45xrrm5geed3eq75p5rgfce9taufkwfr89k63muqweu2y7";
 
   constructor(
     protected path: Path,

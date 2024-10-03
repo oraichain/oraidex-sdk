@@ -20,7 +20,7 @@ import { toUtf8 } from "@cosmjs/encoding";
 
 export class OraichainMsg {
   SWAP_VENUE_NAME = "oraidex";
-  ENTRY_POINT_CONTRACT = "";
+  ENTRY_POINT_CONTRACT = "orai1yglsm0u2x3xmct9kq3lxa654cshaxj9j5d9rw5enemkkkdjgzj7sr3gwt0";
 
   constructor(
     protected path: Path,
