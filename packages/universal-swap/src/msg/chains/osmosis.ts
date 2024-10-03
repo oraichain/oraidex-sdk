@@ -1,8 +1,8 @@
-import { BridgeMsgInfo } from "./types";
-import { ActionType, Path } from "../types";
+import { BridgeMsgInfo, MiddleWareResponse } from "../types";
+import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Swap, Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { isCw20Token, validatePath } from "./common";
+import { isCw20Token, validatePath } from "../common";
 import {
   calculateTimeoutTimestamp,
   generateError,
@@ -109,7 +109,7 @@ export class OsmosisMsg {
   /**
    * Function to generate memo for action on oraichain as middleware
    */
-  genMemoAsMiddleware(): string {
+  genMemoAsMiddleware(): MiddleWareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
 
     // we have 2 cases:
@@ -123,16 +123,19 @@ export class OsmosisMsg {
       }
 
       // ibc bridge
-      return JSON.stringify({
-        forward: {
-          receiver: this.receiver,
-          port: bridgeInfo.sourcePort,
-          channel: bridgeInfo.sourceChannel,
-          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
-          retries: 2,
-          next: this.memo
-        }
-      });
+      return {
+        receiver: this.currentChainAddress,
+        memo: JSON.stringify({
+          forward: {
+            receiver: this.receiver,
+            port: bridgeInfo.sourcePort,
+            channel: bridgeInfo.sourceChannel,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
+            retries: 2,
+            next: this.memo
+          }
+        })
+      };
     }
 
     let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
@@ -165,12 +168,15 @@ export class OsmosisMsg {
       }
     };
 
-    return JSON.stringify({
-      wasm: {
-        contract: this.ENTRY_POINT_CONTRACT,
-        msg
-      }
-    });
+    return {
+      receiver: this.ENTRY_POINT_CONTRACT,
+      memo: JSON.stringify({
+        wasm: {
+          contract: this.ENTRY_POINT_CONTRACT,
+          msg
+        }
+      })
+    };
   }
 
   /**

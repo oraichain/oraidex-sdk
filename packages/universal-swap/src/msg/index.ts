@@ -1,3 +1,3 @@
 export * from "./common";
-export * from "./oraichain";
+export * from "./chains";
 export * from "./types";

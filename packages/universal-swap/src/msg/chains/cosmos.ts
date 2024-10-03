@@ -1,7 +1,7 @@
-import { BridgeMsgInfo } from "./types";
-import { ActionType, Path } from "../types";
+import { BridgeMsgInfo, MiddleWareResponse } from "../types";
+import { ActionType, Path } from "../../types";
 import { Action } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { validatePath } from "./common";
+import { validatePath } from "../common";
 import {
   calculateTimeoutTimestamp,
   generateError,
@@ -82,19 +82,22 @@ export class CosmosMsg {
   /**
    * Function to generate memo for action on oraichain as middleware
    */
-  genMemoAsMiddleware(): string {
+  genMemoAsMiddleware(): MiddleWareResponse {
     let bridgeInfo = this.getBridgeInfo();
     // ibc bridge
-    return JSON.stringify({
-      forward: {
-        receiver: this.receiver,
-        port: bridgeInfo.sourcePort,
-        channel: bridgeInfo.sourceChannel,
-        timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
-        retries: 2,
-        next: this.memo
-      }
-    });
+    return {
+      receiver: this.currentChainAddress,
+      memo: JSON.stringify({
+        forward: {
+          receiver: this.receiver,
+          port: bridgeInfo.sourcePort,
+          channel: bridgeInfo.sourceChannel,
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
+          retries: 2,
+          next: this.memo
+        }
+      })
+    };
   }
 
   /**

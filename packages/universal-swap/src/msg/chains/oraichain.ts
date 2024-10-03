@@ -1,8 +1,8 @@
-import { BridgeMsgInfo } from "./types";
-import { ActionType, Path } from "../types";
+import { BridgeMsgInfo, MiddleWareResponse } from "../types";
+import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { isCw20Token, validatePath } from "./common";
+import { isCw20Token, validatePath } from "../common";
 import {
   calculateTimeoutTimestamp,
   CONVERTER_CONTRACT,
@@ -12,7 +12,7 @@ import {
   NetworkChainId
 } from "@oraichain/oraidex-common";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
-import { Memo, Memo_PostAction, Memo_UserSwap } from "../proto/universal_swap_memo";
+import { Memo, Memo_PostAction, Memo_UserSwap } from "../../proto/universal_swap_memo";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
@@ -259,7 +259,7 @@ export class OraichainMsg {
   /**
    * Function to generate memo for action on oraichain as middleware
    */
-  genMemoAsMiddleware(): string {
+  genMemoAsMiddleware(): MiddleWareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
 
     // we have 2 cases:
@@ -273,16 +273,19 @@ export class OraichainMsg {
       }
 
       // ibc bridge
-      return JSON.stringify({
-        forward: {
-          receiver: this.receiver,
-          port: bridgeInfo.sourcePort,
-          channel: bridgeInfo.sourceChannel,
-          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
-          retries: 2,
-          next: this.memo
-        }
-      });
+      return {
+        receiver: this.currentChainAddress,
+        memo: JSON.stringify({
+          forward: {
+            receiver: this.receiver,
+            port: bridgeInfo.sourcePort,
+            channel: bridgeInfo.sourceChannel,
+            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
+            retries: 2,
+            next: this.memo
+          }
+        })
+      };
     }
 
     let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
@@ -315,12 +318,15 @@ export class OraichainMsg {
       }
     };
 
-    return JSON.stringify({
-      wasm: {
-        contract: this.ENTRY_POINT_CONTRACT,
-        msg
-      }
-    });
+    return {
+      receiver: this.ENTRY_POINT_CONTRACT,
+      memo: JSON.stringify({
+        wasm: {
+          contract: this.ENTRY_POINT_CONTRACT,
+          msg
+        }
+      })
+    };
   }
 
   /**
