@@ -27,7 +27,7 @@ export class OraichainMsg {
     protected minimumReceive: string,
     protected receiver: string,
     protected currentChainAddress: string,
-    protected memo: string = undefined,
+    protected memo: string = "",
     protected destPrefix: string = undefined,
     protected obridgeAddress: string = undefined
   ) {

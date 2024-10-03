@@ -23,7 +23,7 @@ export class OsmosisMsg {
     protected minimumReceive: string,
     protected receiver: string,
     protected currentChainAddress: string,
-    protected memo: string = undefined
+    protected memo: string = ""
   ) {
     // check chainId  = "osmosis-1"
     if (path.chainId !== "osmosis-1") {
@@ -263,11 +263,7 @@ export class OsmosisMsg {
       value: MsgExecuteContract.fromPartial({
         sender: this.currentChainAddress,
         contract: this.ENTRY_POINT_CONTRACT,
-        msg: toUtf8(
-          JSON.stringify({
-            msg
-          })
-        ),
+        msg: toUtf8(JSON.stringify(msg)),
         funds: [
           {
             denom: this.path.tokenIn,

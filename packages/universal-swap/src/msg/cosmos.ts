@@ -17,7 +17,7 @@ export class CosmosMsg {
     protected minimumReceive: string,
     protected receiver: string,
     protected currentChainAddress: string,
-    protected memo: string = undefined
+    protected memo: string = ""
   ) {
     // validate path
     validatePath(path);
