@@ -236,12 +236,12 @@ export class OsmosisMsg {
     };
 
     // if asset info is native => send native way, else send cw20 way
-    if (isCw20Token(bridgeInfo.fromToken)) {
+    if (isCw20Token(this.path.tokenIn)) {
       return {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
         value: MsgExecuteContract.fromPartial({
           sender: this.currentChainAddress,
-          contract: bridgeInfo.fromToken,
+          contract: this.path.tokenIn,
           msg: toUtf8(
             JSON.stringify({
               send: {
@@ -270,8 +270,8 @@ export class OsmosisMsg {
         ),
         funds: [
           {
-            amount: bridgeInfo.fromToken,
-            denom: this.path.tokenInAmount
+            denom: this.path.tokenIn,
+            amount: this.path.tokenInAmount
           }
         ]
       })

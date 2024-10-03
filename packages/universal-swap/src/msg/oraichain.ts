@@ -20,7 +20,7 @@ import { toUtf8 } from "@cosmjs/encoding";
 
 export class OraichainMsg {
   SWAP_VENUE_NAME = "oraidex";
-  ENTRY_POINT_CONTRACT = "orai1yglsm0u2x3xmct9kq3lxa654cshaxj9j5d9rw5enemkkkdjgzj7sr3gwt0";
+  ENTRY_POINT_CONTRACT = "orai13mgxn93pjvd7eermj4ghet8assxdqttxugwk25rasuuqq2g5nczq43eesn"; // FIXME: use mainnet
 
   constructor(
     protected path: Path,
@@ -414,8 +414,8 @@ export class OraichainMsg {
             ),
             funds: [
               {
-                amount: bridgeInfo.fromToken,
-                denom: this.path.tokenInAmount
+                denom: this.path.tokenIn,
+                amount: this.path.tokenInAmount
               }
             ]
           })
@@ -454,12 +454,12 @@ export class OraichainMsg {
     };
 
     // if asset info is native => send native way, else send cw20 way
-    if (isCw20Token(bridgeInfo.fromToken)) {
+    if (isCw20Token(this.path.tokenIn)) {
       return {
         typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
         value: MsgExecuteContract.fromPartial({
           sender: this.currentChainAddress,
-          contract: bridgeInfo.fromToken,
+          contract: this.path.tokenIn,
           msg: toUtf8(
             JSON.stringify({
               send: {
@@ -476,20 +476,17 @@ export class OraichainMsg {
       };
     }
     // native token
+
     return {
       typeUrl: "/cosmwasm.wasm.v1.MsgExecuteContract",
       value: MsgExecuteContract.fromPartial({
         sender: this.currentChainAddress,
         contract: this.ENTRY_POINT_CONTRACT,
-        msg: toUtf8(
-          JSON.stringify({
-            msg
-          })
-        ),
+        msg: toUtf8(JSON.stringify(msg)),
         funds: [
           {
-            amount: bridgeInfo.fromToken,
-            denom: this.path.tokenInAmount
+            denom: this.path.tokenIn,
+            amount: this.path.tokenInAmount
           }
         ]
       })
