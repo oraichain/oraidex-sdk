@@ -265,7 +265,7 @@ export const parsePoolKey = (poolKeyStr: string): PoolKey => {
 };
 
 export const calculateTokenAmounts = (pool: Pool, position: Position): AmountDeltaResult => {
-  return _calculateTokenAmounts(pool, position, false);
+  return _calculateTokenAmounts(pool, position, true);
 };
 
 export const _calculateTokenAmounts = (pool: Pool, position: Position, sign: boolean): AmountDeltaResult => {
