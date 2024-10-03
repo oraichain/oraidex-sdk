@@ -1,6 +1,6 @@
 {
   "name": "@oraichain/oraidex-common-ui",
-  "version": "1.0.23",
+  "version": "1.0.24",
   "files": [
     "dist/"
   ],
@@ -14,7 +14,6 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@sentry/react": "^7.99.0",
     "date-fns": "^3.2.0",
     "axios-extensions": "3.1.3",
     "axios": "0.26.1",

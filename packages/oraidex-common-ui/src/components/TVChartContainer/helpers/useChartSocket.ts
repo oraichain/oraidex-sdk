@@ -2,7 +2,6 @@ import { PAIRS, WEBSOCKET_RECONNECT_ATTEMPTS, WEBSOCKET_RECONNECT_INTERVAL } fro
 import { handleTradeEvent } from "./streaming";
 import { useEffect, useState } from "react";
 import { WS_URL } from "./requests";
-// import * as Sentry from "@sentry/react";
 import useWebSocket from "react-use-websocket";
 import { EVENT_CHART_SOCKET } from "./constants";
 
