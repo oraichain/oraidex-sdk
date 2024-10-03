@@ -1,15 +1,13 @@
-import { BridgeMsgInfo, SwapMsgInfo } from "./types";
-import { ActionType, Path, Wasm } from "../types";
+import { BridgeMsgInfo } from "./types";
+import { ActionType, Path } from "../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
-import { Swap, Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
+import { Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
 import { isCw20Token, validatePath } from "./common";
 import {
   calculateTimeoutTimestamp,
   CONVERTER_CONTRACT,
   generateError,
   IBC_TRANSFER_TIMEOUT,
-  ibcInfos,
-  INJECTIVE_ORAICHAIN_DENOM,
   isEthAddress,
   NetworkChainId
 } from "@oraichain/oraidex-common";

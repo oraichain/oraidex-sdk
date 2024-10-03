@@ -1,26 +1,20 @@
-import { BridgeMsgInfo, SwapMsgInfo } from "./types";
-import { ActionType, Path, Wasm } from "../types";
+import { BridgeMsgInfo } from "./types";
+import { ActionType, Path } from "../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Swap, Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
 import { isCw20Token, validatePath } from "./common";
 import {
   calculateTimeoutTimestamp,
-  CONVERTER_CONTRACT,
   generateError,
   IBC_TRANSFER_TIMEOUT,
-  ibcInfos,
-  INJECTIVE_ORAICHAIN_DENOM,
-  isEthAddress,
   NetworkChainId
 } from "@oraichain/oraidex-common";
 import { toBinary } from "@cosmjs/cosmwasm-stargate";
-import { Memo, Memo_PostAction, Memo_UserSwap } from "../proto/universal_swap_memo";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
-import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { toUtf8 } from "@cosmjs/encoding";
 
-export class OraichainMsg {
+export class OsmosisMsg {
   SWAP_VENUE_NAME = "osmosis-poolmanager";
   ENTRY_POINT_CONTRACT = "";
 
