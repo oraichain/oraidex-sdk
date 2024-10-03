@@ -285,7 +285,7 @@ export class OraichainMsg {
       });
     }
 
-    let tokenOutOfSwap = swapOps.slice[swapOps.length - 1].denom_out;
+    let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
     let min_asset = isCw20Token(tokenOutOfSwap)
       ? {
           cw20: {
@@ -425,7 +425,7 @@ export class OraichainMsg {
       throw generateError("Error on generate executeMsg on Oraichain: Only support ibc or ibc wasm bridge");
     }
 
-    let tokenOutOfSwap = swapOps.slice[swapOps.length - 1].denom_out;
+    let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
     let min_asset = isCw20Token(tokenOutOfSwap)
       ? {
           cw20: {

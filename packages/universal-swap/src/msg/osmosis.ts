@@ -135,7 +135,7 @@ export class OsmosisMsg {
       });
     }
 
-    let tokenOutOfSwap = swapOps.slice[swapOps.length - 1].denom_out;
+    let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
     let min_asset = isCw20Token(tokenOutOfSwap)
       ? {
           cw20: {
@@ -207,7 +207,7 @@ export class OsmosisMsg {
       throw generateError("Error on generate executeMsg on Oraichain: Only support ibc transfer");
     }
 
-    let tokenOutOfSwap = swapOps.slice[swapOps.length - 1].denom_out;
+    let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
     let min_asset = isCw20Token(tokenOutOfSwap)
       ? {
           cw20: {
