@@ -1842,31 +1842,39 @@ describe("test universal swap handler functions", () => {
     expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
 
-  it.each<[any, number, string, number, string]>([
+  it.each<[string, any, any, number, string, number, string]>([
     [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "Oraichain"),
+      "from-orai-bnb-to-orai-oraichain",
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38"), // 18
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "Oraichain"), // 6
       1,
       (1e5).toString(),
       0.1,
       "889000"
     ],
     [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+      "from-orai-bnb-to-orai-oraichain",
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38"), // 18
+      flattenTokens.find((t) => t.coinGeckoId === "tether" && t.chainId === "Oraichain"), // 6
       1,
-      (1e6).toString(),
+      (1e5).toString(),
       0.1,
-      "0"
+      "389000"
     ]
   ])(
     "test-caculate-minimum-receive-ibc-wasm",
-    async (originalToToken, fromAmount, relayerFee, bridgeFee, expectResult) => {
+    async (_name, originalFromToken, originalToToken, fromAmount, relayerFee, bridgeFee, expectResult) => {
+      const isHandleSimulateSwap = vi.spyOn(UniversalSwapHelper, "handleSimulateSwap");
+      isHandleSimulateSwap.mockReturnValue(new Promise((resolve) => resolve({ amount: "600000", displayAmount: 0.6 })));
+
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         userSlippage: 1,
         bridgeFee,
         fromAmount,
         originalToToken,
-        simulateAmount,
+        originalFromToken,
+        simulateAmount: (fromAmount * 1e6).toString(),
         relayerFee: {
           relayerAmount: relayerFee,
           relayerDecimals: 6
