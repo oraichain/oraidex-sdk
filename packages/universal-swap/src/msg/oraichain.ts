@@ -122,6 +122,8 @@ export class OraichainMsg {
           };
           break;
         }
+        default:
+          throw generateError("Only support swap + convert + bride on Oraichain");
       }
     }
 
@@ -316,8 +318,10 @@ export class OraichainMsg {
     };
 
     return JSON.stringify({
-      contract: this.ENTRY_POINT_CONTRACT,
-      msg
+      wasm: {
+        contract: this.ENTRY_POINT_CONTRACT,
+        msg
+      }
     });
   }
 

@@ -1,23 +1,27 @@
 import { ActionType, Path } from "../types";
-import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import bech32 from "bech32";
+import { generateError } from "@oraichain/oraidex-common";
 
 /**
  * Validates that the path only contains one action bridge, and this action must be the last of the path.
  * @param path The path to be validated
  */
-export const validatePath = (path: Path) => {
+export const validatePath = (path: Path, hasSwap: boolean = true) => {
   if (path.actions.length == 0) {
-    throw new Error("Require at least one action");
+    throw generateError("Require at least one action");
   }
   const numBridgeActions = path.actions.filter((action) => action.type === ActionType.Bridge).length;
 
   if (numBridgeActions > 1) {
-    throw new Error("Only one Bridge action is allowed in the path");
+    throw generateError("Only one Bridge action is allowed in the path");
   }
 
   if (numBridgeActions == 1 && path.actions[path.actions.length - 1].type !== ActionType.Bridge) {
-    throw new Error("Bridge action must be the last in the path");
+    throw generateError("Bridge action must be the last in the path");
+  }
+
+  if (!hasSwap && path.actions.some((action) => action.type == ActionType.Convert || action.type == ActionType.Swap)) {
+    throw generateError("Don't support swap action");
   }
 };
 
