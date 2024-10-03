@@ -31,6 +31,6 @@ export enum PostActionType {
 }
 
 export interface MiddleWareResponse {
-  memo: String;
-  receiver: String;
+  memo: string;
+  receiver: string;
 }

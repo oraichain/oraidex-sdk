@@ -2,7 +2,7 @@ import { BridgeMsgInfo, MiddleWareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { isCw20Token, validatePath } from "../common";
+import { isCw20Token, validatePath, validateReceiver } from "../common";
 import {
   calculateTimeoutTimestamp,
   CONVERTER_CONTRACT,
@@ -37,6 +37,7 @@ export class OraichainMsg {
     }
     // validate path
     validatePath(path);
+    validateReceiver(receiver, currentChainAddress, path.chainId);
   }
   /**
    * Converts the given input and output tokens to a pool ID using the converter contract in the Oraichain ecosystem.
@@ -181,7 +182,7 @@ export class OraichainMsg {
    * Function to generate memo msg for swap through ibc wasm after bridge
    * @returns
    */
-  genMemoForIbcWasm(): string {
+  genMemoForIbcWasm(): MiddleWareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
     let userSwap: Memo_UserSwap;
     if (swapOps.length) {
@@ -204,7 +205,10 @@ export class OraichainMsg {
       recoveryAddr: this.currentChainAddress
     };
     const encodedMemo = Memo.encode(memo).finish();
-    return Buffer.from(encodedMemo).toString("base64");
+    return {
+      receiver: this.currentChainAddress,
+      memo: Buffer.from(encodedMemo).toString("base64")
+    };
   }
 
   getPostAction(bridgeInfo?: BridgeMsgInfo): Action {

@@ -2,7 +2,7 @@ import { BridgeMsgInfo, MiddleWareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Swap, Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { isCw20Token, validatePath } from "../common";
+import { isCw20Token, validatePath, validateReceiver } from "../common";
 import {
   calculateTimeoutTimestamp,
   generateError,
@@ -31,6 +31,7 @@ export class OsmosisMsg {
     }
     // validate path
     validatePath(path);
+    validateReceiver(receiver, currentChainAddress, path.chainId);
   }
 
   /**

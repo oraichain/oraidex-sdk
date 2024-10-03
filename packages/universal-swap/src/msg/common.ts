@@ -25,6 +25,15 @@ export const validatePath = (path: Path, hasSwap: boolean = true) => {
   }
 };
 
+export const validateReceiver = (receiver: string, currentChainAddress: string, chainId: string) => {
+  if (!receiver || receiver == "") {
+    throw generateError(`Missing receiver when build msg in ${chainId}`);
+  }
+  if (!currentChainAddress || currentChainAddress == "") {
+    throw generateError(`Missing address of ${chainId}`);
+  }
+};
+
 // This function checks whether the given address is a CW20 token address
 export const isCw20Token = (address: string): boolean => {
   try {

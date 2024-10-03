@@ -1,7 +1,7 @@
 import { BridgeMsgInfo, MiddleWareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { Action } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { validatePath } from "../common";
+import { validatePath, validateReceiver } from "../common";
 import {
   calculateTimeoutTimestamp,
   generateError,
@@ -21,6 +21,7 @@ export class CosmosMsg {
   ) {
     // validate path
     validatePath(path);
+    validateReceiver(receiver, currentChainAddress, path.chainId);
   }
 
   /**
