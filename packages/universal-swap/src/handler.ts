@@ -1207,25 +1207,10 @@ export class UniversalSwapHandler {
   }
 
   async caculateMinimumReceive() {
-    const {
-      relayerFee,
-      simulateAmount,
-      originalFromToken,
-      originalToToken,
-      bridgeFee = 1,
-      userSlippage = 0
-    } = this.swapData;
+    const { relayerFee, simulateAmount, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
     const { cosmosWallet } = this.config;
 
-    // TODO: need recheck minimum receive
-    let convertSimulateAmount = simulateAmount;
-    if (originalToToken.decimals > originalFromToken.decimals) {
-      convertSimulateAmount = toAmount(
-        simulateAmount,
-        originalToToken.decimals - originalFromToken.decimals
-      ).toString();
-    }
-
+    const convertSimulateAmount = simulateAmount;
     let subRelayerFee = relayerFee?.relayerAmount || "0";
 
     if (originalToToken.coinGeckoId !== "oraichain-token") {
