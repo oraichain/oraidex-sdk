@@ -4,7 +4,11 @@ module.exports = {
     "^.+\\.ts?$": ["@swc/jest"]
   },
   testEnvironment: "node",
-  modulePathIgnorePatterns: ["<rootDir>/dist/", "<rootDir>/packages/ibc-routing"],
+  modulePathIgnorePatterns: [
+    "<rootDir>/dist/",
+    "<rootDir>/packages/ibc-routing",
+    "<rootDir>/packages/oraidex-common-ui/build/"
+  ],
   collectCoverage: true,
   coverageReporters: ["cobertura", "html"],
   coveragePathIgnorePatterns: [
