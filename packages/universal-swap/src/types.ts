@@ -96,6 +96,7 @@ export interface SwapOptions {
   isSourceReceiverTest?: boolean;
   isAlphaSmartRouter?: boolean;
   isIbcWasm?: boolean;
+  isAlphaIbcWasm?: boolean;
   isCheckBalanceIbc?: boolean;
 }
 
@@ -265,4 +266,5 @@ export interface RouterConfigSmartRoute {
   path?: string;
   protocols?: string[];
   dontAllowSwapAfter?: string[];
+  maxSplits?: number;
 }

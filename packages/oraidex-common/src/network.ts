@@ -63,6 +63,7 @@ import {
   HMSTR_ORAICHAIN_DENOM
 } from "./constant";
 import { listOsmosisToken } from "./alpha-network";
+import { celestiaNetwork } from "./celestia-network";
 
 export type NetworkName =
   | "Oraichain"
@@ -76,7 +77,8 @@ export type NetworkName =
   | "Tron Network"
   | "Injective"
   | "Noble"
-  | "Neutaro";
+  | "Neutaro"
+  | "Celestia";
 
 export type CosmosChainId =
   | "Oraichain" // oraichain
@@ -86,7 +88,8 @@ export type CosmosChainId =
   | "injective-1" // injective network
   | "kawaii_6886-1" // kawaii subnetwork
   | "noble-1" // noble network
-  | "Neutaro-1"; //neutaro network;
+  | "Neutaro-1" // neutaro network;
+  | "celestia"; // Celestia
 
 export type EvmChainId =
   | "0x38" // bsc
@@ -541,6 +544,7 @@ export const oraichainNetwork: CustomChainInfo = {
 export const chainInfos: CustomChainInfo[] = [
   // networks to add on keplr
   oraichainNetwork,
+  celestiaNetwork,
   {
     rpc: "https://bridge-v2.rpc.orai.io",
     rest: "https://bridge-v2.lcd.orai.io",
