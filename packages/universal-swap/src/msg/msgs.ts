@@ -5,7 +5,7 @@ import {
 } from "@oraichain/oraidex-common";
 import { Path, Route } from "../types";
 import { CosmosMsg, OraichainMsg, OsmosisMsg } from "./chains";
-import { MiddleWareResponse } from "./types";
+import { MiddlewareResponse } from "./types";
 import { EncodeObject } from "@cosmjs/proto-signing";
 
 const getDestPrefixForBridgeToEvmOnOrai = (chainId: string): string => {
@@ -30,8 +30,9 @@ const buildMemoSwap = (
   receiver: string,
   memo: string,
   addresses: { [chainId: string]: string },
-  slippage: number = 0.01
-): MiddleWareResponse => {
+  slippage: number = 0.01,
+  previousChain?: string
+): MiddlewareResponse => {
   let currentChain = path.chainId;
   let currentAddress = addresses[currentChain];
   switch (currentChain) {
@@ -40,11 +41,13 @@ const buildMemoSwap = (
       let oBridgeAddress = addresses["OraiBridge"];
       let oraichainMsg = new OraichainMsg(path, "1", receiver, currentAddress, memo, prefix, oBridgeAddress);
       oraichainMsg.setMinimumReceiveForSwap(slippage);
-      let previousChain = path.chainId;
       // we have 2 cases:
-      // - Previous chain use IBC bridge to Oraichain (noble)
-      // -  Previous chain use IBC Wasm bridge to Oraichain
-      let msgInfo = previousChain == "noble-1" ? oraichainMsg.genMemoForIbcWasm() : oraichainMsg.genMemoAsMiddleware();
+      // - Previous chain use IBC bridge to Oraichain
+      // -  Previous chain use IBC Wasm bridge to Oraichain (EVM, noble)
+      let msgInfo =
+        previousChain && (previousChain == "noble-1" || previousChain.startsWith("0x"))
+          ? oraichainMsg.genMemoForIbcWasm()
+          : oraichainMsg.genMemoAsMiddleware();
       return msgInfo;
     }
     case "osmosis-1": {
@@ -105,7 +108,11 @@ const buildExecuteMsg = (
   }
 };
 
-export const generateMsgSwap = (route: Route, slippage: number = 0.01, addresses: { [chainId: string]: string }) => {
+export const generateMsgSwap = (
+  route: Route,
+  slippage: number = 0.01,
+  addresses: { [chainId: string]: string }
+): EncodeObject => {
   if (route.paths.length == 0) {
     throw generateError("Require at least 1 action");
   }
@@ -114,12 +121,35 @@ export const generateMsgSwap = (route: Route, slippage: number = 0.01, addresses
 
   // generate memo for univeral swap
   for (let i = route.paths.length - 1; i > 0; i--) {
-    let swapInfo = buildMemoSwap(route.paths[i], receiver, memo, addresses, slippage);
+    let swapInfo = buildMemoSwap(route.paths[i], receiver, memo, addresses, slippage, route.paths[i - 1].chainId);
     memo = swapInfo.memo;
     receiver = swapInfo.receiver;
   }
 
   return buildExecuteMsg(route.paths[0], receiver, memo, addresses, slippage);
+};
 
-  // generate execute msg
+export const generateMemoSwap = (
+  route: Route,
+  slippage: number = 0.01,
+  addresses: { [chainId: string]: string },
+  previousChain?: string
+): MiddlewareResponse => {
+  if (route.paths.length == 0) {
+    return {
+      memo: "",
+      receiver: ""
+    };
+  }
+
+  let memo: string = "";
+  let receiver = addresses[route.paths.at(-1)?.tokenOutChainId];
+
+  // generate memo for univeral swap
+  for (let i = route.paths.length - 1; i > 0; i--) {
+    let swapInfo = buildMemoSwap(route.paths[i], receiver, memo, addresses, slippage, route.paths[i - 1].chainId);
+    memo = swapInfo.memo;
+    receiver = swapInfo.receiver;
+  }
+  return buildMemoSwap(route.paths[0], receiver, memo, addresses, slippage, previousChain);
 };

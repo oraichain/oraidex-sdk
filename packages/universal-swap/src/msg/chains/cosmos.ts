@@ -1,4 +1,4 @@
-import { BridgeMsgInfo, MiddleWareResponse } from "../types";
+import { BridgeMsgInfo, MiddlewareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { Action } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
 import { validatePath, validateReceiver } from "../common";
@@ -90,7 +90,7 @@ export class CosmosMsg extends ChainMsg {
   /**
    * Function to generate memo for action on oraichain as middleware
    */
-  genMemoAsMiddleware(): MiddleWareResponse {
+  genMemoAsMiddleware(): MiddlewareResponse {
     let bridgeInfo = this.getBridgeInfo();
     // ibc bridge
     return {

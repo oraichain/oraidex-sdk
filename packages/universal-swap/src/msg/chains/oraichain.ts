@@ -1,4 +1,4 @@
-import { BridgeMsgInfo, MiddleWareResponse } from "../types";
+import { BridgeMsgInfo, MiddlewareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
@@ -198,7 +198,7 @@ export class OraichainMsg extends ChainMsg {
    * Function to generate memo msg for swap through ibc wasm after bridge
    * @returns
    */
-  genMemoForIbcWasm(): MiddleWareResponse {
+  genMemoForIbcWasm(): MiddlewareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
     let userSwap: Memo_UserSwap;
     if (swapOps.length) {
@@ -279,7 +279,7 @@ export class OraichainMsg extends ChainMsg {
   /**
    * Function to generate memo for action on oraichain as middleware
    */
-  genMemoAsMiddleware(): MiddleWareResponse {
+  genMemoAsMiddleware(): MiddlewareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
 
     // we have 2 cases:

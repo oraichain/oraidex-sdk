@@ -31,7 +31,7 @@ export enum PostActionType {
   IbcWasmTransfer
 }
 
-export interface MiddleWareResponse {
+export interface MiddlewareResponse {
   memo: string;
   receiver: string;
 }

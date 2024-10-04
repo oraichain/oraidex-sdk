@@ -1,4 +1,4 @@
-import { BridgeMsgInfo, MiddleWareResponse } from "../types";
+import { BridgeMsgInfo, MiddlewareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Swap, Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
@@ -119,7 +119,7 @@ export class OsmosisMsg extends ChainMsg {
   /**
    * Function to generate memo for action on oraichain as middleware
    */
-  genMemoAsMiddleware(): MiddleWareResponse {
+  genMemoAsMiddleware(): MiddlewareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
 
     // we have 2 cases:
