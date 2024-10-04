@@ -41,7 +41,7 @@ const [kwt2oraichain, oraichain2kwt] = KWT_ORAICHAIN_CHANNELS.split(/\s+/);
 
 // exclude evm chain
 
-export const ibcInfos: IBCInfoMap = {
+export const ibcInfos: Omit<IBCInfoMap, "celestia"> = {
   "cosmoshub-4": {
     Oraichain: {
       source: "transfer",
@@ -180,7 +180,10 @@ export const ibcInfos: IBCInfoMap = {
   }
 };
 
-export const ibcInfosOld: Omit<IBCInfoMap, "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1" | "Neutaro-1"> = {
+export const ibcInfosOld: Omit<
+  IBCInfoMap,
+  "osmosis-1" | "cosmoshub-4" | "injective-1" | "noble-1" | "Neutaro-1" | "celestia"
+> = {
   Oraichain: {
     "oraibridge-subnet-2": {
       source: "transfer",

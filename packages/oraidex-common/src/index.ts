@@ -11,3 +11,4 @@ export * from "./bigdecimal";
 export * from "./interface";
 export * from "./config/chainInfosWithIcon";
 export * from "./axios-request";
+export * from "./celestia-network";

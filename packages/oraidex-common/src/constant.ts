@@ -179,7 +179,8 @@ export enum COSMOS_CHAIN_ID_COMMON {
   COSMOSHUB_CHAIN_ID = "cosmoshub-4",
   INJECTVE_CHAIN_ID = "injective-1",
   KAWAII_COSMOS_CHAIN_ID = "kawaii_6886-1",
-  NOBLE_CHAIN_ID = "noble-1"
+  NOBLE_CHAIN_ID = "noble-1",
+  CELESTIA_CHAIN_ID = "celestia"
 }
 
 // asset info token
