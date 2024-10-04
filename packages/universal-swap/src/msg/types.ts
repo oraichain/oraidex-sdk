@@ -10,6 +10,7 @@ export interface SwapMsgInfo {
 }
 
 export interface BridgeMsgInfo {
+  amount: string;
   sourceChannel: string;
   sourcePort: string;
   receiver: string;

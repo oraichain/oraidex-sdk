@@ -4,6 +4,7 @@ import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Swap, Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
 import { isCw20Token, validatePath, validateReceiver } from "../common";
 import {
+  BigDecimal,
   calculateTimeoutTimestamp,
   generateError,
   IBC_TRANSFER_TIMEOUT,
@@ -13,25 +14,32 @@ import { toBinary } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { toUtf8 } from "@cosmjs/encoding";
+import { ChainMsg } from "./chain";
 
-export class OsmosisMsg {
+export class OsmosisMsg extends ChainMsg {
   SWAP_VENUE_NAME = "osmosis-poolmanager";
   ENTRY_POINT_CONTRACT = "osmo1h3jkejkcpthl45xrrm5geed3eq75p5rgfce9taufkwfr89k63muqweu2y7";
 
-  constructor(
-    protected path: Path,
-    protected minimumReceive: string,
-    protected receiver: string,
-    protected currentChainAddress: string,
-    protected memo: string = ""
-  ) {
+  constructor(path: Path, minimumReceive: string, receiver: string, currentChainAddress: string, memo: string = "") {
+    super(path, minimumReceive, receiver, currentChainAddress, memo);
     // check chainId  = "osmosis-1"
     if (path.chainId !== "osmosis-1") {
       throw generateError("This path must be on Osmosis");
     }
-    // validate path
-    validatePath(path);
-    validateReceiver(receiver, currentChainAddress, path.chainId);
+  }
+
+  setMinimumReceiveForSwap(slippage: number = 0.01) {
+    if (slippage > 1) {
+      throw generateError("Slippage must be less than 1");
+    }
+    let [_, bridgeInfo] = this.getSwapAndBridgeInfo();
+
+    let returnAmount = bridgeInfo ? bridgeInfo.amount : this.path.tokenOutAmount;
+    let minimumReceive = new BigDecimal(1 - slippage).mul(returnAmount).toString();
+    if (minimumReceive.includes(".")) {
+      minimumReceive = minimumReceive.split(".")[0];
+    }
+    this.minimumReceive = minimumReceive;
   }
 
   /**
@@ -61,6 +69,7 @@ export class OsmosisMsg {
         }
         case ActionType.Bridge: {
           bridgeInfo = {
+            amount: action.tokenInAmount,
             sourceChannel: action.bridgeInfo.channel,
             sourcePort: action.bridgeInfo.port,
             memo: this.memo,

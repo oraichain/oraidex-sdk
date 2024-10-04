@@ -29,7 +29,8 @@ const buildMemoSwap = (
   path: Path,
   receiver: string,
   memo: string,
-  addresses: { [chainId: string]: string }
+  addresses: { [chainId: string]: string },
+  slippage: number = 0.01
 ): MiddleWareResponse => {
   let currentChain = path.chainId;
   let currentAddress = addresses[currentChain];
@@ -38,6 +39,7 @@ const buildMemoSwap = (
       let prefix = getDestPrefixForBridgeToEvmOnOrai(path.tokenOutChainId);
       let oBridgeAddress = addresses["OraiBridge"];
       let oraichainMsg = new OraichainMsg(path, "1", receiver, currentAddress, memo, prefix, oBridgeAddress);
+      oraichainMsg.setMinimumReceiveForSwap(slippage);
       let previousChain = path.chainId;
       // we have 2 cases:
       // - Previous chain use IBC bridge to Oraichain (noble)
@@ -47,6 +49,7 @@ const buildMemoSwap = (
     }
     case "osmosis-1": {
       let cosmosMsg = new OsmosisMsg(path, "1", receiver, currentAddress, memo);
+      cosmosMsg.setMinimumReceiveForSwap(slippage);
       let msgInfo = cosmosMsg.genMemoAsMiddleware();
       return msgInfo;
     }
@@ -58,6 +61,7 @@ const buildMemoSwap = (
         throw generateError("Don't support universal swap in EVM");
       }
       let cosmosMsg = new CosmosMsg(path, "1", receiver, currentAddress, memo);
+      cosmosMsg.setMinimumReceiveForSwap(slippage);
       let msgInfo = cosmosMsg.genMemoAsMiddleware();
       return msgInfo;
     }
@@ -69,7 +73,8 @@ const buildExecuteMsg = (
   path: Path,
   receiver: string,
   memo: string,
-  addresses: { [chainId: string]: string }
+  addresses: { [chainId: string]: string },
+  slippage: number = 0.01
 ): EncodeObject => {
   let currentChain = path.chainId;
   let currentAddress = addresses[currentChain];
@@ -78,10 +83,12 @@ const buildExecuteMsg = (
       let prefix = getDestPrefixForBridgeToEvmOnOrai(path.tokenOutChainId);
       let oBridgeAddress = addresses["OraiBridge"];
       let oraichainMsg = new OraichainMsg(path, "1", receiver, currentAddress, memo, prefix, oBridgeAddress);
+      oraichainMsg.setMinimumReceiveForSwap(slippage);
       return oraichainMsg.genExecuteMsg();
     }
     case "osmosis-1": {
       let cosmosMsg = new OsmosisMsg(path, "1", receiver, currentAddress, memo);
+      cosmosMsg.setMinimumReceiveForSwap(slippage);
       return cosmosMsg.genExecuteMsg();
     }
 
@@ -92,6 +99,7 @@ const buildExecuteMsg = (
         throw generateError("Don't support universal swap in EVM");
       }
       let cosmosMsg = new CosmosMsg(path, "1", receiver, currentAddress, memo);
+      cosmosMsg.setMinimumReceiveForSwap(slippage);
       return cosmosMsg.genExecuteMsg();
     }
   }
@@ -106,12 +114,12 @@ export const generateMsgSwap = (route: Route, slippage: number = 0.01, addresses
 
   // generate memo for univeral swap
   for (let i = route.paths.length - 1; i > 0; i--) {
-    let swapInfo = buildMemoSwap(route.paths[i], receiver, memo, addresses);
+    let swapInfo = buildMemoSwap(route.paths[i], receiver, memo, addresses, slippage);
     memo = swapInfo.memo;
     receiver = swapInfo.receiver;
   }
 
-  return buildExecuteMsg(route.paths[0], receiver, memo, addresses);
+  return buildExecuteMsg(route.paths[0], receiver, memo, addresses, slippage);
 
   // generate execute msg
 };

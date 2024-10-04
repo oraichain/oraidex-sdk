@@ -4,6 +4,7 @@ import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
 import { isCw20Token, validatePath, validateReceiver } from "../common";
 import {
+  BigDecimal,
   calculateTimeoutTimestamp,
   CONVERTER_CONTRACT,
   generateError,
@@ -17,28 +18,42 @@ import { EncodeObject } from "@cosmjs/proto-signing";
 import { MsgExecuteContract } from "cosmjs-types/cosmwasm/wasm/v1/tx";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { toUtf8 } from "@cosmjs/encoding";
+import { ChainMsg } from "./chain";
 
-export class OraichainMsg {
+export class OraichainMsg extends ChainMsg {
   SWAP_VENUE_NAME = "oraidex";
   ENTRY_POINT_CONTRACT = "orai13mgxn93pjvd7eermj4ghet8assxdqttxugwk25rasuuqq2g5nczq43eesn"; // FIXME: use mainnet
 
   constructor(
-    protected path: Path,
-    protected minimumReceive: string,
-    protected receiver: string,
-    protected currentChainAddress: string,
-    protected memo: string = "",
+    path: Path,
+    minimumReceive: string,
+    receiver: string,
+    currentChainAddress: string,
+    memo: string = "",
     protected destPrefix: string = undefined,
     protected obridgeAddress: string = undefined
   ) {
+    super(path, minimumReceive, receiver, currentChainAddress, memo);
     // check chainId  = "Oraichain"
     if (path.chainId !== "Oraichain") {
       throw generateError("This path must be on Oraichain");
     }
-    // validate path
-    validatePath(path);
-    validateReceiver(receiver, currentChainAddress, path.chainId);
   }
+
+  setMinimumReceiveForSwap(slippage: number = 0.01) {
+    if (slippage > 1) {
+      throw generateError("Slippage must be less than 1");
+    }
+    let [_, bridgeInfo] = this.getSwapAndBridgeInfo();
+
+    let returnAmount = bridgeInfo ? bridgeInfo.amount : this.path.tokenOutAmount;
+    let minimumReceive = new BigDecimal(1 - slippage).mul(returnAmount).toString();
+    if (minimumReceive.includes(".")) {
+      minimumReceive = minimumReceive.split(".")[0];
+    }
+    this.minimumReceive = minimumReceive;
+  }
+
   /**
    * Converts the given input and output tokens to a pool ID using the converter contract in the Oraichain ecosystem.
    * @param tokenIn The input token to be converted
@@ -109,6 +124,7 @@ export class OraichainMsg {
         }
         case ActionType.Bridge: {
           bridgeInfo = {
+            amount: action.tokenInAmount,
             sourceChannel: action.bridgeInfo.channel,
             sourcePort: action.bridgeInfo.port,
             memo: this.memo,
