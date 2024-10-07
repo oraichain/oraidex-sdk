@@ -599,6 +599,77 @@ describe("test build oraichain msg", () => {
     }
   });
 
+  it("Valid path in genMemoForIbcWasm with ibc wasm bridge only", () => {
+    const nextMemo = "{}";
+    const validPath = {
+      chainId: "Oraichain",
+      tokenIn: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+      tokenInAmount: "936043",
+      tokenOut: "0x55d398326f99059fF775485246999027B3197955",
+      tokenOutAmount: "306106",
+      tokenOutChainId: "0x38",
+      actions: [
+        {
+          type: "Bridge",
+          protocol: "Bridge",
+          tokenIn: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+          tokenInAmount: "936043",
+          tokenOut: "0x55d398326f99059fF775485246999027B3197955",
+          tokenOutAmount: "306106",
+          tokenOutChainId: "0x38",
+          bridgeInfo: {
+            port: "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+            channel: "channel-29"
+          }
+        }
+      ]
+    };
+
+    let receiver = "0x0000000000000000000000000000000000000000";
+    const currentAddress = "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2";
+    const oraiBridgeAddr = "oraib1hvr9d72r5um9lvt0rpkd4r75vrsqtw6ytnnvpf";
+    let oraichainMsg = new OraichainMsg(validPath, "1", receiver, currentAddress, nextMemo, "oraib", oraiBridgeAddr);
+
+    let [swapOps, bridgeInfo] = oraichainMsg.getSwapAndBridgeInfo();
+    expect(bridgeInfo).toEqual({
+      amount: "936043",
+      sourceChannel: "channel-29",
+      sourcePort: "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+      memo: "{}",
+      receiver: receiver,
+      timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
+      fromToken: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+      toToken: "0x55d398326f99059fF775485246999027B3197955",
+      fromChain: "Oraichain",
+      toChain: "0x38"
+    });
+    expect(swapOps).toEqual([]);
+
+    let executeMsg = oraichainMsg.genExecuteMsg();
+    expect(executeMsg.typeUrl).toEqual("/cosmwasm.wasm.v1.MsgExecuteContract");
+
+    let memoForIbcWasm = oraichainMsg.genMemoForIbcWasm();
+    expect(memoForIbcWasm).toEqual({
+      receiver: currentAddress,
+      memo: Buffer.from(
+        Memo.encode({
+          userSwap: undefined,
+          minimumReceive: "1",
+          timeoutTimestamp: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
+          postSwapAction: {
+            ibcWasmTransferMsg: {
+              localChannelId: bridgeInfo.sourceChannel,
+              remoteAddress: oraiBridgeAddr,
+              remoteDenom: "oraib0x55d398326f99059fF775485246999027B3197955",
+              memo: "oraib0x0000000000000000000000000000000000000000"
+            }
+          },
+          recoveryAddr: currentAddress
+        }).finish()
+      ).toString("base64")
+    });
+  });
+
   // it("Invalid path not ibc transfer", () => {
   //   const nextMemo = "{}";
 
