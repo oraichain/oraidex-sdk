@@ -84,7 +84,7 @@ const buildExecuteMsg = (
   switch (currentChain) {
     case "Oraichain": {
       let prefix = getDestPrefixForBridgeToEvmOnOrai(path.tokenOutChainId);
-      let oBridgeAddress = addresses["OraiBridge"];
+      let oBridgeAddress = addresses["oraibridge-subnet-2"];
       let oraichainMsg = new OraichainMsg(path, "1", receiver, currentAddress, memo, prefix, oBridgeAddress);
       oraichainMsg.setMinimumReceiveForSwap(slippage);
       return oraichainMsg.genExecuteMsg();

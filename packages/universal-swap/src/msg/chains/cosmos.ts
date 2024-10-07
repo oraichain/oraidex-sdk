@@ -31,7 +31,7 @@ export class CosmosMsg extends ChainMsg {
   }
 
   /**
-   * Function to build msg swap on Oraichain
+   * Function to get IBC info of Cosmos-base ecosystem
    */
   getBridgeInfo(): BridgeMsgInfo {
     let bridgeInfo: BridgeMsgInfo;
@@ -56,6 +56,11 @@ export class CosmosMsg extends ChainMsg {
         default:
           throw generateError(`Only support bridge on ${this.path.chainId}`);
       }
+    }
+
+    // check bridge type must be ibc bridge
+    if (bridgeInfo.sourcePort != "transfer") {
+      throw generateError(`Only support IBC bridge on ${this.path.chainId}`);
     }
 
     return bridgeInfo;
@@ -109,7 +114,7 @@ export class CosmosMsg extends ChainMsg {
   }
 
   /**
-   * Function to generate execute msg on Osmosis
+   * Function to generate execute msg on Cosmos-base network
    */
 
   genExecuteMsg(): EncodeObject {
