@@ -184,7 +184,7 @@ export class OraichainMsg extends ChainMsg {
       return {
         ibcWasmTransferMsg: {
           localChannelId: bridgeInfo.sourceChannel,
-          remoteAddress: prefix + isBridgeToEvm ? this.obridgeAddress : this.receiver,
+          remoteAddress: isBridgeToEvm ? this.obridgeAddress : this.receiver,
           remoteDenom: prefix + bridgeInfo.toToken,
           memo: isBridgeToEvm ? prefix + this.receiver : this.memo
         }
@@ -266,7 +266,7 @@ export class OraichainMsg extends ChainMsg {
         ibc_wasm_transfer: {
           ibc_wasm_info: {
             local_channel_id: bridgeInfo.sourceChannel,
-            remote_address: prefix + isBridgeToEvm ? this.obridgeAddress : this.receiver,
+            remote_address: isBridgeToEvm ? this.obridgeAddress : this.receiver,
             remote_denom: prefix + bridgeInfo.toToken,
             memo: isBridgeToEvm ? prefix + this.receiver : this.memo
           }
@@ -397,10 +397,10 @@ export class OraichainMsg extends ChainMsg {
 
         const msg: TransferBackMsg = {
           local_channel_id: bridgeInfo.sourceChannel,
-          remote_address: prefix + isBridgeToEvm ? this.obridgeAddress : this.receiver,
+          remote_address: isBridgeToEvm ? this.obridgeAddress : this.receiver,
           remote_denom: prefix + bridgeInfo.toToken,
           timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT), // FIXME: should we use nano with an u64 type? -> probably quite big for a u64
-          memo: this.memo
+          memo: isBridgeToEvm ? prefix + this.receiver : this.memo
         };
 
         // if asset info is native => send native way, else send cw20 way

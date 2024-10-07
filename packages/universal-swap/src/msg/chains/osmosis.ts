@@ -43,7 +43,7 @@ export class OsmosisMsg extends ChainMsg {
   }
 
   /**
-   * Function to build msg swap on Oraichain
+   * Function to build msg swap on Osmosis
    */
   getSwapAndBridgeInfo(): [SwapOperation[], BridgeMsgInfo] {
     let swapOps: SwapOperation[] = [];
@@ -68,6 +68,11 @@ export class OsmosisMsg extends ChainMsg {
           break;
         }
         case ActionType.Bridge: {
+          // check action is ibc bridge
+          if (action.bridgeInfo.port != "transfer") {
+            throw generateError(`Only support IBC bridge on ${this.path.chainId}`);
+          }
+
           bridgeInfo = {
             amount: action.tokenInAmount,
             sourceChannel: action.bridgeInfo.channel,
@@ -114,10 +119,10 @@ export class OsmosisMsg extends ChainMsg {
       };
     }
 
-    throw generateError("Missing postAction for universalSwap on Oraichain");
+    throw generateError(`Missing postAction for universalSwap on ${this.path.chainId}`);
   }
   /**
-   * Function to generate memo for action on oraichain as middleware
+   * Function to generate memo for action on Osmosis as middleware
    */
   genMemoAsMiddleware(): MiddlewareResponse {
     let [swapOps, bridgeInfo] = this.getSwapAndBridgeInfo();
@@ -220,7 +225,7 @@ export class OsmosisMsg extends ChainMsg {
         };
       }
 
-      throw generateError("Error on generate executeMsg on Oraichain: Only support ibc transfer");
+      throw generateError("Error on generate executeMsg on Osmosis: Only support ibc transfer");
     }
 
     let tokenOutOfSwap = swapOps[swapOps.length - 1].denom_out;
