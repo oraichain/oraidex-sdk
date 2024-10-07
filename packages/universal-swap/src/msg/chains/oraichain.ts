@@ -391,7 +391,7 @@ export class OraichainMsg extends ChainMsg {
           prefix = this.destPrefix;
         }
 
-        const ibcWasmContractAddress = bridgeInfo.sourceChannel.split(".")[1];
+        const ibcWasmContractAddress = bridgeInfo.sourcePort.split(".")[1];
         if (!ibcWasmContractAddress)
           throw generateError("IBC Wasm source port is invalid. Cannot transfer to the destination chain");
 
