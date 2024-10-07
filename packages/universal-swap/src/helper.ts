@@ -321,11 +321,11 @@ export class UniversalSwapHelper {
   };
 
   static addOraiBridgeRoute = async (
-    addresses: { obridgeAddress?: string; sourceReceiver: string; injAddress?: string },
+    addresses: { obridgeAddress?: string; sourceReceiver: string; injAddress?: string; destReceiver?: string },
     fromToken: TokenItemType,
     toToken: TokenItemType,
     minimumReceive: string,
-    destReceiver?: string,
+    userSlippage: number,
     swapOption?: {
       isSourceReceiverTest?: boolean;
       isIbcWasm?: boolean;
@@ -345,17 +345,17 @@ export class UniversalSwapHelper {
     let { swapRoute, universalSwapType, isSmartRouter } = UniversalSwapHelper.getRoute(
       fromToken,
       toToken,
-      destReceiver
+      addresses.destReceiver
     );
 
-    if (isSmartRouter && swapOption.isIbcWasm) {
+    if (isSmartRouter && swapOption.isIbcWasm && !swapOption?.isAlphaIbcWasm) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
 
       swapRoute = await UniversalSwapHelper.getRouteV2(
         {
           minimumReceive,
           recoveryAddr: addresses.sourceReceiver,
-          destReceiver,
+          destReceiver: addresses.destReceiver,
           remoteAddressObridge: addresses.obridgeAddress
         },
         {
@@ -402,7 +402,7 @@ export class UniversalSwapHelper {
           ...alphaRoutes,
           paths: paths
         },
-        0.01,
+        userSlippage / 100,
         receiverAddresses,
         alphaRoutes.paths[0].chainId
       );
@@ -819,6 +819,7 @@ export class UniversalSwapHelper {
     let fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
     let toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
 
+    const amountSimulate = toAmount(query.originalAmount, fromInfo.decimals).toString();
     /**
      * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj not using wasm)
      * useIbcWasm case: (evm -> cosmos)
@@ -834,7 +835,7 @@ export class UniversalSwapHelper {
     const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
       fromInfo,
       toInfo,
-      amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
+      amount: amountSimulate,
       routerConfig: routerConfigDefault
     });
 
