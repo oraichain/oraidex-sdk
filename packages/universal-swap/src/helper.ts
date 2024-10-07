@@ -607,8 +607,10 @@ export class UniversalSwapHelper {
       offerAmount: offerAmount,
       swapOptions: {
         protocols: routerConfig.protocols,
-        dontAlowSwapAfter: routerConfig.dontAllowSwapAfter,
-        maxSplits: routerConfig.maxSplits
+        maxSplits: routerConfig.maxSplits,
+        swapConfig: {
+          dontAlowSwapAfter: routerConfig.dontAllowSwapAfter
+        }
       }
     };
     const res: {
