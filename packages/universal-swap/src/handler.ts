@@ -1063,8 +1063,16 @@ export class UniversalSwapHandler {
   // Oraichain will be use as a proxy
   // TODO: write test cases
   async swapCosmosToOtherNetwork(destinationReceiver: string) {
-    const { originalFromToken, originalToToken, sender, fromAmount, simulateAmount, alphaSmartRoutes, relayerFee } =
-      this.swapData;
+    const {
+      originalFromToken,
+      originalToToken,
+      sender,
+      fromAmount,
+      simulateAmount,
+      alphaSmartRoutes,
+      userSlippage,
+      relayerFee
+    } = this.swapData;
     // guard check to see if from token has a pool on Oraichain or not. If not then return error
 
     const { client } = await this.config.cosmosWallet.getCosmWasmClient(
@@ -1094,11 +1102,11 @@ export class UniversalSwapHandler {
     if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
 
     const { swapRoute: completeSwapRoute } = await UniversalSwapHelper.addOraiBridgeRoute(
-      { obridgeAddress, sourceReceiver: oraiAddress },
+      { obridgeAddress, sourceReceiver: oraiAddress, destReceiver: destinationReceiver },
       originalFromToken,
       originalToToken,
       minimumReceive,
-      destinationReceiver,
+      userSlippage,
       this.config.swapOptions,
       alphaSmartRoutes
     );
@@ -1151,7 +1159,7 @@ export class UniversalSwapHandler {
 
   async processUniversalSwap() {
     const { evm, tron } = this.swapData.sender;
-    const { originalFromToken, originalToToken, simulateAmount, recipientAddress, relayerFee, alphaSmartRoutes } =
+    const { originalFromToken, originalToToken, simulateAmount, recipientAddress, userSlippage, alphaSmartRoutes } =
       this.swapData;
     const { swapOptions } = this.config;
     let toAddress = "";
@@ -1184,26 +1192,26 @@ export class UniversalSwapHandler {
 
     if (swapOptions?.isAlphaIbcWasm) {
       const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
-      const hasInjectiveAddress = routesFlatten.some((route) => route.chainId === COSMOS_CHAIN_IDS.INJECTVE);
-      if (hasInjectiveAddress) injAddress = this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
+      const hasInjectiveAddress = routesFlatten.some((route) => route.tokenOutChainId === COSMOS_CHAIN_IDS.INJECTVE);
+      if (hasInjectiveAddress) injAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
     }
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
       {
         obridgeAddress,
         injAddress,
-        sourceReceiver: oraiAddress
+        sourceReceiver: oraiAddress,
+        destReceiver: toAddress
       },
       originalFromToken,
       originalToToken,
       minimumReceive,
-      toAddress,
+      userSlippage,
       this.config.swapOptions,
       alphaSmartRoutes
     );
 
     if (alphaSmartRoutes?.routes?.length && swapOptions.isAlphaIbcWasm) return this.transferAndSwap(swapRoute);
-
     if (
       this.swapData?.alphaSmartRoutes?.routes?.length &&
       ["oraichain-to-oraichain", "oraichain-to-cosmos", "cosmos-to-others"].includes(universalSwapType) &&
