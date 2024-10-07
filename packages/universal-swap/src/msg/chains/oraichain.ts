@@ -177,7 +177,7 @@ export class OraichainMsg extends ChainMsg {
       let isBridgeToEvm = isEthAddress(this.receiver);
       if (isBridgeToEvm) {
         if (!this.destPrefix || !this.obridgeAddress)
-          throw generateError("Missing prefix os Obridge address for bridge to EVM");
+          throw generateError("Missing prefix or Obridge address for bridge to EVM");
         prefix = this.destPrefix;
       }
 
@@ -258,7 +258,7 @@ export class OraichainMsg extends ChainMsg {
       let isBridgeToEvm = isEthAddress(this.receiver);
       if (isBridgeToEvm) {
         if (!this.destPrefix || !this.obridgeAddress)
-          throw generateError("Missing prefix os Obridge address for bridge to EVM");
+          throw generateError("Missing prefix or Obridge address for bridge to EVM");
         prefix = this.destPrefix;
       }
 
@@ -387,7 +387,7 @@ export class OraichainMsg extends ChainMsg {
         let isBridgeToEvm = isEthAddress(this.receiver);
         if (isBridgeToEvm) {
           if (!this.destPrefix || !this.obridgeAddress)
-            throw generateError("Missing prefix os Obridge address for bridge to EVM");
+            throw generateError("Missing prefix or Obridge address for bridge to EVM");
           prefix = this.destPrefix;
         }
 

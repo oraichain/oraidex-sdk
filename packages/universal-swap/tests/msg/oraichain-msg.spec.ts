@@ -670,37 +670,57 @@ describe("test build oraichain msg", () => {
     });
   });
 
-  // it("Invalid path not ibc transfer", () => {
-  //   const nextMemo = "{}";
+  it("Valid path but missing obridge address or destPrefix on bridge to evm", () => {
+    const nextMemo = "{}";
+    const validPath = {
+      chainId: "Oraichain",
+      tokenIn: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+      tokenInAmount: "936043",
+      tokenOut: "0x55d398326f99059fF775485246999027B3197955",
+      tokenOutAmount: "306106",
+      tokenOutChainId: "0x38",
+      actions: [
+        {
+          type: "Bridge",
+          protocol: "Bridge",
+          tokenIn: "orai12hzjxfh77wl572gdzct2fxv2arxcwh6gykc7qh",
+          tokenInAmount: "936043",
+          tokenOut: "0x55d398326f99059fF775485246999027B3197955",
+          tokenOutAmount: "306106",
+          tokenOutChainId: "0x38",
+          bridgeInfo: {
+            port: "wasm.orai195269awwnt5m6c843q6w7hp8rt0k7syfu9de4h0wz384slshuzps8y7ccm",
+            channel: "channel-29"
+          }
+        }
+      ]
+    };
+    let receiver = "0x0000000000000000000000000000000000000000";
+    const currentAddress = "orai1hvr9d72r5um9lvt0rpkd4r75vrsqtw6yujhqs2";
+    const oraiBridgeAddr = "oraib1hvr9d72r5um9lvt0rpkd4r75vrsqtw6ytnnvpf";
+    const destPrefix = "oraib";
+    // missing oraibridge address
+    try {
+      let oraichainMsg = new OraichainMsg(validPath, "1", receiver, currentAddress, nextMemo, destPrefix);
+      oraichainMsg.genExecuteMsg();
+    } catch (err) {
+      expect(err).toEqual(generateError(`Missing prefix or Obridge address for bridge to EVM`));
+    }
 
-  //   const invalidPathNotIbcTransfer = {
-  //     chainId: "osmosis-1",
-  //     tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-  //     tokenInAmount: "999000",
-  //     tokenOut: "uatom",
-  //     tokenOutAmount: "999000",
-  //     tokenOutChainId: "cosmoshub-4",
-  //     actions: [
-  //       {
-  //         type: "Bridge",
-  //         protocol: "Bridge",
-  //         tokenIn: "ibc/27394FB092D2ECCD56123C74F36E4C1F926001CEADA9CA97EA622B25F41E5EB2",
-  //         tokenInAmount: "999000",
-  //         tokenOut: "uatom",
-  //         tokenOutAmount: "999000",
-  //         tokenOutChainId: "cosmoshub-4",
-  //         bridgeInfo: {
-  //           port: "wasm.osmo123",
-  //           channel: "channel-0"
-  //         }
-  //       }
-  //     ]
-  //   };
-  //   let osmosis = new OsmosisMsg(invalidPathNotIbcTransfer, "1", receiver, currentAddress, nextMemo);
-  //   try {
-  //     osmosis.genMemoAsMiddleware();
-  //   } catch (err) {
-  //     expect(err).toEqual(generateError(`Only support IBC bridge on ${invalidPathNotIbcTransfer.chainId}`));
-  //   }
-  // });
+    // missing destPrefix
+    try {
+      let oraichainMsg = new OraichainMsg(
+        validPath,
+        "1",
+        receiver,
+        currentAddress,
+        nextMemo,
+        undefined,
+        oraiBridgeAddr
+      );
+      oraichainMsg.genExecuteMsg();
+    } catch (err) {
+      expect(err).toEqual(generateError(`Missing prefix or Obridge address for bridge to EVM`));
+    }
+  });
 });
