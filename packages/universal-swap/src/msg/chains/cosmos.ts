@@ -1,7 +1,6 @@
 import { BridgeMsgInfo, MiddlewareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { Action } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { validatePath, validateReceiver } from "../common";
 import {
   BigDecimal,
   calculateTimeoutTimestamp,
