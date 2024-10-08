@@ -41,8 +41,8 @@ export const celestiaNetwork: CustomChainInfo = {
       }
     }
   ],
-  rpc: "https://rpc-celestia.keplr.app",
-  rest: "https://lcd-celestia.keplr.app",
+  rpc: "https://celestia.rpc.orai.io",
+  rest: "https://celestia.lcd.orai.io",
   stakeCurrency: {
     coinDecimals: 6,
     coinDenom: "TIA",
