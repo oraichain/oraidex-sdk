@@ -307,10 +307,10 @@ describe("test build swap msg", () => {
                   ibc_transfer: {
                     ibc_info: {
                       source_channel: "channel-216",
-                      receiver: "orai13mgxn93pjvd7eermj4ghet8assxdqttxugwk25rasuuqq2g5nczq43eesn",
+                      receiver: "orai1yglsm0u2x3xmct9kq3lxa654cshaxj9j5d9rw5enemkkkdjgzj7sr3gwt0",
                       memo: JSON.stringify({
                         wasm: {
-                          contract: "orai13mgxn93pjvd7eermj4ghet8assxdqttxugwk25rasuuqq2g5nczq43eesn",
+                          contract: "orai1yglsm0u2x3xmct9kq3lxa654cshaxj9j5d9rw5enemkkkdjgzj7sr3gwt0",
                           msg: {
                             swap_and_action: {
                               user_swap: {

@@ -399,7 +399,7 @@ export class OraichainMsg extends ChainMsg {
           local_channel_id: bridgeInfo.sourceChannel,
           remote_address: isBridgeToEvm ? this.obridgeAddress : this.receiver,
           remote_denom: prefix + bridgeInfo.toToken,
-          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT), // FIXME: should we use nano with an u64 type? -> probably quite big for a u64
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
           memo: isBridgeToEvm ? prefix + this.receiver : this.memo
         };
 
