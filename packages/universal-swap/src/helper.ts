@@ -819,7 +819,6 @@ export class UniversalSwapHelper {
     let fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
     let toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
 
-    const amountSimulate = toAmount(query.originalAmount, fromInfo.decimals).toString();
     /**
      * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj not using wasm)
      * useIbcWasm case: (evm -> cosmos)
@@ -835,7 +834,7 @@ export class UniversalSwapHelper {
     const simulateRes: SmartRouterResponse = await UniversalSwapHelper.simulateSwapUsingSmartRoute({
       fromInfo,
       toInfo,
-      amount: amountSimulate,
+      amount: toAmount(query.originalAmount, fromInfo.decimals).toString(),
       routerConfig: routerConfigDefault
     });
 
