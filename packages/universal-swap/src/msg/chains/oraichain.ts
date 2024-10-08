@@ -2,7 +2,7 @@ import { BridgeMsgInfo, MiddlewareResponse } from "../types";
 import { ActionType, Path } from "../../types";
 import { SwapOperation } from "@oraichain/osor-api-contracts-sdk/src/types";
 import { Action, ExecuteMsg } from "@oraichain/osor-api-contracts-sdk/src/EntryPoint.types";
-import { isCw20Token, validatePath, validateReceiver } from "../common";
+import { isCw20Token } from "../common";
 import {
   BigDecimal,
   calculateTimeoutTimestamp,
