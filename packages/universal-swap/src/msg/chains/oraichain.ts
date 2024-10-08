@@ -22,7 +22,7 @@ import { ChainMsg } from "./chain";
 
 export class OraichainMsg extends ChainMsg {
   SWAP_VENUE_NAME = "oraidex";
-  ENTRY_POINT_CONTRACT = "orai13mgxn93pjvd7eermj4ghet8assxdqttxugwk25rasuuqq2g5nczq43eesn"; // FIXME: use mainnet
+  ENTRY_POINT_CONTRACT = "orai1yglsm0u2x3xmct9kq3lxa654cshaxj9j5d9rw5enemkkkdjgzj7sr3gwt0";
 
   constructor(
     path: Path,
@@ -399,7 +399,7 @@ export class OraichainMsg extends ChainMsg {
           local_channel_id: bridgeInfo.sourceChannel,
           remote_address: isBridgeToEvm ? this.obridgeAddress : this.receiver,
           remote_denom: prefix + bridgeInfo.toToken,
-          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT), // FIXME: should we use nano with an u64 type? -> probably quite big for a u64
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
           memo: isBridgeToEvm ? prefix + this.receiver : this.memo
         };
 

@@ -24,7 +24,6 @@ const getDestPrefixForBridgeToEvmOnOrai = (chainId: string): string => {
   return "";
 };
 
-//FIXME: calc minimum receive
 const buildMemoSwap = (
   path: Path,
   receiver: string,
@@ -71,7 +70,6 @@ const buildMemoSwap = (
   }
 };
 
-//FIXME: calc minimum receive
 const buildExecuteMsg = (
   path: Path,
   receiver: string,
