@@ -323,8 +323,9 @@ export class UniversalSwapHelper {
   static generateAddress = ({ oraiAddress, injAddress }) => {
     const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
     return {
-      [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
       [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
+      [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
+      [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", addressFollowCoinType),
       [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", addressFollowCoinType),
       [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", addressFollowCoinType),
       [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", addressFollowCoinType),
@@ -391,31 +392,16 @@ export class UniversalSwapHelper {
       if (alphaSmartRoute.routes.length > 1) throw generateError(`Missing router with alpha ibc wasm max length!`);
 
       const paths = alphaRoutes.paths.filter((_, index) => index > 0);
-
-      const receiverAddresses = {
-        [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: addresses.sourceReceiver,
-        [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: this.getAddress("cosmos", {
-          address60: addresses.injAddress,
-          address118: addresses.obridgeAddress
-        }),
-        [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: this.getAddress("osmo", {
-          address60: addresses.injAddress,
-          address118: addresses.obridgeAddress
-        }),
-        [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: addresses.injAddress,
-        [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: this.getAddress("celestia", {
-          address60: addresses.injAddress,
-          address118: addresses.obridgeAddress
-        })
-      };
-
       const { memo } = generateMemoSwap(
         {
           ...alphaRoutes,
           paths: paths
         },
         userSlippage / 100,
-        receiverAddresses,
+        UniversalSwapHelper.generateAddress({
+          injAddress: addresses.injAddress,
+          oraiAddress: addresses.sourceReceiver
+        }),
         alphaRoutes.paths[0].chainId
       );
 

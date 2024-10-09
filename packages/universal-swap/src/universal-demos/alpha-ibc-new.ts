@@ -4,31 +4,58 @@ import { UniversalSwapHandler } from "../handler";
 import { cosmosTokens, flattenTokens, generateError, getTokenOnOraichain, toAmount } from "@oraichain/oraidex-common";
 
 const router = {
-  swapAmount: "100000",
-  returnAmount: "9983",
+  swapAmount: "79297000000000000",
+  returnAmount: "310968",
   routes: [
     {
-      swapAmount: "100000",
-      returnAmount: "9983",
+      swapAmount: "79297000000000000",
+      returnAmount: "310968",
       paths: [
         {
+          chainId: "injective-1",
+          tokenIn: "inj",
+          tokenInAmount: "79297000000000000",
+          tokenOut: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+          tokenOutAmount: "79297000000000000",
+          tokenOutChainId: "osmosis-1",
+          actions: [
+            {
+              type: "Bridge",
+              protocol: "Bridge",
+              tokenIn: "inj",
+              tokenInAmount: "79297000000000000",
+              tokenOut: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+              tokenOutAmount: "79297000000000000",
+              tokenOutChainId: "osmosis-1",
+              bridgeInfo: {
+                port: "transfer",
+                channel: "channel-8"
+              }
+            }
+          ]
+        },
+        {
           chainId: "osmosis-1",
-          tokenIn: "uosmo",
-          tokenInAmount: "100000",
+          tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+          tokenInAmount: "79297000000000000",
           tokenOut: "utia",
-          tokenOutAmount: "9983",
+          tokenOutAmount: "310968",
           tokenOutChainId: "celestia",
           actions: [
             {
               type: "Swap",
               protocol: "Osmosis",
-              tokenIn: "uosmo",
-              tokenInAmount: "100000",
+              tokenIn: "ibc/64BA6E31FE887D66C6F8F31C7B1A80C7CA179239677B4088BB55F5EA07DBE273",
+              tokenInAmount: "79297000000000000",
               tokenOut: "ibc/D79E7D83AB399BFFF93433E54FAA480C191248FC556924A2A8351AE2638B3877",
-              tokenOutAmount: "9983",
+              tokenOutAmount: "310968",
               swapInfo: [
                 {
-                  poolId: "1347",
+                  poolId: "725",
+                  tokenOut: "uosmo"
+                },
+                {
+                  poolId: "1249",
                   tokenOut: "ibc/D79E7D83AB399BFFF93433E54FAA480C191248FC556924A2A8351AE2638B3877"
                 }
               ]
@@ -37,9 +64,9 @@ const router = {
               type: "Bridge",
               protocol: "Bridge",
               tokenIn: "ibc/D79E7D83AB399BFFF93433E54FAA480C191248FC556924A2A8351AE2638B3877",
-              tokenInAmount: "9983",
+              tokenInAmount: "310968",
               tokenOut: "utia",
-              tokenOutAmount: "9983",
+              tokenOutAmount: "310968",
               tokenOutChainId: "celestia",
               bridgeInfo: {
                 port: "transfer",
@@ -55,11 +82,13 @@ const router = {
 
 const alphaSwapToOraichain = async () => {
   const wallet = new CosmosWalletImpl(process.env.MNEMONIC);
-  const sender = await wallet.getKeplrAddr("osmosis-1");
+  const sender = await wallet.getKeplrAddr("injective-1");
 
-  const fromAmount = 0.1;
+  const fromAmount = 0.079297;
   console.log("sender: ", sender);
-  const originalFromToken = flattenTokens.find((t) => t.coinGeckoId === "osmosis" && t.chainId === "osmosis-1");
+  const originalFromToken = flattenTokens.find(
+    (t) => t.coinGeckoId === "injective-protocol" && t.chainId === "injective-1"
+  );
   const originalToToken = flattenTokens.find((t) => t.coinGeckoId === "celestia" && t.chainId === "celestia");
 
   if (!originalToToken) throw generateError("Could not find original to token");
@@ -76,7 +105,8 @@ const alphaSwapToOraichain = async () => {
       //   relayerAmount: "100000",
       //   relayerDecimals: 6
       // },
-      simulatePrice: "99956",
+      recipientAddress: "celestia13lpgsy2dk9ftwac2uagw7fc2fw35cdp00xucfz",
+      simulatePrice: "3921560",
       simulateAmount: toAmount(fromAmount, originalToToken.decimals).toString(),
       alphaSmartRoutes: router
     },
