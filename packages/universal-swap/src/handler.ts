@@ -1221,7 +1221,8 @@ export class UniversalSwapHandler {
         obridgeAddress,
         injAddress,
         sourceReceiver: oraiAddress,
-        destReceiver: toAddress
+        destReceiver: toAddress,
+        recipientAddress
       },
       originalFromToken,
       originalToToken,
