@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="17981" lines-covered="12339" line-rate="0.6862" branches-valid="1264" branches-covered="1027" branch-rate="0.8125" timestamp="1728455894347" complexity="0" version="0.1">
+<coverage lines-valid="17979" lines-covered="12339" line-rate="0.6862999999999999" branches-valid="1264" branches-covered="1027" branch-rate="0.8125" timestamp="1728456026822" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -12694,7 +12694,7 @@
         </class>
       </classes>
     </package>
-    <package name="packages.universal-swap.src.msg.chains" line-rate="0.7237" branch-rate="0.6767">
+    <package name="packages.universal-swap.src.msg.chains" line-rate="0.7256" branch-rate="0.6767">
       <classes>
         <class name="chain.ts" filename="packages/universal-swap/src/msg/chains/chain.ts" line-rate="0.8" branch-rate="1">
           <methods>
@@ -13358,7 +13358,7 @@
             <line number="531" hits="1" branch="false"/>
           </lines>
         </class>
-        <class name="osmosis.ts" filename="packages/universal-swap/src/msg/chains/osmosis.ts" line-rate="0.4914" branch-rate="0.5263">
+        <class name="osmosis.ts" filename="packages/universal-swap/src/msg/chains/osmosis.ts" line-rate="0.49560000000000004" branch-rate="0.5263">
           <methods>
             <method name="OsmosisMsg" hits="4" signature="()V">
               <lines>
@@ -13608,8 +13608,8 @@
             <line number="287" hits="0" branch="false"/>
             <line number="288" hits="0" branch="false"/>
             <line number="289" hits="0" branch="false"/>
-            <line number="290" hits="0" branch="false"/>
             <line number="291" hits="0" branch="false"/>
+            <line number="292" hits="0" branch="false"/>
             <line number="293" hits="0" branch="false"/>
             <line number="294" hits="0" branch="false"/>
             <line number="295" hits="0" branch="false"/>
@@ -13623,9 +13623,7 @@
             <line number="303" hits="0" branch="false"/>
             <line number="304" hits="0" branch="false"/>
             <line number="305" hits="0" branch="false"/>
-            <line number="306" hits="0" branch="false"/>
-            <line number="307" hits="0" branch="false"/>
-            <line number="308" hits="1" branch="false"/>
+            <line number="306" hits="1" branch="false"/>
           </lines>
         </class>
       </classes>
