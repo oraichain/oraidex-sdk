@@ -321,21 +321,14 @@ export class UniversalSwapHelper {
   };
 
   static generateAddress = ({ oraiAddress, injAddress }) => {
+    const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
     return {
       [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
-      [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", {
-        address60: injAddress,
-        address118: oraiAddress
-      }),
-      [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", {
-        address60: injAddress,
-        address118: oraiAddress
-      }),
       [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
-      [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", {
-        address60: injAddress,
-        address118: oraiAddress
-      })
+      [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", addressFollowCoinType)
     };
   };
 
