@@ -18,8 +18,8 @@ export class CosmosMsg extends ChainMsg {
   }
 
   setMinimumReceiveForSwap(slippage: number = 0.01) {
-    if (slippage > 1) {
-      throw generateError("Slippage must be less than 1");
+    if (slippage <= 0 || slippage >= 1) {
+      throw generateError("Slippage must be between 0 and 1");
     }
     let bridgeInfo = this.getBridgeInfo();
     let minimumReceive = new BigDecimal(1 - slippage).mul(bridgeInfo.amount).toString();
@@ -35,26 +35,28 @@ export class CosmosMsg extends ChainMsg {
   getBridgeInfo(): BridgeMsgInfo {
     let bridgeInfo: BridgeMsgInfo;
 
-    for (let action of this.path.actions) {
-      switch (action.type) {
-        case ActionType.Bridge: {
-          bridgeInfo = {
-            amount: action.tokenInAmount,
-            sourceChannel: action.bridgeInfo.channel,
-            sourcePort: action.bridgeInfo.port,
-            memo: this.memo,
-            receiver: this.receiver,
-            timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
-            fromToken: action.tokenIn,
-            toToken: action.tokenOut,
-            fromChain: this.path.chainId as NetworkChainId,
-            toChain: this.path.tokenOutChainId as NetworkChainId
-          };
-          break;
-        }
-        default:
-          throw generateError(`Only support bridge on ${this.path.chainId}`);
+    for (const action of this.path.actions) {
+      if (action.type === ActionType.Bridge) {
+        bridgeInfo = {
+          amount: action.tokenInAmount,
+          sourceChannel: action.bridgeInfo.channel,
+          sourcePort: action.bridgeInfo.port,
+          memo: this.memo,
+          receiver: this.receiver,
+          timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT),
+          fromToken: action.tokenIn,
+          toToken: action.tokenOut,
+          fromChain: this.path.chainId as NetworkChainId,
+          toChain: this.path.tokenOutChainId as NetworkChainId
+        };
+        break;
+      } else {
+        throw generateError(`Only support bridge on ${this.path.chainId}`);
       }
+    }
+
+    if (!bridgeInfo) {
+      throw generateError("Bridge action not found in path actions");
     }
 
     // check bridge type must be ibc bridge
@@ -96,6 +98,9 @@ export class CosmosMsg extends ChainMsg {
    */
   genMemoAsMiddleware(): MiddlewareResponse {
     let bridgeInfo = this.getBridgeInfo();
+    if (!bridgeInfo) {
+      throw generateError("Bridge information is missing.");
+    }
     // ibc bridge
     return {
       receiver: this.currentChainAddress,
