@@ -1209,7 +1209,7 @@ export class UniversalSwapHandler {
 
     if (swapOptions?.isAlphaIbcWasm) {
       const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
-      const hasInjectiveAddress = routesFlatten.some((route) => route.tokenOutChainId === COSMOS_CHAIN_IDS.INJECTVE);
+      const hasInjectiveAddress = routesFlatten.some((route) => route.chainId === COSMOS_CHAIN_IDS.INJECTVE);
       if (hasInjectiveAddress) injAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
     }
 
