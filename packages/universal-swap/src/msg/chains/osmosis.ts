@@ -93,7 +93,7 @@ export class OsmosisMsg extends ChainMsg {
           break;
         }
         default:
-          throw generateError("Only support swap + bride on Osmosis");
+          throw generateError("Only support swap + bridge on Osmosis");
       }
     }
 
@@ -277,11 +277,9 @@ export class OsmosisMsg extends ChainMsg {
           msg: toUtf8(
             JSON.stringify({
               send: {
-                send: {
-                  contract: this.ENTRY_POINT_CONTRACT,
-                  amount: this.path.tokenInAmount,
-                  msg: toBinary(msg)
-                }
+                contract: this.ENTRY_POINT_CONTRACT,
+                amount: this.path.tokenInAmount,
+                msg: toBinary(msg)
               }
             })
           ),
