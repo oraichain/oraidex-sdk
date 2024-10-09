@@ -3,12 +3,6 @@ import { JsonObject } from "@cosmjs/cosmwasm-stargate";
 import { EncodeObject } from "@cosmjs/proto-signing";
 import { NetworkChainId } from "@oraichain/oraidex-common";
 
-export interface SwapMsgInfo {
-  contract: string;
-  msg: JsonObject;
-  funds: Coin[];
-}
-
 export interface BridgeMsgInfo {
   amount: string;
   sourceChannel: string;

@@ -34,8 +34,8 @@ export class OsmosisMsg extends ChainMsg {
    * @param slippage
    */
   setMinimumReceiveForSwap(slippage: number = 0.01) {
-    if (slippage > 1) {
-      throw generateError("Slippage must be less than 1");
+    if (slippage <= 0 || slippage >= 1) {
+      throw generateError("Slippage must be between 0 and 1");
     }
     let [_, bridgeInfo] = this.getSwapAndBridgeInfo();
 

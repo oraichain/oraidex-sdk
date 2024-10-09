@@ -46,8 +46,8 @@ export class OraichainMsg extends ChainMsg {
    * @param slippage
    */
   setMinimumReceiveForSwap(slippage: number = 0.01) {
-    if (slippage > 1) {
-      throw generateError("Slippage must be less than 1");
+    if (slippage <= 0 || slippage >= 1) {
+      throw generateError("Slippage must be between 0 and 1");
     }
     let [_, bridgeInfo] = this.getSwapAndBridgeInfo();
 
@@ -66,7 +66,7 @@ export class OraichainMsg extends ChainMsg {
    * @param tokenOut The output token after conversion
    * @returns The pool ID generated based on the provided input and output tokens
    */
-  pasreConverterMsgToPoolId = (tokenIn: string, tokenOut: string) => {
+  parseConverterMsgToPoolId = (tokenIn: string, tokenOut: string) => {
     // In Oraichain, conversion from native token to CW20 token always occurs
     // TODO: Query the converter contract to determine the appropriate conversion method
 
@@ -124,7 +124,7 @@ export class OraichainMsg extends ChainMsg {
           swapOps.push({
             denom_in: action.tokenIn,
             denom_out: action.tokenOut,
-            pool: this.pasreConverterMsgToPoolId(action.tokenIn, action.tokenOut)
+            pool: this.parseConverterMsgToPoolId(action.tokenIn, action.tokenOut)
           });
           break;
         }
@@ -144,7 +144,7 @@ export class OraichainMsg extends ChainMsg {
           break;
         }
         default:
-          throw generateError("Only support swap + convert + bride on Oraichain");
+          throw generateError("Only support swap + convert + bridge on Oraichain");
       }
     }
 
@@ -425,11 +425,9 @@ export class OraichainMsg extends ChainMsg {
               msg: toUtf8(
                 JSON.stringify({
                   send: {
-                    send: {
-                      contract: ibcWasmContractAddress,
-                      amount: this.path.tokenInAmount,
-                      msg: toBinary(msg)
-                    }
+                    contract: ibcWasmContractAddress,
+                    amount: this.path.tokenInAmount,
+                    msg: toBinary(msg)
                   }
                 })
               ),
