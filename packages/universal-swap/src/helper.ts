@@ -316,11 +316,22 @@ export class UniversalSwapHelper {
       118: address118,
       60: address60
     };
+    if (!(coinType in approve)) {
+      throw new Error(`Unsupported coinType: ${coinType}`);
+    }
+
+    if (!approve[coinType]) {
+      throw new Error(`Address for coinType ${coinType} is not provided`);
+    }
+
     const { data } = fromBech32(approve[coinType]);
     return toBech32(prefix, data);
   };
 
   static generateAddress = ({ oraiAddress, injAddress }) => {
+    /**
+     * need update when support new chain
+     */
     const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
     return {
       [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
@@ -334,7 +345,13 @@ export class UniversalSwapHelper {
   };
 
   static addOraiBridgeRoute = async (
-    addresses: { obridgeAddress?: string; sourceReceiver: string; injAddress?: string; destReceiver?: string },
+    addresses: {
+      obridgeAddress?: string;
+      sourceReceiver: string;
+      injAddress?: string;
+      destReceiver?: string;
+      recipientAddress?: string;
+    },
     fromToken: TokenItemType,
     toToken: TokenItemType,
     minimumReceive: string,
@@ -384,7 +401,7 @@ export class UniversalSwapHelper {
     /**
      * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj/tia not using wasm)
      */
-    if (swapOption.isAlphaIbcWasm) {
+    if (swapOption.isAlphaIbcWasm && !fromToken.cosmosBased) {
       if (!alphaSmartRoute) throw generateError(`Missing router with alpha ibc wasm!`);
       const routes = alphaSmartRoute.routes;
       const alphaRoutes = routes[0];
@@ -392,16 +409,20 @@ export class UniversalSwapHelper {
       if (alphaSmartRoute.routes.length > 1) throw generateError(`Missing router with alpha ibc wasm max length!`);
 
       const paths = alphaRoutes.paths.filter((_, index) => index > 0);
+
+      let receiverAddresses = UniversalSwapHelper.generateAddress({
+        injAddress: addresses.injAddress,
+        oraiAddress: addresses.sourceReceiver
+      });
+
+      if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
       const { memo } = generateMemoSwap(
         {
           ...alphaRoutes,
           paths: paths
         },
         userSlippage / 100,
-        UniversalSwapHelper.generateAddress({
-          injAddress: addresses.injAddress,
-          oraiAddress: addresses.sourceReceiver
-        }),
+        receiverAddresses,
         alphaRoutes.paths[0].chainId
       );
 

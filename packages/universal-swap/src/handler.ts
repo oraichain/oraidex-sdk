@@ -1209,7 +1209,10 @@ export class UniversalSwapHandler {
 
     if (swapOptions?.isAlphaIbcWasm) {
       const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
-      const hasInjectiveAddress = routesFlatten.some((route) => route.chainId === COSMOS_CHAIN_IDS.INJECTVE);
+      const hasInjectiveAddress = routesFlatten.some((route) =>
+        [route.chainId, route.tokenOutChainId].includes(COSMOS_CHAIN_IDS.INJECTVE)
+      );
+
       if (hasInjectiveAddress) injAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
     }
 
@@ -1218,7 +1221,8 @@ export class UniversalSwapHandler {
         obridgeAddress,
         injAddress,
         sourceReceiver: oraiAddress,
-        destReceiver: toAddress
+        destReceiver: toAddress,
+        recipientAddress
       },
       originalFromToken,
       originalToToken,
@@ -1229,11 +1233,9 @@ export class UniversalSwapHandler {
     );
 
     if (alphaSmartRoutes?.routes?.length && swapOptions.isAlphaIbcWasm) {
-      return this.alphaSmartRouterSwapNewMsg(
-        swapRoute,
-        universalSwapType,
-        UniversalSwapHelper.generateAddress({ oraiAddress, injAddress })
-      );
+      let receiverAddresses = UniversalSwapHelper.generateAddress({ oraiAddress, injAddress });
+      if (recipientAddress) receiverAddresses[currentToNetwork] = toAddress;
+      return this.alphaSmartRouterSwapNewMsg(swapRoute, universalSwapType, receiverAddresses);
     }
 
     if (
