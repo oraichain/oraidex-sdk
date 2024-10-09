@@ -96,6 +96,9 @@ export class CosmosMsg extends ChainMsg {
    */
   genMemoAsMiddleware(): MiddlewareResponse {
     let bridgeInfo = this.getBridgeInfo();
+    if (!bridgeInfo) {
+      throw generateError("Bridge information is missing.");
+    }
     // ibc bridge
     return {
       receiver: this.currentChainAddress,

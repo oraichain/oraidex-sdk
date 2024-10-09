@@ -28,6 +28,11 @@ export class OsmosisMsg extends ChainMsg {
     }
   }
 
+  /**
+   * Function to calculate minimum receive for swap
+   *
+   * @param slippage
+   */
   setMinimumReceiveForSwap(slippage: number = 0.01) {
     if (slippage > 1) {
       throw generateError("Slippage must be less than 1");
@@ -95,6 +100,12 @@ export class OsmosisMsg extends ChainMsg {
     return [swapOps, bridgeInfo];
   }
 
+  /**
+   * Function to get postAction after swap
+   * PostAction can be: transfer, ibc transfer
+   * @param bridgeInfo
+   * @returns Action after swap
+   */
   getPostAction(bridgeInfo?: BridgeMsgInfo): Action {
     // case 1: transfer to receiver
     if (!bridgeInfo) {

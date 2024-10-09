@@ -40,12 +40,18 @@ export class OraichainMsg extends ChainMsg {
     }
   }
 
+  /**
+   * Function to calculate minimum receive for swap
+   *
+   * @param slippage
+   */
   setMinimumReceiveForSwap(slippage: number = 0.01) {
     if (slippage > 1) {
       throw generateError("Slippage must be less than 1");
     }
     let [_, bridgeInfo] = this.getSwapAndBridgeInfo();
 
+    // get return amount of swap action
     let returnAmount = bridgeInfo ? bridgeInfo.amount : this.path.tokenOutAmount;
     let minimumReceive = new BigDecimal(1 - slippage).mul(returnAmount).toString();
     if (minimumReceive.includes(".")) {
@@ -227,6 +233,12 @@ export class OraichainMsg extends ChainMsg {
     };
   }
 
+  /**
+   * Function to get postAction after swap
+   * PostAction can be: transfer, ibc transfer, ibc wasm transfer
+   * @param bridgeInfo
+   * @returns Action after swap
+   */
   getPostAction(bridgeInfo?: BridgeMsgInfo): Action {
     // case 1: transfer to receiver
     if (!bridgeInfo) {
