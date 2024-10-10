@@ -629,7 +629,8 @@ export class UniversalSwapHelper {
         maxSplits: routerConfig.maxSplits,
         swapConfig: {
           dontAlowSwapAfter: routerConfig.dontAllowSwapAfter
-        }
+        },
+        ignoreFee: routerConfig.ignoreFee
       }
     };
     const res: {
@@ -648,13 +649,7 @@ export class UniversalSwapHelper {
     askInfo: AssetInfo,
     askChainId: string,
     offerAmount: string,
-    routerConfig: RouterConfigSmartRoute = {
-      url: "https://osor.oraidex.io",
-      path: "/smart-router",
-      protocols: ["Oraidex", "OraidexV3"],
-      dontAllowSwapAfter: ["Oraidex", "OraidexV3"],
-      maxSplits: 10
-    }
+    routerConfig: RouterConfigSmartRoute
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
       offerInfo,
@@ -800,7 +795,6 @@ export class UniversalSwapHelper {
     originalAmount: number;
     routerClient: OraiswapRouterReadOnlyInterface;
     routerOption?: {
-      useAlphaSmartRoute?: boolean;
       useIbcWasm?: boolean;
       useAlphaIbcWasm?: boolean;
     };
@@ -832,7 +826,8 @@ export class UniversalSwapHelper {
       path: query?.routerConfig?.path ?? "/smart-router/alpha-router",
       protocols: query?.routerConfig?.protocols ?? ["Oraidex", "OraidexV3"],
       dontAllowSwapAfter: query?.routerConfig?.dontAllowSwapAfter ?? ["Oraidex", "OraidexV3"],
-      maxSplits: query?.routerConfig?.maxSplits ?? 10
+      maxSplits: query?.routerConfig?.maxSplits ?? 10,
+      ignoreFee: query?.routerConfig?.ignoreFee ?? false
     };
 
     let fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);

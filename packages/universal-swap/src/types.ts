@@ -267,4 +267,5 @@ export interface RouterConfigSmartRoute {
   protocols?: string[];
   dontAllowSwapAfter?: string[];
   maxSplits?: number;
+  ignoreFee?: boolean;
 }
