@@ -1273,7 +1273,6 @@ export class UniversalSwapHandler {
           originalAmount: toDisplay(subRelayerFee),
           routerClient: routerClient,
           routerOption: {
-            useAlphaSmartRoute: true,
             useIbcWasm: true
           },
           routerConfig: {
