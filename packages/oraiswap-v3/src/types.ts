@@ -239,31 +239,18 @@ export type SmartRouteConfig = {
   };
 };
 
-export type SmartRouteReponse = {
-  swapAmount: string;
-  returnAmount: string;
-  routes: any[];
-};
-
 export type ZapInLiquidityResponse = {
-  minimumLiquidity?: Liquidity;
-  routes: Route[];
-
-  amountToX: Uint128;
-  amountToY: Uint128;
-  assetIn: Asset;
-  minimumReceiveX?: Uint128;
-  minimumReceiveY?: Uint128;
+  status: ZapInResult;
   poolKey: PoolKey;
-  tickLowerIndex: number;
-  tickUpperIndex: number;
   amountX: Uint128;
   amountY: Uint128;
-  sqrtPrice: bigint;
-  currentTick: number;
-
   swapFee: number;
-  result: ZapInResult;
+  routes: Route[];
+  tickLowerIndex: number;
+  tickUpperIndex: number;
+  minimumLiquidity?: Liquidity;
+  currentTick: number;
+  currentSqrtPrice: SqrtPrice;
 };
 
 export type ZapOutLiquidityResponse = {
@@ -279,27 +266,25 @@ export type ZapOutLiquidityResponse = {
   result: ZapOutResult;
 };
 
-export enum ZapInResult {
-  // Error
-  NoRouteFound = "No route found to zap",
-  SomethingWentWrong = "Something went wrong",
+export type RouteParams = {
+  sourceAsset: TokenItemType;
+  destAsset: TokenItemType;
+  amount: bigint;
+};
 
+export enum ZapInResult {
   // in range
-  InRangeNoRouteThroughSelf = "This zap operation has no swap through this pool and the position is in range so the accurancy is good",
-  InRangeHasRouteThroughSelf = "This zap operation has swap through this pool and the position is in range so the accurancy is good",
-  InRangeHasRouteThroughSelfMayBecomeOutRange = "This zap operation has swap through this pool and the position is in range but the next tick is out of range so the accurancy is low",
+  InRangeNoRouteThroughSelf = "This zap operation has no swap through this pool and the position is in range so the accuracy is good",
+  InRangeHasRouteThroughSelf = "This zap operation has swap through this pool and the position is in range so the accuracy is good",
+  InRangeHasRouteThroughSelfMayBecomeOutRange = "This zap operation has swap through this pool and the position is in range but the next tick is out of range so the accuracy is low",
 
   // out range
-  OutRangeNoRouteThroughSelf = "This zap operation has no swap through this pool and the position is out of range so the accurancy is good",
-  OutRangeHasRouteThroughSelf = "This zap operation has swap through this pool and the position is out of range but the next tick is not in range so the accurancy is good",
-  OutRangeHasRouteThroughSelfMayBecomeInRange = "This zap operation has swap through this pool and the position is out of range but the next tick is in range so the accurancy is low"
+  OutRangeNoRouteThroughSelf = "This zap operation has no swap through this pool and the position is out of range so the accuracy is good",
+  OutRangeHasRouteThroughSelf = "This zap operation has swap through this pool and the position is out of range but the next tick is not in range so the accuracy is good",
+  OutRangeHasRouteThroughSelfMayBecomeInRange = "This zap operation has swap through this pool and the position is out of range but the next tick is in range so the accuracy is low"
 }
 
 export enum ZapOutResult {
-  // Error
-  NoRouteFound = "No route found to zap",
-  SomethingWentWrong = "Something went wrong",
-
   // Success
   Success = "Zap out successfully"
 }

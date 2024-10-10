@@ -1,6 +1,12 @@
 import { OraiswapV3Client, OraiswapV3Types } from "@oraichain/oraidex-contracts-sdk";
-import { calculateSqrtPrice, getGlobalMinSqrtPrice, newFeeTier, newPoolKey, toPercentage } from "../src/wasm/oraiswap_v3_wasm";
-import { bobAddress, client, createTokens, senderAddress } from "./test-common";
+import {
+  calculateSqrtPrice,
+  getGlobalMinSqrtPrice,
+  newFeeTier,
+  newPoolKey,
+  toPercentage
+} from "../src/wasm/oraiswap_v3_wasm";
+import { bobAddress, client, createTokens, deployIncentivesFundManager, senderAddress } from "./test-common";
 import fs from "fs";
 import path from "path";
 import { OraiswapV3Handler, poolKeyToString } from "../src";
@@ -37,6 +43,11 @@ describe("test oraiswap-v3 handler functions", () => {
       "auto"
     );
 
+    const fundManager = await deployIncentivesFundManager({
+      oraiswap_v3: "",
+      owner: senderAddress
+    });
+
     dex = new OraiswapV3Client(
       client,
       senderAddress,
@@ -44,7 +55,7 @@ describe("test oraiswap-v3 handler functions", () => {
         await client.instantiate(
           senderAddress,
           dexCodeId,
-          { protocol_fee } as OraiswapV3Types.InstantiateMsg,
+          { protocol_fee, incentives_fund_manager: fundManager.contractAddress } as OraiswapV3Types.InstantiateMsg,
           "oraiswap_v3",
           "auto"
         )
@@ -176,9 +187,9 @@ describe("test oraiswap-v3 handler functions", () => {
         rewardPerSec: "1",
         rewardToken: {
           token: {
-            contract_addr: tokenZ.contractAddress,
+            contract_addr: tokenZ.contractAddress
           }
-        }, 
+        }
       });
     });
 
@@ -293,8 +304,8 @@ describe("test oraiswap-v3 handler functions", () => {
       const pool = poolList[0];
       await dex.approve({
         spender: bobAddress,
-        tokenId: 1,
-      })
+        tokenId: 1
+      });
       const approveForAll = await handler.approveForAll(senderAddress, true);
       expect(approveForAll).toBeDefined();
     });
