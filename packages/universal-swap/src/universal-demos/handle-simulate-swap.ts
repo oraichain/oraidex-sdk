@@ -17,7 +17,6 @@ const simulate = async () => {
       originalAmount: fromAmount,
       routerClient: "" as any,
       routerOption: {
-        useAlphaSmartRoute: true,
         useIbcWasm: true
       },
       routerConfig: {
