@@ -47,7 +47,8 @@ import {
   getAxios,
   parseAssetInfoFromContractAddrOrDenom,
   parseAssetInfo,
-  calculateTimeoutTimestamp
+  calculateTimeoutTimestamp,
+  COSMOS_CHAIN_ID_COMMON
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -82,6 +83,8 @@ import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
+import { generateMemoSwap, generateMsgSwap } from "./msg/msgs";
+import { fromBech32, toBech32 } from "@cosmjs/encoding";
 
 const caseSwapNativeAndWrapNative = (fromCoingecko, toCoingecko) => {
   const arr = ["ethereum", "weth"];
@@ -308,24 +311,63 @@ export class UniversalSwapHelper {
     return { swapRoute: "", universalSwapType: "other-networks-to-oraichain", isSmartRouter: true };
   };
 
+  static getAddress = (prefix: string, { address60, address118 }, coinType: number = 118) => {
+    const approve = {
+      118: address118,
+      60: address60
+    };
+    if (!(coinType in approve)) {
+      throw new Error(`Unsupported coinType: ${coinType}`);
+    }
+
+    if (!approve[coinType]) {
+      throw new Error(`Address for coinType ${coinType} is not provided`);
+    }
+
+    const { data } = fromBech32(approve[coinType]);
+    return toBech32(prefix, data);
+  };
+
+  static generateAddress = ({ oraiAddress, injAddress }) => {
+    /**
+     * need update when support new chain
+     */
+    const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
+    return {
+      [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
+      [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
+      [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", addressFollowCoinType),
+      [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", addressFollowCoinType)
+    };
+  };
+
   static addOraiBridgeRoute = async (
-    sourceReceiver: string,
+    addresses: {
+      obridgeAddress?: string;
+      sourceReceiver: string;
+      injAddress?: string;
+      destReceiver?: string;
+      recipientAddress?: string;
+    },
     fromToken: TokenItemType,
     toToken: TokenItemType,
     minimumReceive: string,
-    destReceiver?: string,
+    userSlippage: number,
     swapOption?: {
       isSourceReceiverTest?: boolean;
       isIbcWasm?: boolean;
       ibcInfoTestMode?: boolean;
+      isAlphaIbcWasm?: boolean;
     },
-    alphaSmartRoute?: RouterResponse,
-    remoteAddressObridge?: string
+    alphaSmartRoute?: RouterResponse
   ): Promise<SwapRoute> => {
     // TODO: recheck cosmos address undefined (other-chain -> oraichain)
-    if (!sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
+    if (!addresses.sourceReceiver) throw generateError(`Cannot get source if the sourceReceiver is empty!`);
     const source = UniversalSwapHelper.getSourceReceiver(
-      sourceReceiver,
+      addresses.sourceReceiver,
       fromToken.contractAddress,
       swapOption?.isSourceReceiverTest
     );
@@ -333,14 +375,19 @@ export class UniversalSwapHelper {
     let { swapRoute, universalSwapType, isSmartRouter } = UniversalSwapHelper.getRoute(
       fromToken,
       toToken,
-      destReceiver
+      addresses.destReceiver
     );
 
-    if (isSmartRouter && swapOption.isIbcWasm) {
+    if (isSmartRouter && swapOption.isIbcWasm && !swapOption?.isAlphaIbcWasm) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
 
       swapRoute = await UniversalSwapHelper.getRouteV2(
-        { minimumReceive, recoveryAddr: sourceReceiver, destReceiver, remoteAddressObridge },
+        {
+          minimumReceive,
+          recoveryAddr: addresses.sourceReceiver,
+          destReceiver: addresses.destReceiver,
+          remoteAddressObridge: addresses.obridgeAddress
+        },
         {
           ...alphaSmartRoute,
           destAsset: parseTokenInfoRawDenom(toToken),
@@ -349,6 +396,37 @@ export class UniversalSwapHelper {
         },
         swapOption.ibcInfoTestMode
       );
+    }
+
+    /**
+     * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj/tia not using wasm)
+     */
+    if (swapOption.isAlphaIbcWasm && !fromToken.cosmosBased) {
+      if (!alphaSmartRoute) throw generateError(`Missing router with alpha ibc wasm!`);
+      const routes = alphaSmartRoute.routes;
+      const alphaRoutes = routes[0];
+
+      if (alphaSmartRoute.routes.length > 1) throw generateError(`Missing router with alpha ibc wasm max length!`);
+
+      const paths = alphaRoutes.paths.filter((_, index) => index > 0);
+
+      let receiverAddresses = UniversalSwapHelper.generateAddress({
+        injAddress: addresses.injAddress,
+        oraiAddress: addresses.sourceReceiver
+      });
+
+      if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
+      const { memo } = generateMemoSwap(
+        {
+          ...alphaRoutes,
+          paths: paths
+        },
+        userSlippage / 100,
+        receiverAddresses,
+        alphaRoutes.paths[0].chainId
+      );
+
+      swapRoute = memo;
     }
 
     if (swapRoute.length > 0) return { swapRoute: `${source}:${swapRoute}`, universalSwapType, isSmartRouter };
@@ -548,7 +626,10 @@ export class UniversalSwapHelper {
       offerAmount: offerAmount,
       swapOptions: {
         protocols: routerConfig.protocols,
-        dontAlowSwapAfter: routerConfig.dontAllowSwapAfter
+        maxSplits: routerConfig.maxSplits,
+        swapConfig: {
+          dontAlowSwapAfter: routerConfig.dontAllowSwapAfter
+        }
       }
     };
     const res: {
@@ -571,7 +652,8 @@ export class UniversalSwapHelper {
       url: "https://osor.oraidex.io",
       path: "/smart-router",
       protocols: ["Oraidex", "OraidexV3"],
-      dontAllowSwapAfter: ["Oraidex", "OraidexV3"]
+      dontAllowSwapAfter: ["Oraidex", "OraidexV3"],
+      maxSplits: 10
     }
   ): Promise<SmartRouterResponse> => {
     const { returnAmount, routes } = await UniversalSwapHelper.querySmartRoute(
@@ -720,6 +802,7 @@ export class UniversalSwapHelper {
     routerOption?: {
       useAlphaSmartRoute?: boolean;
       useIbcWasm?: boolean;
+      useAlphaIbcWasm?: boolean;
     };
     routerConfig?: RouterConfigSmartRoute;
   }): Promise<SimulateResponse> => {
@@ -748,13 +831,18 @@ export class UniversalSwapHelper {
       url: query?.routerConfig?.url ?? "https://osor.oraidex.io",
       path: query?.routerConfig?.path ?? "/smart-router/alpha-router",
       protocols: query?.routerConfig?.protocols ?? ["Oraidex", "OraidexV3"],
-      dontAllowSwapAfter: query?.routerConfig?.dontAllowSwapAfter ?? ["Oraidex", "OraidexV3"]
+      dontAllowSwapAfter: query?.routerConfig?.dontAllowSwapAfter ?? ["Oraidex", "OraidexV3"],
+      maxSplits: query?.routerConfig?.maxSplits ?? 10
     };
 
     let fromInfo = getTokenOnOraichain(query.originalFromInfo.coinGeckoId);
     let toInfo = getTokenOnOraichain(query.originalToInfo.coinGeckoId);
 
-    if (!query?.routerOption?.useIbcWasm) {
+    /**
+     * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj not using wasm)
+     * useIbcWasm case: (evm -> cosmos)
+     */
+    if (!query?.routerOption?.useIbcWasm || query?.routerOption?.useAlphaIbcWasm) {
       fromInfo = query.originalFromInfo;
       toInfo = query.originalToInfo;
     }

@@ -1,3 +1,4 @@
+import { Coin } from "@cosmjs/amino";
 import { AmountDetails, CosmosWallet, EvmWallet, NetworkChainId, TokenItemType } from "@oraichain/oraidex-common";
 import { SwapOperation, Uint128 } from "@oraichain/oraidex-contracts-sdk";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
@@ -9,6 +10,12 @@ export type UniversalSwapType =
   | "oraichain-to-cosmos"
   | "cosmos-to-others"
   | "smart-router";
+
+export enum ActionType {
+  Bridge = "Bridge",
+  Swap = "Swap",
+  Convert = "Convert"
+}
 
 export enum SwapDirection {
   From,
@@ -89,6 +96,7 @@ export interface SwapOptions {
   isSourceReceiverTest?: boolean;
   isAlphaSmartRouter?: boolean;
   isIbcWasm?: boolean;
+  isAlphaIbcWasm?: boolean;
   isCheckBalanceIbc?: boolean;
 }
 
@@ -206,7 +214,7 @@ export interface Route {
   paths: Path[];
 }
 
-interface Path {
+export interface Path {
   chainId: string;
   tokenIn: string;
   tokenInAmount: string;
@@ -258,4 +266,5 @@ export interface RouterConfigSmartRoute {
   path?: string;
   protocols?: string[];
   dontAllowSwapAfter?: string[];
+  maxSplits?: number;
 }
