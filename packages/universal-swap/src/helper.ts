@@ -328,12 +328,22 @@ export class UniversalSwapHelper {
     return toBech32(prefix, data);
   };
 
-  static generateAddress = ({ oraiAddress, injAddress }) => {
+  static generateAddress = ({
+    oraiAddress,
+    injAddress,
+    evmInfo
+  }: {
+    oraiAddress: string;
+    injAddress?: string;
+    evmInfo?: {
+      [key: string]: string;
+    };
+  }) => {
     /**
      * need update when support new chain
      */
     const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
-    return {
+    let cosmosAddress = {
       [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
       [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
       [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", addressFollowCoinType),
@@ -342,6 +352,15 @@ export class UniversalSwapHelper {
       [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", addressFollowCoinType),
       [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", addressFollowCoinType)
     };
+
+    if (evmInfo) {
+      cosmosAddress = {
+        ...cosmosAddress,
+        ...evmInfo
+      };
+    }
+
+    return cosmosAddress;
   };
 
   static addOraiBridgeRoute = async (
@@ -351,6 +370,7 @@ export class UniversalSwapHelper {
       injAddress?: string;
       destReceiver?: string;
       recipientAddress?: string;
+      evmAddress?: string;
     },
     fromToken: TokenItemType,
     toToken: TokenItemType,
@@ -412,7 +432,10 @@ export class UniversalSwapHelper {
 
       let receiverAddresses = UniversalSwapHelper.generateAddress({
         injAddress: addresses.injAddress,
-        oraiAddress: addresses.sourceReceiver
+        oraiAddress: addresses.sourceReceiver,
+        evmInfo: {
+          [toToken.chainId]: addresses.evmAddress
+        }
       });
 
       if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
