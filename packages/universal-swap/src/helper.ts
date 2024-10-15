@@ -419,23 +419,34 @@ export class UniversalSwapHelper {
     }
 
     /**
-     * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj/tia not using wasm)
+     * useAlphaIbcWasm case:
+     * evm -> oraichain -> osmosis -> inj/tia
+     * tia/inj -> osmosis -> oraichain -> evm
      */
-    if (swapOption.isAlphaIbcWasm && !fromToken.cosmosBased) {
+    if (swapOption.isAlphaIbcWasm) {
       if (!alphaSmartRoute) throw generateError(`Missing router with alpha ibc wasm!`);
       const routes = alphaSmartRoute.routes;
       const alphaRoutes = routes[0];
+      let paths = alphaRoutes.paths;
 
-      if (alphaSmartRoute.routes.length > 1) throw generateError(`Missing router with alpha ibc wasm max length!`);
+      // if from is EVM only support one routes
+      if (!fromToken.cosmosBased && alphaSmartRoute.routes.length > 1) {
+        throw generateError(`Missing router with alpha ibc wasm max length!`);
+      }
 
-      const paths = alphaRoutes.paths.filter((_, index) => index > 0);
+      if (!fromToken.cosmosBased) {
+        paths = alphaRoutes.paths.filter((_, index) => index > 0);
+      }
 
       let receiverAddresses = UniversalSwapHelper.generateAddress({
         injAddress: addresses.injAddress,
         oraiAddress: addresses.sourceReceiver,
-        evmInfo: {
-          [toToken.chainId]: addresses.evmAddress
-        }
+        evmInfo:
+          !toToken.cosmosBased && addresses.evmAddress
+            ? {
+                [toToken.chainId]: addresses.evmAddress
+              }
+            : {}
       });
 
       if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;

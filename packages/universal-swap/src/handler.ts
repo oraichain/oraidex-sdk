@@ -1252,7 +1252,18 @@ export class UniversalSwapHandler {
     );
 
     if (alphaSmartRoutes?.routes?.length && swapOptions.isAlphaIbcWasm) {
-      let receiverAddresses = UniversalSwapHelper.generateAddress({ oraiAddress, injAddress });
+      const addressParams = {
+        oraiAddress,
+        injAddress,
+        evmInfo:
+          !originalToToken.cosmosBased && evmAddress
+            ? {
+                [originalToToken.chainId]: evmAddress
+              }
+            : {}
+      };
+
+      let receiverAddresses = UniversalSwapHelper.generateAddress(addressParams);
       if (recipientAddress) receiverAddresses[currentToNetwork] = toAddress;
 
       return this.alphaSmartRouterSwapNewMsg(swapRoute, universalSwapType, receiverAddresses);
