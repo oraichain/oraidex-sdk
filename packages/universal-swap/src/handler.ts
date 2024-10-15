@@ -60,7 +60,7 @@ import {
 import { GasPrice } from "@cosmjs/stargate";
 import { OraiswapRouterQueryClient } from "@oraichain/oraidex-contracts-sdk";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
-import { COSMOS_CHAIN_IDS } from "@oraichain/common";
+import { COSMOS_CHAIN_IDS, EVM_CHAIN_IDS } from "@oraichain/common";
 import { generateMsgSwap } from "./msg/msgs";
 
 const AFFILIATE_DECIMAL = 1e4; // 10_000
@@ -1199,6 +1199,8 @@ export class UniversalSwapHandler {
     }
 
     let injAddress = undefined;
+    let evmAddress = undefined;
+
     const [oraiAddress, obridgeAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.ORAICHAIN),
       this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.ORAIBRIDGE)
@@ -1213,7 +1215,23 @@ export class UniversalSwapHandler {
         [route.chainId, route.tokenOutChainId].includes(COSMOS_CHAIN_IDS.INJECTVE)
       );
 
+      const hasEvm = routesFlatten.some(
+        (route) =>
+          [route.chainId, route.tokenOutChainId].includes(EVM_CHAIN_IDS.ETH) ||
+          [route.chainId, route.tokenOutChainId].includes(EVM_CHAIN_IDS.BSC)
+      );
+
+      const hasTron = routesFlatten.some((route) =>
+        [route.chainId, route.tokenOutChainId].includes(EVM_CHAIN_IDS.TRON)
+      );
+
       if (hasInjectiveAddress) injAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
+      if (hasEvm || hasTron) {
+        evmAddress = await this.config.evmWallet.getFinalEvmAddress(originalFromToken.chainId, {
+          metamaskAddress: this.swapData.sender.evm,
+          tronAddress: this.swapData.sender.tron
+        });
+      }
     }
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
@@ -1222,7 +1240,8 @@ export class UniversalSwapHandler {
         injAddress,
         sourceReceiver: oraiAddress,
         destReceiver: toAddress,
-        recipientAddress
+        recipientAddress,
+        evmAddress
       },
       originalFromToken,
       originalToToken,
@@ -1233,8 +1252,20 @@ export class UniversalSwapHandler {
     );
 
     if (alphaSmartRoutes?.routes?.length && swapOptions.isAlphaIbcWasm) {
-      let receiverAddresses = UniversalSwapHelper.generateAddress({ oraiAddress, injAddress });
+      const addressParams = {
+        oraiAddress,
+        injAddress,
+        evmInfo:
+          !originalToToken.cosmosBased && evmAddress
+            ? {
+                [originalToToken.chainId]: evmAddress
+              }
+            : {}
+      };
+
+      let receiverAddresses = UniversalSwapHelper.generateAddress(addressParams);
       if (recipientAddress) receiverAddresses[currentToNetwork] = toAddress;
+
       return this.alphaSmartRouterSwapNewMsg(swapRoute, universalSwapType, receiverAddresses);
     }
 
@@ -1273,7 +1304,6 @@ export class UniversalSwapHandler {
           originalAmount: toDisplay(subRelayerFee),
           routerClient: routerClient,
           routerOption: {
-            useAlphaSmartRoute: true,
             useIbcWasm: true
           },
           routerConfig: {

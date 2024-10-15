@@ -37,7 +37,12 @@ const buildMemoSwap = (
   switch (currentChain) {
     case "Oraichain": {
       let prefix = getDestPrefixForBridgeToEvmOnOrai(path.tokenOutChainId);
-      let oBridgeAddress = addresses["oraibridge-subnet-2"];
+      const ORAIBRIDGE_SUBNET = "oraibridge-subnet-2";
+      let oBridgeAddress = addresses[ORAIBRIDGE_SUBNET];
+      if (!oBridgeAddress) {
+        throw generateError(`Missing oBridge address for ${ORAIBRIDGE_SUBNET}`);
+      }
+
       let oraichainMsg = new OraichainMsg(path, "1", receiver, currentAddress, memo, prefix, oBridgeAddress);
       oraichainMsg.setMinimumReceiveForSwap(slippage);
       // we have 2 cases:
@@ -82,7 +87,12 @@ const buildExecuteMsg = (
   switch (currentChain) {
     case "Oraichain": {
       let prefix = getDestPrefixForBridgeToEvmOnOrai(path.tokenOutChainId);
-      let oBridgeAddress = addresses["oraibridge-subnet-2"];
+      const ORAIBRIDGE_SUBNET = "oraibridge-subnet-2";
+      let oBridgeAddress = addresses[ORAIBRIDGE_SUBNET];
+      if (!oBridgeAddress) {
+        throw generateError(`Missing oBridge address for ${ORAIBRIDGE_SUBNET}`);
+      }
+
       let oraichainMsg = new OraichainMsg(path, "1", receiver, currentAddress, memo, prefix, oBridgeAddress);
       oraichainMsg.setMinimumReceiveForSwap(slippage);
       return oraichainMsg.genExecuteMsg();
