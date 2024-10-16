@@ -79,7 +79,7 @@ import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-con
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { Coin } from "@cosmjs/proto-signing";
-import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
+import { AXIOS_TIMEOUT, EVM_CHAIN_IDS, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
@@ -371,6 +371,7 @@ export class UniversalSwapHelper {
       destReceiver?: string;
       recipientAddress?: string;
       evmAddress?: string;
+      tronAddress?: string;
     },
     fromToken: TokenItemType,
     toToken: TokenItemType,
@@ -429,24 +430,24 @@ export class UniversalSwapHelper {
       const alphaRoutes = routes[0];
       let paths = alphaRoutes.paths;
 
+      const fromTokenIsEvm = !fromToken.cosmosBased;
       // if from is EVM only support one routes
-      if (!fromToken.cosmosBased && alphaSmartRoute.routes.length > 1) {
+      if (fromTokenIsEvm && alphaSmartRoute.routes.length > 1) {
         throw generateError(`Missing router with alpha ibc wasm max length!`);
       }
 
-      if (!fromToken.cosmosBased) {
+      if (fromTokenIsEvm) {
         paths = alphaRoutes.paths.filter((_, index) => index > 0);
       }
 
       let receiverAddresses = UniversalSwapHelper.generateAddress({
         injAddress: addresses.injAddress,
         oraiAddress: addresses.sourceReceiver,
-        evmInfo:
-          !toToken.cosmosBased && addresses.evmAddress
-            ? {
-                [toToken.chainId]: addresses.evmAddress
-              }
-            : {}
+        evmInfo: !toToken.cosmosBased
+          ? {
+              [toToken.chainId]: toToken.chainId === EVM_CHAIN_IDS.TRON ? addresses.tronAddress : addresses.evmAddress
+            }
+          : {}
       });
 
       if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
