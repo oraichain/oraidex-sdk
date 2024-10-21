@@ -348,6 +348,7 @@ export class UniversalSwapHelper {
     let cosmosAddress = cosmosChains.reduce(
       (acc, cur) => {
         if (!injAddress && cur?.bip44?.coinType === 60) return acc;
+        // coinType 118 cosmos
         if (!acc?.[cur.chainId]) {
           return {
             ...acc,
@@ -358,6 +359,7 @@ export class UniversalSwapHelper {
             )
           };
         }
+        return acc;
       },
       {
         Oraichain: oraiAddress,
@@ -377,7 +379,6 @@ export class UniversalSwapHelper {
 
   static addOraiBridgeRoute = async (
     addresses: {
-      obridgeAddress?: string;
       sourceReceiver: string;
       injAddress?: string;
       destReceiver?: string;
@@ -413,13 +414,17 @@ export class UniversalSwapHelper {
 
     if (isSmartRouter && swapOption.isIbcWasm && !swapOption?.isAlphaIbcWasm) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
+      const obridgeAddress = UniversalSwapHelper.getAddress("oraib", {
+        address118: addresses.sourceReceiver,
+        address60: addresses.injAddress
+      });
 
       swapRoute = await UniversalSwapHelper.getRouteV2(
         {
           minimumReceive,
           recoveryAddr: addresses.sourceReceiver,
           destReceiver: addresses.destReceiver,
-          remoteAddressObridge: addresses.obridgeAddress
+          remoteAddressObridge: obridgeAddress
         },
         {
           ...alphaSmartRoute,
@@ -461,6 +466,8 @@ export class UniversalSwapHelper {
             }
           : {}
       });
+
+      console.log({ receiverAddresses });
 
       if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
       const { memo } = generateMemoSwap(
