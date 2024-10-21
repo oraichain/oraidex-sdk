@@ -1196,21 +1196,6 @@ export class UniversalSwapHandler {
       this.swapData;
     const { swapOptions } = this.config;
 
-    if (cosmos) {
-      const isValidRecipient = checkValidateAddressWithNetwork(cosmos, originalFromToken.chainId);
-      if (!isValidRecipient.isValid) throw generateError("cosmos address invalid!");
-    }
-
-    if (evm) {
-      const isValidRecipient = checkValidateAddressWithNetwork(evm, EVM_CHAIN_IDS.BSC);
-      if (!isValidRecipient.isValid) throw generateError("evm address invalid!");
-    }
-
-    if (tron) {
-      const isValidRecipient = checkValidateAddressWithNetwork(tron, EVM_CHAIN_IDS.TRON);
-      if (!isValidRecipient.isValid) throw generateError("tron address invalid!");
-    }
-
     const toAddress = await this.getToAddressUniversalSwap(evm, tron, this.swapData.recipientAddress, originalToToken);
     const [oraiAddress, obridgeAddress] = await Promise.all([
       this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.ORAICHAIN),
@@ -1222,9 +1207,9 @@ export class UniversalSwapHandler {
     }
 
     const isValidRecipientOraichain = checkValidateAddressWithNetwork(oraiAddress, COSMOS_CHAIN_IDS.ORAICHAIN);
-    if (!isValidRecipientOraichain.isValid) throw generateError("orai address invalid!");
-    const isValidRecipientObridge = checkValidateAddressWithNetwork(oraiAddress, COSMOS_CHAIN_IDS.ORAIBRIDGE);
-    if (!isValidRecipientObridge.isValid) throw generateError("obridge address invalid!");
+    if (!isValidRecipientOraichain.isValid) throw generateError("orai get address invalid!");
+    const isValidRecipientObridge = checkValidateAddressWithNetwork(obridgeAddress, COSMOS_CHAIN_IDS.ORAIBRIDGE);
+    if (!isValidRecipientObridge.isValid) throw generateError("obridge get address invalid!");
 
     let injAddress = undefined;
     let evmAddress = undefined;

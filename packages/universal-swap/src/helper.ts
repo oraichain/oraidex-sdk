@@ -48,7 +48,8 @@ import {
   parseAssetInfoFromContractAddrOrDenom,
   parseAssetInfo,
   calculateTimeoutTimestamp,
-  COSMOS_CHAIN_ID_COMMON
+  COSMOS_CHAIN_ID_COMMON,
+  checkValidateAddressWithNetwork
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -79,7 +80,7 @@ import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-con
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { Coin } from "@cosmjs/proto-signing";
-import { AXIOS_TIMEOUT, EVM_CHAIN_IDS, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
+import { AXIOS_TIMEOUT, COSMOS_CHAIN_IDS, EVM_CHAIN_IDS, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
@@ -222,6 +223,9 @@ export class UniversalSwapHelper {
     contractAddress?: string,
     isSourceReceiverTest?: boolean
   ): string => {
+    const isValidRecipient = checkValidateAddressWithNetwork(oraiAddress, COSMOS_CHAIN_IDS.ORAICHAIN);
+    if (!isValidRecipient.isValid) throw generateError("orai Address get source receiver invalid!");
+
     let sourceReceiver = `${oraib2oraichain}/${oraiAddress}`;
     // TODO: test retire v2 (change structure memo evm -> oraichain)
     if (isSourceReceiverTest) {
