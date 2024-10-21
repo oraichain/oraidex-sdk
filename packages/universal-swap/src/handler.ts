@@ -1090,10 +1090,10 @@ export class UniversalSwapHandler {
     ]);
 
     let minimumReceive = simulateAmount;
-    if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
+    if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.calculateMinimumReceive();
 
     const { swapRoute: completeSwapRoute } = await UniversalSwapHelper.addOraiBridgeRoute(
-      { obridgeAddress, sourceReceiver: oraiAddress, destReceiver: destinationReceiver },
+      { sourceReceiver: oraiAddress, destReceiver: destinationReceiver },
       originalFromToken,
       originalToToken,
       minimumReceive,
@@ -1197,15 +1197,8 @@ export class UniversalSwapHandler {
     const { swapOptions } = this.config;
 
     const toAddress = await this.getToAddressUniversalSwap(evm, tron, this.swapData.recipientAddress, originalToToken);
-    const [oraiAddress, obridgeAddress] = await Promise.all([
-      this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.ORAICHAIN),
-      this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.ORAIBRIDGE)
-    ]);
-
-    if (!oraiAddress || !obridgeAddress) {
-      throw generateError("orai address and obridge address invalid!");
-    }
-
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.ORAICHAIN);
+    if (!oraiAddress) throw generateError("orai address and obridge address invalid!");
     const isValidRecipientOraichain = checkValidateAddressWithNetwork(oraiAddress, COSMOS_CHAIN_IDS.ORAICHAIN);
     if (!isValidRecipientOraichain.isValid) throw generateError("orai get address invalid!");
 
@@ -1219,7 +1212,7 @@ export class UniversalSwapHandler {
     };
 
     let minimumReceive = simulateAmount;
-    if (swapOptions?.isIbcWasm) minimumReceive = await this.caculateMinimumReceive();
+    if (swapOptions?.isIbcWasm) minimumReceive = await this.calculateMinimumReceive();
     if (swapOptions?.isAlphaIbcWasm) {
       const routesFlatten = UniversalSwapHelper.flattenSmartRouters(alphaSmartRoutes.routes);
       const [hasEVMChains, hasTron, hasInjectiveAddress] = [
@@ -1256,7 +1249,6 @@ export class UniversalSwapHandler {
 
     const { swapRoute, universalSwapType } = await UniversalSwapHelper.addOraiBridgeRoute(
       {
-        obridgeAddress,
         injAddress,
         sourceReceiver: oraiAddress,
         destReceiver: toAddress,
@@ -1275,7 +1267,6 @@ export class UniversalSwapHandler {
     if (alphaSmartRoutes?.routes?.length && swapOptions.isAlphaIbcWasm) {
       let receiverAddresses = UniversalSwapHelper.generateAddress(addressParams);
       if (recipientAddress) receiverAddresses[originalToToken.chainId] = toAddress;
-
       return this.alphaSmartRouterSwapNewMsg(swapRoute, universalSwapType, receiverAddresses);
     }
 
@@ -1294,7 +1285,7 @@ export class UniversalSwapHandler {
     return this.transferAndSwap(swapRoute);
   }
 
-  async caculateMinimumReceive() {
+  async calculateMinimumReceive() {
     const { relayerFee, simulateAmount, originalToToken, bridgeFee = 1, userSlippage = 0 } = this.swapData;
     const { cosmosWallet } = this.config;
 
