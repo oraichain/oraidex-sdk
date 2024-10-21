@@ -49,7 +49,8 @@ import {
   parseAssetInfo,
   calculateTimeoutTimestamp,
   COSMOS_CHAIN_ID_COMMON,
-  checkValidateAddressWithNetwork
+  checkValidateAddressWithNetwork,
+  cosmosChains
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -343,19 +344,26 @@ export class UniversalSwapHelper {
       [key: string]: string;
     };
   }) => {
-    /**
-     * need update when support new chain
-     */
     const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
-    let cosmosAddress = {
-      [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
-      [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
-      [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", addressFollowCoinType)
-    };
+    let cosmosAddress = cosmosChains.reduce(
+      (acc, cur) => {
+        if (!injAddress && cur?.bip44?.coinType === 60) return acc;
+        if (!acc?.[cur.chainId]) {
+          return {
+            ...acc,
+            [cur.chainId]: UniversalSwapHelper.getAddress(
+              cur.bech32Config.bech32PrefixAccAddr,
+              addressFollowCoinType,
+              cur.bip44.coinType
+            )
+          };
+        }
+      },
+      {
+        Oraichain: oraiAddress,
+        [COSMOS_CHAIN_IDS.INJECTVE]: injAddress
+      }
+    );
 
     if (evmInfo) {
       cosmosAddress = {

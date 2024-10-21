@@ -1191,7 +1191,7 @@ export class UniversalSwapHandler {
   }
 
   async processUniversalSwap() {
-    const { cosmos, evm, tron } = this.swapData.sender;
+    const { evm, tron } = this.swapData.sender;
     const { originalFromToken, originalToToken, simulateAmount, recipientAddress, userSlippage, alphaSmartRoutes } =
       this.swapData;
     const { swapOptions } = this.config;
@@ -1208,8 +1208,6 @@ export class UniversalSwapHandler {
 
     const isValidRecipientOraichain = checkValidateAddressWithNetwork(oraiAddress, COSMOS_CHAIN_IDS.ORAICHAIN);
     if (!isValidRecipientOraichain.isValid) throw generateError("orai get address invalid!");
-    const isValidRecipientObridge = checkValidateAddressWithNetwork(obridgeAddress, COSMOS_CHAIN_IDS.ORAIBRIDGE);
-    if (!isValidRecipientObridge.isValid) throw generateError("obridge get address invalid!");
 
     let injAddress = undefined;
     let evmAddress = undefined;

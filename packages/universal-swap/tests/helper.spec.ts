@@ -392,6 +392,48 @@ describe("test helper functions", () => {
     }
   );
 
+  // it.each<[string, string, any, any, boolean]>([
+  //   [
+  //     "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //     "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3",
+  //     undefined,
+  //     {
+  //       [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //       [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3",
+  //       [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", {
+  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //         address60: undefined
+  //       }),
+  //       [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", {
+  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //         address60: undefined
+  //       }),
+  //       [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", {
+  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //         address60: undefined
+  //       }),
+  //       [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", {
+  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //         address60: undefined
+  //       }),
+  //       [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", {
+  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+  //         address60: undefined
+  //       })
+  //     },
+  //     true
+  //   ]
+  // ])("test-generateAddress-UniversalSwapHelper", (oraiAddress, injAddress, evmInfo, expectAddresses, willThrow) => {
+  //   try {
+  //     const generateAddress = UniversalSwapHelper.generateAddress({ oraiAddress, injAddress, evmInfo });
+  //     expect(generateAddress).toMatchObject(expectAddresses);
+  //   } catch (error) {
+  //     console.log({ error });
+
+  //     expect(willThrow).toEqual(false);
+  //   }
+  // });
+
   // it.each<
   //   [
   //     CoinGeckoId,
@@ -585,8 +627,9 @@ describe("test helper functions", () => {
 
   it("test-addOraiBridgeRoute-empty-swapRoute", async () => {
     vi.spyOn(UniversalSwapHelper, "getRouteV2").mockResolvedValue("");
+    const sourceReceiver = "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g";
     const result = await UniversalSwapHelper.addOraiBridgeRoute(
-      { sourceReceiver: "receiver", destReceiver: undefined },
+      { sourceReceiver, destReceiver: undefined },
       { contractAddress: "any" } as any,
       undefined as any,
       "0",
@@ -595,7 +638,7 @@ describe("test helper functions", () => {
         isSourceReceiverTest: false
       }
     );
-    expect(result.swapRoute).toEqual(`${oraib2oraichain}/receiver`);
+    expect(result.swapRoute).toEqual(`${oraib2oraichain}/${sourceReceiver}`);
   });
   it("test-addOraiBridgeRoute-empty-sourceReceiver", async () => {
     await expect(
@@ -614,60 +657,60 @@ describe("test helper functions", () => {
 
   it.each<[string, any]>([
     [
-      "channel-1/orai1234:0x1234",
+      "channel-1/orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g:0x1234",
       {
         oraiBridgeChannel: "channel-1",
-        oraiReceiver: "orai1234",
+        oraiReceiver: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
         finalDestinationChannel: "",
         finalReceiver: "0x1234",
         tokenIdentifier: ""
       }
     ],
     [
-      "orai1234:0x1234",
+      "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g:0x1234",
       {
         oraiBridgeChannel: "",
-        oraiReceiver: "orai1234",
+        oraiReceiver: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
         finalDestinationChannel: "",
         finalReceiver: "0x1234",
         tokenIdentifier: ""
       }
     ],
     [
-      "orai1234",
+      "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
       {
         oraiBridgeChannel: "",
-        oraiReceiver: "orai1234",
+        oraiReceiver: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
         finalDestinationChannel: "",
         finalReceiver: "",
         tokenIdentifier: ""
       }
     ],
     [
-      "orai1234:0x1234:atom",
+      "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g:0x1234:atom",
       {
         oraiBridgeChannel: "",
-        oraiReceiver: "orai1234",
+        oraiReceiver: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
         finalDestinationChannel: "",
         finalReceiver: "0x1234",
         tokenIdentifier: "atom"
       }
     ],
     [
-      "orai1234:channel-29/0x1234:atom",
+      "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g:channel-29/0x1234:atom",
       {
         oraiBridgeChannel: "",
-        oraiReceiver: "orai1234",
+        oraiReceiver: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
         finalDestinationChannel: "channel-29",
         finalReceiver: "0x1234",
         tokenIdentifier: "atom"
       }
     ],
     [
-      "channel-1/orai1234:channel-29/0x1234:atom",
+      "channel-1/orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g:channel-29/0x1234:atom",
       {
         oraiBridgeChannel: "channel-1",
-        oraiReceiver: "orai1234",
+        oraiReceiver: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
         finalDestinationChannel: "channel-29",
         finalReceiver: "0x1234",
         tokenIdentifier: "atom"
