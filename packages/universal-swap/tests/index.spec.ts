@@ -1884,7 +1884,7 @@ describe("test universal swap handler functions", () => {
         }
       });
 
-      const minimumReceive = await universalSwap.caculateMinimumReceive();
+      const minimumReceive = await universalSwap.calculateMinimumReceive();
       expect(minimumReceive).toEqual(expectResult);
     }
   );
