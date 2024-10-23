@@ -3,6 +3,7 @@ import {
   ATOM,
   ATOM_ORAICHAIN_DENOM,
   AmountDetails,
+  COSMOS_CHAIN_ID_COMMON,
   CoinGeckoId,
   CosmosChainId,
   EvmChainId,
@@ -392,47 +393,52 @@ describe("test helper functions", () => {
     }
   );
 
-  // it.each<[string, string, any, any, boolean]>([
-  //   [
-  //     "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //     "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3",
-  //     undefined,
-  //     {
-  //       [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //       [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3",
-  //       [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", {
-  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //         address60: undefined
-  //       }),
-  //       [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", {
-  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //         address60: undefined
-  //       }),
-  //       [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", {
-  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //         address60: undefined
-  //       }),
-  //       [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", {
-  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //         address60: undefined
-  //       }),
-  //       [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", {
-  //         address118: "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
-  //         address60: undefined
-  //       })
-  //     },
-  //     true
-  //   ]
-  // ])("test-generateAddress-UniversalSwapHelper", (oraiAddress, injAddress, evmInfo, expectAddresses, willThrow) => {
-  //   try {
-  //     const generateAddress = UniversalSwapHelper.generateAddress({ oraiAddress, injAddress, evmInfo });
-  //     expect(generateAddress).toMatchObject(expectAddresses);
-  //   } catch (error) {
-  //     console.log({ error });
+  it.each<[string, any, any, boolean]>([
+    ["orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz", "inj172zx58jd47h28rqkvznpsfmavas9h544t024u3", undefined, true],
+    ["orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz", undefined, undefined, true],
+    ["0x09beeedf51aa45718f46837c94712d89b157a9d3", undefined, undefined, false],
+    [
+      "orai12zyu8w93h0q2lcnt50g3fn0w3yqnhy4fvawaqz",
+      undefined,
+      {
+        "0x01": "0x09beeedf51aa45718f46837c94712d89b157a9d3"
+      },
+      false
+    ]
+  ])("test-generateAddress-UniversalSwapHelper", (oraiAddress, injAddress, evmInfo, willThrow) => {
+    try {
+      const expectAddresses = {
+        [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
+        [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
+        [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", {
+          address118: oraiAddress,
+          address60: injAddress
+        }),
+        [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", {
+          address118: oraiAddress,
+          address60: injAddress
+        }),
+        [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", {
+          address118: oraiAddress,
+          address60: injAddress
+        }),
+        [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", {
+          address118: oraiAddress,
+          address60: injAddress
+        }),
+        [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", {
+          address118: oraiAddress,
+          address60: injAddress
+        }),
+        ...evmInfo
+      };
 
-  //     expect(willThrow).toEqual(false);
-  //   }
-  // });
+      const generateAddress = UniversalSwapHelper.generateAddress({ oraiAddress, injAddress, evmInfo });
+      expect(generateAddress).toMatchObject(expectAddresses);
+    } catch (error) {
+      expect(willThrow).toEqual(false);
+    }
+  });
 
   // it.each<
   //   [
