@@ -1084,10 +1084,7 @@ export class UniversalSwapHandler {
       );
 
     // get swapRoute
-    const [oraiAddress, obridgeAddress] = await Promise.all([
-      this.config.cosmosWallet.getKeplrAddr("Oraichain"),
-      this.config.cosmosWallet.getKeplrAddr("oraibridge-subnet-2")
-    ]);
+    const oraiAddress = await this.config.cosmosWallet.getKeplrAddr("Oraichain");
 
     let minimumReceive = simulateAmount;
     if (this.config.swapOptions?.isIbcWasm) minimumReceive = await this.calculateMinimumReceive();
@@ -1226,7 +1223,8 @@ export class UniversalSwapHandler {
       ];
 
       if (hasInjectiveAddress) {
-        addressParams.injAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
+        injAddress = await this.config.cosmosWallet.getKeplrAddr(COSMOS_CHAIN_IDS.INJECTVE);
+        addressParams.injAddress = injAddress;
       }
 
       if (hasEVMChains) {

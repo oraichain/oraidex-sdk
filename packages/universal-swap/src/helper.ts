@@ -467,8 +467,6 @@ export class UniversalSwapHelper {
           : {}
       });
 
-      console.log({ receiverAddresses });
-
       if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
       const { memo } = generateMemoSwap(
         {
