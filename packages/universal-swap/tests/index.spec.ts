@@ -257,10 +257,13 @@ describe("test universal swap handler functions", () => {
   });
   class StubCosmosWallet extends CosmosWallet {
     getKeplrAddr(chainId?: NetworkChainId | undefined): Promise<string> {
-      let addr: string = "orai1234";
+      let addr: string = "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g";
       switch (chainId) {
         case "noble-1":
           addr = "noble1234";
+          break;
+        case "osmosis-1":
+          addr = "osmo1234";
           break;
         default:
           break;
@@ -343,7 +346,7 @@ describe("test universal swap handler functions", () => {
             sourceChannel: "channel-13", // osmosis channel
             token: { denom: OSMOSIS_ORAICHAIN_DENOM, amount: simulateAmount }, //osmosis denom
             sender: testSenderAddress,
-            receiver: "orai1234",
+            receiver: "osmo1234",
             timeoutHeight: undefined,
             timeoutTimestamp: new Long(0),
             memo: ""
@@ -432,7 +435,7 @@ describe("test universal swap handler functions", () => {
             sourceChannel: oraichain2osmosis,
             token: { denom: OSMOSIS_ORAICHAIN_DENOM, amount: simulateAmount },
             sender: testSenderAddress,
-            receiver: "orai1234",
+            receiver: "osmo1234",
             timeoutHeight: undefined,
             timeoutTimestamp: new Long(0),
             memo: ""
@@ -518,7 +521,7 @@ describe("test universal swap handler functions", () => {
       metamaskAddress: undefined,
       tronAddress: undefined
     });
-    expect(result).toEqual("orai1234");
+    expect(result).toEqual("orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g");
     result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
       tronAddress: "TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc"
     });
@@ -987,7 +990,7 @@ describe("test universal swap handler functions", () => {
                   amount: simulateAmount,
                   msg: toBinary({
                     local_channel_id: oraichain2oraib,
-                    remote_address: "orai1234",
+                    remote_address: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
                     timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
@@ -1048,7 +1051,7 @@ describe("test universal swap handler functions", () => {
                   amount: simulateAmount,
                   msg: toBinary({
                     local_channel_id: oraichain2oraib,
-                    remote_address: "orai1234",
+                    remote_address: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
                     timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
@@ -1881,7 +1884,7 @@ describe("test universal swap handler functions", () => {
         }
       });
 
-      const minimumReceive = await universalSwap.caculateMinimumReceive();
+      const minimumReceive = await universalSwap.calculateMinimumReceive();
       expect(minimumReceive).toEqual(expectResult);
     }
   );
