@@ -499,11 +499,9 @@ export class OraichainMsg extends ChainMsg {
           msg: toUtf8(
             JSON.stringify({
               send: {
-                send: {
-                  contract: this.ENTRY_POINT_CONTRACT,
-                  amount: this.path.tokenInAmount,
-                  msg: toBinary(msg)
-                }
+                contract: this.ENTRY_POINT_CONTRACT,
+                amount: this.path.tokenInAmount,
+                msg: toBinary(msg)
               }
             })
           ),

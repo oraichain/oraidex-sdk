@@ -48,7 +48,9 @@ import {
   parseAssetInfoFromContractAddrOrDenom,
   parseAssetInfo,
   calculateTimeoutTimestamp,
-  COSMOS_CHAIN_ID_COMMON
+  COSMOS_CHAIN_ID_COMMON,
+  checkValidateAddressWithNetwork,
+  cosmosChains
 } from "@oraichain/oraidex-common";
 import {
   ConvertReverse,
@@ -79,7 +81,7 @@ import { Amount, CwIcs20LatestQueryClient, Uint128 } from "@oraichain/common-con
 import { CosmWasmClient, ExecuteInstruction, toBinary } from "@cosmjs/cosmwasm-stargate";
 import { swapFromTokens, swapToTokens } from "./swap-filter";
 import { Coin } from "@cosmjs/proto-signing";
-import { AXIOS_TIMEOUT, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
+import { AXIOS_TIMEOUT, COSMOS_CHAIN_IDS, EVM_CHAIN_IDS, IBC_TRANSFER_TIMEOUT } from "@oraichain/common";
 import { TransferBackMsg } from "@oraichain/common-contracts-sdk/build/CwIcs20Latest.types";
 import { buildUniversalSwapMemo } from "./proto/universal-swap-memo-proto-handler";
 import { Affiliate } from "@oraichain/oraidex-contracts-sdk/build/OraiswapMixedRouter.types";
@@ -222,6 +224,9 @@ export class UniversalSwapHelper {
     contractAddress?: string,
     isSourceReceiverTest?: boolean
   ): string => {
+    const isValidRecipient = checkValidateAddressWithNetwork(oraiAddress, COSMOS_CHAIN_IDS.ORAICHAIN);
+    if (!isValidRecipient.isValid) throw generateError("orai Address get source receiver invalid!");
+
     let sourceReceiver = `${oraib2oraichain}/${oraiAddress}`;
     // TODO: test retire v2 (change structure memo evm -> oraichain)
     if (isSourceReceiverTest) {
@@ -328,29 +333,58 @@ export class UniversalSwapHelper {
     return toBech32(prefix, data);
   };
 
-  static generateAddress = ({ oraiAddress, injAddress }) => {
-    /**
-     * need update when support new chain
-     */
-    const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
-    return {
-      [COSMOS_CHAIN_ID_COMMON.INJECTVE_CHAIN_ID]: injAddress,
-      [COSMOS_CHAIN_ID_COMMON.ORAICHAIN_CHAIN_ID]: oraiAddress,
-      [COSMOS_CHAIN_ID_COMMON.ORAIBRIDGE_CHAIN_ID]: UniversalSwapHelper.getAddress("oraib", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.COSMOSHUB_CHAIN_ID]: UniversalSwapHelper.getAddress("cosmos", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.OSMOSIS_CHAIN_ID]: UniversalSwapHelper.getAddress("osmo", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.NOBLE_CHAIN_ID]: UniversalSwapHelper.getAddress("noble", addressFollowCoinType),
-      [COSMOS_CHAIN_ID_COMMON.CELESTIA_CHAIN_ID]: UniversalSwapHelper.getAddress("celestia", addressFollowCoinType)
+  static generateAddress = ({
+    oraiAddress,
+    injAddress,
+    evmInfo
+  }: {
+    oraiAddress: string;
+    injAddress?: string;
+    evmInfo?: {
+      [key: string]: string;
     };
+  }) => {
+    const addressFollowCoinType = { address60: injAddress, address118: oraiAddress };
+    let cosmosAddress = cosmosChains.reduce(
+      (acc, cur) => {
+        if (!injAddress && cur?.bip44?.coinType === 60) return acc;
+        // coinType 118 cosmos
+        if (!acc?.[cur.chainId]) {
+          return {
+            ...acc,
+            [cur.chainId]: UniversalSwapHelper.getAddress(
+              cur.bech32Config.bech32PrefixAccAddr,
+              addressFollowCoinType,
+              cur.bip44.coinType
+            )
+          };
+        }
+        return acc;
+      },
+      {
+        Oraichain: oraiAddress,
+        [COSMOS_CHAIN_IDS.INJECTVE]: injAddress
+      }
+    );
+
+    if (evmInfo) {
+      cosmosAddress = {
+        ...cosmosAddress,
+        ...evmInfo
+      };
+    }
+
+    return cosmosAddress;
   };
 
   static addOraiBridgeRoute = async (
     addresses: {
-      obridgeAddress?: string;
       sourceReceiver: string;
       injAddress?: string;
       destReceiver?: string;
       recipientAddress?: string;
+      evmAddress?: string;
+      tronAddress?: string;
     },
     fromToken: TokenItemType,
     toToken: TokenItemType,
@@ -380,13 +414,17 @@ export class UniversalSwapHelper {
 
     if (isSmartRouter && swapOption.isIbcWasm && !swapOption?.isAlphaIbcWasm) {
       if (!alphaSmartRoute && fromToken.coinGeckoId !== toToken.coinGeckoId) throw generateError(`Missing router !`);
+      const obridgeAddress = UniversalSwapHelper.getAddress("oraib", {
+        address118: addresses.sourceReceiver,
+        address60: addresses.injAddress
+      });
 
       swapRoute = await UniversalSwapHelper.getRouteV2(
         {
           minimumReceive,
           recoveryAddr: addresses.sourceReceiver,
           destReceiver: addresses.destReceiver,
-          remoteAddressObridge: addresses.obridgeAddress
+          remoteAddressObridge: obridgeAddress
         },
         {
           ...alphaSmartRoute,
@@ -399,20 +437,34 @@ export class UniversalSwapHelper {
     }
 
     /**
-     * useAlphaIbcWasm case: (evm -> oraichain -> osmosis -> inj/tia not using wasm)
+     * useAlphaIbcWasm case:
+     * evm -> oraichain -> osmosis -> inj/tia
+     * tia/inj -> osmosis -> oraichain -> evm
      */
-    if (swapOption.isAlphaIbcWasm && !fromToken.cosmosBased) {
+    if (swapOption.isAlphaIbcWasm) {
       if (!alphaSmartRoute) throw generateError(`Missing router with alpha ibc wasm!`);
       const routes = alphaSmartRoute.routes;
       const alphaRoutes = routes[0];
+      let paths = alphaRoutes.paths;
 
-      if (alphaSmartRoute.routes.length > 1) throw generateError(`Missing router with alpha ibc wasm max length!`);
+      const fromTokenIsEvm = !fromToken.cosmosBased;
+      // if from is EVM only support one routes
+      if (fromTokenIsEvm && alphaSmartRoute.routes.length > 1) {
+        throw generateError(`Missing router with alpha ibc wasm max length!`);
+      }
 
-      const paths = alphaRoutes.paths.filter((_, index) => index > 0);
+      if (fromTokenIsEvm) {
+        paths = alphaRoutes.paths.filter((_, index) => index > 0);
+      }
 
       let receiverAddresses = UniversalSwapHelper.generateAddress({
         injAddress: addresses.injAddress,
-        oraiAddress: addresses.sourceReceiver
+        oraiAddress: addresses.sourceReceiver,
+        evmInfo: !toToken.cosmosBased
+          ? {
+              [toToken.chainId]: toToken.chainId === EVM_CHAIN_IDS.TRON ? addresses.tronAddress : addresses.evmAddress
+            }
+          : {}
       });
 
       if (addresses?.recipientAddress) receiverAddresses[toToken.chainId] = addresses?.recipientAddress;
