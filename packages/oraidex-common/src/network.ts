@@ -515,7 +515,7 @@ export const oraichainNetwork: CustomChainInfo = {
       coinImageUrl: "https://s2.coinmarketcap.com/static/img/coins/64x64/1.png"
     },
     {
-      coinDenom: "BTC V2",
+      coinDenom: "BTC",
       coinGeckoId: "bitcoin",
       coinMinimalDenom: OBTC_ORAICHAIN_EXT_DENOM,
       bridgeTo: ["bitcoin"] as any,
