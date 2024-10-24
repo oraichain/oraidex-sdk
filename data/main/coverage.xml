@@ -1,6 +1,6 @@
 <?xml version="1.0" ?>
 <!DOCTYPE coverage SYSTEM "http://cobertura.sourceforge.net/xml/coverage-04.dtd">
-<coverage lines-valid="18634" lines-covered="13373" line-rate="0.7176" branches-valid="1367" branches-covered="1108" branch-rate="0.8105" timestamp="1729756200787" complexity="0" version="0.1">
+<coverage lines-valid="18634" lines-covered="13373" line-rate="0.7176" branches-valid="1367" branches-covered="1108" branch-rate="0.8105" timestamp="1729757686636" complexity="0" version="0.1">
   <sources>
     <source>/home/runner/work/oraidex-sdk/oraidex-sdk</source>
   </sources>
@@ -12968,12 +12968,12 @@
             <line number="25" hits="1" branch="false"/>
             <line number="26" hits="1" branch="false"/>
             <line number="27" hits="1" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="28" hits="75" branch="false"/>
-            <line number="29" hits="75" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="30" hits="72" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="31" hits="72" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="32" hits="48" branch="false"/>
-            <line number="34" hits="75" branch="false"/>
+            <line number="28" hits="76" branch="false"/>
+            <line number="29" hits="76" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="30" hits="73" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="31" hits="73" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="32" hits="49" branch="false"/>
+            <line number="34" hits="76" branch="false"/>
             <line number="36" hits="1" branch="false"/>
             <line number="37" hits="1" branch="false"/>
             <line number="38" hits="1" branch="false"/>
@@ -12983,12 +12983,12 @@
             <line number="42" hits="1" branch="false"/>
             <line number="43" hits="1" branch="false"/>
             <line number="44" hits="1" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="45" hits="75" branch="false"/>
-            <line number="46" hits="75" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="47" hits="72" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="48" hits="72" branch="true" condition-coverage="100% (1/1)"/>
-            <line number="49" hits="48" branch="false"/>
-            <line number="51" hits="75" branch="false"/>
+            <line number="45" hits="76" branch="false"/>
+            <line number="46" hits="76" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="47" hits="73" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="48" hits="73" branch="true" condition-coverage="100% (1/1)"/>
+            <line number="49" hits="49" branch="false"/>
+            <line number="51" hits="76" branch="false"/>
           </lines>
         </class>
         <class name="types.ts" filename="packages/universal-swap/src/types.ts" line-rate="1" branch-rate="1">
