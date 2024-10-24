@@ -3678,6 +3678,16 @@
     ethers "^5.0.15"
     tronweb "5.3.0"
 
+"@oraichain/osor-api-contracts-sdk@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@oraichain/osor-api-contracts-sdk/-/osor-api-contracts-sdk-1.0.2.tgz#8aec43cfdb2df93cfa50538779f8eee550b94738"
+  integrity sha512-s4ebEgAN34rfnpz3l6qW75F9uKu3gwQTvUNPy+aYtpbkpjanY2Kke1lSt8QS0805Vb47ZfbIumsWLWzsi/4afg==
+  dependencies:
+    "@cosmjs/amino" "0.31.3"
+    "@cosmjs/cosmwasm-stargate" "0.31.3"
+    "@cosmjs/crypto" "0.31.3"
+    "@cosmjs/proto-signing" "0.31.3"
+
 "@oraichain/wasm-json-toolkit@^1.0.24":
   version "1.0.24"
   resolved "https://registry.yarnpkg.com/@oraichain/wasm-json-toolkit/-/wasm-json-toolkit-1.0.24.tgz#e9a431560e8e946fbb7ec257e5f13d9320ffd23a"

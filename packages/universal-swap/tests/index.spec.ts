@@ -257,10 +257,13 @@ describe("test universal swap handler functions", () => {
   });
   class StubCosmosWallet extends CosmosWallet {
     getKeplrAddr(chainId?: NetworkChainId | undefined): Promise<string> {
-      let addr: string = "orai1234";
+      let addr: string = "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g";
       switch (chainId) {
         case "noble-1":
           addr = "noble1234";
+          break;
+        case "osmosis-1":
+          addr = "osmo1234";
           break;
         default:
           break;
@@ -343,7 +346,7 @@ describe("test universal swap handler functions", () => {
             sourceChannel: "channel-13", // osmosis channel
             token: { denom: OSMOSIS_ORAICHAIN_DENOM, amount: simulateAmount }, //osmosis denom
             sender: testSenderAddress,
-            receiver: "orai1234",
+            receiver: "osmo1234",
             timeoutHeight: undefined,
             timeoutTimestamp: new Long(0),
             memo: ""
@@ -432,7 +435,7 @@ describe("test universal swap handler functions", () => {
             sourceChannel: oraichain2osmosis,
             token: { denom: OSMOSIS_ORAICHAIN_DENOM, amount: simulateAmount },
             sender: testSenderAddress,
-            receiver: "orai1234",
+            receiver: "osmo1234",
             timeoutHeight: undefined,
             timeoutTimestamp: new Long(0),
             memo: ""
@@ -518,7 +521,7 @@ describe("test universal swap handler functions", () => {
       metamaskAddress: undefined,
       tronAddress: undefined
     });
-    expect(result).toEqual("orai1234");
+    expect(result).toEqual("orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g");
     result = await universalSwap.getUniversalSwapToAddress("0x2b6653dc", {
       tronAddress: "TPwTVfDDvmWSawsP7Ki1t3ecSBmaFeMMXc"
     });
@@ -987,7 +990,7 @@ describe("test universal swap handler functions", () => {
                   amount: simulateAmount,
                   msg: toBinary({
                     local_channel_id: oraichain2oraib,
-                    remote_address: "orai1234",
+                    remote_address: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
                     timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
@@ -1048,7 +1051,7 @@ describe("test universal swap handler functions", () => {
                   amount: simulateAmount,
                   msg: toBinary({
                     local_channel_id: oraichain2oraib,
-                    remote_address: "orai1234",
+                    remote_address: "orai1g4h64yjt0fvzv5v2j8tyfnpe5kmnetejvfgs7g",
                     remote_denom: ORAI_BRIDGE_EVM_DENOM_PREFIX + AIRI_BSC_CONTRACT,
                     timeout: +calculateTimeoutTimestamp(IBC_TRANSFER_TIMEOUT, now),
                     memo: "oraib0x1234"
@@ -1842,38 +1845,46 @@ describe("test universal swap handler functions", () => {
     expect(msgTransfers).toEqual(expectResultMsgTransfer);
   });
 
-  it.each<[any, number, string, number, string]>([
+  it.each<[string, any, any, number, string, number, string]>([
     [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "Oraichain"),
+      "from-orai-bnb-to-orai-oraichain",
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38"), // 18
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "Oraichain"), // 6
       1,
       (1e5).toString(),
       0.1,
       "889000"
     ],
     [
-      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x01"),
+      "from-orai-bnb-to-orai-oraichain",
+      flattenTokens.find((t) => t.coinGeckoId === "oraichain-token" && t.chainId === "0x38"), // 18
+      flattenTokens.find((t) => t.coinGeckoId === "tether" && t.chainId === "Oraichain"), // 6
       1,
-      (1e6).toString(),
+      (1e5).toString(),
       0.1,
-      "0"
+      "389000"
     ]
   ])(
     "test-caculate-minimum-receive-ibc-wasm",
-    async (originalToToken, fromAmount, relayerFee, bridgeFee, expectResult) => {
+    async (_name, originalFromToken, originalToToken, fromAmount, relayerFee, bridgeFee, expectResult) => {
+      const isHandleSimulateSwap = vi.spyOn(UniversalSwapHelper, "handleSimulateSwap");
+      isHandleSimulateSwap.mockReturnValue(new Promise((resolve) => resolve({ amount: "600000", displayAmount: 0.6 })));
+
       const universalSwap = new FakeUniversalSwapHandler({
         ...universalSwapData,
         userSlippage: 1,
         bridgeFee,
         fromAmount,
         originalToToken,
-        simulateAmount,
+        originalFromToken,
+        simulateAmount: (fromAmount * 1e6).toString(),
         relayerFee: {
           relayerAmount: relayerFee,
           relayerDecimals: 6
         }
       });
 
-      const minimumReceive = await universalSwap.caculateMinimumReceive();
+      const minimumReceive = await universalSwap.calculateMinimumReceive();
       expect(minimumReceive).toEqual(expectResult);
     }
   );
