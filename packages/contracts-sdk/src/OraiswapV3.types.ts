@@ -1,5 +1,7 @@
+export type Addr = string;
 export type Percentage = number;
 export interface InstantiateMsg {
+  incentives_fund_manager: Addr;
   protocol_fee: Percentage;
 }
 export type ExecuteMsg = {
@@ -132,7 +134,6 @@ export type ExecuteMsg = {
     index: number;
   };
 };
-export type Addr = string;
 export type Liquidity = string;
 export type SqrtPrice = string;
 export type TokenAmount = string;
@@ -180,6 +181,8 @@ export type QueryMsg = {
   admin: {};
 } | {
   protocol_fee: {};
+} | {
+  incentives_fund_manager: {};
 } | {
   position: {
     index: number;

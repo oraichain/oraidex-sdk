@@ -496,30 +496,52 @@ export const extractOraidexV3Actions = (routes: RouteResponse[]): ActionRoute[] 
   return routesArray;
 };
 
+export type buildZapInMessageOptions = {
+  isSingleSide: boolean;
+  isTokenX: boolean;
+};
+
 export const populateMessageZapIn = (
   message: ZapInLiquidityResponse,
-  tokenIn: TokenItemType,
-  amountIn: string,
-  amountInToX: bigint,
-  amountInToY: bigint,
   actualAmountXReceived: SmartRouteResponse,
   actualAmountYReceived: SmartRouteResponse,
+  sqrtPrice: bigint,
   poolKey: PoolKey,
-  pool: Pool,
   lowerTick: number,
   upperTick: number,
-  slippage: number
+  slippage: number,
+  buildZapInMessageOptions?: buildZapInMessageOptions
 ) => {
-  message.assetIn = parseAsset(tokenIn, amountIn);
-  message.amountToX = amountInToX.toString();
-  message.amountToY = amountInToY.toString();
   message.amountX = actualAmountXReceived.returnAmount;
   message.amountY = actualAmountYReceived.returnAmount;
   message.poolKey = poolKey;
-  message.sqrtPrice = BigInt(pool.sqrt_price);
   message.tickLowerIndex = lowerTick;
   message.tickUpperIndex = upperTick;
-  message.routes = generateMessageSwapOperation([actualAmountXReceived, actualAmountYReceived], slippage);
+  message.currentSqrtPrice = sqrtPrice;
+
+  if (buildZapInMessageOptions) {
+    if (buildZapInMessageOptions.isTokenX) {
+      message.amountY = "0";
+    } else {
+      message.amountX = "0";
+    }
+    message.routes = generateMessageSwapOperation([actualAmountXReceived], slippage);
+  } else {
+    message.routes = generateMessageSwapOperation([actualAmountXReceived, actualAmountYReceived], slippage);
+  }
+
+  calculateSwapFee(message);
+
+  calculateMinimumLiquidity(
+    message,
+    actualAmountXReceived,
+    actualAmountYReceived,
+    lowerTick,
+    upperTick,
+    sqrtPrice,
+    slippage,
+    buildZapInMessageOptions
+  );
 };
 
 export const calculateSwapFee = (message: ZapInLiquidityResponse) => {
@@ -538,8 +560,18 @@ export const calculateMinimumLiquidity = (
   lowerTick: number,
   upperTick: number,
   sqrtPrice: bigint,
-  slippage: number
+  slippage: number,
+  buildZapInMessageOptions?: buildZapInMessageOptions
 ) => {
+  if (buildZapInMessageOptions) {
+    const res = buildZapInMessageOptions.isTokenX
+      ? getLiquidityByX(BigInt(actualAmountXReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true)
+      : getLiquidityByY(BigInt(actualAmountYReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
+    const slippageMultiplier = BigInt(Math.floor((100 - slippage) * 1000));
+    message.minimumLiquidity = res.l ? (BigInt(res.l) * slippageMultiplier) / 100_000n : 0n;
+    return;
+  }
+
   const res1 = getLiquidityByX(BigInt(actualAmountXReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
   const res2 = getLiquidityByY(BigInt(actualAmountYReceived.returnAmount), lowerTick, upperTick, sqrtPrice, true);
   message.minimumLiquidity =
