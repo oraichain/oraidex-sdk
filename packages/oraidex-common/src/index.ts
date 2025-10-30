@@ -1,4 +1,3 @@
-export * from "./axios-request";
 export * from "./bigdecimal";
 export * from "./config/chainInfosWithIcon";
 export * from "./constant";

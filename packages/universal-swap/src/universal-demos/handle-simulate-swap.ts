@@ -8,7 +8,7 @@ const simulate = async () => {
   const oraidexCommon = await OraidexCommon.load();
   const flattenTokens = oraidexCommon.flattenTokens;
 
-  let originalFromToken = flattenTokens.find((t) => t.chainId === "0x38" && t.coinGeckoId === "oraichain-token");
+  let originalFromToken = flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "tether");
   let originalToToken = flattenTokens.find((t) => t.chainId === "Oraichain" && t.coinGeckoId === "oraichain-token");
 
   if (!originalFromToken) throw generateError("Could not find original from token");
@@ -31,6 +31,8 @@ const simulate = async () => {
         protocols: ["Oraidex", "OraidexV3", "Osmosis"]
       }
     });
+    console.log({ res });
+
   } catch (error) {
     console.log("error: ", error);
   }

@@ -1,21 +1,5 @@
 import { PeriodParams } from "../charting_library";
 import { Bar } from "./types";
-import Axios, { AxiosAdapter } from "axios";
-import { throttleAdapterEnhancer, retryAdapterEnhancer } from "axios-extensions";
-
-const AXIOS_TIMEOUT = 10000;
-const AXIOS_THROTTLE_THRESHOLD = 2000;
-const axios = Axios.create({
-  timeout: AXIOS_TIMEOUT,
-  retryTimes: 3,
-  // cache will be enabled by default in 2 seconds
-  adapter: retryAdapterEnhancer(
-    throttleAdapterEnhancer(Axios.defaults.adapter as AxiosAdapter, {
-      threshold: AXIOS_THROTTLE_THRESHOLD
-    })
-  ),
-  baseURL: "https://api.oraidex.io"
-});
 
 export const getTokenChartPrice = async (
   pair: string,
@@ -23,15 +7,20 @@ export const getTokenChartPrice = async (
   resolution: string
 ): Promise<Bar[]> => {
   try {
-    const res = await axios.get("/v1/candles", {
-      params: {
-        pair,
-        startTime: periodParams.from,
-        endTime: periodParams.to,
-        tf: +resolution * 60
-      }
+    const baseUrl = `https://api.oraidex.io/v1`
+    const response = await fetch(`${baseUrl}/candles?pair=${pair}&startTime=${periodParams.from}&endTime=${periodParams.to}&tf=${+resolution * 60}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-    return res.data;
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+    return data;
   } catch (e) {
     console.error("GetTokenChartPrice", e);
     return [];

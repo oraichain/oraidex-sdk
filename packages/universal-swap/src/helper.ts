@@ -41,7 +41,6 @@ import {
   oraib2oraichainTest,
   getSubAmountDetails,
   // evmChains,
-  getAxios,
   // parseAssetInfoFromContractAddrOrDenom,
   parseAssetInfo,
   calculateTimeoutTimestamp,
@@ -704,7 +703,6 @@ export class UniversalSwapHelper {
     offerAmount: string,
     routerConfig: RouterConfigSmartRoute
   ): Promise<SmartRouterResponse> => {
-    const { axios } = await getAxios(routerConfig.url);
     const data = {
       sourceAsset: parseAssetInfo(offerInfo),
       sourceChainId: offerChainId,
@@ -720,13 +718,24 @@ export class UniversalSwapHelper {
         ignoreFee: routerConfig.ignoreFee
       }
     };
-    const res: {
-      data: SmartRouterResponse;
-    } = await axios.post(routerConfig.path, data);
+
+    const response = await fetch(routerConfig.url + routerConfig.path, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const res = await response.json();
     return {
-      swapAmount: res.data.swapAmount,
-      returnAmount: res.data.returnAmount,
-      routes: res.data.routes
+      swapAmount: res.swapAmount,
+      returnAmount: res.returnAmount,
+      routes: res.routes
     };
   };
 
